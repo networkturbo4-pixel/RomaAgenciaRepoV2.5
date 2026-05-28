@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+</head>
+<body>
+    <button id="testBtn">Test Save</button>
+    <div id="output" style="white-space: pre-wrap; font-family: monospace; padding: 20px;"></div>
+    <script>
+        $('#testBtn').on('click', function() {
+            var payload = {
+                quote_id: "0",
+                client_name: "Test Client API",
+                issue_date: "2026-05-10",
+                due_date: "2026-05-25",
+                currency: "PEN",
+                status: "Borrador",
+                tax_rate: "18",
+                notes: "test",
+                terms_conditions: "test",
+                show_payment_methods: 1,
+                payment_methods_text: "test",
+                items: [
+                    {
+                        service_id: "",
+                        description: "test",
+                        quantity: 1,
+                        unit_price: 100,
+                        discount: 0,
+                        icon: "",
+                        gantt_start_date: "2026-05-10",
+                        gantt_duration: 5
+                    }
+                ]
+            };
+            $('#output').text('Saving...');
+            $.post('modules/quotes/ajax_save_quote.php', payload, function(res) {
+                $('#output').text('SUCCESS:\n' + JSON.stringify(res, null, 2));
+            }, 'text').fail(function(xhr) {
+                $('#output').text('FAIL:\n' + xhr.status + '\n' + xhr.responseText);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+vendor/
+node_modules/
+.env
+.gemini/
+.idea/
+.vscode/
+*.log
+*.zip
+*.tar.gz

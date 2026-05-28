@@ -1,0 +1,7 @@
+[16-May-2026 10:57:21 Europe/Berlin] PHP Warning:  require_once(../../config/database.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\CESARMENDOZA\modules\project_board\ajax_upload_pdf.php on line 13
+[16-May-2026 10:57:21 Europe/Berlin] PHP Fatal error:  Uncaught Error: Failed opening required '../../config/database.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\CESARMENDOZA\modules\project_board\ajax_upload_pdf.php:13
+Stack trace:
+#0 C:\xampp\htdocs\CESARMENDOZA\scratch\test_upload.php(17): include()
+#1 {main}
+  thrown in C:\xampp\htdocs\CESARMENDOZA\modules\project_board\ajax_upload_pdf.php on line 13
+[16-May-2026 10:57:36 Europe/Berlin] Upload Error: El proyecto no tiene una carpeta de Drive configurada. on line 54

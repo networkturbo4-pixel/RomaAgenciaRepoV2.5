@@ -1,0 +1,7 @@
+{
+    "require": {
+        "google/apiclient": "^2.19",
+        "minishlink/web-push": "^10.0",
+        "pusher/pusher-php-server": "^7.2"
+    }
+}

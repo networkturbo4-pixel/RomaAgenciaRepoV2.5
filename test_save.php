@@ -1,0 +1,1 @@
+<?php session_start(); $_SESSION['user_id'] = 1; $_SESSION['user_permissions'] = ['admin']; $_SERVER['REQUEST_METHOD'] = 'POST'; file_put_contents('php://input', json_encode(['id' => 'NEW-ID', 'client' => 'Hans Villanueva', 'total' => 0, 'servicios' => [], 'cronograma' => []])); include 'modules/admin/ajax_save_payment_note.php'; ?>
