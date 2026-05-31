@@ -209,6 +209,139 @@ require_once 'includes/header.php';
     color: var(--primary-color);
 }
 
+/* Premium Calculator UI */
+.calculator-panel {
+    background: linear-gradient(145deg, var(--bg-surface), var(--bg-body));
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.calc-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 0.75rem;
+}
+.calc-base-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-body);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+}
+.calc-base-row .calc-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.calc-input-group {
+    display: flex;
+    align-items: center;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    transition: border-color 0.2s;
+}
+.calc-input-group:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+.calc-input-group .currency {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-right: 0.25rem;
+}
+.calc-input-group input {
+    border: none;
+    background: transparent;
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 1rem;
+    width: 80px;
+    text-align: right;
+    outline: none;
+}
+.calc-stats {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+.calc-stats .stat-item {
+    text-align: center;
+    flex: 1;
+}
+.calc-stats .stat-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.calc-stats .stat-value {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.95rem;
+}
+.calc-stats .divider {
+    width: 1px;
+    height: 30px;
+    background: rgba(59, 130, 246, 0.2);
+}
+.calc-extras {
+    display: flex;
+    gap: 1rem;
+}
+.calc-extras .extra-field {
+    flex: 1;
+    background: var(--bg-body);
+    border-radius: 8px;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+.extra-field label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+.extra-field input {
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 6px;
+    padding: 0.5rem;
+    font-weight: 600;
+    text-align: center;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    outline: none;
+}
+.extra-field input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
 .pagination {
     display: flex;
     align-items: center;
@@ -244,7 +377,10 @@ require_once 'includes/header.php';
 <div class="rrhh-toolbar">
     <div class="search-box">
         <i class="ph ph-magnifying-glass"></i>
-        <input type="text" placeholder="Buscar por nombre, email o rol...">
+        <!-- Hack para evitar que Chrome autocompleta el email -->
+        <input type="text" name="fake_email" style="display:none" aria-hidden="true">
+        <input type="password" name="fake_password" style="display:none" aria-hidden="true">
+        <input type="text" name="search_rrhh_<?php echo time(); ?>" id="search_rrhh" autocomplete="new-password" placeholder="Buscar por nombre, email o rol...">
     </div>
     <div class="filters-group">
         <button class="filter-btn active"><i class="ph ph-funnel"></i> Todos</button>
@@ -361,22 +497,80 @@ require_once 'includes/header.php';
 
 <!-- Modal: Gestión de Pagos -->
 <div class="modal-overlay" id="modal-payments">
-    <div class="modal-content" style="max-width: 900px;">
+    <div class="modal-content" style="max-width: 1150px;">
         <div class="modal-header">
             <h3 class="modal-title"><i class="ph ph-wallet"></i> Gestión de Pagos - <span id="payments-emp-name"></span></h3>
-            <button type="button" class="btn-close-circular" onclick="RrhhModule.closePaymentsModal()"><i class="ph ph-x"></i></button>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-outline" id="btn-share-history" style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; border-radius: var(--radius-full);">
+                    <i class="ph ph-share-network"></i> Compartir Historial
+                </button>
+                <button type="button" class="btn-close-circular" onclick="RrhhModule.closePaymentsModal()"><i class="ph ph-x"></i></button>
+            </div>
         </div>
         <div class="modal-body">
             <div class="payments-container">
-                <!-- Izquierda: Formulario de Registro -->
                 <div class="payments-left">
                     <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-main);">Registrar Nuevo Pago</h4>
                     <form id="payment_form" onsubmit="event.preventDefault(); RrhhModule.savePayment();">
-                        <input type="hidden" id="pay_employee_id" name="employee_id" value="0">
+                        <input type="hidden" name="employee_id" id="pay_employee_id">
+                        <input type="hidden" name="pay_id" id="pay_id" value="0">
+                        
                         <div class="form-group mb-3">
                             <label class="form-label">Concepto *</label>
                             <input type="text" class="form-control" id="pay_concept" name="concept" placeholder="Ej: Nómina Mayo" required>
                         </div>
+                        
+                        <div class="calculator-panel">
+                            <div class="calc-header">
+                                <i class="ph ph-calculator"></i>
+                                <span>Calculadora Salarial</span>
+                            </div>
+                            
+                            <div class="calc-base-row">
+                                <span class="calc-label">Salario Real (Fijo)</span>
+                                <div class="calc-input-group">
+                                    <span class="currency">S/</span>
+                                    <input type="number" id="calc_base_salary" step="0.01">
+                                </div>
+                            </div>
+
+                            <div class="calc-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Por día</span>
+                                    <span class="stat-value" id="lbl_daily_rate">S/ 0.00</span>
+                                </div>
+                                <div class="divider"></div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Por hora</span>
+                                    <span class="stat-value" id="lbl_hourly_rate">S/ 0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="calc-extras" style="margin-bottom: 1rem;">
+                                <div class="extra-field">
+                                    <label>Días Extras / Faltas</label>
+                                    <input type="number" id="calc_days" value="0" step="0.5">
+                                </div>
+                                <div class="extra-field">
+                                    <label>Horas Extras</label>
+                                    <input type="number" id="calc_extra_hours" value="0" step="1">
+                                </div>
+                            </div>
+
+                            <div class="calc-extras">
+                                <div class="extra-field">
+                                    <label>Bonificaciones (S/)</label>
+                                    <input type="number" id="calc_bonuses" name="bonuses" value="0" step="0.01">
+                                </div>
+                                <div class="extra-field">
+                                    <label>Descuentos (S/)</label>
+                                    <input type="number" id="calc_discounts" name="discounts" value="0" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="pay_extra_amount" name="extra_amount" value="0">
+
                         <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                             <div class="form-group" style="flex: 1;">
                                 <label class="form-label">Fecha de Pago *</label>
@@ -384,29 +578,41 @@ require_once 'includes/header.php';
                             </div>
                             <div class="form-group" style="flex: 1;">
                                 <label class="form-label">Monto (S/) *</label>
-                                <input type="number" step="0.01" class="form-control" id="pay_amount" name="amount" required>
+                                <input type="number" step="0.01" class="form-control" id="pay_amount" name="amount" required readonly style="background-color: var(--bg-body); opacity: 0.8;">
                             </div>
                         </div>
+
                         <div class="form-group mb-3">
+                            <label class="form-label">Estado del Pago</label>
+                            <select class="form-control" name="status" id="pay_status">
+                                <option value="Pagado">Pagado</option>
+                                <option value="Pendiente">Pendiente</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group mb-4">
                             <label class="form-label">Comprobante (Opcional)</label>
                             <input type="file" class="form-control" id="pay_voucher" name="voucher" accept=".pdf,.jpg,.jpeg,.png">
                             <small style="color: var(--text-muted); font-size: 0.75rem;">Sube un voucher en PDF, JPG o PNG.</small>
                         </div>
                         <button type="submit" form="payment_form" class="btn btn-primary w-100 mt-2"><i class="ph ph-check"></i> Registrar Pago</button>
+                        <button type="button" class="btn btn-outline" id="btn-cancel-edit" style="width: 100%; margin-top: 0.5rem; display: none;" onclick="RrhhModule.cancelPaymentEdit()">
+                            <i class="ph ph-x"></i> Cancelar Edición
+                        </button>
                     </form>
                 </div>
                 
-                <!-- Derecha: Historial -->
                 <div class="payments-right">
                     <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-main);">Historial de Pagos</h4>
                     <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
-                        <table class="table" style="margin: 0; min-width: 100%;">
+                        <table class="table" style="margin: 0; min-width: 100%;" id="payments-history-table">
                             <thead>
                                 <tr>
                                     <th>FECHA</th>
                                     <th>CONCEPTO</th>
                                     <th>MONTO</th>
-                                    <th style="text-align: right;">COMPROBANTE</th>
+                                    <th>ESTADO</th>
+                                    <th style="text-align: right;">ACCIONES</th>
                                 </tr>
                             </thead>
                             <tbody id="payments-history-tbody">
@@ -423,5 +629,6 @@ require_once 'includes/header.php';
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <script src="assets/js/modules/rrhh.js?v=<?php echo time(); ?>"></script>
 <?php require_once 'includes/footer.php'; ?>

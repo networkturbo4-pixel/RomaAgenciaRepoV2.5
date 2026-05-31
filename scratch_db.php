@@ -1,5 +1,6 @@
 <?php
-require 'config/database.php';
-$db = (new Database())->getConnection();
-$res = $db->query('SELECT concept FROM month_posts')->fetchAll(PDO::FETCH_ASSOC);
-print_r($res);
+require_once 'config/database.php';
+$database = new Database();
+$db = $database->getConnection();
+$stmt = $db->query("SHOW COLUMNS FROM employee_payments");
+echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));

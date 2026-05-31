@@ -1,0 +1,49 @@
+
+/* Attachment Popup Menu */
+.attachment-popup-menu {
+    position: absolute;
+    bottom: calc(100% + 15px);
+    left: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 0.5rem;
+    display: none;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 220px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+.attachment-popup-menu.active {
+    display: flex;
+    animation: popupFadeIn 0.2s ease-out;
+}
+@keyframes popupFadeIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.attachment-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text-main);
+    font-weight: 500;
+}
+.attachment-menu-item:hover {
+    background: var(--bg-color);
+}
+.attachment-menu-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}

@@ -1,0 +1,14 @@
+
+/* Glassmorphism */
+.attachment-popup-menu, .ctx-menu, .modal-content {
+    background: color-mix(in srgb, var(--bg-surface) 80%, transparent) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+@media (max-width: 768px) {
+    .chat-sidebar {
+        background: color-mix(in srgb, var(--bg-surface) 90%, transparent) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }
+}

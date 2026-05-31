@@ -133,6 +133,12 @@ if (!$client_id) {
             flex-direction: column;
         }
 
+        .task-tab { flex: 1; padding: 0.75rem; background: transparent; border: none; color: var(--portal-muted); font-weight: 600; font-size: 0.9rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .task-tab.active { background: var(--portal-surface); color: var(--portal-text); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .subtask-item { background: var(--portal-bg); padding: 1rem; border-radius: 8px; display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+        .subtask-checkbox { width: 20px; height: 20px; border: 2px solid var(--portal-muted); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;}
+        .subtask-checkbox.checked { background: #10b981; border-color: #10b981; color: white; }
+        
         /* Views */
         .view {
             display: none;
@@ -335,10 +341,9 @@ if (!$client_id) {
 <div id="view-home" class="view active">
     <div class="portal-header" style="padding-bottom: 0; align-items: flex-start;">
         <div>
-            <h1 class="portal-title" style="font-size: 2rem; color: var(--portal-text); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                ¡Hola, <span id="client-name-display" style="color: var(--portal-primary-contrast);">Cargando...</span>!
+            <h1 class="portal-title" style="font-size: clamp(1.4rem, 5vw, 2rem); color: var(--portal-text); margin-bottom: 0.5rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ¡Hola, <span id="client-name-display" style="color: var(--portal-primary-contrast);">Cargando...</span>!&nbsp;👋
             </h1>
-            <p style="color: var(--portal-muted); font-size: 0.95rem; font-weight: 500;">Aquí tienes un resumen de tu cuenta hoy.</p>
         </div>
         <div style="display:flex; gap: 10px; align-items:center;">
             <div onclick="toggleTheme()" style="width: 40px; height: 40px; border-radius: 50%; background: var(--portal-surface); color: var(--portal-text); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; border: 1px solid var(--portal-border); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
@@ -490,18 +495,99 @@ if (!$client_id) {
             <button class="btn-icon" onclick="backToList()" style="background: none; border: none; font-size: 1.5rem; color: var(--portal-text); cursor: pointer; padding: 0;">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <h1 class="portal-title" style="font-size: 1.2rem; margin: 0;" id="detail-top-title">Detalle</h1>
+            <h1 class="portal-title" style="font-size: 1.2rem; margin: 0;" id="detail-top-title">Editar Tarea</h1>
+        </div>
+    </div>
+    
+    <div style="padding: 1.5rem;">
+        <!-- Tabs -->
+        <div style="display: flex; gap: 0.5rem; background: var(--portal-bg); padding: 5px; border-radius: 12px; margin-bottom: 1.5rem; overflow-x: auto;">
+            <button id="tab-btn-detalles" onclick="switchTaskTab('detalles')" class="task-tab active">Detalles</button>
+            <button id="tab-btn-subtareas" onclick="switchTaskTab('subtareas')" class="task-tab">Subtareas</button>
+            <button id="tab-btn-archivos" onclick="switchTaskTab('archivos')" class="task-tab">Archivos</button>
+            <button id="tab-btn-avances" onclick="switchTaskTab('avances')" class="task-tab">Avances</button>
+        </div>
+
+        <!-- Tab: Detalles -->
+        <div id="tab-detalles" class="task-tab-content active">
+            <h3 style="font-size: 0.85rem; color: var(--portal-muted); margin-bottom: 0.5rem;">Título</h3>
+            <div id="detail-title" style="font-size: 1.1rem; font-weight: 600; background: var(--portal-bg); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;"></div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <h3 style="font-size: 0.85rem; color: var(--portal-muted); margin-bottom: 0.5rem;">Prioridad</h3>
+                    <div id="detail-status" style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
+                        MEDIA
+                    </div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.85rem; color: var(--portal-muted); margin-bottom: 0.5rem;">Fecha y Hora Límite</h3>
+                    <div id="detail-subtitle" style="background: var(--portal-bg); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem;"></div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 0.85rem; color: var(--portal-muted); margin-bottom: 0.5rem;">Descripción</h3>
+            <div id="detail-description" style="background: var(--portal-bg); padding: 1rem; border-radius: 8px; font-size: 0.9rem; min-height: 100px;"></div>
+
+            <h3 style="font-size: 0.85rem; color: var(--portal-muted); margin: 1.5rem 0 0.5rem 0;">Equipo Asignado</h3>
+            <div id="detail-team" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                <!-- Avatars will be injected here -->
+            </div>
+        </div>
+
+        <!-- Tab: Subtareas -->
+        <div id="tab-subtareas" class="task-tab-content" style="display: none;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Desglose de Tareas</h3>
+            <div id="detail-subtasks-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Subtasks injected here -->
+            </div>
+        </div>
+
+        <!-- Tab: Archivos -->
+        <div id="tab-archivos" class="task-tab-content" style="display: none;">
+            <div style="background: var(--portal-bg); border: 1px solid var(--portal-border); border-radius: 12px; padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h3 style="color: #10b981; font-weight: 600; margin-bottom: 0.25rem;">Conexión a Drive</h3>
+                        <div style="font-size: 0.85rem; color: var(--portal-muted); margin-bottom: 0.5rem;">Accede a la carpeta raíz del proyecto y sus archivos finales.</div>
+                        <div id="detail-drive-status" style="font-size: 0.85rem; font-weight: 600;">
+                            <i class="ph ph-check-circle"></i> Conectado a carpeta
+                        </div>
+                    </div>
+                    <div id="detail-actions">
+                        <!-- Botón Ver Archivos -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Avances -->
+        <div id="tab-avances" class="task-tab-content" style="display: none;">
+            <div id="detail-advances-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem;">
+                <!-- Advances injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Detail View (Meses) -->
+<div id="view-project-detail-simple" class="view" style="background: var(--portal-surface);">
+    <div class="portal-header" style="border-bottom: 1px solid var(--portal-border); padding-bottom: 1rem; position: sticky; top: 0; background: var(--portal-surface); z-index: 90;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <button class="btn-icon" onclick="switchView('projects')" style="background: none; border: none; font-size: 1.5rem; color: var(--portal-text); cursor: pointer; padding: 0;">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <h1 class="portal-title" style="font-size: 1.2rem; margin: 0;">Proyecto</h1>
         </div>
     </div>
     
     <div style="padding: 2rem 1.5rem; text-align: center;">
-        <div id="detail-logo" style="width: 80px; height: 80px; margin: 0 auto 1rem auto; background: var(--portal-bg); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--portal-primary); overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-            <!-- Image or Initials -->
+        <div id="proj-logo" style="width: 80px; height: 80px; margin: 0 auto 1rem auto; background: var(--portal-bg); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--portal-primary); overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
         </div>
-        <h2 id="detail-title" style="font-size: 1.5rem; margin-bottom: 0.25rem;">Cargando...</h2>
-        <p id="detail-subtitle" style="color: var(--portal-muted); font-size: 0.9rem; margin-bottom: 1rem;"></p>
+        <h2 id="proj-title" style="font-size: 1.5rem; margin-bottom: 0.25rem;">Cargando...</h2>
+        <p id="proj-subtitle" style="color: var(--portal-muted); font-size: 0.9rem; margin-bottom: 1rem;"></p>
         
-        <div id="detail-status" style="display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
+        <div id="proj-status" style="display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
             ESTADO
         </div>
     </div>
@@ -513,19 +599,17 @@ if (!$client_id) {
                     <i class="ph ph-image-square"></i>
                 </div>
                 <div>
-                    <div class="stat-label" id="detail-metric-label">Posts Mensuales</div>
-                    <div style="font-weight: 700; font-size: 1.2rem;" id="detail-metric-value">0</div>
+                    <div class="stat-label">Posts en el Mes</div>
+                    <div style="font-weight: 700; font-size: 1.2rem;" id="proj-metric-value">0</div>
                 </div>
             </div>
         </div>
 
         <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem 0;">Equipo Asignado</h3>
-        <div id="detail-team" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem;">
-            <!-- Avatars will be injected here -->
+        <div id="proj-team" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem;">
         </div>
         
-        <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem;" id="detail-actions">
-            <!-- Action buttons -->
+        <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem;" id="proj-actions">
         </div>
     </div>
 </div>
@@ -593,7 +677,8 @@ if (!$client_id) {
 <div class="file-viewer-overlay" id="file-viewer">
     <div class="viewer-header">
         <div style="font-weight: 600; font-size: 1.1rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 70%;" id="viewer-title">Archivo</div>
-        <div style="display: flex; gap: 15px;">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <i class="ph ph-share-network" id="viewer-share" style="color: white; font-size: 1.5rem; cursor: pointer; display: none;" title="Compartir"></i>
             <a href="#" id="viewer-download" target="_blank" style="color: white; font-size: 1.5rem;"><i class="ph ph-download-simple"></i></a>
             <i class="ph ph-x" style="font-size: 1.5rem; cursor: pointer;" onclick="closeViewer()"></i>
         </div>
@@ -880,64 +965,105 @@ function loadDrive(folderId = null) {
                 return;
             }
             
-            html += '<div class="drive-grid-container" style="background: transparent; padding: 0;"><div class="drive-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));">';
-            data.files.forEach(f => {
-                const isImg = f.mimeType.startsWith('image/');
-                const isVideo = f.mimeType.startsWith('video/');
-                const isFolder = f.mimeType === 'application/vnd.google-apps.folder';
-                
-                const safeName = f.name.replace(/'/g, "\\'");
-                const clickAction = isFolder ? `navigateToFolder('${f.id}', '${safeName}')` : `openViewer('${f.webViewLink}', '${safeName}', '${f.webContentLink}')`;
-                
-                if (isFolder) {
-                    html += `
-                        <div class="drive-item" onclick="${clickAction}">
-                            <div class="folder-icon">
-                                <div class="folder-back"></div>
-                                <div class="folder-tab folder-tab-1"></div>
-                                <div class="folder-tab folder-tab-2"></div>
-                                <div class="folder-tab folder-tab-3"></div>
-                                <div class="folder-paper"></div>
-                                <div class="folder-front"></div>
-                            </div>
-                            <div class="item-name" title="${f.name}">${f.name}</div>
-                        </div>
-                    `;
-                } else {
-                    let iconHtml = '';
-                    const isPdf = f.mimeType.includes('pdf');
-                    const isPs = f.mimeType.includes('photoshop') || f.name.toLowerCase().endsWith('.psd');
-                    const isAi = f.mimeType.includes('illustrator') || f.name.toLowerCase().endsWith('.ai');
-                    const isZip = f.mimeType.includes('zip') || f.mimeType.includes('rar') || f.mimeType.includes('tar') || f.name.toLowerCase().endsWith('.zip');
+            const isRoot = (folderId === null);
+
+            function renderFilesGroup(files) {
+                if (files.length === 0) return '<div style="color:var(--portal-muted); font-size: 0.95rem; text-align: center; padding: 2rem 0;">No hay carpetas en esta sección.</div>';
+                let groupHtml = '<div class="drive-grid-container" style="background: transparent; padding: 0;"><div class="drive-grid" style="grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 1.5rem;">';
+                files.forEach(f => {
+                    const isImg = f.mimeType.startsWith('image/');
+                    const isVideo = f.mimeType.startsWith('video/');
+                    const isFolder = f.mimeType === 'application/vnd.google-apps.folder';
                     
-                    if (isImg) {
-                        let thumbUrl = f.thumbnailLink ? f.thumbnailLink.replace('=s220', '=s400') : f.iconLink;
-                        iconHtml = `<img src="${thumbUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">`;
-                    } else if (isPs) {
-                        iconHtml = `<div style="width:100%;height:100%;background:#001e36;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#31a8ff;font-weight:800;font-size:2.2rem;font-family:Arial, sans-serif;letter-spacing:-2px;padding-right:3px;">Ps</div>`;
-                    } else if (isAi) {
-                        iconHtml = `<div style="width:100%;height:100%;background:#330000;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#ff9a00;font-weight:800;font-size:2.2rem;font-family:Arial, sans-serif;letter-spacing:-2px;padding-right:3px;">Ai</div>`;
-                    } else if (isPdf) {
-                        iconHtml = `<div style="width:100%;height:100%;background:#fff;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f40f02;"><i class="ph-fill ph-file-pdf" style="font-size:3rem;"></i></div>`;
-                    } else if (isZip) {
-                        iconHtml = `<div style="width:100%;height:100%;background:#f59e0b;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="ph-fill ph-file-archive" style="font-size:2.5rem;"></i></div>`;
-                    } else if (isVideo) {
-                        iconHtml = '<i class="ph ph-video-camera" style="font-size:2.5rem; color: #ef4444;"></i>';
+                    const safeName = f.name.replace(/'/g, "\\'");
+                    const clickAction = isFolder ? `navigateToFolder('${f.id}', '${safeName}')` : `openViewer('${f.webViewLink}', '${safeName}', '${f.webContentLink}')`;
+                    
+                    if (isFolder) {
+                        groupHtml += `
+                            <div class="drive-item" onclick="${clickAction}">
+                                <div class="folder-icon">
+                                    <div class="folder-back"></div>
+                                    <div class="folder-tab folder-tab-1"></div>
+                                    <div class="folder-tab folder-tab-2"></div>
+                                    <div class="folder-tab folder-tab-3"></div>
+                                    <div class="folder-paper"></div>
+                                    <div class="folder-front"></div>
+                                </div>
+                                <div class="item-name" title="${f.name}">${f.name}</div>
+                            </div>
+                        `;
                     } else {
-                        iconHtml = '<i class="ph ph-file-text" style="font-size:2.5rem; color: #94a3b8;"></i>';
-                    }
-                    
-                    html += `
-                        <div class="drive-item" onclick="${clickAction}">
-                            <div class="file-icon" style="overflow:hidden; border: none; background: transparent;">
-                                ${iconHtml}
+                        let iconHtml = '';
+                        const isPdf = f.mimeType.includes('pdf');
+                        const isPs = f.mimeType.includes('photoshop') || f.name.toLowerCase().endsWith('.psd');
+                        const isAi = f.mimeType.includes('illustrator') || f.name.toLowerCase().endsWith('.ai');
+                        const isZip = f.mimeType.includes('zip') || f.mimeType.includes('rar') || f.mimeType.includes('tar') || f.name.toLowerCase().endsWith('.zip');
+                        
+                        if (isImg) {
+                            let thumbUrl = f.thumbnailLink ? f.thumbnailLink.replace('=s220', '=s400') : f.iconLink;
+                            iconHtml = `<img src="${thumbUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">`;
+                        } else if (isPs) {
+                            iconHtml = `<div style="width:100%;height:100%;background:#001e36;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#31a8ff;font-weight:800;font-size:2.2rem;font-family:Arial, sans-serif;letter-spacing:-2px;padding-right:3px;">Ps</div>`;
+                        } else if (isAi) {
+                            iconHtml = `<div style="width:100%;height:100%;background:#330000;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#ff9a00;font-weight:800;font-size:2.2rem;font-family:Arial, sans-serif;letter-spacing:-2px;padding-right:3px;">Ai</div>`;
+                        } else if (isPdf) {
+                            iconHtml = `<div style="width:100%;height:100%;background:#fff;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f40f02;"><i class="ph-fill ph-file-pdf" style="font-size:3rem;"></i></div>`;
+                        } else if (isZip) {
+                            iconHtml = `<div style="width:100%;height:100%;background:#f59e0b;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="ph-fill ph-file-archive" style="font-size:2.5rem;"></i></div>`;
+                        } else if (isVideo) {
+                            iconHtml = '<i class="ph ph-video-camera" style="font-size:2.5rem; color: #ef4444;"></i>';
+                        } else {
+                            iconHtml = '<i class="ph ph-file-text" style="font-size:2.5rem; color: #94a3b8;"></i>';
+                        }
+                        
+                        groupHtml += `
+                            <div class="drive-item" onclick="${clickAction}">
+                                <div class="file-icon" style="overflow:hidden; border: none; background: transparent;">
+                                    ${iconHtml}
+                                </div>
+                                <div class="item-name" title="${f.name}">${f.name}</div>
                             </div>
-                            <div class="item-name" title="${f.name}">${f.name}</div>
+                        `;
+                    }
+                });
+                groupHtml += '</div></div>';
+                return groupHtml;
+            }
+
+            if (isRoot) {
+                const calFiles = data.files.filter(f => f.category === 'Calendario');
+                const desFiles = data.files.filter(f => f.category === 'Diseño');
+                
+                html += `
+                <div style="background: var(--portal-surface); border: 1px solid var(--portal-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--portal-border); padding-bottom: 1rem;">
+                        <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                            <i class="ph ph-calendar-blank" style="font-size: 1.5rem;"></i>
                         </div>
-                    `;
-                }
-            });
-            html += '</div></div>';
+                        <div>
+                            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--portal-text); margin: 0;">Calendario</h3>
+                            <div style="font-size: 0.85rem; color: var(--portal-muted);">Archivos y recursos de tus meses activos</div>
+                        </div>
+                    </div>
+                    ${renderFilesGroup(calFiles)}
+                </div>`;
+
+                html += `
+                <div style="background: var(--portal-surface); border: 1px solid var(--portal-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--portal-border); padding-bottom: 1rem;">
+                        <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center;">
+                            <i class="ph ph-paint-brush" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--portal-text); margin: 0;">Diseño</h3>
+                            <div style="font-size: 0.85rem; color: var(--portal-muted);">Archivos fuente y recursos de tus diseños</div>
+                        </div>
+                    </div>
+                    ${renderFilesGroup(desFiles)}
+                </div>`;
+            } else {
+                html += renderFilesGroup(data.files);
+            }
             container.innerHTML = html;
         } else {
             container.innerHTML = `<div style="text-align:center; color:var(--portal-muted); padding: 2rem;">${data.error}</div>`;
@@ -949,27 +1075,24 @@ function openProjectDetails(projectId) {
     const project = window.currentProjects.find(p => p.id == projectId);
     if(!project) return;
     
-    document.getElementById('detail-top-title').innerText = 'Proyecto';
-    
-    const logoContainer = document.getElementById('detail-logo');
+    const logoContainer = document.getElementById('proj-logo');
     if (project.brand_logo) {
         logoContainer.innerHTML = `<img src="${project.brand_logo}" style="width:100%; height:100%; object-fit:cover;">`;
     } else {
         logoContainer.innerHTML = project.brand_name.charAt(0);
     }
     
-    document.getElementById('detail-title').innerText = project.brand_name;
-    document.getElementById('detail-subtitle').innerText = project.month_name;
+    document.getElementById('proj-title').innerText = project.brand_name;
+    document.getElementById('proj-subtitle').innerText = project.month_name;
     
     let statusClass = 'pending';
     let statusText = (project.project_status || 'Pendiente').toUpperCase();
     if(statusText === 'TERMINADO' || statusText === 'APROBADO') statusClass = 'paid';
     
-    document.getElementById('detail-status').className = `status-badge ${statusClass}`;
-    document.getElementById('detail-status').innerText = statusText;
+    document.getElementById('proj-status').className = `status-badge ${statusClass}`;
+    document.getElementById('proj-status').innerText = statusText;
     
-    document.getElementById('detail-metric-label').innerText = 'Posts en el Mes';
-    document.getElementById('detail-metric-value').innerText = project.post_count || 0;
+    document.getElementById('proj-metric-value').innerText = project.post_count || 0;
     
     // Team
     let teamHtml = '';
@@ -984,7 +1107,7 @@ function openProjectDetails(projectId) {
     } else {
         teamHtml = '<span style="color:var(--portal-muted); font-size:0.85rem;">No hay equipo asignado</span>';
     }
-    document.getElementById('detail-team').innerHTML = teamHtml;
+    document.getElementById('proj-team').innerHTML = teamHtml;
     
     // Actions
     let actionsHtml = `
@@ -994,39 +1117,45 @@ function openProjectDetails(projectId) {
     `;
     if (project.drive_folder_id) {
         actionsHtml += `
-            <button class="btn" style="background: white; color: #10b981; border: 1px solid #10b981;" onclick="switchView('drive')">
+            <button class="btn" style="background: white; color: #10b981; border: 1px solid #10b981;" onclick="openDriveFolder('${project.drive_folder_id}', '${project.month_name}')">
                 <i class="ph ph-folder-open"></i> Ver Archivos en Drive
             </button>
         `;
     }
-    document.getElementById('detail-actions').innerHTML = actionsHtml;
+    document.getElementById('proj-actions').innerHTML = actionsHtml;
     
     // Show view
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-    document.getElementById('view-project-details').classList.add('active');
+    document.getElementById('view-project-detail-simple').classList.add('active');
+}
+
+function switchTaskTab(tabName) {
+    document.querySelectorAll('.task-tab').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.task-tab-content').forEach(el => el.style.display = 'none');
+    document.getElementById('tab-btn-' + tabName).classList.add('active');
+    document.getElementById('tab-' + tabName).style.display = 'block';
 }
 
 function openDesignDetails(designId) {
     const design = window.currentDesigns.find(d => d.id == designId);
     if(!design) return;
     
-    document.getElementById('detail-top-title').innerText = 'Diseño';
+    document.getElementById('detail-top-title').innerText = 'Detalles de Tarea';
     
-    const logoContainer = document.getElementById('detail-logo');
-    logoContainer.innerHTML = '<i class="ph ph-paint-brush"></i>';
+    // Switch to first tab
+    switchTaskTab('detalles');
     
-    document.getElementById('detail-title').innerText = design.name;
-    document.getElementById('detail-subtitle').innerText = design.due_date ? `Entrega: ${new Date(design.due_date).toLocaleDateString()}` : 'Sin fecha de entrega';
+    document.getElementById('detail-title').innerText = design.name || 'Sin título';
+    document.getElementById('detail-subtitle').innerText = design.due_date ? `${design.due_date.substring(0, 16)}` : 'Sin fecha de entrega';
+    
+    document.getElementById('detail-description').innerHTML = design.description || '<span style="color:var(--portal-muted)">Sin descripción</span>';
     
     let statusClass = 'pending';
     if(design.priority === 'alta') statusClass = 'late';
-    if(design.status === 'Terminado') statusClass = 'paid';
+    if(design.priority === 'baja') statusClass = 'paid';
     
     document.getElementById('detail-status').className = `status-badge ${statusClass}`;
-    document.getElementById('detail-status').innerText = design.status;
-    
-    document.getElementById('detail-metric-label').innerText = 'Prioridad';
-    document.getElementById('detail-metric-value').innerText = design.priority.toUpperCase();
+    document.getElementById('detail-status').innerText = design.priority ? design.priority.toUpperCase() : 'MEDIA';
     
     // Team
     let teamHtml = '';
@@ -1043,63 +1172,93 @@ function openDesignDetails(designId) {
     }
     document.getElementById('detail-team').innerHTML = teamHtml;
     
-    // Actions
-    let actionsHtml = '';
-    if (design.description) {
-        actionsHtml += `<div style="text-align:left; background:var(--portal-bg); padding:1rem; border-radius:12px; margin-bottom:1rem; font-size:0.9rem;">${design.description}</div>`;
-    }
-    
+    // Subtasks
+    let stHtml = '';
     if (design.subtasks && design.subtasks.length > 0) {
-        actionsHtml += `<h4 style="margin-bottom:0.5rem; color:var(--portal-text); font-size:1rem;">Subtareas</h4>`;
-        actionsHtml += `<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">`;
         design.subtasks.forEach(st => {
-            const isCompleted = st.is_completed == 1;
-            actionsHtml += `
-                <div style="display:flex; align-items:center; gap:0.75rem; background:var(--portal-surface); border:1px solid var(--portal-border); padding:0.75rem 1rem; border-radius:8px;">
-                    <i class="ph ${isCompleted ? 'ph-check-circle' : 'ph-circle'}" style="color: ${isCompleted ? '#10b981' : 'var(--portal-muted)'}; font-size:1.25rem;"></i>
-                    <span style="${isCompleted ? 'text-decoration:line-through; color:var(--portal-muted);' : 'color:var(--portal-text);'} flex:1; font-size:0.95rem;">${st.title}</span>
+            const isComp = st.is_completed == 1;
+            stHtml += `
+                <div class="subtask-item">
+                    <div class="subtask-checkbox ${isComp ? 'checked' : ''}">
+                        ${isComp ? '<i class="ph ph-check"></i>' : ''}
+                    </div>
+                    <div style="flex:1; ${isComp ? 'text-decoration: line-through; color: var(--portal-muted);' : ''}">
+                        ${st.title}
+                    </div>
                 </div>
             `;
         });
-        actionsHtml += `</div>`;
-    }
-
-    if (design.external_links && design.external_links.length > 0) {
-        actionsHtml += `<h4 style="margin-bottom:0.5rem; color:var(--portal-text); font-size:1rem;">Enlaces de Referencia</h4>`;
-        actionsHtml += `<div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">`;
-        design.external_links.forEach(link => {
-            actionsHtml += `
-                <a href="${link.url}" target="_blank" style="display:flex; align-items:center; gap:0.75rem; background:var(--portal-surface); border:1px solid var(--portal-border); padding:0.75rem 1rem; border-radius:8px; text-decoration:none; color:var(--portal-primary); transition:all 0.2s;">
-                    <i class="ph ph-link" style="font-size:1.25rem;"></i>
-                    <span style="flex:1; font-size:0.95rem;">${link.title || link.url}</span>
-                </a>
-            `;
-        });
-        actionsHtml += `</div>`;
-    }
-    
-    if (design.drive_folder_id) {
-        actionsHtml += `
-        <button class="btn" onclick="openDriveFolder('${design.drive_folder_id}')" style="background:var(--portal-primary); color:white; width:100%; justify-content:center;">
-            <i class="ph ph-folder-open"></i> Archivos del Diseño
-        </button>
+    } else {
+        stHtml = `
+            <div style="text-align: center; padding: 2rem; color: var(--portal-muted);">
+                <i class="ph ph-copy" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                <div>No hay subtareas registradas.</div>
+            </div>
         `;
     }
-    document.getElementById('detail-actions').innerHTML = actionsHtml;
+    document.getElementById('detail-subtasks-list').innerHTML = stHtml;
+    
+    // Drive
+    const driveStatus = document.getElementById('detail-drive-status');
+    const actions = document.getElementById('detail-actions');
+    if (design.drive_folder_id) {
+        driveStatus.innerHTML = '<i class="ph ph-check-circle"></i> Conectado a carpeta (ID: '+design.drive_folder_id.substring(0,8)+'...)';
+        driveStatus.style.color = '#10b981';
+        actions.innerHTML = `<button class="btn" style="background: #10b981; color: white;" onclick="openDriveFolder('${design.drive_folder_id}', '${design.name.replace(/'/g, "\\'")}')"><i class="ph ph-folder"></i> Abrir Carpeta</button>`;
+    } else {
+        driveStatus.innerHTML = '<i class="ph ph-x-circle"></i> Sin conexión a Drive';
+        driveStatus.style.color = 'var(--portal-muted)';
+        actions.innerHTML = '';
+    }
+    
+    // Advances
+    let advHtml = '';
+    if (design.advances && design.advances.length > 0) {
+        design.advances.forEach(adv => {
+            const safeName = (adv.file_name || 'Avance').replace(/'/g, "\\'");
+            // Extract Google Drive file ID to generate thumbnail
+            let thumbUrl = adv.file_path;
+            const driveMatch = adv.file_path.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (driveMatch) {
+                thumbUrl = 'https://drive.google.com/thumbnail?id=' + driveMatch[1] + '&sz=w400';
+            }
+            advHtml += `
+                <div class="drive-item" onclick="openViewer('${adv.file_path}', '${safeName}', '')" style="cursor: pointer; background: var(--portal-bg); padding: 0.5rem; border-radius: 8px;">
+                    <div style="overflow:hidden; width: 100%; height: 120px; border-radius: 4px; margin-bottom: 0.5rem; background: var(--portal-surface); display: flex; align-items: center; justify-content: center;">
+                        <img src="${thumbUrl}" style="width:100%;height:100%;object-fit:cover; border-radius: 4px;" onerror="this.outerHTML='<i class=\\'ph ph-image\\' style=\\'font-size:2rem; color:var(--portal-muted)\\'></i>'">
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--portal-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeName}">${safeName}</div>
+                </div>
+            `;
+        });
+    } else {
+        advHtml = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--portal-muted);">
+                No hay avances subidos todavía.
+            </div>
+        `;
+    }
+    document.getElementById('detail-advances-list').innerHTML = advHtml;
     
     // Show view
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-project-details').classList.add('active');
 }
 
+function openDriveFolder(folderId, folderName) {
+    // Activate drive view without triggering loadDrive() root
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('view-drive').classList.add('active');
+    document.querySelector('.nav-item[data-target="drive"]')?.classList.add('active');
+    
+    // Reset breadcrumb path and navigate directly to the folder
+    portalDrivePath = [{id: null, name: 'Raíz'}];
+    navigateToFolder(folderId, folderName || 'Carpeta');
+}
+
 function backToList() {
-    // Determine if we came from projects or designs by checking the top title
-    const title = document.getElementById('detail-top-title').innerText;
-    if (title === 'Diseño') {
-        switchView('designs');
-    } else {
-        switchView('projects');
-    }
+    switchView('designs');
 }
 
 function openViewer(viewUrl, title, downloadUrl) {
@@ -1111,10 +1270,31 @@ function openViewer(viewUrl, title, downloadUrl) {
     } else {
         document.getElementById('viewer-download').style.display = 'none';
     }
+
+    if (viewUrl) {
+        document.getElementById('viewer-share').style.display = 'block';
+        document.getElementById('viewer-share').onclick = function() {
+            const confirmMsg = "⚠️ Por seguridad, te recomendamos no compartir estos enlaces con personas no autorizadas.\n\n¿Estás seguro de que deseas compartir este archivo?";
+            if (!confirm(confirmMsg)) return;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    url: viewUrl
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(viewUrl).then(() => {
+                    alert('Enlace copiado al portapapeles');
+                });
+            }
+        };
+    } else {
+        document.getElementById('viewer-share').style.display = 'none';
+    }
     
     // Embed URL format for Google Drive
     let embedUrl = viewUrl;
-    if (viewUrl.includes('drive.google.com/file/d/')) {
+    if (viewUrl && viewUrl.includes('drive.google.com/file/d/')) {
         embedUrl = viewUrl.replace(/\/view.*$/, '/preview');
     }
     

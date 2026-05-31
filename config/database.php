@@ -3,10 +3,32 @@
 
 class Database {
     private $host = "localhost";
-    private $db_name = "saas_cesar_db";
-    private $username = "root";
-    private $password = "";
+    private $db_name;
+    private $username;
+    private $password;
     public $conn;
+
+    public function __construct() {
+        // Detectamos si estamos en local (localhost o terminal XAMPP)
+        $is_local = false;
+        if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1')) {
+            $is_local = true;
+        } elseif (php_sapi_name() === 'cli' && strpos(__DIR__, 'xampp') !== false) {
+            $is_local = true;
+        }
+
+        if ($is_local) {
+            // Credenciales Locales
+            $this->db_name = "saas_cesar_db";
+            $this->username = "root";
+            $this->password = "";
+        } else {
+            // Credenciales de Producción
+            $this->db_name = "iqxalgre_saasroma";
+            $this->username = "iqxalgre_cesarsaas";
+            $this->password = "RomaAgencia2026@$%&$$$$";
+        }
+    }
 
     public function getConnection() {
         $this->conn = null;

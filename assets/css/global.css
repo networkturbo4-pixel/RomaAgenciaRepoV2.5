@@ -334,3 +334,18 @@ html.sidebar-is-collapsed .sidebar .nav-item:hover::before {
     0% { opacity: 0; transform: translate(-10px, -50%); }
     100% { opacity: 1; transform: translate(0, -50%); }
 }
+
+/* Chat Glowing Border Effect */
+@keyframes chatGlow {
+    0% { box-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color); }
+    50% { box-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color); }
+    100% { box-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color); }
+}
+
+.chat-glowing-border {
+    border: 1px solid var(--primary-color);
+    animation: chatGlow 1.5s infinite alternate;
+    border-radius: var(--radius-md);
+    position: relative;
+    z-index: 1;
+}

@@ -1,1 +1,8 @@
-<?php require_once 'config/database.php'; $db = (new Database())->getConnection(); $stmt = $db->query('SELECT setting_key, setting_value FROM settings'); print_r($stmt->fetchAll(PDO::FETCH_ASSOC));
+<?php
+require 'config/database.php';
+$db = (new Database())->getConnection();
+$stmt = $db->query('DESCRIBE chat_channel_members');
+$res = $stmt->fetchAll(PDO::FETCH_ASSOC);
+foreach($res as $row) {
+    echo $row['Field'] . " - " . $row['Type'] . "\n";
+}

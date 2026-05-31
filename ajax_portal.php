@@ -123,12 +123,19 @@ try {
             // Fetch subtasks for these tasks
             $taskIds = array_column($designTasks, 'id');
             $subtasksByTask = [];
+            $advancesByTask = [];
             if (!empty($taskIds)) {
                 $in = str_repeat('?,', count($taskIds) - 1) . '?';
                 $stmtSub = $db->prepare("SELECT design_task_id, id, title, is_completed, due_date FROM design_task_subtasks WHERE design_task_id IN ($in) ORDER BY created_at ASC");
                 $stmtSub->execute($taskIds);
                 foreach ($stmtSub->fetchAll(PDO::FETCH_ASSOC) as $sub) {
                     $subtasksByTask[$sub['design_task_id']][] = $sub;
+                }
+                
+                $stmtAtt = $db->prepare("SELECT design_task_id, id, file_path, file_name, created_at FROM design_task_attachments WHERE attachment_type = 'avance' AND design_task_id IN ($in) ORDER BY created_at ASC");
+                $stmtAtt->execute($taskIds);
+                foreach ($stmtAtt->fetchAll(PDO::FETCH_ASSOC) as $att) {
+                    $advancesByTask[$att['design_task_id']][] = $att;
                 }
             }
 
@@ -147,6 +154,7 @@ try {
                 }
                 $dt['team'] = $resolvedMembers;
                 $dt['subtasks'] = $subtasksByTask[$dt['id']] ?? [];
+                $dt['advances'] = $advancesByTask[$dt['id']] ?? [];
                 $dt['external_links'] = json_decode($dt['external_links'] ?: '[]', true) ?: [];
             }
 
@@ -167,50 +175,63 @@ try {
             }
             $client_id = $_SESSION['client_portal_id'];
 
-            // Get all drive folder IDs for this client
-            $stmt = $db->prepare("
-                SELECT pm.drive_folder_id
-                FROM project_months pm
-                JOIN projects p ON pm.project_id = p.id
-                JOIN work_orders w ON p.work_order_id = w.id
-                JOIN client_brands cb ON w.brand_name = cb.name
-                WHERE cb.client_id = ? AND pm.drive_folder_id IS NOT NULL
-            ");
-            $stmt->execute([$client_id]);
-            $folders = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-            // Get design task folder IDs for this client
-            $stmt = $db->prepare("SELECT drive_folder_id FROM design_tasks WHERE deleted_at IS NULL AND client_id = ? AND drive_folder_id IS NOT NULL");
-            $stmt->execute([$client_id]);
-            $designFolders = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-            $folders = array_merge($folders, $designFolders);
-
-            if (empty($folders)) {
-                echo json_encode(['success' => true, 'files' => []]);
-                exit();
-            }
-
-            $drive = new GoogleDriveHelper();
-            if (!$drive->isConfigured()) {
-                echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
-                exit();
-            }
-            
             $targetFolderId = $_POST['folder_id'] ?? $_GET['folder_id'] ?? null;
             $allFiles = [];
-            
+
             if ($targetFolderId) {
+                $drive = new GoogleDriveHelper();
+                if (!$drive->isConfigured()) {
+                    echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                    exit();
+                }
                 // Fetch specific subfolder
                 $files = $drive->listFiles($targetFolderId);
                 if ($files) $allFiles = $files;
             } else {
-                // Fetch all assigned root folders
-                foreach ($folders as $folderId) {
-                    $files = $drive->listFiles($folderId);
-                    if ($files) {
-                        $allFiles = array_merge($allFiles, $files);
-                    }
+                // Present assigned folders as the root directory
+                
+                // Get project month folders
+                $stmt = $db->prepare("
+                    SELECT pm.drive_folder_id, pm.month, pm.year, cb.name as brand_name
+                    FROM project_months pm
+                    JOIN projects p ON pm.project_id = p.id
+                    JOIN work_orders w ON p.work_order_id = w.id
+                    JOIN client_brands cb ON w.brand_name = cb.name
+                    WHERE cb.client_id = ? AND pm.drive_folder_id IS NOT NULL
+                ");
+                $stmt->execute([$client_id]);
+                $projectFolders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+                foreach ($projectFolders as $pf) {
+                    $m = (int)$pf['month'];
+                    $mName = ($m >= 1 && $m <= 12 ? $monthNames[$m] : 'Mes');
+                    $folderName = $mName . ' ' . $pf['year'];
+                    $allFiles[] = [
+                        'id' => $pf['drive_folder_id'],
+                        'name' => $folderName,
+                        'mimeType' => 'application/vnd.google-apps.folder',
+                        'webViewLink' => '',
+                        'webContentLink' => '',
+                        'category' => 'Calendario'
+                    ];
+                }
+
+                // Get design task folders
+                $stmt = $db->prepare("SELECT drive_folder_id, title FROM design_tasks WHERE deleted_at IS NULL AND client_id = ? AND drive_folder_id IS NOT NULL");
+                $stmt->execute([$client_id]);
+                $designFolders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                foreach ($designFolders as $df) {
+                    $allFiles[] = [
+                        'id' => $df['drive_folder_id'],
+                        'name' => $df['title'],
+                        'mimeType' => 'application/vnd.google-apps.folder',
+                        'webViewLink' => '',
+                        'webContentLink' => '',
+                        'category' => 'Diseño'
+                    ];
                 }
             }
 

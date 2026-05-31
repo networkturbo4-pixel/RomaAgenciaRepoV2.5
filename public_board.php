@@ -59,11 +59,27 @@ if ($isProtected && !$isAuthenticated) {
         <title>Acceso Restringido | <?php echo $title; ?></title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
         <style>
-            body { font-family: 'Inter', sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-            .auth-card { background: white; padding: 3rem 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; max-width: 400px; width: 90%; }
-            h1 { font-size: 1.5rem; color: #1e293b; margin-bottom: 0.5rem; }
-            p { color: #64748b; font-size: 1.1rem; margin-bottom: 2rem; }
-            input[type="text"] { width: 100%; padding: 1rem; font-size: 2rem; text-align: center; letter-spacing: 5px; border: 2px solid #e2e8f0; border-radius: 12px; margin-bottom: 1.5rem; box-sizing: border-box; }
+            :root {
+                --bg: #f1f5f9;
+                --card-bg: white;
+                --text-main: #1e293b;
+                --text-muted: #64748b;
+                --border: #e2e8f0;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #0f172a;
+                    --card-bg: #1e293b;
+                    --text-main: #f8fafc;
+                    --text-muted: #94a3b8;
+                    --border: #334155;
+                }
+            }
+            body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+            .auth-card { background: var(--card-bg); padding: 3rem 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; max-width: 400px; width: 90%; }
+            h1 { font-size: 1.5rem; color: var(--text-main); margin-bottom: 0.5rem; }
+            p { color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem; }
+            input[type="text"] { width: 100%; padding: 1rem; font-size: 2rem; text-align: center; letter-spacing: 5px; border: 2px solid var(--border); border-radius: 12px; margin-bottom: 1.5rem; box-sizing: border-box; background: var(--bg); color: var(--text-main); }
             input[type="text"]:focus { outline: none; border-color: #6366f1; }
             button { width: 100%; padding: 1rem; background: #6366f1; color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
             button:hover { background: #4f46e5; }
@@ -93,7 +109,7 @@ $posts = $stmtPosts->fetchAll(PDO::FETCH_ASSOC);
 
 function renderPreviewBox($urlStr, $isRef = true) {
     if (!$urlStr) {
-        return '<div style="background:#f1f5f9; display:flex; align-items:center; justify-content:center; height:250px; border-radius:12px; color:#cbd5e1;"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
+        return '<div style="background:var(--surface-hover); display:flex; align-items:center; justify-content:center; height:250px; border-radius:12px; color:var(--text-muted);"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
     }
 
     $mediaList = json_decode($urlStr, true);
@@ -102,14 +118,14 @@ function renderPreviewBox($urlStr, $isRef = true) {
         $mediaList = !empty($urlStr) ? [$urlStr] : [];
     }
     if (empty($mediaList)) {
-        return '<div style="background:#f1f5f9; display:flex; align-items:center; justify-content:center; height:250px; border-radius:12px; color:#cbd5e1;"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
+        return '<div style="background:var(--surface-hover); display:flex; align-items:center; justify-content:center; height:250px; border-radius:12px; color:var(--text-muted);"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
     }
 
     if (count($mediaList) > 1) {
         $html = '<div class="swiper" style="width: 100%; height: 400px; border-radius: 12px; overflow: hidden; position: relative;">
                     <div class="swiper-wrapper">';
         foreach($mediaList as $mItem) {
-            $html .= '<div class="swiper-slide" style="display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+            $html .= '<div class="swiper-slide" style="display: flex; align-items: center; justify-content: center; background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 12px;">
                         <img src="'.htmlspecialchars($mItem).'" style="width: 100%; height: 100%; object-fit: contain;">
                       </div>';
         }
@@ -186,10 +202,10 @@ function renderPreviewBox($urlStr, $isRef = true) {
         }
         // Fallback external link
         else {
-            return '<a href="'.htmlspecialchars($url).'" target="_blank" style="display:block; padding:2rem; background:#eff6ff; color:#3b82f6; text-align:center; border-radius:12px; text-decoration:none; font-weight:700;">Ver Video <br><span style="font-size:0.8rem; font-weight:normal;">Enlace Externo</span></a>';
+            return '<a href="'.htmlspecialchars($url).'" target="_blank" style="display:block; padding:2rem; background:rgba(59,130,246,0.1); color:#3b82f6; text-align:center; border-radius:12px; text-decoration:none; font-weight:700;">Ver Video <br><span style="font-size:0.8rem; font-weight:normal;">Enlace Externo</span></a>';
         }
     } else {
-        return '<img src="'.htmlspecialchars($url).'" style="width: 100%; height: auto; max-height: 400px; display: block; border-radius: 12px; object-fit: contain; background: #f8fafc; border: 1px solid #e2e8f0;">';
+        return '<img src="'.htmlspecialchars($url).'" style="width: 100%; height: auto; max-height: 400px; display: block; border-radius: 12px; object-fit: contain; background: var(--surface-hover); border: 1px solid var(--border-color);">';
     }
 }
 ?>
@@ -198,7 +214,7 @@ function renderPreviewBox($urlStr, $isRef = true) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero de Aprobación | <?php echo $title; ?></title>
+    <title>Calendario | <?php echo $title; ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
@@ -215,7 +231,23 @@ function renderPreviewBox($urlStr, $isRef = true) {
             --surface: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --surface-hover: #f1f5f9;
         }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #6366f1;
+                --primary-hover: #818cf8;
+                --bg: #0f172a;
+                --surface: #1e293b;
+                --text-main: #f8fafc;
+                --text-muted: #94a3b8;
+                --border-color: #334155;
+                --surface-hover: #0b1120;
+            }
+        }
+
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 0; }
         .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
         
@@ -225,7 +257,7 @@ function renderPreviewBox($urlStr, $isRef = true) {
 
         /* Modern Toggle Switcher */
         .toggle-container { display: flex; justify-content: center; margin-bottom: 3rem; position: sticky; top: 1rem; z-index: 100; }
-        .toggle-wrapper { background: white; padding: 0.5rem; border-radius: 100px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); display: inline-flex; position: relative; border: 1px solid #e2e8f0; }
+        .toggle-wrapper { background: var(--surface); padding: 0.5rem; border-radius: 100px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); display: inline-flex; position: relative; border: 1px solid var(--border-color); }
         .toggle-btn { padding: 1rem 2rem; font-size: 1.1rem; font-weight: 700; border-radius: 100px; cursor: pointer; transition: all 0.3s ease; position: relative; z-index: 2; border: none; background: transparent; color: var(--text-muted); }
         .toggle-btn.active { color: white; }
         .toggle-highlight { position: absolute; top: 0.5rem; bottom: 0.5rem; left: 0.5rem; background: var(--primary); border-radius: 100px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1; }
@@ -237,23 +269,30 @@ function renderPreviewBox($urlStr, $isRef = true) {
 
         /* Cards */
         .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 2rem; }
-        @media (max-width: 768px) { .grid-cards { grid-template-columns: 1fr; } }
         
-        .card { background: var(--surface); border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex-direction: column; }
-        .card-header { padding: 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        @media (max-width: 768px) { 
+            .grid-cards { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.8rem; }
+            .toggle-btn { padding: 0.6rem 1rem; font-size: 0.9rem; }
+            .toggle-container { margin-bottom: 2rem; }
+            .header { margin-bottom: 2rem; }
+        }
+        
+        .card { background: var(--surface); border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow: hidden; display: flex; flex-direction: column; }
+        .card-header { padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--surface-hover); }
         .post-date { font-weight: 800; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
-        .platform-tag { padding: 0.4rem 0.8rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
+        .platform-tag { padding: 0.4rem 0.8rem; background: var(--surface); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
         
         .card-body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
         
         .concept-title { font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--text-main); line-height: 1.3; }
         
-        .media-box { background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 0.5rem; }
+        .media-box { background: var(--surface-hover); border-radius: 12px; border: 1px solid var(--border-color); padding: 0.5rem; }
         
-        .text-content { background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px dashed #cbd5e1; font-size: 0.95rem; line-height: 1.6; color: var(--text-main); flex: 1; }
+        .text-content { background: var(--surface-hover); padding: 1.5rem; border-radius: 12px; border: 1px dashed var(--border-color); font-size: 0.95rem; line-height: 1.6; color: var(--text-main); flex: 1; }
         
         /* Action Buttons */
-        .card-actions { padding: 1.5rem; border-top: 1px solid #e2e8f0; display: flex; gap: 1rem; background: #f8fafc; }
+        .card-actions { padding: 1.5rem; border-top: 1px solid var(--border-color); display: flex; gap: 1rem; background: var(--surface-hover); }
         .btn { flex: 1; padding: 1.25rem; font-size: 0.95rem; font-weight: 800; border-radius: 12px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.2s, background 0.2s; color: white; }
         .btn:hover { transform: translateY(-2px); }
         .btn-approve { background: var(--success); }
@@ -266,27 +305,27 @@ function renderPreviewBox($urlStr, $isRef = true) {
         .status-rejected { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 2px solid var(--danger); }
         .status-review { background: rgba(245, 158, 11, 0.1); color: #d97706; border: 2px solid #f59e0b; }
 
-        .empty-state { text-align: center; padding: 4rem 2rem; background: white; border-radius: 20px; border: 2px dashed #cbd5e1; color: var(--text-muted); }
+        .empty-state { text-align: center; padding: 4rem 2rem; background: var(--surface); border-radius: 20px; border: 2px dashed var(--border-color); color: var(--text-muted); }
 
         /* Modal for comments */
         .comment-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s; padding: 1rem; }
         .comment-modal-overlay.active { opacity: 1; visibility: visible; }
-        .comment-modal-content { background: white; width: 100%; max-width: 500px; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(20px); transition: 0.3s; }
+        .comment-modal-content { background: var(--surface); width: 100%; max-width: 500px; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(20px); transition: 0.3s; }
         .comment-modal-overlay.active .comment-modal-content { transform: translateY(0); }
         .comment-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
         .comment-modal-title { font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0; }
         .comment-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
         .comment-form-group { margin-bottom: 1.5rem; }
         .comment-form-group label { display: block; font-weight: 700; font-size: 0.9rem; color: var(--text-main); margin-bottom: 0.5rem; }
-        .comment-textarea { width: 100%; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical; box-sizing: border-box; }
-        .comment-file { display: block; width: 100%; font-size: 0.9rem; }
+        .comment-textarea { width: 100%; padding: 1rem; border: 1px solid var(--border-color); border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical; box-sizing: border-box; background: var(--bg); color: var(--text-main); }
+        .comment-file { display: block; width: 100%; font-size: 0.9rem; color: var(--text-main); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <p>Tablero de Revisión</p>
+        <p>Calendario</p>
         <h1><?php echo htmlspecialchars($monthData['brand_name']); ?> - <?php echo $monthNames[$monthData['month']] . ' ' . $monthData['year']; ?></h1>
     </div>
 
@@ -369,7 +408,7 @@ function renderPreviewBox($urlStr, $isRef = true) {
 
                     <div style="flex: 1; display: flex; flex-direction: column; margin-bottom: 1.5rem;">
                         <strong style="color:var(--text-muted); font-size:0.9rem; text-transform:uppercase; margin-bottom:0.5rem; display:block;">Copy (Texto de la publicación)</strong>
-                        <div class="text-content" style="background: white;">
+                        <div class="text-content" style="background: var(--surface);">
                             <?php echo empty($p['copy_text']) ? '<em>Sin texto redactado aún.</em>' : $p['copy_text']; ?>
                         </div>
                     </div>

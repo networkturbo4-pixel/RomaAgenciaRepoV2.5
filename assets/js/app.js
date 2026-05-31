@@ -152,4 +152,22 @@ document.addEventListener('DOMContentLoaded', () => {
             updateThemeIcon(newTheme);
         });
     }
+
+    // Global Chat Unread Check
+    const chatNavItem = document.querySelector('a[href*="module=chat"]');
+    if (chatNavItem) {
+        setInterval(async () => {
+            try {
+                const fd = new FormData();
+                fd.append('action', 'check_global_unreads');
+                const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success && data.total_unread > 0) {
+                    chatNavItem.classList.add('chat-glowing-border');
+                } else {
+                    chatNavItem.classList.remove('chat-glowing-border');
+                }
+            } catch (e) {}
+        }, 3000);
+    }
 });

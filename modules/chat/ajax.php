@@ -32,7 +32,7 @@ try {
         // ── GET CHANNELS ──
         case 'get_channels':
             $stmt = $db->prepare("
-                SELECT c.*, 
+                SELECT c.*, cm.is_pinned, 
                     (SELECT COUNT(*) FROM chat_messages m 
                      WHERE m.channel_id = c.id 
                      AND m.created_at > COALESCE(
@@ -45,7 +45,7 @@ try {
                     (SELECT m3.created_at FROM chat_messages m3 WHERE m3.channel_id = c.id ORDER BY m3.created_at DESC LIMIT 1) as last_message_at
                 FROM chat_channels c
                 INNER JOIN chat_channel_members cm ON cm.channel_id = c.id AND cm.user_id = ?
-                ORDER BY last_message_at DESC, c.created_at DESC
+                ORDER BY cm.is_pinned DESC, last_message_at DESC, c.created_at DESC
             ");
             $stmt->execute([$userId, $userId, $userId]);
             $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -96,6 +96,41 @@ try {
             $stmt->execute($params);
             $messages = array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));
 
+            // --- FETCH REACTIONS FOR MESSAGES ---
+            if (!empty($messages)) {
+                $msgIds = array_column($messages, 'id');
+                $inQuery = implode(',', array_fill(0, count($msgIds), '?'));
+                
+                // Get all reaction counts
+                $stmtReact = $db->prepare("SELECT message_id, emoji, COUNT(*) as count FROM chat_reactions WHERE message_id IN ($inQuery) GROUP BY message_id, emoji");
+                $stmtReact->execute($msgIds);
+                $allReactions = $stmtReact->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Get user's own reactions
+                $stmtMyReact = $db->prepare("SELECT message_id, emoji FROM chat_reactions WHERE message_id IN ($inQuery) AND user_id = ?");
+                $paramsMy = $msgIds;
+                $paramsMy[] = $userId;
+                $stmtMyReact->execute($paramsMy);
+                $myReactions = $stmtMyReact->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Group by message_id
+                $reactionsByMsg = [];
+                foreach ($allReactions as $r) {
+                    $reactionsByMsg[$r['message_id']][] = ['emoji' => $r['emoji'], 'count' => $r['count']];
+                }
+                
+                $myReactionsByMsg = [];
+                foreach ($myReactions as $mr) {
+                    $myReactionsByMsg[$mr['message_id']][] = $mr['emoji'];
+                }
+                
+                foreach ($messages as &$msg) {
+                    $msg['reactions'] = $reactionsByMsg[$msg['id']] ?? [];
+                    $msg['my_reactions'] = $myReactionsByMsg[$msg['id']] ?? [];
+                }
+            }
+
+
             // Mark as read
             $db->prepare("UPDATE chat_channel_members SET last_read_at = NOW() WHERE channel_id = ? AND user_id = ?")
                ->execute([$channelId, $userId]);
@@ -138,7 +173,7 @@ try {
             $cardData = $_POST['card_data'] ?? null;
             $replyToId = !empty($_POST['reply_to_id']) ? (int)$_POST['reply_to_id'] : null;
 
-            if (empty($message) && $messageType === 'text') {
+            if (empty($message) && empty($_FILES['attachment']) && $messageType === 'text') {
                 echo json_encode(['success' => false, 'error' => 'Mensaje vacío']);
                 exit();
             }
@@ -197,6 +232,41 @@ try {
             ");
             $stmt->execute([$channelId, $lastId]);
             $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // --- FETCH REACTIONS FOR MESSAGES ---
+            if (!empty($messages)) {
+                $msgIds = array_column($messages, 'id');
+                $inQuery = implode(',', array_fill(0, count($msgIds), '?'));
+                
+                // Get all reaction counts
+                $stmtReact = $db->prepare("SELECT message_id, emoji, COUNT(*) as count FROM chat_reactions WHERE message_id IN ($inQuery) GROUP BY message_id, emoji");
+                $stmtReact->execute($msgIds);
+                $allReactions = $stmtReact->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Get user's own reactions
+                $stmtMyReact = $db->prepare("SELECT message_id, emoji FROM chat_reactions WHERE message_id IN ($inQuery) AND user_id = ?");
+                $paramsMy = $msgIds;
+                $paramsMy[] = $userId;
+                $stmtMyReact->execute($paramsMy);
+                $myReactions = $stmtMyReact->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Group by message_id
+                $reactionsByMsg = [];
+                foreach ($allReactions as $r) {
+                    $reactionsByMsg[$r['message_id']][] = ['emoji' => $r['emoji'], 'count' => $r['count']];
+                }
+                
+                $myReactionsByMsg = [];
+                foreach ($myReactions as $mr) {
+                    $myReactionsByMsg[$mr['message_id']][] = $mr['emoji'];
+                }
+                
+                foreach ($messages as &$msg) {
+                    $msg['reactions'] = $reactionsByMsg[$msg['id']] ?? [];
+                    $msg['my_reactions'] = $myReactionsByMsg[$msg['id']] ?? [];
+                }
+            }
+
 
             // Mark as read
             if (!empty($messages)) {
@@ -415,30 +485,164 @@ try {
             break;
 
         // ── DELETE CHANNEL ──
-        case 'delete_channel':
+        
+        // ── CHANNEL ACTION (PIN / UNPIN) ──
+        case 'channel_action':
             $channelId = (int)($_POST['channel_id'] ?? 0);
-            
-            // Verificamos que el canal sea del usuario actual o que sea admin
-            $stmt = $db->prepare("SELECT created_by FROM chat_channels WHERE id = ?");
-            $stmt->execute([$channelId]);
-            $ch = $stmt->fetch();
-            
-            $stmtRole = $db->prepare("SELECT role_id FROM users WHERE id = ?");
-            $stmtRole->execute([$userId]);
-            $userRoleId = $stmtRole->fetchColumn();
-            
-            if ($ch && ($ch['created_by'] == $userId || $userRoleId == 1)) {
-                $db->prepare("DELETE FROM chat_messages WHERE channel_id = ?")->execute([$channelId]);
-                $db->prepare("DELETE FROM chat_channel_members WHERE channel_id = ?")->execute([$channelId]);
-                $db->prepare("DELETE FROM chat_channels WHERE id = ?")->execute([$channelId]);
+            $type = $_POST['type'] ?? '';
+            if ($channelId && in_array($type, ['pin', 'unpin'])) {
+                $isPinned = $type === 'pin' ? 1 : 0;
+                $db->prepare("UPDATE chat_channel_members SET is_pinned = ? WHERE channel_id = ? AND user_id = ?")->execute([$isPinned, $channelId, $userId]);
                 echo json_encode(['success' => true]);
             } else {
-                echo json_encode(['success' => false, 'error' => 'No autorizado para eliminar este canal']);
+                echo json_encode(['success' => false]);
+            }
+            break;
+        case 'delete_channel':
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            $stmt = $db->prepare("DELETE FROM chat_channel_members WHERE channel_id = ? AND user_id = ?");
+            if ($stmt->execute([$channelId, $userId])) {
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'No se pudo eliminar el canal']);
+            }
+            break;
+
+                // ── PIN / UNPIN MESSAGES ──
+        case 'pin_message':
+            $messageId = (int)($_POST['message_id'] ?? 0);
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            $duration = $_POST['pin_duration'] ?? 'permanent';
+            
+            $stmt = $db->prepare("SELECT id FROM chat_messages WHERE id = ? AND channel_id = ?");
+            $stmt->execute([$messageId, $channelId]);
+            if ($stmt->fetch()) {
+                $expiresAt = null;
+                $durations = ['1h' => 3600, '6h' => 21600, '24h' => 86400, '7d' => 604800];
+                if (isset($durations[$duration])) {
+                    $expiresAt = date('Y-m-d H:i:s', time() + $durations[$duration]);
+                }
+                
+                // Note: chat_pinned_messages needs a UNIQUE constraint on (channel_id, message_id) or we just delete first
+                $db->prepare("DELETE FROM chat_pinned_messages WHERE channel_id = ? AND message_id = ?")->execute([$channelId, $messageId]);
+                
+                if ($expiresAt) {
+                    $db->prepare("INSERT INTO chat_pinned_messages (channel_id, message_id, pinned_by, expires_at) VALUES (?, ?, ?, ?)")->execute([$channelId, $messageId, $userId, $expiresAt]);
+                } else {
+                    $db->prepare("INSERT INTO chat_pinned_messages (channel_id, message_id, pinned_by, expires_at) VALUES (?, ?, ?, NULL)")->execute([$channelId, $messageId, $userId]);
+                }
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Mensaje no encontrado']);
+            }
+            break;
+
+        case 'unpin_message':
+            $messageId = (int)($_POST['message_id'] ?? 0);
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            $db->prepare("DELETE FROM chat_pinned_messages WHERE channel_id = ? AND message_id = ?")->execute([$channelId, $messageId]);
+            echo json_encode(['success' => true]);
+            break;
+
+        case 'get_pinned_messages':
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            $db->prepare("DELETE FROM chat_pinned_messages WHERE expires_at IS NOT NULL AND expires_at < NOW()")->execute();
+            
+            $stmt = $db->prepare("SELECT p.id as pin_id, p.message_id, m.message, m.attachment, m.attachment_name, u.name as pinned_by_name, p.expires_at 
+                                  FROM chat_pinned_messages p 
+                                  JOIN chat_messages m ON p.message_id = m.id 
+                                  LEFT JOIN users u ON p.pinned_by = u.id 
+                                  WHERE p.channel_id = ? 
+                                  ORDER BY p.pinned_at DESC");
+            $stmt->execute([$channelId]);
+            echo json_encode(['success' => true, 'pinned' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            break;
+
+                case 'get_channel_media':
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            
+            $stmt = $db->prepare("SELECT attachment, attachment_name FROM chat_messages WHERE channel_id = ? AND attachment IS NOT NULL AND attachment != '' AND attachment RLIKE '\\.(jpg|jpeg|png|gif|webp)
+            echo json_encode(['success' => false, 'error' => 'Acción no válida']);
+            break;
+    }
+} catch (PDOException $e) {
+    echo json_encode(['success' => false, 'error' => 'Error: ' . $e->getMessage()]);
+}
+ ORDER BY id DESC LIMIT 20");
+            $stmt->execute([$channelId]);
+            $media = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmt = $db->prepare("SELECT attachment, attachment_name FROM chat_messages WHERE channel_id = ? AND attachment IS NOT NULL AND attachment != '' AND attachment NOT RLIKE '\\.(jpg|jpeg|png|gif|webp|mp3|wav|ogg)
+            echo json_encode(['success' => false, 'error' => 'Acción no válida']);
+            break;
+    }
+} catch (PDOException $e) {
+    echo json_encode(['success' => false, 'error' => 'Error: ' . $e->getMessage()]);
+}
+ ORDER BY id DESC LIMIT 20");
+            $stmt->execute([$channelId]);
+            $docs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmt = $db->prepare("SELECT id, message, created_at FROM chat_messages WHERE channel_id = ? AND message LIKE '%http%' ORDER BY id DESC LIMIT 20");
+            $stmt->execute([$channelId]);
+            $rawLinks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $links = [];
+            foreach ($rawLinks as $msg) {
+                if (preg_match_all('/(https?:\\/\\/[^\\s<]+)/', $msg['message'], $matches)) {
+                    foreach ($matches[1] as $url) {
+                        $links[] = ['url' => $url, 'domain' => parse_url($url, PHP_URL_HOST), 'created_at' => $msg['created_at']];
+                    }
+                }
+            }
+            echo json_encode(['success' => true, 'media' => $media, 'docs' => $docs, 'links' => array_slice($links, 0, 20)]);
+            break;
+            
+        
+        case 'toggle_reaction':
+            $msgId = (int)($_POST['message_id'] ?? 0);
+            $emoji = $_POST['emoji'] ?? '';
+            $userId = $_SESSION['user_id'];
+
+            if ($msgId && $emoji) {
+                // Check if user already has a reaction on this message
+                $stmt = $db->prepare("SELECT id, emoji FROM chat_reactions WHERE message_id = ? AND user_id = ?");
+                $stmt->execute([$msgId, $userId]);
+                $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($existing) {
+                    if ($existing['emoji'] === $emoji) {
+                        // Toggle off
+                        $stmt = $db->prepare("DELETE FROM chat_reactions WHERE id = ?");
+                        $stmt->execute([$existing['id']]);
+                    } else {
+                        // Change reaction
+                        $stmt = $db->prepare("UPDATE chat_reactions SET emoji = ? WHERE id = ?");
+                        $stmt->execute([$emoji, $existing['id']]);
+                    }
+                } else {
+                    // New reaction
+                    $stmt = $db->prepare("INSERT INTO chat_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)");
+                    $stmt->execute([$msgId, $userId, $emoji]);
+                }
+
+                // Fetch updated reactions
+                $stmt = $db->prepare("SELECT emoji, COUNT(*) as count FROM chat_reactions WHERE message_id = ? GROUP BY emoji");
+                $stmt->execute([$msgId]);
+                $reactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $stmt = $db->prepare("SELECT emoji FROM chat_reactions WHERE message_id = ? AND user_id = ?");
+                $stmt->execute([$msgId, $userId]);
+                $my_reactions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                echo json_encode(['success' => true, 'reactions' => $reactions, 'my_reactions' => $my_reactions]);
+            } else {
+                echo json_encode(['error' => 'Faltan datos']);
             }
             break;
 
         default:
             echo json_encode(['success' => false, 'error' => 'Acción no válida']);
+            break;
     }
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'error' => 'Error: ' . $e->getMessage()]);

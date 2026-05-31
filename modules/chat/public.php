@@ -95,7 +95,7 @@ document.getElementById('btn-enter-chat').addEventListener('click', () => {
     guestName = name;
     document.getElementById('guest-overlay').style.display = 'none';
     loadMessages();
-    setInterval(pollMessages, 3000);
+    setInterval(pollMessages, 1500);
 });
 document.getElementById('guest-name-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('btn-enter-chat').click();

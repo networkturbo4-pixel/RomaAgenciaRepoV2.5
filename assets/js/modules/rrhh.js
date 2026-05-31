@@ -3,6 +3,9 @@ const RrhhModule = (function() {
     let filteredEmployees = [];
     let currentFilter = 'Todos';
     let searchQuery = '';
+    let currentEmpSalary = 0;
+    let currentEmpId = 0;
+    let currentEmployeePayments = [];
 
     const tbody = document.querySelector('#employees-table tbody');
     const formModal = document.getElementById('modal-employee-form');
@@ -21,6 +24,43 @@ const RrhhModule = (function() {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value.toLowerCase();
                 applyFilters();
+            });
+        }
+        
+        // Calculadora de pago
+        const calcDays = document.getElementById('calc_days');
+        const calcExtra = document.getElementById('calc_extra_hours');
+        const calcBaseSalary = document.getElementById('calc_base_salary');
+        const calcBonuses = document.getElementById('calc_bonuses');
+        const calcDiscounts = document.getElementById('calc_discounts');
+        if (calcDays && calcExtra && calcBaseSalary) {
+            calcDays.addEventListener('input', updateCalculator);
+            calcExtra.addEventListener('input', updateCalculator);
+            if (calcBonuses) calcBonuses.addEventListener('input', updateCalculator);
+            if (calcDiscounts) calcDiscounts.addEventListener('input', updateCalculator);
+            calcBaseSalary.addEventListener('input', () => {
+                currentEmpSalary = parseFloat(calcBaseSalary.value) || 0;
+                updateCalculator();
+            });
+        }
+        
+        // Botón Compartir Historial
+        const btnShareHistory = document.getElementById('btn-share-history');
+        if (btnShareHistory) {
+            btnShareHistory.addEventListener('click', () => {
+                if (currentEmpId > 0) {
+                    let shareLink = window.location.origin + window.location.pathname + '?module=public&action=employee_history&id=' + currentEmpId;
+                    navigator.clipboard.writeText(shareLink);
+                    alert('Enlace del historial de pagos copiado al portapapeles');
+                }
+            });
+        }
+
+        // OCR for payment voucher (Desactivado para RRHH para no sobreescribir datos)
+        const payVoucher = document.getElementById('pay_voucher');
+        if (payVoucher) {
+            payVoucher.addEventListener('change', (e) => {
+                // Solo adjuntar el archivo, sin OCR
             });
         }
 
@@ -218,16 +258,49 @@ const RrhhModule = (function() {
         const emp = employees.find(e => e.id == empId);
         if (!emp) return;
         
+        currentEmpId = emp.id;
+        currentEmpSalary = parseFloat(emp.salary) || 0;
+        
         document.getElementById('payments-emp-name').textContent = emp.name;
         document.getElementById('pay_employee_id').value = emp.id;
         
-        // Auto-fill values
-        document.getElementById('payment_form').reset();
-        document.getElementById('pay_amount').value = parseFloat(emp.salary).toFixed(2);
-        document.getElementById('pay_date').value = new Date().toISOString().split('T')[0];
+        cancelPaymentEdit();
         
         loadPaymentsHistory(emp.id);
         paymentsModal.classList.add('active');
+    }
+
+    function cancelPaymentEdit() {
+        document.getElementById('payment_form').reset();
+        document.getElementById('pay_id').value = "0";
+        document.getElementById('calc_days').value = 0;
+        document.getElementById('calc_extra_hours').value = 0;
+        if (document.getElementById('calc_bonuses')) document.getElementById('calc_bonuses').value = 0;
+        if (document.getElementById('calc_discounts')) document.getElementById('calc_discounts').value = 0;
+        document.getElementById('calc_base_salary').value = currentEmpSalary.toFixed(2);
+        document.getElementById('pay_date').value = new Date().toISOString().split('T')[0];
+        document.querySelector('#payment_form button[type="submit"]').innerHTML = '<i class="ph ph-check"></i> Registrar Pago';
+        document.getElementById('btn-cancel-edit').style.display = 'none';
+        updateCalculator();
+    }
+
+    function updateCalculator() {
+        const extraDays = parseFloat(document.getElementById('calc_days').value) || 0;
+        const extraHours = parseFloat(document.getElementById('calc_extra_hours').value) || 0;
+        const bonuses = document.getElementById('calc_bonuses') ? parseFloat(document.getElementById('calc_bonuses').value) || 0 : 0;
+        const discounts = document.getElementById('calc_discounts') ? parseFloat(document.getElementById('calc_discounts').value) || 0 : 0;
+        
+        const dailyRate = currentEmpSalary / 30;
+        const hourlyRate = dailyRate / 8; // asumiendo 8 horas al día
+        
+        document.getElementById('lbl_daily_rate').textContent = 'S/ ' + dailyRate.toFixed(2);
+        document.getElementById('lbl_hourly_rate').textContent = 'S/ ' + hourlyRate.toFixed(2);
+        
+        const extraAmount = (extraDays * dailyRate) + (extraHours * hourlyRate) + bonuses - discounts;
+        const total = currentEmpSalary + extraAmount;
+        
+        document.getElementById('pay_extra_amount').value = extraAmount.toFixed(2);
+        document.getElementById('pay_amount').value = total.toFixed(2);
     }
 
     function closePaymentsModal() {
@@ -241,9 +314,10 @@ const RrhhModule = (function() {
         fetch('index.php?module=admin&action=ajax_get_payments&employee_id=' + empId)
             .then(res => res.json())
             .then(data => {
-                if (data.success) {
+                if(data.success) {
+                    currentEmployeePayments = data.data;
                     if (data.data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay pagos registrados.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay pagos registrados.</td></tr>';
                         return;
                     }
                     
@@ -251,23 +325,22 @@ const RrhhModule = (function() {
                     data.data.forEach(pay => {
                         const tr = document.createElement('tr');
                         
-                        let actionsHtml = `<span style="color:var(--text-muted); font-size:0.8rem;">Sin comprobante</span>`;
-                        if (pay.voucher_url) {
-                            actionsHtml = `
-                                <a href="${pay.voucher_url}" target="_blank" class="btn-action-icon" style="display:inline-flex;" title="Ver PDF/Imagen">
-                                    <i class="ph ph-eye"></i>
-                                </a>
-                                <button type="button" class="btn-action-icon" style="display:inline-flex;" title="Copiar Enlace" onclick="navigator.clipboard.writeText(window.location.origin + '/' + '${pay.voucher_url}')">
-                                    <i class="ph ph-share-network"></i>
-                                </button>
-                            `;
-                        }
+                        let actionsHtml = `
+                            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border-color:transparent; color: var(--primary);" onclick="RrhhModule.editPayment(${pay.id})" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border-color:transparent; color: #ef4444;" onclick="RrhhModule.deletePayment(${pay.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
+                        `;
+
+                        let st = (pay.status || 'Pagado').toLowerCase();
+                        let badgeClass = st === 'pendiente' ? 'background: rgba(245, 158, 11, 0.1); color: var(--warning-color);' : 'background: rgba(16, 185, 129, 0.1); color: var(--secondary-color);';
+                        let icon = st === 'pendiente' ? 'ph-clock' : 'ph-check-circle';
+                        let statusHtml = `<span style="display:inline-flex; align-items:center; gap:0.25rem; padding:0.25rem 0.6rem; border-radius:9999px; font-size:0.75rem; font-weight:600; ${badgeClass}"><i class="ph ${icon}"></i> ${pay.status || 'Pagado'}</span>`;
                         
                         tr.innerHTML = `
                             <td data-label="FECHA">${pay.payment_date}</td>
                             <td data-label="CONCEPTO">${pay.concept}</td>
                             <td data-label="MONTO" style="font-weight:600; color:var(--text-main);">S/ ${parseFloat(pay.amount).toFixed(2)}</td>
-                            <td data-label="COMPROBANTE" style="text-align: right;">
+                            <td data-label="ESTADO">${statusHtml}</td>
+                            <td data-label="ACCIONES" style="text-align: right;">
                                 <div style="display:flex; justify-content:flex-end; gap:0.25rem;">
                                     ${actionsHtml}
                                 </div>
@@ -276,19 +349,90 @@ const RrhhModule = (function() {
                         tbody.appendChild(tr);
                     });
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:red;">Error al cargar pagos.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:red;">Error al cargar pagos.</td></tr>`;
                 }
             })
             .catch(err => {
                 console.error(err);
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:red;">Error de red.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:red;">Error de red.</td></tr>`;
             });
+    }
+
+    function editPayment(payId) {
+        const pay = currentEmployeePayments.find(p => p.id == payId);
+        if (!pay) return;
+
+        document.getElementById('pay_id').value = pay.id;
+        document.getElementById('pay_concept').value = pay.concept;
+        document.getElementById('pay_date').value = pay.payment_date;
+        document.getElementById('pay_status').value = pay.status || 'Pagado';
+        
+        document.getElementById('calc_days').value = 0;
+        document.getElementById('calc_extra_hours').value = 0;
+        if (document.getElementById('calc_bonuses')) document.getElementById('calc_bonuses').value = 0;
+        if (document.getElementById('calc_discounts')) document.getElementById('calc_discounts').value = 0;
+        
+        let payAmount = parseFloat(pay.amount) || 0;
+        let extraAmount = parseFloat(pay.extra_payment) || 0;
+        let basePart = payAmount - extraAmount;
+        
+        let savedExtraDays = parseFloat(pay.extra_days) || 0;
+        let savedExtraHours = parseFloat(pay.extra_hours) || 0;
+        let savedBonuses = parseFloat(pay.bonuses) || 0;
+        let savedDiscounts = parseFloat(pay.discounts) || 0;
+        
+        document.getElementById('calc_days').value = savedExtraDays;
+        document.getElementById('calc_extra_hours').value = savedExtraHours;
+        if (document.getElementById('calc_bonuses')) document.getElementById('calc_bonuses').value = savedBonuses;
+        if (document.getElementById('calc_discounts')) document.getElementById('calc_discounts').value = savedDiscounts;
+        
+        if (basePart > 0) {
+            document.getElementById('calc_base_salary').value = basePart.toFixed(2);
+            currentEmpSalary = basePart;
+        }
+
+        updateCalculator();
+        
+        document.getElementById('pay_extra_amount').value = extraAmount.toFixed(2);
+        document.getElementById('pay_amount').value = payAmount.toFixed(2);
+
+        document.querySelector('#payment_form button[type="submit"]').innerHTML = '<i class="ph ph-check"></i> Actualizar Pago';
+        document.getElementById('btn-cancel-edit').style.display = 'block';
+    }
+
+    function deletePayment(payId) {
+        if (!confirm('¿Estás seguro de eliminar este pago? Esta acción también eliminará el registro contable en Finanzas.')) return;
+
+        const formData = new FormData();
+        formData.append('pay_id', payId);
+
+        fetch('index.php?module=admin&action=ajax_delete_payment', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                loadPaymentsHistory(currentEmpId);
+            } else {
+                alert('Error al eliminar: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error de conexión');
+        });
     }
 
     function savePayment() {
         const form = document.getElementById('payment_form');
         const formData = new FormData(form);
-        
+        formData.append('extra_amount', document.getElementById('pay_extra_amount').value);
+        formData.append('extra_days', document.getElementById('calc_days').value);
+        formData.append('extra_hours', document.getElementById('calc_extra_hours').value);
+        if (document.getElementById('calc_bonuses')) formData.append('bonuses', document.getElementById('calc_bonuses').value);
+        if (document.getElementById('calc_discounts')) formData.append('discounts', document.getElementById('calc_discounts').value);
+
         const btn = form.querySelector('button[type="submit"]');
         const originalText = btn.innerHTML;
         btn.innerHTML = 'Guardando...';
@@ -304,15 +448,8 @@ const RrhhModule = (function() {
             btn.disabled = false;
             
             if (data.success) {
-                // Refresh history
                 loadPaymentsHistory(formData.get('employee_id'));
-                form.reset();
-                // re-fill auto fields
-                const emp = employees.find(e => e.id == formData.get('employee_id'));
-                if(emp) {
-                    document.getElementById('pay_amount').value = parseFloat(emp.salary).toFixed(2);
-                    document.getElementById('pay_date').value = new Date().toISOString().split('T')[0];
-                }
+                cancelPaymentEdit();
             } else {
                 alert('Error: ' + data.message);
             }
@@ -335,7 +472,10 @@ const RrhhModule = (function() {
         deleteEmployee,
         openPaymentsModal,
         closePaymentsModal,
-        savePayment
+        savePayment,
+        cancelPaymentEdit,
+        editPayment,
+        deletePayment
     };
 })();
 

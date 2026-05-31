@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // modules/design_tasks/index.php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -1429,6 +1429,13 @@ $clients = $stmtClients->fetchAll(PDO::FETCH_ASSOC);
                 allTasks = data.data;
                 renderKanban();
                 renderCalendar();
+                <?php if (isset($_GET['open_task'])): ?>
+                const openTaskId = <?php echo (int)$_GET['open_task']; ?>;
+                if(!window.initialTaskOpened && typeof openEditModalById === 'function') {
+                    openEditModalById(openTaskId);
+                    window.initialTaskOpened = true;
+                }
+                <?php endif; ?>
             }
         } catch(e) { console.error(e); }
     }
@@ -2799,6 +2806,10 @@ $clients = $stmtClients->fetchAll(PDO::FETCH_ASSOC);
     </div>
     <div class="toast-status">Subiendo archivos... 0%</div>
 </div>
+
+<script>
+// Logic moved to fetchTasks
+</script>
 
 <?php require_once 'includes/footer.php'; ?>
 

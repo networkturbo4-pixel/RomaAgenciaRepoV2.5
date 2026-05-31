@@ -4541,6 +4541,24 @@ window.addEventListener('beforeunload', function (e) {
         }
     }
 });
+<?php if (isset($_GET['play']) && $_GET['play'] == '1'): ?>
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        startPresentation();
+    }, 500);
+});
+<?php endif; ?>
+
+<?php if (isset($_GET['open_post'])): ?>
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const postId = <?php echo (int)$_GET['open_post']; ?>;
+        const postObj = studioPosts.find(p => p.id == postId);
+        if(postObj) openPostModal(postObj);
+    }, 500);
+});
+<?php endif; ?>
+
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
