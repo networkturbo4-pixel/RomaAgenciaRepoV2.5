@@ -7,7 +7,8 @@ const DriveExplorer = (function() {
         currentFolderId: null,
         breadcrumbs: [],
         readonly: false,
-        onFileClick: null // callback for when a file is clicked (to download or view)
+        onFileClick: null, // callback for when a file is clicked (to download or view)
+        onFolderSelect: null // callback for when a folder is selected to be linked
     };
 
     let DOM = {};
@@ -147,12 +148,19 @@ const DriveExplorer = (function() {
         currentContextItem = item;
         DOM.contextMenu.classList.add('active');
         
+        // Show or hide specific options based on type
+        const isFolder = item.mimeType === 'application/vnd.google-apps.folder';
+        const selectBtn = document.getElementById(`ctx-select-${state.containerId}`);
+        if (selectBtn) {
+            selectBtn.style.display = (isFolder && state.onFolderSelect) ? 'flex' : 'none';
+        }
+        
         // Position
         let x = e.clientX;
         let y = e.clientY;
         
         if (x + 160 > window.innerWidth) x -= 160;
-        if (y + 100 > window.innerHeight) y -= 100;
+        if (y + 150 > window.innerHeight) y -= 150;
         
         DOM.contextMenu.style.left = `${x}px`;
         DOM.contextMenu.style.top = `${y}px`;
@@ -229,6 +237,7 @@ const DriveExplorer = (function() {
             state.rootFolderId = options.rootFolderId;
             state.readonly = options.readonly || false;
             state.onFileClick = options.onFileClick || null;
+            state.onFolderSelect = options.onFolderSelect || null;
 
             const container = document.getElementById(state.containerId);
             if (!container) return;
@@ -242,6 +251,7 @@ const DriveExplorer = (function() {
                     <div class="drive-header">
                         <div class="drive-breadcrumbs" id="drive-breadcrumbs-${state.containerId}"></div>
                         <div class="drive-actions" id="drive-actions-${state.containerId}">
+                            ${state.onFolderSelect ? `<button class="drive-btn drive-btn-success" id="btn-select-current-${state.containerId}"><i class="ph ph-check-circle"></i> Seleccionar Actual</button>` : ''}
                             ${!state.readonly ? `<button class="drive-btn drive-btn-primary" id="btn-create-folder-${state.containerId}"><i class="ph ph-folder-plus"></i> Nueva Carpeta</button>` : ''}
                         </div>
                     </div>
@@ -251,6 +261,7 @@ const DriveExplorer = (function() {
                     
                     ${!state.readonly ? `
                     <div class="drive-context-menu" id="drive-context-${state.containerId}">
+                        <div class="context-menu-item" id="ctx-select-${state.containerId}" style="display:none;"><i class="ph ph-check-circle"></i> Seleccionar Carpeta</div>
                         <div class="context-menu-item" id="ctx-rename-${state.containerId}"><i class="ph ph-pencil-simple"></i> Renombrar</div>
                         <div class="context-menu-item danger" id="ctx-delete-${state.containerId}"><i class="ph ph-trash"></i> Eliminar</div>
                     </div>
@@ -264,13 +275,35 @@ const DriveExplorer = (function() {
             
             if (!state.readonly) {
                 DOM.contextMenu = document.getElementById(`drive-context-${state.containerId}`);
+                document.body.appendChild(DOM.contextMenu); // Move to body to avoid stacking context issues
                 document.getElementById(`btn-create-folder-${state.containerId}`).addEventListener('click', createFolder);
                 document.getElementById(`ctx-rename-${state.containerId}`).addEventListener('click', renameItem);
                 document.getElementById(`ctx-delete-${state.containerId}`).addEventListener('click', deleteItem);
+                
+                const selectBtn = document.getElementById(`ctx-select-${state.containerId}`);
+                if (selectBtn) {
+                    selectBtn.addEventListener('click', () => {
+                        if (state.onFolderSelect && currentContextItem) {
+                            state.onFolderSelect(currentContextItem.id, currentContextItem.name);
+                            DOM.contextMenu.classList.remove('active');
+                        }
+                    });
+                }
+                
+                const selectCurrentBtn = document.getElementById(`btn-select-current-${state.containerId}`);
+                if (selectCurrentBtn) {
+                    selectCurrentBtn.addEventListener('click', () => {
+                        if (state.onFolderSelect) {
+                            state.onFolderSelect(state.currentFolderId, state.currentFolder ? state.currentFolder.name : 'Carpeta Raíz');
+                        }
+                    });
+                }
             }
 
             // Load initial folder
-            loadFolder(state.rootFolderId);
+            if (!options.lazyLoad) {
+                loadFolder(state.rootFolderId);
+            }
         },
         openGlobalModal: function() {
             const modal = document.getElementById('global-drive-modal');
@@ -281,6 +314,9 @@ const DriveExplorer = (function() {
                     loadFolder(state.rootFolderId);
                 }
             }
+        },
+        setOnFolderSelect: function(callback) {
+            state.onFolderSelect = callback;
         }
     };
 })();

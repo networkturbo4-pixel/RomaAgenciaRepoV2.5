@@ -68,7 +68,8 @@
             DriveExplorer.init({
                 containerId: 'global-drive-container',
                 rootFolderId: '1xC-3ZPK0mDew934BNB5hgHbfjlCg8PLR', // Carpeta EQUIPO (Global)
-                readonly: false
+                readonly: false,
+                lazyLoad: true
             });
         }
     });

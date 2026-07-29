@@ -1,0 +1,15 @@
+Array
+(
+    [0] => Array
+        (
+            [Table] => service_categories
+            [Create Table] => CREATE TABLE `service_categories` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `color_tag` varchar(20) DEFAULT '#4b5563',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
+
+)

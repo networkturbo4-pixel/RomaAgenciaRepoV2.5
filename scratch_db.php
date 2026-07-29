@@ -1,6 +1,9 @@
 <?php
 require_once 'config/database.php';
-$database = new Database();
-$db = $database->getConnection();
-$stmt = $db->query("SHOW COLUMNS FROM employee_payments");
-echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+$db = (new Database())->getConnection();
+$tables = ['tasks', 'task_subtasks', 'users'];
+foreach ($tables as $t) {
+    echo "--- $t ---\n";
+    $stmt = $db->query("DESCRIBE $t");
+    print_r($stmt->fetchAll(PDO::FETCH_ASSOC));
+}

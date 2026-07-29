@@ -22,154 +22,539 @@ $correlativo = $order['correlativo'];
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Orden de Servicio <?php echo htmlspecialchars($correlativo); ?> | FlowWorks</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <title>Orden de Servicio <?php echo htmlspecialchars($correlativo); ?></title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <?php
+  $stmtFav = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'favicon'");
+  $faviconRow = $stmtFav->fetch(PDO::FETCH_ASSOC);
+  if ($faviconRow && !empty($faviconRow['setting_value'])): ?>
+  <link rel="icon" href="<?php echo htmlspecialchars($faviconRow['setting_value']); ?>">
+  <?php endif; ?>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: linear-gradient(145deg, #eef2f7 0%, #e0e7ef 100%); font-family: 'Inter', sans-serif; color: #1a2c3e; padding-top: 80px; }
     
-    .floating-toolbar { position: fixed; top: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(16px); z-index: 1000; padding: 0.8rem 2rem; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08), 0 1px 0 rgba(0,0,0,0.02); border-bottom: 1px solid rgba(100, 130, 160, 0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-    .logo-area { display: flex; align-items: center; gap: 0.75rem; }
-    .logo-area i { font-size: 1.8rem; color: #1f6392; background: white; padding: 8px; border-radius: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-    .logo-area h2 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg, #1f4e7a, #0f2c44); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .status-badge { background: #dcfce7; color: #166534; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; border: 1px solid #bbf7d0; display: inline-flex; align-items: center; gap: 0.25rem; }
+    :root {
+      --primary: #0f766e;
+      --primary-light: #14b8a6;
+      --bg-page: #f8fafb;
+      --bg-card: #ffffff;
+      --text-main: #1a2c3e;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e5e7eb;
+      --border-light: #f1f5f9;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+      --card-radius: 20px;
+    }
 
-    .app-container { max-width: 1400px; margin: 0 auto; padding: 0 1.5rem 2rem 1.5rem; }
+    body {
+      background: var(--bg-page);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
 
-    .info-cards { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-bottom: 2rem; }
-    .card-glass { background: white; border-radius: 1.5rem; padding: 1rem 1.6rem; flex: 1 1 200px; box-shadow: 0 5px 14px rgba(0,0,0,0.03), 0 0 0 1px rgba(0,0,0,0.02); }
-    .card-glass label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; color: #6c86a0; display: block; margin-bottom: 0.3rem; }
-    .card-glass .readonly-value { font-weight: 600; font-size: 0.95rem; font-family: 'Inter', monospace; color: #1a2c3e; min-height: 1.5rem; }
+    /* === Header Banner === */
+    .public-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+    }
+    .public-header-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .public-header h1 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.5px;
+    }
+    .public-header .header-id {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .public-header .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .public-header .header-actions button {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .public-header .header-actions button:hover {
+      background: var(--border-light);
+    }
 
-    .section-title { display: flex; align-items: baseline; justify-content: space-between; margin: 1.8rem 0 1.2rem 0; flex-wrap: wrap; }
-    .section-title h2 { font-size: 1.4rem; font-weight: 600; color: #1e405e; }
+    /* === Container === */
+    .app-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 16px 40px 16px;
+    }
 
-    .process-card { background: white; border-radius: 1.3rem; margin-bottom: 1.4rem; box-shadow: 0 8px 18px rgba(0,0,0,0.05); border: 1px solid #eef2f8; overflow: hidden; }
-    .process-header { background: #f9fbfe; padding: 1rem 1.6rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; border-bottom: 1px solid #e9edf2; }
-    .process-name { display: flex; align-items: center; gap: 0.8rem; font-weight: 700; font-size: 1.1rem; color: #1f6392; }
-    .rows-container { padding: 1rem 1.2rem 1.4rem 1.2rem; background: white; }
-    .row-item { background: #ffffff; border-radius: 1rem; padding: 0.9rem 1rem; margin-bottom: 0.8rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 0 0 1px #eff3f8; }
-    .row-field { flex: 2 1 180px; min-width: 150px; }
-    .row-field label { display: block; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: #86a0bc; margin-bottom: 0.2rem; }
-    .readonly-box { width: 100%; border: 1px solid transparent; background: transparent; padding: 0; font-size: 0.85rem; font-family: 'Inter', sans-serif; color: #1a2c3e; }
-    .budget-obs { background: #ffffffdb; backdrop-filter: blur(4px); border-radius: 1.6rem; padding: 1.2rem 1.8rem; margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 2rem; border: 1px solid #eef2f8; }
-    .budget-box, .obs-box { flex: 1; }
-    .budget-box h4, .obs-box h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #577a9e; margin-bottom: 0.6rem; }
-    .budget-box .readonly-value, .obs-box .readonly-value { width: 100%; font-family: 'Inter', sans-serif; color: #1a2c3e; }
-    footer { font-size: 0.7rem; text-align: center; margin-top: 2rem; color: #7892ac; }
-    @media (max-width: 700px) { body { padding-top: 110px; } .floating-toolbar { flex-direction: column; align-items: stretch; padding: 0.8rem 1rem; } .row-item { flex-direction: column; align-items: stretch; } }
+    /* === Section Card === */
+    .section-card {
+      background: var(--bg-card);
+      border-radius: var(--card-radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--card-shadow);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-header h2 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-header .badge {
+      background: var(--primary);
+      color: white;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+    .section-body {
+      padding: 1.2rem 1.5rem;
+    }
+
+    /* === Client Info Card === */
+    .client-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .client-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .client-avatar i {
+      font-size: 1.4rem;
+      color: var(--primary);
+    }
+    .client-info h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .client-info p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    .client-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-light);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .client-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .client-meta i {
+      color: var(--text-muted);
+    }
+    .client-meta-networks {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* === Networks === */
+    .networks-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .net-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .net-pill:hover {
+      opacity: 0.85;
+    }
+
+    /* === Process Card === */
+    .process-header-bar {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .process-header-bar i {
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+    .process-header-bar span {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .process-rows {
+      padding: 0.8rem 1.2rem 1rem;
+    }
+    .process-row {
+      background: var(--bg-page);
+      border-radius: 14px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 10px;
+      border: 1px solid var(--border-light);
+    }
+    .process-row:last-child {
+      margin-bottom: 0;
+    }
+    .row-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .row-value {
+      font-size: 0.88rem;
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+    .row-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 1rem;
+    }
+
+    /* === Budget & Obs === */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .info-block label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .info-block .info-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+    .info-block .info-value a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+    .info-block .info-value a:hover {
+      text-decoration: underline;
+    }
+
+    /* === Custom Fields === */
+    .custom-fields-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .cf-item label {
+      display: block;
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .cf-item .cf-value {
+      font-size: 0.9rem;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    /* === Footer === */
+    .public-footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* === Responsive === */
+    @media (max-width: 600px) {
+      .info-grid { grid-template-columns: 1fr; }
+      .row-grid { grid-template-columns: 1fr; }
+      .client-card { flex-direction: column; text-align: center; }
+      .client-meta { justify-content: center; }
+    }
+
+    @media print {
+      .public-header { position: static; }
+      body { background: white; }
+    }
   </style>
 </head>
 <body>
-<div class="floating-toolbar">
-  <div class="logo-area">
-    <i class="fas fa-network-wired"></i>
-    <h2>OS: <?php echo htmlspecialchars($correlativo); ?></h2>
-  </div>
-  <div class="status-badge">
-    <i class="fas fa-lock"></i> Vista de solo lectura
+
+<!-- Header -->
+<div class="public-header">
+  <div class="public-header-inner">
+    <div>
+      <h1>ORDEN DE SERVICIO</h1>
+      <div class="header-id"><?php echo htmlspecialchars($correlativo); ?></div>
+    </div>
+    <div class="header-actions">
+      <button onclick="window.print();" title="Descargar / Imprimir">
+        <i class="ph ph-download-simple"></i>
+      </button>
+    </div>
   </div>
 </div>
 
 <div class="app-container">
-  <div class="info-cards">
-    <div class="card-glass"><label><i class="fas fa-user"></i> CLIENTE</label><div class="readonly-value" id="ro_clienteName"></div></div>
-    <div class="card-glass"><label><i class="fas fa-tag"></i> MARCA</label><div class="readonly-value" id="ro_marcaName"></div></div>
-    <div class="card-glass"><label><i class="fas fa-globe"></i> REDES A MANEJAR</label><div class="readonly-value" id="ro_redesManejar"></div></div>
-    <div class="card-glass"><label><i class="fas fa-play-circle"></i> INICIO</label><div class="readonly-value" id="ro_fechaInicio"></div></div>
-    <div class="card-glass"><label><i class="fas fa-stop-circle"></i> FINAL</label><div class="readonly-value" id="ro_fechaFinal"></div></div>
+
+  <!-- Client Info -->
+  <div class="section-card">
+    <div class="section-body">
+      <div class="client-card">
+        <div class="client-avatar">
+          <i class="ph ph-user"></i>
+        </div>
+        <div class="client-info">
+          <h3 id="ro_clienteName">-</h3>
+          <p id="ro_marcaName">-</p>
+        </div>
+      </div>
+      <div class="client-meta">
+        <div class="client-meta-left">
+          <i class="ph ph-calendar-blank"></i>
+          <span id="ro_fechaInicio">-</span>
+          <span style="color: var(--text-muted); margin: 0 4px;">→</span>
+          <span id="ro_fechaFinal">-</span>
+        </div>
+        <div class="client-meta-networks" id="ro_redesManejar"></div>
+      </div>
+    </div>
   </div>
 
-  <div class="section-title">
-    <h2><i class="fas fa-tasks"></i> Flujo de trabajo</h2>
-  </div>
+  <!-- Workflow -->
   <div id="procesosContainer"></div>
 
-  <div class="budget-obs">
-    <div class="budget-box">
-      <h4><i class="fas fa-coins"></i> PRESUPUESTO ADS + CUENTA COMERCIAL</h4>
-      <div class="readonly-value" id="ro_presupuestoAds"></div>
+  <!-- Budget & Observations -->
+  <div class="section-card" id="budgetObsCard" style="display: none;">
+    <div class="section-header">
+      <h2><i class="ph ph-clipboard-text"></i> Detalles adicionales</h2>
     </div>
-    <div class="obs-box">
-      <h4><i class="fas fa-pen-fancy"></i> OBSERVACIONES ADICIONALES</h4>
-      <div class="readonly-value" style="white-space: pre-wrap;" id="ro_observacionesGlobal"></div>
+    <div class="section-body">
+      <div class="info-grid">
+        <div class="info-block" id="budgetBlock" style="display: none;">
+          <label><i class="ph ph-coins"></i> Presupuesto</label>
+          <div class="info-value" id="ro_presupuestoAds">-</div>
+        </div>
+        <div class="info-block" id="obsBlock" style="display: none;">
+          <label><i class="ph ph-note-pencil"></i> Observaciones</label>
+          <div class="info-value" id="ro_observacionesGlobal">-</div>
+        </div>
+      </div>
     </div>
   </div>
-  <footer>Generado por FlowWorks · Documento Confidencial</footer>
+
+  <!-- Custom Fields -->
+  <div id="customFieldsContainerWrapper"></div>
+
+  <div class="public-footer">Documento confidencial · Generado automáticamente</div>
 </div>
 
 <script>
   const dbData = <?php echo $order_data ? $order_data : 'null'; ?>;
-  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+  
+  function escapeHtml(str) {
+    if(!str) return '';
+    return str.replace(/[&<>]/g, function(m){
+      if(m==='&') return '&amp;';
+      if(m==='<') return '&lt;';
+      if(m==='>') return '&gt;';
+      return m;
+    });
+  }
+
+  const REDES_COLORS = {
+    'Facebook': { icon: 'ph-facebook-logo', color: '#1877F2' },
+    'Instagram': { icon: 'ph-instagram-logo', color: '#E4405F' },
+    'TikTok': { icon: 'ph-tiktok-logo', color: '#000000' },
+    'VK': { icon: 'ph-users-three', color: '#4680C2' },
+    'Google': { icon: 'ph-google-logo', color: '#DB4437' },
+    'YouTube': { icon: 'ph-youtube-logo', color: '#FF0000' },
+    'LinkedIn': { icon: 'ph-linkedin-logo', color: '#0A66C2' },
+    'Web': { icon: 'ph-globe', color: '#577a9e' }
+  };
 
   function renderData() {
-      if(!dbData) return;
+    if(!dbData) return;
 
-      document.getElementById('ro_clienteName').textContent = dbData.cliente || '-';
-      document.getElementById('ro_marcaName').textContent = dbData.marca || '-';
-      document.getElementById('ro_redesManejar').textContent = dbData.redes || '-';
-      document.getElementById('ro_fechaInicio').textContent = dbData.fechaInicio || '-';
-      document.getElementById('ro_fechaFinal').textContent = dbData.fechaFinal || '-';
-      document.getElementById('ro_presupuestoAds').textContent = dbData.presupuesto || '-';
-      document.getElementById('ro_observacionesGlobal').textContent = dbData.observaciones || '-';
+    // Client
+    document.getElementById('ro_clienteName').textContent = dbData.cliente || '-';
+    document.getElementById('ro_marcaName').textContent = dbData.marca || '-';
+    document.getElementById('ro_fechaInicio').textContent = dbData.fechaInicio || '-';
+    document.getElementById('ro_fechaFinal').textContent = dbData.fechaFinal || '-';
 
-      const container = document.getElementById('procesosContainer');
-      if(dbData.procesos && Array.isArray(dbData.procesos)) {
-          dbData.procesos.forEach(proc => {
-              // Si no tiene filas, no lo mostramos, o lo mostramos vacío
-              if(!proc.rows || proc.rows.length === 0) return;
-
-              const card = document.createElement('div');
-              card.className = 'process-card';
-              
-              // Map ph icons back to fa if needed or use fa classes
-              let iconoClass = proc.icono;
-              if (iconoClass && iconoClass.startsWith('ph-')) {
-                  // Fallback map
-                  const iconMap = {
-                      'ph-magnifying-glass': 'fa-search',
-                      'ph-git-branch': 'fa-code-branch',
-                      'ph-chart-line-up': 'fa-chart-line',
-                      'ph-eye': 'fa-eye',
-                      'ph-video-camera': 'fa-video'
-                  };
-                  iconoClass = 'fas ' + (iconMap[iconoClass] || 'fa-check');
-              }
-
-              const header = document.createElement('div');
-              header.className = 'process-header';
-              header.innerHTML = `
-                <div class="process-name">
-                  <i class="${iconoClass}"></i>
-                  <span>${escapeHtml(proc.nombre)}</span>
-                </div>
-              `;
-              
-              const rowsContainer = document.createElement('div');
-              rowsContainer.className = 'rows-container';
-
-              proc.rows.forEach(row => {
-                  const rowDiv = document.createElement('div');
-                  rowDiv.className = 'row-item';
-                  rowDiv.innerHTML = `
-                    <div class="row-field">
-                      <label><i class="fas fa-user-check"></i> ENCARGADO DEL ÁREA</label>
-                      <div class="readonly-box">${escapeHtml(row.encargado)}</div>
-                    </div>
-                    <div class="row-field">
-                      <label><i class="fas fa-clipboard-list"></i> DESCRIPCIÓN DEL TRABAJO</label>
-                      <div class="readonly-box" style="white-space: pre-wrap;">${escapeHtml(row.descripcion)}</div>
-                    </div>
-                  `;
-                  rowsContainer.appendChild(rowDiv);
-              });
-
-              card.appendChild(header);
-              card.appendChild(rowsContainer);
-              container.appendChild(card);
+    // Networks
+    const redesContainer = document.getElementById('ro_redesManejar');
+    if(dbData.redes) {
+      try {
+        const parsed = JSON.parse(dbData.redes);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed.forEach(red => {
+            const conf = REDES_COLORS[red.id] || { icon: 'ph-share-network', color: '#577a9e' };
+            const el = document.createElement(red.url ? 'a' : 'span');
+            if (red.url) { el.href = red.url; el.target = '_blank'; }
+            el.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; text-decoration: none; transition: transform 0.2s;';
+            el.style.background = conf.color;
+            el.title = red.id;
+            el.onmouseover = function() { this.style.transform = 'scale(1.1)'; };
+            el.onmouseout = function() { this.style.transform = 'scale(1)'; };
+            el.innerHTML = `<i class="ph ${conf.icon}" style="color: #fff !important; font-size: 0.9rem;"></i>`;
+            redesContainer.appendChild(el);
           });
+        }
+      } catch(e) {
+        redesContainer.textContent = dbData.redes;
       }
+    }
+
+    // Budget & Observations
+    const hasBudget = dbData.presupuesto && dbData.presupuesto.trim() !== '';
+    const hasObs = dbData.observaciones && dbData.observaciones.trim() !== '' && dbData.observaciones !== '<p><br></p>';
+    
+    if (hasBudget || hasObs) {
+      document.getElementById('budgetObsCard').style.display = '';
+      if (hasBudget) {
+        document.getElementById('budgetBlock').style.display = '';
+        document.getElementById('ro_presupuestoAds').textContent = dbData.presupuesto;
+      }
+      if (hasObs) {
+        document.getElementById('obsBlock').style.display = '';
+        document.getElementById('ro_observacionesGlobal').innerHTML = dbData.observaciones;
+      }
+    }
+
+    // Custom Fields
+    if(dbData.customFields && Array.isArray(dbData.customFields) && dbData.customFields.length > 0) {
+      const wrapper = document.getElementById('customFieldsContainerWrapper');
+      let html = '<div class="section-card"><div class="section-header"><h2><i class="ph ph-faders"></i> Campos personalizados</h2></div><div class="section-body"><div class="custom-fields-grid">';
+      dbData.customFields.forEach(cf => {
+        let val = escapeHtml(cf.value);
+        if (val.startsWith('http')) {
+          val = `<a href="${val}" target="_blank">${val}</a>`;
+        }
+        html += `<div class="cf-item"><label>${escapeHtml(cf.name)}</label><div class="cf-value">${val}</div></div>`;
+      });
+      html += '</div></div></div>';
+      wrapper.innerHTML = html;
+    }
+
+    // Processes / Workflow
+    const container = document.getElementById('procesosContainer');
+    if(dbData.procesos && Array.isArray(dbData.procesos)) {
+      dbData.procesos.forEach(proc => {
+        if(!proc.rows || proc.rows.length === 0) return;
+
+        const card = document.createElement('div');
+        card.className = 'section-card';
+
+        // Icon mapping
+        let iconClass = proc.icono || 'ph-clipboard-text';
+        if (!iconClass.startsWith('ph-')) {
+          iconClass = 'ph-clipboard-text';
+        }
+
+        card.innerHTML = `
+          <div class="process-header-bar">
+            <i class="ph ${iconClass}"></i>
+            <span>${escapeHtml(proc.nombre)}</span>
+          </div>
+          <div class="process-rows" id="proc-rows-${escapeHtml(proc.id)}"></div>
+        `;
+
+        container.appendChild(card);
+
+        const rowsEl = card.querySelector('.process-rows');
+        proc.rows.forEach(row => {
+          const rowDiv = document.createElement('div');
+          rowDiv.className = 'process-row';
+          rowDiv.innerHTML = `
+            <div class="row-grid">
+              <div>
+                <div class="row-label"><i class="ph ph-user-circle"></i> Encargado</div>
+                <div class="row-value">${escapeHtml(row.encargado) || '<span style="color: var(--text-muted);">Sin asignar</span>'}</div>
+              </div>
+              <div>
+                <div class="row-label"><i class="ph ph-clipboard-text"></i> Descripción</div>
+                <div class="row-value">${row.descripcion || '<span style="color: var(--text-muted);">-</span>'}</div>
+              </div>
+            </div>
+          `;
+          rowsEl.appendChild(rowDiv);
+        });
+      });
+    }
   }
 
   window.addEventListener('DOMContentLoaded', renderData);

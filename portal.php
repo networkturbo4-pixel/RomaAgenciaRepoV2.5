@@ -408,6 +408,13 @@ if (!$client_id) {
                 <div>
                     <div class="stat-value" style="font-size: 2.5rem; margin-top: 0; color: var(--portal-text);" id="home-saldo">S/ 0.00</div>
                     <div class="stat-label" style="text-transform: none; color: var(--portal-muted); font-size: 0.95rem; font-weight: 500;">Saldo Pendiente</div>
+                    <div id="home-total-descuento" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--portal-border);">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: var(--portal-text);" id="home-total-descuento-value">S/ 0.00</div>
+                        <div style="font-size: 0.8rem; color: var(--portal-muted); display: flex; align-items: center; gap: 4px;">
+                            Precio Total
+                            <span id="home-discount-badge" style="background: rgba(239,68,68,0.15); color: #ef4444; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; display: none;"></span>
+                        </div>
+                    </div>
                 </div>
                 <div style="margin-top: 1.5rem; border-top: 1px solid var(--portal-border); padding-top: 1rem;">
                     <a href="#" onclick="switchView('payments'); return false;" style="color: var(--color-green); text-decoration: none; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
@@ -619,8 +626,126 @@ if (!$client_id) {
     <div class="portal-header">
         <h1 class="portal-title">Mis Archivos</h1>
     </div>
+    
+    <div class="drive-toolbar">
+        <div class="drive-search">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="drive-search-input" placeholder="Buscar archivos y carpetas..." oninput="filterDriveItems()">
+        </div>
+        <div class="drive-view-toggles">
+            <button class="drive-view-btn active" id="btn-view-grid" onclick="setDriveView('grid')" title="Vista Cuadrícula">
+                <i class="ph ph-squares-four"></i>
+            </button>
+            <button class="drive-view-btn" id="btn-view-list" onclick="setDriveView('list')" title="Vista Lista">
+                <i class="ph ph-list-dashes"></i>
+            </button>
+        </div>
+    </div>
+
     <div class="content-padding" id="drive-list">
         <div style="text-align: center; padding: 2rem;"><div class="loader" style="margin: 0 auto;"></div></div>
+    </div>
+</div>
+
+<!-- Drive Selection Bar -->
+<div class="drive-selection-bar" id="drive-selection-bar">
+    <div class="drive-selection-info">
+        <div class="drive-selection-count" id="drive-selection-count">0</div>
+        <div class="drive-selection-label">selec.</div>
+    </div>
+    <div class="drive-selection-actions">
+        <button class="drive-action-btn" id="btn-drive-rename" onclick="renameSelected()" style="display:none;"><i class="ph ph-pencil-simple"></i> Nombre</button>
+        <button class="drive-action-btn" id="btn-drive-copyurl" onclick="copyLinkSelected()" style="display:none;"><i class="ph ph-link"></i> Copiar URL</button>
+        <button class="drive-action-btn" onclick="moveSelectedFiles()"><i class="ph ph-folder-notch-open"></i> Mover</button>
+        <button class="drive-action-btn" onclick="downloadSelectedFiles()"><i class="ph ph-download-simple"></i> Descargar</button>
+        <button class="drive-action-btn danger" onclick="deleteSelectedFiles()"><i class="ph ph-trash"></i> Eliminar</button>
+        <button class="drive-action-btn" id="btn-drive-info" onclick="infoSelected()" style="display:none;"><i class="ph ph-info"></i> Info</button>
+    </div>
+    <button class="drive-action-btn close-sel" onclick="clearDriveSelection()"><i class="ph ph-x"></i></button>
+</div>
+
+<!-- Move Folder Modal -->
+<div class="share-modal-overlay" id="modal-move-folder">
+    <div class="share-modal">
+        <div class="share-modal-header">
+            <div class="share-modal-title">Mover a...</div>
+            <i class="ph ph-x" style="cursor: pointer; font-size: 1.2rem; color: var(--portal-muted);" onclick="closeMoveModal()"></i>
+        </div>
+        <div id="move-folder-tree" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
+            <!-- Tree loaded via AJAX -->
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+            <button class="btn" style="background: transparent; color: var(--portal-text); border: 1px solid var(--portal-border);" onclick="closeMoveModal()">Cancelar</button>
+            <button class="btn btn-primary" id="btn-confirm-move" disabled>Mover Aquí</button>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="share-modal-overlay" id="modal-share">
+    <div class="share-modal">
+        <div class="share-modal-header">
+            <div class="share-modal-title">Compartir Archivo</div>
+            <i class="ph ph-x" style="cursor: pointer; font-size: 1.2rem; color: var(--portal-muted);" onclick="closeShareModal()"></i>
+        </div>
+        <div style="margin-bottom: 1rem; color: var(--portal-muted); font-size: 0.9rem;">
+            Cualquier persona con este enlace podrá ver y descargar el archivo.
+        </div>
+        <div class="share-input-group">
+            <input type="text" id="share-link-input" readonly>
+            <button onclick="copyShareLink()">Copiar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="portal-toast" class="portal-toast">
+    <div class="portal-toast-icon" id="toast-icon"><i class="ph ph-check-circle"></i></div>
+    <div class="portal-toast-msg" id="toast-msg"></div>
+</div>
+
+<!-- Rename Modal -->
+<div class="share-modal-overlay" id="modal-rename">
+    <div class="share-modal">
+        <div class="share-modal-header">
+            <div class="share-modal-title">Cambiar nombre</div>
+            <i class="ph ph-x" style="cursor: pointer; font-size: 1.2rem; color: var(--portal-muted);" onclick="closeRenameModal()"></i>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label style="font-size: 0.8rem; color: var(--portal-muted); display: block; margin-bottom: 0.5rem;">Nuevo nombre</label>
+            <input type="text" id="rename-input" class="form-control" style="width: 100%; padding: 0.7rem 1rem; border-radius: 10px; border: 1px solid var(--portal-border); background: var(--portal-bg); color: var(--portal-text); font-size: 0.95rem; outline: none; box-sizing: border-box;" autocomplete="off">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+            <button class="btn" style="background: transparent; color: var(--portal-text); border: 1px solid var(--portal-border);" onclick="closeRenameModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmRename()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Info Modal -->
+<div class="share-modal-overlay" id="modal-info">
+    <div class="share-modal">
+        <div class="share-modal-header">
+            <div class="share-modal-title">Información</div>
+            <i class="ph ph-x" style="cursor: pointer; font-size: 1.2rem; color: var(--portal-muted);" onclick="closeInfoModal()"></i>
+        </div>
+        <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            <div>
+                <div style="font-size: 0.75rem; color: var(--portal-muted); margin-bottom: 0.25rem;">Nombre</div>
+                <div id="info-name" style="font-weight: 600; font-size: 0.95rem; word-break: break-all;"></div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--portal-muted); margin-bottom: 0.25rem;">Tipo</div>
+                <div id="info-type" style="font-weight: 600; font-size: 0.95rem;"></div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--portal-muted); margin-bottom: 0.25rem;">ID de Drive</div>
+                <div id="info-id" style="font-size: 0.85rem; font-family: monospace; background: var(--portal-bg); padding: 0.5rem 0.75rem; border-radius: 8px; word-break: break-all;"></div>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+            <button class="btn" style="background: transparent; color: var(--portal-text); border: 1px solid var(--portal-border);" onclick="closeInfoModal()">Cerrar</button>
+        </div>
     </div>
 </div>
 
@@ -763,9 +888,20 @@ function loadDashboard() {
             // Calculate pending
             let saldo = 0;
             let unpaidCount = 0;
+            let totalConDescuento = 0;
+            let hasAnyDiscount = false;
+            let maxDiscountPercent = 0;
             data.payments.forEach(p => {
                 let status = p.status.toUpperCase();
                 let balance = parseFloat(p.total) || 0;
+                const discountPct = parseFloat(p.discount_percent) || 0;
+                
+                // Track total with discount (p.total already includes discount)
+                totalConDescuento += parseFloat(p.total) || 0;
+                if (discountPct > 0) {
+                    hasAnyDiscount = true;
+                    if (discountPct > maxDiscountPercent) maxDiscountPercent = discountPct;
+                }
                 
                 // Detailed parsing if schedule exists
                 const cronograma = typeof p.schedule_json === 'string' ? JSON.parse(p.schedule_json) : p.schedule_json;
@@ -780,6 +916,14 @@ function loadDashboard() {
                 } else if (status === 'PAGADO') {
                     balance = 0;
                 }
+
+                // Subtract abonos (advances/deposits) from balance
+                const abonos = typeof p.abonos_json === 'string' ? JSON.parse(p.abonos_json || '[]') : (p.abonos_json || []);
+                if (abonos && abonos.length > 0) {
+                    const totalAbonos = abonos.reduce((sum, a) => sum + parseFloat(a.monto || 0), 0);
+                    balance = Math.max(0, balance - totalAbonos);
+                }
+
                 saldo += balance;
                 if (balance > 0) unpaidCount++;
             });
@@ -792,6 +936,17 @@ function loadDashboard() {
                 } else {
                     badge.style.display = 'none';
                 }
+            }
+            
+            // Show total with discount
+            const totalDescuentoEl = document.getElementById('home-total-descuento-value');
+            if (totalDescuentoEl) {
+                totalDescuentoEl.innerText = `S/ ${totalConDescuento.toFixed(2)}`;
+            }
+            const discBadge = document.getElementById('home-discount-badge');
+            if (discBadge && hasAnyDiscount) {
+                discBadge.innerText = `-${maxDiscountPercent}%`;
+                discBadge.style.display = 'inline-block';
             }
             
             document.getElementById('home-proyectos-count').innerText = data.projects.length;
@@ -819,6 +974,16 @@ function loadPayments() {
                 const badgeClass = isPaid ? 'paid' : 'pending';
                 const url = `index.php?module=admin&action=payment_note_webview&token=${p.public_token}&view=public`;
                 
+                // Calculate saldo pendiente subtracting abonos
+                let montoTotal = parseFloat(p.total) || 0;
+                let saldoPendiente = montoTotal;
+                const abonos = typeof p.abonos_json === 'string' ? JSON.parse(p.abonos_json || '[]') : (p.abonos_json || []);
+                if (abonos && abonos.length > 0) {
+                    const totalAbonos = abonos.reduce((sum, a) => sum + parseFloat(a.monto || 0), 0);
+                    saldoPendiente = Math.max(0, montoTotal - totalAbonos);
+                }
+                if (isPaid) saldoPendiente = 0;
+
                 html += `
                     <div class="card payment-card" onclick="openViewer('${url}', '${p.note_code}', '')">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -829,13 +994,21 @@ function loadPayments() {
                         <div style="display:flex; justify-content:space-between; margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid var(--portal-border);">
                             <div>
                                 <div class="stat-label">Total</div>
-                                <div style="font-weight: 700;">S/ ${parseFloat(p.total).toFixed(2)}</div>
+                                <div style="font-weight: 700;">S/ ${montoTotal.toFixed(2)}</div>
                             </div>
                             <div style="text-align: right;">
                                 <div class="stat-label">Fecha</div>
                                 <div>${p.start_date}</div>
                             </div>
                         </div>
+                        ${saldoPendiente !== montoTotal ? `
+                        <div style="display:flex; justify-content:space-between; margin-top:0.25rem;">
+                            <div>
+                                <div class="stat-label" style="color: ${isPaid ? 'var(--portal-primary)' : '#ef4444'}; font-weight: 700;">Saldo Pendiente</div>
+                                <div style="font-weight: 800; font-size: 1.1rem; color: ${isPaid ? 'var(--portal-primary)' : '#ef4444'};">S/ ${saldoPendiente.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
             });
@@ -976,11 +1149,13 @@ function loadDrive(folderId = null) {
                     const isFolder = f.mimeType === 'application/vnd.google-apps.folder';
                     
                     const safeName = f.name.replace(/'/g, "\\'");
-                    const clickAction = isFolder ? `navigateToFolder('${f.id}', '${safeName}')` : `openViewer('${f.webViewLink}', '${safeName}', '${f.webContentLink}')`;
+                    const safeNameLower = f.name.toLowerCase().replace(/"/g, "&quot;");
+                    const clickAction = `handleDriveItemClick(event, '${f.id}', ${isFolder}, '${safeName}', '${f.webViewLink}', '${f.webContentLink}')`;
                     
                     if (isFolder) {
                         groupHtml += `
-                            <div class="drive-item" onclick="${clickAction}">
+                            <div class="drive-item" data-name="${safeNameLower}" data-id="${f.id}" data-type="folder" data-view="${f.webViewLink}" onclick="${clickAction}">
+                                <input type="checkbox" class="drive-item-checkbox" value="${f.id}" onclick="toggleDriveSelection(event)">
                                 <div class="folder-icon">
                                     <div class="folder-back"></div>
                                     <div class="folder-tab folder-tab-1"></div>
@@ -999,7 +1174,7 @@ function loadDrive(folderId = null) {
                         const isAi = f.mimeType.includes('illustrator') || f.name.toLowerCase().endsWith('.ai');
                         const isZip = f.mimeType.includes('zip') || f.mimeType.includes('rar') || f.mimeType.includes('tar') || f.name.toLowerCase().endsWith('.zip');
                         
-                        if (isImg) {
+                        if (isImg || (f.hasThumbnail && f.thumbnailLink)) {
                             let thumbUrl = f.thumbnailLink ? f.thumbnailLink.replace('=s220', '=s400') : f.iconLink;
                             iconHtml = `<img src="${thumbUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">`;
                         } else if (isPs) {
@@ -1017,7 +1192,8 @@ function loadDrive(folderId = null) {
                         }
                         
                         groupHtml += `
-                            <div class="drive-item" onclick="${clickAction}">
+                            <div class="drive-item" data-name="${safeNameLower}" data-id="${f.id}" data-type="file" data-view="${f.webViewLink}" data-download="${f.webContentLink}" onclick="${clickAction}">
+                                <input type="checkbox" class="drive-item-checkbox" value="${f.id}" onclick="toggleDriveSelection(event)">
                                 <div class="file-icon" style="overflow:hidden; border: none; background: transparent;">
                                     ${iconHtml}
                                 </div>
@@ -1030,40 +1206,7 @@ function loadDrive(folderId = null) {
                 return groupHtml;
             }
 
-            if (isRoot) {
-                const calFiles = data.files.filter(f => f.category === 'Calendario');
-                const desFiles = data.files.filter(f => f.category === 'Diseño');
-                
-                html += `
-                <div style="background: var(--portal-surface); border: 1px solid var(--portal-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--portal-border); padding-bottom: 1rem;">
-                        <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center;">
-                            <i class="ph ph-calendar-blank" style="font-size: 1.5rem;"></i>
-                        </div>
-                        <div>
-                            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--portal-text); margin: 0;">Calendario</h3>
-                            <div style="font-size: 0.85rem; color: var(--portal-muted);">Archivos y recursos de tus meses activos</div>
-                        </div>
-                    </div>
-                    ${renderFilesGroup(calFiles)}
-                </div>`;
-
-                html += `
-                <div style="background: var(--portal-surface); border: 1px solid var(--portal-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--portal-border); padding-bottom: 1rem;">
-                        <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center;">
-                            <i class="ph ph-paint-brush" style="font-size: 1.5rem;"></i>
-                        </div>
-                        <div>
-                            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--portal-text); margin: 0;">Diseño</h3>
-                            <div style="font-size: 0.85rem; color: var(--portal-muted);">Archivos fuente y recursos de tus diseños</div>
-                        </div>
-                    </div>
-                    ${renderFilesGroup(desFiles)}
-                </div>`;
-            } else {
-                html += renderFilesGroup(data.files);
-            }
+            html += renderFilesGroup(data.files);
             container.innerHTML = html;
         } else {
             container.innerHTML = `<div style="text-align:center; color:var(--portal-muted); padding: 2rem;">${data.error}</div>`;
@@ -1261,7 +1404,15 @@ function backToList() {
     switchView('designs');
 }
 
-function openViewer(viewUrl, title, downloadUrl) {
+function openViewer(fileId, viewUrl, title, downloadUrl) {
+    // If it was called from old advances (3 args), shift arguments
+    if (arguments.length === 3) {
+        downloadUrl = title;
+        title = viewUrl;
+        viewUrl = fileId;
+        fileId = null;
+    }
+
     document.getElementById('viewer-title').innerText = title;
     
     if (downloadUrl) {
@@ -1271,22 +1422,19 @@ function openViewer(viewUrl, title, downloadUrl) {
         document.getElementById('viewer-download').style.display = 'none';
     }
 
-    if (viewUrl) {
+    if (fileId && viewUrl) {
         document.getElementById('viewer-share').style.display = 'block';
         document.getElementById('viewer-share').onclick = function() {
-            const confirmMsg = "⚠️ Por seguridad, te recomendamos no compartir estos enlaces con personas no autorizadas.\n\n¿Estás seguro de que deseas compartir este archivo?";
-            if (!confirm(confirmMsg)) return;
-
-            if (navigator.share) {
-                navigator.share({
-                    title: title,
-                    url: viewUrl
-                }).catch(console.error);
-            } else {
-                navigator.clipboard.writeText(viewUrl).then(() => {
-                    alert('Enlace copiado al portapapeles');
-                });
-            }
+            // Open share modal
+            document.getElementById('share-link-input').value = viewUrl;
+            document.getElementById('modal-share').classList.add('active');
+            
+            // Optionally, we could call ajax_portal.php?action=share_drive_item to make it public if it wasn't
+            fetch('ajax_portal.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=share_drive_item&file_id=' + fileId
+            });
         };
     } else {
         document.getElementById('viewer-share').style.display = 'none';
@@ -1298,13 +1446,374 @@ function openViewer(viewUrl, title, downloadUrl) {
         embedUrl = viewUrl.replace(/\/view.*$/, '/preview');
     }
     
-    document.getElementById('viewer-content').innerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+    if (embedUrl) {
+        document.getElementById('viewer-content').innerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+    } else {
+        document.getElementById('viewer-content').innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:white; gap:1rem;">
+                <i class="ph ph-file-x" style="font-size: 4rem;"></i>
+                <p>Vista previa no disponible para este formato.</p>
+                ${downloadUrl ? `<a href="${downloadUrl}" target="_blank" class="btn btn-primary"><i class="ph ph-download-simple"></i> Descargar Archivo</a>` : ''}
+            </div>
+        `;
+    }
     document.getElementById('file-viewer').classList.add('active');
 }
 
 function closeViewer() {
     document.getElementById('file-viewer').classList.remove('active');
     document.getElementById('viewer-content').innerHTML = '';
+}
+
+/* File Manager Advanced Functions */
+
+function setDriveView(type) {
+    const container = document.querySelector('.drive-grid-container');
+    if (!container) return;
+    
+    if (type === 'list') {
+        container.classList.add('list-view');
+        document.getElementById('btn-view-list').classList.add('active');
+        document.getElementById('btn-view-grid').classList.remove('active');
+    } else {
+        container.classList.remove('list-view');
+        document.getElementById('btn-view-grid').classList.add('active');
+        document.getElementById('btn-view-list').classList.remove('active');
+    }
+}
+
+function filterDriveItems() {
+    const term = document.getElementById('drive-search-input').value.toLowerCase();
+    const items = document.querySelectorAll('.drive-item');
+    items.forEach(item => {
+        const name = item.getAttribute('data-name') || '';
+        if (name.includes(term)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+let selectedDriveItems = [];
+
+function toggleDriveSelection(event) {
+    event.stopPropagation(); // prevent opening file/folder
+    const checkbox = event.target;
+    const val = checkbox.value;
+    const parentItem = checkbox.closest('.drive-item');
+    
+    if (checkbox.checked) {
+        if (!selectedDriveItems.includes(val)) selectedDriveItems.push(val);
+        parentItem.classList.add('selected');
+    } else {
+        selectedDriveItems = selectedDriveItems.filter(id => id !== val);
+        parentItem.classList.remove('selected');
+    }
+    updateSelectionBar();
+}
+
+function updateSelectionBar() {
+    const bar = document.getElementById('drive-selection-bar');
+    const count = document.getElementById('drive-selection-count');
+    const renameBtn = document.getElementById('btn-drive-rename');
+    const copyUrlBtn = document.getElementById('btn-drive-copyurl');
+    const infoBtn = document.getElementById('btn-drive-info');
+    const isSingle = selectedDriveItems.length === 1;
+    
+    if (selectedDriveItems.length > 0) {
+        count.innerText = selectedDriveItems.length;
+        bar.classList.add('active');
+        if (renameBtn) renameBtn.style.display = isSingle ? 'flex' : 'none';
+        if (copyUrlBtn) copyUrlBtn.style.display = isSingle ? 'flex' : 'none';
+        if (infoBtn) infoBtn.style.display = isSingle ? 'flex' : 'none';
+    } else {
+        bar.classList.remove('active');
+    }
+}
+
+function handleDriveItemClick(event, id, isFolder, safeName, webViewLink, webContentLink) {
+    if (event.target.tagName.toLowerCase() === 'input') return; // handled by toggleDriveSelection
+    
+    if (selectedDriveItems.length > 0) {
+        const itemElem = document.querySelector(`.drive-item[data-id="${id}"]`);
+        if (itemElem) {
+            const cb = itemElem.querySelector('.drive-item-checkbox');
+            cb.checked = !cb.checked;
+            toggleDriveSelection({ target: cb, stopPropagation: () => {} });
+        }
+        return;
+    }
+    
+    if (isFolder) {
+        navigateToFolder(id, safeName);
+    } else {
+        openViewer(id, webViewLink, safeName, webContentLink);
+    }
+}
+
+// --- Toast Notification ---
+let toastTimer = null;
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('portal-toast');
+    const icon = document.getElementById('toast-icon');
+    const msg = document.getElementById('toast-msg');
+    
+    const icons = {
+        success: '<i class="ph ph-check-circle"></i>',
+        error: '<i class="ph ph-warning-circle"></i>',
+        info: '<i class="ph ph-info"></i>',
+        warning: '<i class="ph ph-warning"></i>'
+    };
+    
+    icon.innerHTML = icons[type] || icons.success;
+    icon.className = 'portal-toast-icon ' + type;
+    msg.innerText = message;
+    
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// --- Copy Link ---
+function copyLinkSelected() {
+    if (selectedDriveItems.length !== 1) return;
+    const id = selectedDriveItems[0];
+    const item = document.querySelector(`.drive-item[data-id="${id}"]`);
+    if (item) {
+        const viewLink = item.getAttribute('data-view');
+        if (viewLink) {
+            navigator.clipboard.writeText(viewLink).then(() => {
+                showToast('Vínculo copiado al portapapeles', 'success');
+            }).catch(err => {
+                console.error('Error copiando al portapapeles: ', err);
+                showToast('No se pudo copiar el vínculo', 'error');
+            });
+        } else {
+            showToast('No hay vínculo disponible', 'warning');
+        }
+    }
+}
+
+// --- Rename ---
+let renameFileId = null;
+
+function renameSelected() {
+    if (selectedDriveItems.length !== 1) return;
+    renameFileId = selectedDriveItems[0];
+    const item = document.querySelector(`.drive-item[data-id="${renameFileId}"]`);
+    if (!item) return;
+    
+    const currentName = item.querySelector('.item-name').innerText;
+    const input = document.getElementById('rename-input');
+    input.value = currentName;
+    document.getElementById('modal-rename').classList.add('active');
+    setTimeout(() => { input.focus(); input.select(); }, 200);
+}
+
+function closeRenameModal() {
+    document.getElementById('modal-rename').classList.remove('active');
+    renameFileId = null;
+}
+
+function confirmRename() {
+    if (!renameFileId) return;
+    const newName = document.getElementById('rename-input').value.trim();
+    if (!newName) {
+        showToast('El nombre no puede estar vacío', 'warning');
+        return;
+    }
+    
+    const formData = new URLSearchParams();
+    formData.append('action', 'rename_drive_item');
+    formData.append('file_id', renameFileId);
+    formData.append('new_name', newName);
+    
+    fetch('ajax_portal.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Nombre cambiado correctamente', 'success');
+            closeRenameModal();
+            clearDriveSelection();
+            loadDrive(portalDrivePath[portalDrivePath.length - 1].id);
+        } else {
+            showToast('Error: ' + (data.error || 'Desconocido'), 'error');
+        }
+    }).catch(err => {
+        showToast('Error de conexión', 'error');
+    });
+}
+
+// --- Info ---
+function infoSelected() {
+    if (selectedDriveItems.length !== 1) return;
+    const id = selectedDriveItems[0];
+    const item = document.querySelector(`.drive-item[data-id="${id}"]`);
+    if (item) {
+        const name = item.querySelector('.item-name').innerText;
+        const isFolder = item.getAttribute('data-type') === 'folder';
+        document.getElementById('info-name').innerText = name;
+        document.getElementById('info-type').innerText = isFolder ? '📁 Carpeta' : '📄 Archivo';
+        document.getElementById('info-id').innerText = id;
+        document.getElementById('modal-info').classList.add('active');
+    }
+}
+
+function closeInfoModal() {
+    document.getElementById('modal-info').classList.remove('active');
+}
+
+function clearDriveSelection() {
+    selectedDriveItems = [];
+    document.querySelectorAll('.drive-item-checkbox').forEach(cb => {
+        cb.checked = false;
+        cb.closest('.drive-item').classList.remove('selected');
+    });
+    updateSelectionBar();
+}
+
+function deleteSelectedFiles() {
+    if (selectedDriveItems.length === 0) return;
+    if (!confirm(`¿Estás seguro de que deseas eliminar ${selectedDriveItems.length} elemento(s)?`)) return;
+    
+    const formData = new URLSearchParams();
+    formData.append('action', 'delete_drive_items');
+    formData.append('item_ids', JSON.stringify(selectedDriveItems));
+    
+    fetch('ajax_portal.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Elementos eliminados', 'success');
+            clearDriveSelection();
+            loadDrive(portalDrivePath[portalDrivePath.length - 1].id);
+        } else {
+            showToast('Error eliminando: ' + (data.error || 'Desconocido'), 'error');
+        }
+    });
+}
+
+function downloadSelectedFiles() {
+    if (selectedDriveItems.length === 0) return;
+    // We open a new tab for each download URL. 
+    // Browsers might block multiple popups, so we might need a zip on backend, 
+    // but for now we try to open them individually if not too many.
+    if (selectedDriveItems.length > 5) {
+        showToast('Máximo 5 archivos a la vez', 'warning');
+        return;
+    }
+    selectedDriveItems.forEach(id => {
+        const item = document.querySelector(`.drive-item[data-id="${id}"]`);
+        if (item) {
+            const dlUrl = item.getAttribute('data-download');
+            if (dlUrl) {
+                window.open(dlUrl, '_blank');
+            }
+        }
+    });
+    clearDriveSelection();
+}
+
+function moveSelectedFiles() {
+    if (selectedDriveItems.length === 0) return;
+    loadMoveFolderTree();
+    document.getElementById('modal-move-folder').classList.add('active');
+}
+
+function closeMoveModal() {
+    document.getElementById('modal-move-folder').classList.remove('active');
+}
+
+let moveTargetFolderId = null;
+
+function loadMoveFolderTree() {
+    const container = document.getElementById('move-folder-tree');
+    container.innerHTML = '<div class="loader" style="margin: 0 auto;"></div>';
+    
+    fetch('ajax_portal.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=get_drive_folders_tree'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            let html = '<div style="display:flex; flex-direction:column; gap:0.5rem;">';
+            data.folders.forEach(f => {
+                html += `
+                    <div style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem; border-radius:6px; cursor:pointer; transition:0.2s;" 
+                         class="move-tree-item"
+                         onclick="selectMoveTarget('${f.id}', this)">
+                        <i class="ph ph-folder" style="color:var(--portal-primary);"></i>
+                        <span style="color:var(--portal-text); font-size:0.9rem;">${f.name}</span>
+                        <span style="margin-left:auto; font-size:0.75rem; color:var(--portal-muted);">${f.category}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<div style="color:var(--portal-muted);">Error cargando carpetas.</div>';
+        }
+    });
+}
+
+function selectMoveTarget(folderId, element) {
+    document.querySelectorAll('.move-tree-item').forEach(el => el.style.background = 'transparent');
+    element.style.background = 'rgba(59,130,246,0.1)';
+    moveTargetFolderId = folderId;
+    document.getElementById('btn-confirm-move').disabled = false;
+}
+
+document.getElementById('btn-confirm-move').addEventListener('click', function() {
+    if (!moveTargetFolderId || selectedDriveItems.length === 0) return;
+    
+    const formData = new URLSearchParams();
+    formData.append('action', 'move_drive_items');
+    formData.append('item_ids', JSON.stringify(selectedDriveItems));
+    formData.append('new_parent_id', moveTargetFolderId);
+    
+    const btn = this;
+    btn.innerText = 'Moviendo...';
+    btn.disabled = true;
+    
+    fetch('ajax_portal.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.innerText = 'Mover Aquí';
+        btn.disabled = false;
+        closeMoveModal();
+        if (data.success) {
+            clearDriveSelection();
+            loadDrive(portalDrivePath[portalDrivePath.length - 1].id); // reload current
+        } else {
+            alert('Error moviendo: ' + (data.error || 'Desconocido'));
+        }
+    });
+});
+
+function closeShareModal() {
+    document.getElementById('modal-share').classList.remove('active');
+}
+
+function copyShareLink() {
+    const input = document.getElementById('share-link-input');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(() => {
+        alert('Enlace copiado al portapapeles');
+        closeShareModal();
+    });
 }
 </script>
 </body>

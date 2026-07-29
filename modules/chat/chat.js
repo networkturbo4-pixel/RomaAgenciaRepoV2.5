@@ -105,7 +105,11 @@
 
             if (isGroup) {
                 const isPublicIcon = ch.is_public ? '<i class="ph ph-globe" style="margin-left:4px; font-size:0.8rem; opacity:0.7;" title="Público"></i>' : '';
-                const avatarHtml = ch.avatar ? `<div class="channel-item-icon" style="background-image:url('${ch.avatar}'); background-size:cover; border-radius:50%; border:none;"></div>` : `<span class="channel-item-icon"><i class="ph ph-users"></i></span>`;
+                const avatarUrl = ch.avatar ? (ch.avatar.startsWith('http') ? ch.avatar : 'uploads/chat_avatars/' + ch.avatar) : null;
+                const avatarHtml = avatarUrl 
+                    ? `<div class="channel-item-icon" style="background-image:url('${avatarUrl}'); background-size:cover; border-radius:50%; border:none;"></div>` 
+                    : `<div class="channel-item-icon" style="background:${getAvatarColor(ch.id, ch.name)}; color:#fff; display:flex; align-items:center; justify-content:center; border:none; font-weight:bold; border-radius:50%;">${escapeHtml(ch.name.charAt(0).toUpperCase())}</div>`;
+                
                 unifiedHtml += `
                     <div class="channel-item ${active}" data-channel-id="${ch.id}">
                         ${avatarHtml}
@@ -153,9 +157,16 @@
                 // Remove existing menu
                 document.querySelector('.channel-ctx-menu')?.remove();
 
+                const ch = data.channels.find(c => c.id == chId);
+                const isGroup = ch && ch.type === 'group';
                 const menu = document.createElement('div');
                 menu.className = 'channel-ctx-menu';
                 menu.innerHTML = `
+                    ${isGroup ? `
+                    <div class="channel-ctx-option" data-action="edit">
+                        <i class="ph ph-pencil-simple"></i>
+                        <span>Editar grupo</span>
+                    </div>` : ''}
                     <div class="channel-ctx-option" data-action="${isPinned ? 'unpin' : 'pin'}">
                         <i class="ph ph-push-pin"></i>
                         <span>${isPinned ? 'Desfijar chat' : 'Fijar chat'}</span>
@@ -189,6 +200,40 @@
                             fd.append('type', action);
                             await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
                             loadChannels();
+                        } else if (action === 'edit') {
+                            const fd = new FormData();
+                            fd.append('action', 'get_channel');
+                            fd.append('channel_id', chId);
+                            const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
+                            const data = await res.json();
+                            if (data.success) {
+                                const chInfo = data.channel;
+                                $('group-manager-title').textContent = 'Editar Grupo';
+                                $('group-manager-id').value = chInfo.id;
+                                $('group-name').value = chInfo.name;
+                                $('group-desc').value = chInfo.description || '';
+                                if($('group-is-public')) $('group-is-public').checked = parseInt(chInfo.is_public) === 1;
+                                if($('group-requires-approval')) $('group-requires-approval').checked = parseInt(chInfo.requires_approval) === 1;
+                                if($('group-is-secret')) $('group-is-secret').checked = parseInt(chInfo.is_secret) === 1;
+                                if($('group-secret-password')) $('group-secret-password').value = '';
+
+                                if (chInfo.avatar) {
+                                    $('group-avatar-img').src = chInfo.avatar.startsWith('http') ? chInfo.avatar : 'uploads/chat_avatars/' + chInfo.avatar; // assuming avatar path logic is handled somewhere or just the raw DB value
+                                    $('group-avatar-img').style.display = 'block';
+                                } else {
+                                    $('group-avatar-img').src = '';
+                                    $('group-avatar-img').style.display = 'none';
+                                }
+
+                                document.querySelectorAll('.group-member-cb').forEach(cb => {
+                                    cb.checked = data.members.includes(cb.value);
+                                });
+
+                                $('group-manager-modal').style.display = '';
+                                $('group-manager-modal').classList.add('active');
+                            } else {
+                                alert(data.error || 'Error al cargar datos del grupo');
+                            }
                         } else if (action === 'delete') {
                             const confirmDelete = confirm('¿Eliminar este chat?\n\nSe eliminará de tu lista. Los mensajes no se borran para otros.');
                             if (confirmDelete) {
@@ -262,17 +307,30 @@
 
         const ch = data.channel;
         const isGroup = ch.type === 'group';
-        channelName.textContent = isGroup ? `# ${ch.name}` : ch.name;
+        channelName.textContent = ch.name;
         channelMeta.textContent = `${ch.member_count} miembros · ${ch.online_count} online`;
         channelMeta.style.display = 'block';
         
-        if (ch.avatar) {
-            $('chat-header-avatar').style.backgroundImage = `url('${ch.avatar}')`;
-            $('chat-header-avatar').style.display = 'block';
-        } else if (isGroup) {
-            $('chat-header-avatar').style.display = 'none';
+        if (isGroup) {
+            // Header Image
+            if (ch.avatar) {
+                const avatarUrl = ch.avatar.startsWith('http') ? ch.avatar : 'uploads/chat_avatars/' + ch.avatar;
+                $('chat-header-avatar').style.backgroundImage = `url('${avatarUrl}')`;
+                $('chat-header-avatar').style.backgroundColor = 'transparent';
+                $('chat-header-avatar').style.display = 'block';
+                $('chat-header-avatar').innerHTML = '';
+            } else {
+                $('chat-header-avatar').style.backgroundImage = 'none';
+                $('chat-header-avatar').style.backgroundColor = getAvatarColor(ch.id, ch.name);
+                $('chat-header-avatar').style.color = '#fff';
+                $('chat-header-avatar').style.display = 'flex';
+                $('chat-header-avatar').style.alignItems = 'center';
+                $('chat-header-avatar').style.justifyContent = 'center';
+                $('chat-header-avatar').style.fontWeight = 'bold';
+                $('chat-header-avatar').innerHTML = escapeHtml(ch.name.charAt(0).toUpperCase());
+            }
         } else {
-            // we could handle direct message avatars here too, but for now just hide
+            // Direct message avatar
             $('chat-header-avatar').style.display = 'none';
         }
 
@@ -335,7 +393,7 @@
         
         // Hide sidebar if empty on load (optional)
         if (!isGroup) {
-            $('chat-right-sidebar').style.display = 'none';
+            $('chat-info-panel').style.display = 'none';
         }
         startPolling();
     }
@@ -530,6 +588,16 @@
                 }
 
                 // Wrapper
+                                let metaHtml = '';
+                const mTime = formatTime(msg.created_at);
+                if (isOwn) {
+                    let ticks = '<i class="ph ph-check"></i>'; // Default 1 tick
+                    // Assuming if we have status, maybe it's passed or handled via poll later,
+                    // but let's give it the base structure.
+                    metaHtml = `<div class="msg-meta"><span>${mTime}</span><span class="msg-status">${ticks}</span></div>`;
+                } else {
+                    metaHtml = `<div class="msg-meta"><span>${mTime}</span></div>`;
+                }
                 let bubbleHtml = `
                     <div class="msg-bubble-wrap ${isOwn ? 'own' : ''}" data-id="${msg.id}" style="position:relative;">
                         ${(!isOwn && showHeader) ? renderAvatar(msg) : (!isOwn ? '<div style="min-width:36px;"></div>' : '')}
@@ -547,6 +615,7 @@
                                 </div>
                             `}
                             ${reactionsHtml}
+                            ${metaHtml}
                         </div>
                 </div>`;
                 
@@ -606,10 +675,27 @@
             formData.append('option_index', idx);
             formData.append('allow_multiple', false);
             
-            const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: formData });
-            const result = await res.json();
-            if (result.success) {
-                updatePollUI(msgId, result.poll_votes, result.my_votes);
+            try {
+                const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: formData });
+                const text = await res.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch(e) {
+                    Swal.fire('Error JS', 'El servidor respondió con texto inválido: ' + text.substring(0, 50), 'error');
+                    console.error('Invalid JSON from server:', text);
+                    return;
+                }
+                
+                if (result.success) {
+                    updatePollUI(msgId, result.poll_votes, result.my_votes);
+                    Swal.fire({title: 'Voto Registrado', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500});
+                } else {
+                    Swal.fire('Error al votar', result.error || 'Desconocido', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error de Conexión', err.message, 'error');
+                console.error(err);
             }
         }
 
@@ -978,7 +1064,7 @@
                     users = pv.users;
                 }
             }
-            if (msg.my_votes && msg.my_votes.includes(idx.toString())) {
+            if (msg.my_votes && msg.my_votes.map(String).includes(idx.toString())) {
                 isVoted = true;
             }
             const percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
@@ -995,7 +1081,7 @@
 
         return `
         <div class="msg-group">
-            <div class="msg-group-header">
+            <div class="msg-group-header" ${isOwn ? 'style="justify-content:flex-end;"' : ''}>
                 ${isOwn ? '' : renderAvatar(msg)}
                 <span class="msg-sender-name">${escapeHtml(senderName)}</span>
                 <span class="msg-time">${formatTime(msg.created_at)}</span>
@@ -1044,7 +1130,7 @@
 
         return `
         <div class="msg-group">
-            <div class="msg-group-header">
+            <div class="msg-group-header" ${isOwn ? 'style="justify-content:flex-end;"' : ''}>
                 ${isOwn ? '' : renderAvatar(msg)}
                 <span class="msg-sender-name">${escapeHtml(senderName)}</span>
                 <span class="msg-time">${formatTime(msg.created_at)}</span>
@@ -1265,38 +1351,54 @@
         else wrap.insertAdjacentHTML('beforeend', html);
     }
 
+    
     // ── UPDATE POLL UI ──
     function updatePollUI(msgId, pollVotes, myVotes) {
-        const optionsContainer = document.querySelector(`.wcard-poll-option[data-msg-id="${msgId}"]`)?.closest('.wcard-poll-options');
-        if (!optionsContainer) return;
-
-        const card = optionsContainer.closest('.wcard');
-        const allOptions = optionsContainer.querySelectorAll('.wcard-poll-option');
-        
         let totalVotes = 0;
         (pollVotes || []).forEach(pv => totalVotes += parseInt(pv.count));
 
-        allOptions.forEach(optEl => {
+        const optionEls = document.querySelectorAll(`.wcard-poll-option[data-msg-id="${msgId}"]`);
+        
+        optionEls.forEach(optEl => {
             const idx = optEl.dataset.idx;
             let count = 0;
             let users = '';
-            const pv = (pollVotes || []).find(p => p.option_index == idx);
+            const pv = (pollVotes || []).find(p => parseInt(p.option_index) === parseInt(idx));
             if (pv) {
                 count = parseInt(pv.count);
                 users = pv.users || '';
             }
-            const percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-            const isVoted = myVotes && myVotes.includes(idx.toString());
-
-            optEl.classList.toggle('voted', isVoted);
+            
+            let percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+            
             optEl.title = users;
-            optEl.querySelector('.wcard-poll-bar').style.width = percent + '%';
-            optEl.querySelector('.wcard-poll-count').textContent = `${count} (${percent}%)`;
-        });
+            
+            const isVoted = myVotes && myVotes.map(String).includes(idx.toString());
+            optEl.classList.toggle('voted', isVoted);
+            
+            const countSpan = optEl.querySelector('.wcard-poll-count');
+            if (countSpan) {
+                countSpan.textContent = `${count} (${percent}%)`;
+            }
 
-        // Update total votes
-        const statLine = card.querySelector('.wcard-stat-line');
-        if (statLine) statLine.innerHTML = `<i class="ph ph-users"></i> ${totalVotes} votos`;
+            // update progress
+            const bar = optEl.querySelector('.wcard-poll-bar');
+            if (bar) bar.style.width = percent + '%';
+        });
+        
+        // update total votes safely
+        const containers = document.querySelectorAll(`.wcard-poll-option[data-msg-id="${msgId}"]`);
+        const processedContainers = new Set();
+        containers.forEach(el => {
+            const optionsContainer = el.closest('.wcard-poll-options');
+            if (optionsContainer && !processedContainers.has(optionsContainer)) {
+                processedContainers.add(optionsContainer);
+                const statLine = optionsContainer.parentElement.nextElementSibling?.querySelector('.wcard-stat-line');
+                if (statLine) {
+                    statLine.innerHTML = `<i class="ph ph-users"></i> ${totalVotes} votos`;
+                }
+            }
+        });
     }
 
     // ── UPDATE TASK UI ──
@@ -1802,8 +1904,8 @@
         $('btn-group-info')?.addEventListener('click', openInfoPanel);
         $('btn-close-info')?.addEventListener('click', closeInfoPanel);
 
-        $('btn-close-right-sidebar')?.addEventListener('click', () => {
-            $('chat-right-sidebar').style.display = 'none';
+        $('btn-close-info')?.addEventListener('click', () => {
+            $('chat-info-panel').style.display = 'none';
         });
 
         document.querySelectorAll('.bg-picker-btn').forEach(btn => {
@@ -1849,7 +1951,7 @@
             const question = $('poll-question').value.trim();
             const optionInputs = document.querySelectorAll('.poll-option-input');
             const options = Array.from(optionInputs).map(inp => inp.value.trim()).filter(v => v);
-            const multi = $('poll-allow-multiple')?.checked || false;
+            const multi = false;
 
             if (!question || options.length < 2) {
                 Swal.fire('Error', 'Debes añadir una pregunta y al menos dos opciones.', 'error');
@@ -2242,31 +2344,51 @@ if (chatMain && chatMsgs) {
         $('group-is-public').checked = false;
         $('group-avatar-img').src = '';
         $('group-avatar-img').style.display = 'none';
-        $('group-manager-modal').style.display = 'flex';
+        $('group-manager-modal').style.display = ''; // Clear inline display if any
+        $('group-manager-modal').classList.add('active');
     });
 
     $('btn-save-group')?.addEventListener('click', async () => {
-        const name = $('group-name').value.trim();
-        if (!name) return alert('El nombre es obligatorio');
-        const desc = $('group-desc').value.trim();
-        const isPublic = $('group-is-public').checked ? 1 : 0;
-        const fd = new FormData();
-        fd.append('action', 'create_channel'); // actually create_group but usually create_channel
-        fd.append('name', name);
-        fd.append('description', desc);
-        fd.append('type', 'group');
-        fd.append('is_public', isPublic);
-        
-        const avatarFile = $('group-avatar-input').files[0];
-        if (avatarFile) fd.append('avatar', avatarFile);
+        try {
+            const name = $('group-name').value.trim();
+            if (!name) return alert('El nombre es obligatorio');
+            const desc = $('group-desc').value.trim();
+            const isPublic = $('group-is-public').checked ? 1 : 0;
+            const fd = new FormData();
+            fd.append('action', 'create_channel'); 
+            const chId = $('group-manager-id')?.value;
+            if (chId) fd.append('channel_id', chId);
+            fd.append('name', name);
+            fd.append('description', desc);
+            fd.append('type', 'group');
+            fd.append('is_public', isPublic);
+            
+            const requiresApproval = $('group-requires-approval')?.checked ? 1 : 0;
+            const isSecret = $('group-is-secret')?.checked ? 1 : 0;
+            const secretPassword = $('group-secret-password')?.value || '';
+            
+            fd.append('requires_approval', requiresApproval);
+            fd.append('is_secret', isSecret);
+            if (isSecret) fd.append('secret_password', secretPassword);
+            
+            const avatarFile = $('group-avatar-input')?.files[0];
+            if (avatarFile) fd.append('avatar', avatarFile);
 
-        const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.success) {
-            $('group-manager-modal').style.display = 'none';
-            loadChannels();
-        } else {
-            alert(data.error || 'Error al crear grupo');
+            const memberCbs = document.querySelectorAll('.group-member-cb:checked:not([disabled])');
+            const members = Array.from(memberCbs).map(cb => cb.value);
+            fd.append('members', JSON.stringify(members));
+
+            const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.success) {
+                $('group-manager-modal').classList.remove('active');
+                loadChannels();
+            } else {
+                alert(data.error || 'Error al crear grupo (Backend)');
+            }
+        } catch (err) {
+            alert('Error JS al crear grupo: ' + err.message);
+            console.error(err);
         }
     });
 
@@ -2285,7 +2407,10 @@ if (chatMain && chatMsgs) {
     document.querySelectorAll('.btn-close-modal').forEach(btn => {
         btn.addEventListener('click', function() {
             const modal = this.closest('.modal-overlay');
-            if (modal) modal.style.display = 'none';
+            if (modal) {
+                modal.classList.remove('active');
+                modal.style.display = ''; // Clear any inline style
+            }
         });
     });
 
@@ -2293,34 +2418,59 @@ if (chatMain && chatMsgs) {
         document.getElementById('chat-info-panel').classList.remove('active');
     });
 
-    // POLL AND TASK EVENTS DELEGATION
-    chatMessages.addEventListener('click', async (e) => {
-        const pollOpt = e.target.closest('.wcard-poll-option');
-        if (pollOpt) {
-            const msgId = pollOpt.dataset.msgId;
-            const idx = pollOpt.dataset.idx;
-            const fd = new FormData();
-            fd.append('action', 'vote_poll');
-            fd.append('message_id', msgId);
-            fd.append('option_index', idx);
-            const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (data.success) updatePollUI(msgId, data.votes, data.my_votes);
-        }
+    // ── GLOBAL EMOJI PICKER BINDING ──
+    let currentEmojiTarget = null;
+    const emojiQuickPicker = document.getElementById('emoji-quick-picker');
 
-        const taskCheck = e.target.closest('.wcard-task-check');
-        if (taskCheck) {
-            const msgId = taskCheck.dataset.msgId;
-            const idx = taskCheck.dataset.idx;
-            const fd = new FormData();
-            fd.append('action', 'toggle_task');
-            fd.append('message_id', msgId);
-            fd.append('item_index', idx);
-            const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (data.success) updateTaskUI(msgId, data.items);
+    document.addEventListener('click', (e) => {
+        // Emoji picker toggle
+        const smileyBtn = e.target.closest('.ph-smiley');
+        if (smileyBtn) {
+            // Check if it's our target button in main chat, or in modals
+            if (smileyBtn.closest('#btn-emoji-picker')) {
+                currentEmojiTarget = document.getElementById('chat-input');
+            } else if (smileyBtn.closest('.modal-content')) {
+                // Modals (Poll, Task)
+                currentEmojiTarget = smileyBtn.closest('div').querySelector('input');
+            }
+            
+            if (currentEmojiTarget && emojiQuickPicker) {
+                const rect = smileyBtn.getBoundingClientRect();
+                emojiQuickPicker.style.display = 'block';
+                
+                let top = rect.bottom + 10;
+                let left = rect.left - 300 + rect.width; 
+                if (left < 10) left = 10;
+                if (top + 400 > window.innerHeight) {
+                    top = rect.top - 410; // Show above
+                }
+                
+                emojiQuickPicker.style.top = top + 'px';
+                emojiQuickPicker.style.left = left + 'px';
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        } else if (emojiQuickPicker && !e.target.closest('emoji-picker')) {
+            emojiQuickPicker.style.display = 'none';
+            currentEmojiTarget = null;
         }
     });
+
+    if (emojiQuickPicker) {
+        emojiQuickPicker.addEventListener('emoji-click', event => {
+            if (currentEmojiTarget) {
+                const emoji = event.detail.unicode;
+                const start = currentEmojiTarget.selectionStart || currentEmojiTarget.value.length;
+                const end = currentEmojiTarget.selectionEnd || currentEmojiTarget.value.length;
+                
+                const text = currentEmojiTarget.value;
+                currentEmojiTarget.value = text.slice(0, start) + emoji + text.slice(end);
+                
+                currentEmojiTarget.selectionStart = currentEmojiTarget.selectionEnd = start + emoji.length;
+                currentEmojiTarget.focus();
+            }
+        });
+    }
 
 })();
 
@@ -2390,3 +2540,181 @@ async function deleteMessage(msgId) {
 
 window.addEventListener("dragover", function(e){ e.preventDefault(); }, false);
 window.addEventListener("drop", function(e){ e.preventDefault(); }, false);
+
+
+/* ==================================================================
+   Módulo de Mensajes - Lógica Nueva (Drive, Lightbox)
+   ================================================================== */
+(function() {
+    'use strict';
+    
+    // Lightbox Logic
+    const lightbox = document.getElementById('chat-multimedia-lightbox');
+    const lightboxBody = document.getElementById('lightbox-body');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const btnLightboxClose = document.getElementById('btn-lightbox-close');
+    const btnLightboxDownload = document.getElementById('btn-lightbox-download');
+    
+    let currentFileUrl = '';
+    let currentFileName = '';
+
+    function openLightbox(url, type, name) {
+        currentFileUrl = url;
+        currentFileName = name;
+        if(lightboxTitle) lightboxTitle.innerText = name || 'Archivo';
+        
+        if(lightboxBody) lightboxBody.innerHTML = ''; // clear
+        
+        if (type === 'image') {
+            const img = document.createElement('img');
+            img.src = url;
+            if(lightboxBody) lightboxBody.appendChild(img);
+        } else if (type === 'video') {
+            const vid = document.createElement('video');
+            vid.src = url;
+            vid.controls = true;
+            vid.autoplay = true;
+            if(lightboxBody) lightboxBody.appendChild(vid);
+        } else if (type === 'pdf') {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.style.width = '80vw';
+            iframe.style.height = '80vh';
+            iframe.style.border = 'none';
+            if(lightboxBody) lightboxBody.appendChild(iframe);
+        }
+        
+        if(lightbox) lightbox.style.display = 'flex';
+    }
+
+    if (btnLightboxClose) {
+        btnLightboxClose.addEventListener('click', () => {
+            if(lightbox) lightbox.style.display = 'none';
+            if(lightboxBody) lightboxBody.innerHTML = '';
+        });
+    }
+
+    if (btnLightboxDownload) {
+        btnLightboxDownload.addEventListener('click', () => {
+            const a = document.createElement('a');
+            a.href = currentFileUrl;
+            a.download = currentFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+    }
+
+    // Intercept clicks on chat messages to open Lightbox
+    document.addEventListener('click', function(e) {
+        if (e.target.tagName === 'IMG' && e.target.closest('.chat-messages')) {
+            openLightbox(e.target.src, 'image', 'Imagen');
+        }
+    });
+
+    // Drive Picker Logic
+    const btnSelectDrive = document.getElementById('btn-select-drive-folder');
+    const drivePickerModal = document.getElementById('drivePickerModal');
+    
+    function showDriveModal() {
+        if(drivePickerModal) {
+            drivePickerModal.style.display = 'block';
+            drivePickerModal.classList.add('show');
+            drivePickerModal.style.background = 'rgba(0,0,0,0.5)';
+        }
+    }
+    
+    function hideDriveModal() {
+        if(drivePickerModal) {
+            drivePickerModal.style.display = 'none';
+            drivePickerModal.classList.remove('show');
+        }
+    }
+
+    if (btnSelectDrive && drivePickerModal) {
+        btnSelectDrive.addEventListener('click', () => {
+            loadDriveFolder('root');
+            showDriveModal();
+        });
+        
+        // Add dismiss listeners
+        drivePickerModal.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', hideDriveModal);
+        });
+    }
+
+    async function loadDriveFolder(folderId) {
+        const listContainer = document.getElementById('drive-picker-list');
+        if(!listContainer) return;
+        listContainer.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-primary" role="status"></div></div>';
+        
+        const fd = new FormData();
+        fd.append('action', 'list');
+        fd.append('folderId', folderId);
+        
+        try {
+            const resp = await fetch('modules/drive/ajax_drive.php', { method: 'POST', body: fd });
+            const data = await resp.json();
+            
+            listContainer.innerHTML = '';
+            if (data.success && data.files) {
+                const folders = data.files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+                if (folders.length === 0) {
+                    listContainer.innerHTML = '<div class="text-center text-muted p-4">Carpeta vacía</div>';
+                }
+                
+                folders.forEach(f => {
+                    const div = document.createElement('div');
+                    div.className = 'd-flex align-items-center p-2 border-bottom';
+                    div.style.cursor = 'pointer';
+                    div.innerHTML = `<i class="ph-fill ph-folder text-warning" style="font-size:1.5rem; margin-right:0.5rem;"></i> <span>${f.name}</span>`;
+                    
+                    div.addEventListener('click', () => {
+                        document.querySelectorAll('.drive-folder-item').forEach(el => el.style.background = 'transparent');
+                        div.style.background = 'var(--bg-color)';
+                        div.classList.add('drive-folder-item');
+                        
+                        document.getElementById('crs-drive-folder-id').value = f.id;
+                        document.getElementById('crs-drive-folder-name').value = f.name;
+                    });
+                    
+                    div.addEventListener('dblclick', () => {
+                        loadDriveFolder(f.id);
+                    });
+                    
+                    listContainer.appendChild(div);
+                });
+            } else {
+                listContainer.innerHTML = `<div class="text-danger p-2">${data.error || 'Error cargando'}</div>`;
+            }
+        } catch (e) {
+            console.error(e);
+            listContainer.innerHTML = '<div class="text-danger p-2">Error de conexión</div>';
+        }
+    }
+
+    document.getElementById('btn-confirm-drive-folder')?.addEventListener('click', async () => {
+        const folderId = document.getElementById('crs-drive-folder-id').value;
+        const channelId = window.currentChannelId || (document.querySelector('.channel-item.active') ? document.querySelector('.channel-item.active').dataset.id : null);
+        
+        if (folderId && channelId) {
+            hideDriveModal();
+            // Guardar folder en ajax_mensajes (o ajax)
+            const fd = new FormData();
+            fd.append('action', 'save_drive_folder');
+            fd.append('channel_id', channelId);
+            fd.append('folder_id', folderId);
+            
+            try {
+                const resp = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
+                const data = await resp.json();
+                if(data.success) {
+                    Swal.fire({title: 'Guardado', text: 'Carpeta de Drive vinculada', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000});
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    });
+
+})();

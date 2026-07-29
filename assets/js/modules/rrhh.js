@@ -192,6 +192,8 @@ const RrhhModule = (function() {
                 document.getElementById('emp_status').value = emp.status;
                 document.getElementById('emp_salary').value = emp.salary;
                 document.getElementById('emp_hire_date').value = emp.hire_date;
+                document.getElementById('emp_work_start').value = emp.work_start || '';
+                document.getElementById('emp_work_end').value = emp.work_end || '';
             }
         }
         formModal.classList.add('active');

@@ -1,0 +1,213 @@
+<?php
+// modules/workspace/index.php
+require_once 'includes/header.php';
+?>
+<style>
+/* Workspace Modern Design System */
+.workspace-container {
+    padding: var(--space-6);
+    max-width: 1400px;
+    margin: 0 auto;
+    font-family: var(--font-family);
+    animation: fadeIn 0.5s ease-out;
+}
+
+.workspace-header {
+    margin-bottom: var(--space-8);
+    text-align: left;
+}
+
+.workspace-header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: var(--space-2);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    letter-spacing: -0.02em;
+    display: inline-block;
+}
+
+.workspace-header p {
+    color: var(--color-text);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Grid Layout */
+.workspace-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-6);
+}
+
+/* Modern Card */
+.workspace-card {
+    position: relative;
+    background: var(--bg-surface);
+    border-radius: 20px;
+    padding: var(--space-6);
+    text-decoration: none;
+    color: var(--color-title);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    z-index: 1;
+}
+
+[data-theme="dark"] .workspace-card {
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.workspace-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.workspace-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .workspace-card:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(99, 102, 241, 0.5); /* indigo-500 approx */
+}
+
+.workspace-card:hover::before {
+    opacity: 1;
+}
+
+/* Icons */
+.workspace-card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: var(--space-4);
+    color: white;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    transition: transform 0.4s ease;
+}
+
+.workspace-card:hover .workspace-card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.workspace-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+    color: var(--color-title);
+}
+
+.workspace-card-desc {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+/* Specific Card Colors */
+.icon-app { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+.icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+.icon-web { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+.icon-audio { background: linear-gradient(135deg, #fa709a, #fee140); }
+.icon-drive { background: linear-gradient(135deg, #667eea, #764ba2); }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .workspace-grid {
+        grid-template-columns: 1fr;
+    }
+    .workspace-header h1 {
+        font-size: 2rem;
+    }
+}
+</style>
+
+<?php
+    $favicon_url = !empty($global_settings['favicon']) ? $global_settings['favicon'] : '';
+    $user_first_name = isset($_SESSION['user_name']) ? htmlspecialchars(explode(' ', $_SESSION['user_name'])[0]) : 'Usuario';
+?>
+<div class="workspace-container">
+    <div class="workspace-header">
+        <h1>Workspace</h1>
+    </div>
+
+    <div class="workspace-grid">
+        
+        <!-- App -->
+        <a href="index.php?module=app&action=index" class="workspace-card" style="animation-delay: 0.1s;">
+            <div class="workspace-card-icon icon-app">
+                <i class="ph ph-device-mobile"></i>
+            </div>
+            <h3 class="workspace-card-title">App</h3>
+            <p class="workspace-card-desc">Accede a las configuraciones y desarrollo de la aplicación móvil.</p>
+        </a>
+
+        <!-- Desarrollo de Marca -->
+        <a href="index.php?module=desarrollo_marca&action=index" class="workspace-card" style="animation-delay: 0.2s;">
+            <div class="workspace-card-icon icon-brand">
+                <i class="ph ph-paint-brush-broad"></i>
+            </div>
+            <h3 class="workspace-card-title">Desarrollo de Marca</h3>
+            <p class="workspace-card-desc">Gestión de identidad visual, manuales de marca y assets corporativos.</p>
+        </a>
+
+        <!-- Desarrollo Web -->
+        <a href="index.php?module=desarrollo_web&action=index" class="workspace-card" style="animation-delay: 0.3s;">
+            <div class="workspace-card-icon icon-web">
+                <i class="ph ph-browser"></i>
+            </div>
+            <h3 class="workspace-card-title">Desarrollo Web</h3>
+            <p class="workspace-card-desc">Proyectos web, sitios corporativos, e-commerce y landing pages.</p>
+        </a>
+
+        <!-- Audiovisual -->
+        <a href="index.php?module=audiovisual&action=index" class="workspace-card" style="animation-delay: 0.4s;">
+            <div class="workspace-card-icon icon-audio">
+                <i class="ph ph-video-camera"></i>
+            </div>
+            <h3 class="workspace-card-title">Audiovisual</h3>
+            <p class="workspace-card-desc">Producción de videos, fotografía, edición y material multimedia.</p>
+        </a>
+
+        <!-- Google Drive (Modern Interface) -->
+        <a href="index.php?module=drive&action=index" class="workspace-card" style="animation-delay: 0.5s;">
+            <div class="workspace-card-icon icon-drive">
+                <i class="ph ph-google-drive-logo"></i>
+            </div>
+            <h3 class="workspace-card-title">Google Drive</h3>
+            <p class="workspace-card-desc">Almacenamiento en la nube con una interfaz integrada y moderna.</p>
+        </a>
+
+    </div>
+</div>
+
+<?php require_once 'includes/footer.php'; ?>

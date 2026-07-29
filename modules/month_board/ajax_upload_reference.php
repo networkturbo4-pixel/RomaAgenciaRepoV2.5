@@ -45,66 +45,7 @@ $destination = $uploadDir . $fileName;
 
 $saved = false;
 
-if ($mimeType === 'video/mp4') {
-    // Si es MP4, solo lo movemos sin usar GD
-    $saved = move_uploaded_file($tmpName, $destination);
-} else {
-    // Lógica de compresión y redimensionado con GD
-    $maxWidth = 1200;
-
-    switch ($mimeType) {
-        case 'image/jpeg':
-            $sourceImage = imagecreatefromjpeg($tmpName);
-            break;
-        case 'image/png':
-            $sourceImage = imagecreatefrompng($tmpName);
-            break;
-        case 'image/webp':
-            $sourceImage = imagecreatefromwebp($tmpName);
-            break;
-        default:
-            $sourceImage = false;
-    }
-
-    if ($sourceImage) {
-        $width = imagesx($sourceImage);
-        $height = imagesy($sourceImage);
-
-        if ($width > $maxWidth) {
-            $newWidth = $maxWidth;
-            $newHeight = floor($height * ($maxWidth / $width));
-            $virtualImage = imagecreatetruecolor($newWidth, $newHeight);
-
-            // Preservar transparencia para PNG/WEBP
-            if ($mimeType === 'image/png' || $mimeType === 'image/webp') {
-                imagealphablending($virtualImage, false);
-                imagesavealpha($virtualImage, true);
-                $transparent = imagecolorallocatealpha($virtualImage, 255, 255, 255, 127);
-                imagefilledrectangle($virtualImage, 0, 0, $newWidth, $newHeight, $transparent);
-            }
-
-            imagecopyresampled($virtualImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-            $finalImage = $virtualImage;
-        } else {
-            $finalImage = $sourceImage;
-        }
-
-        // Guardar
-        if ($mimeType === 'image/png') {
-            $saved = imagepng($finalImage, $destination, 8); // compresión 0-9
-        } else if ($mimeType === 'image/webp') {
-            $saved = imagewebp($finalImage, $destination, 80); // calidad 80
-        } else {
-            $saved = imagejpeg($finalImage, $destination, 80); // calidad 80
-        }
-
-        imagedestroy($sourceImage);
-        if (isset($virtualImage)) imagedestroy($virtualImage);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Error al procesar la imagen con GD']);
-        exit();
-    }
-}
+$saved = move_uploaded_file($tmpName, $destination);
 
 if ($saved) {
     $driveUrl = null;
@@ -121,6 +62,11 @@ if ($saved) {
         $stmt->execute([$month_id]);
         $jsonStr = $stmt->fetchColumn();
         
+        $post_name = isset($_POST['post_name']) ? trim($_POST['post_name']) : '';
+        $is_carousel = isset($_POST['is_carousel']) ? filter_var($_POST['is_carousel'], FILTER_VALIDATE_BOOLEAN) : false;
+        $parent_folder_id = isset($_POST['parent_folder_id']) ? trim($_POST['parent_folder_id']) : '';
+        $returnedFolderId = null;
+        
         $drive = new GoogleDriveHelper();
         
         if ($drive->isConfigured()) {
@@ -135,6 +81,34 @@ if ($saved) {
                             $targetFolderId = $sf['id'];
                             break;
                         }
+                    }
+                }
+            }
+
+            if ($targetFolderId) {
+                if ($parent_folder_id) {
+                    $targetFolderId = $parent_folder_id;
+                    $returnedFolderId = $parent_folder_id;
+                } else if ($is_carousel && $post_name) {
+                    $carouselFolderId = null;
+                    $folders = $drive->listFolders($targetFolderId);
+                    if ($folders && isset($folders['files'])) {
+                        foreach($folders['files'] as $f) {
+                            if (strtolower($f['name']) === strtolower($post_name)) {
+                                $carouselFolderId = $f['id']; break;
+                            }
+                        }
+                    }
+                    if (!$carouselFolderId) {
+                        $res = $drive->createFolder($post_name, $targetFolderId);
+                        if ($res && isset($res['id'])) {
+                            $carouselFolderId = $res['id'];
+                            $drive->makePublicViewer($carouselFolderId);
+                        }
+                    }
+                    if ($carouselFolderId) {
+                        $targetFolderId = $carouselFolderId;
+                        $returnedFolderId = $carouselFolderId;
                     }
                 }
             }
@@ -170,7 +144,8 @@ if ($saved) {
         'success' => true,
         'url' => 'uploads/references/' . $fileName,
         'local_url' => 'uploads/references/' . $fileName,
-        'drive_url' => $driveUrl
+        'drive_url' => $driveUrl,
+        'folder_id' => $returnedFolderId
     ]);
 } else {
     echo json_encode(['success' => false, 'error' => 'Error al guardar la imagen comprimida']);

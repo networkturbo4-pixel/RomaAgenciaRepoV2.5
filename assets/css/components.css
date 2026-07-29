@@ -96,7 +96,7 @@
 
 label {
     display: block;
-    font-size: 0.875rem;
+    font-size: 13px;
     font-weight: 500;
     margin-bottom: var(--space-2);
     color: var(--text-main);
@@ -104,13 +104,13 @@ label {
 
 .form-control {
     width: 100%;
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    font-family: var(--font-family);
+    padding: 0.65rem 0.85rem;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
     color: var(--text-main);
-    background-color: var(--bg-color);
-    border: 1px solid transparent;
-    border-radius: var(--radius-lg);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     transition: all var(--transition-fast);
 }
 
@@ -318,14 +318,13 @@ input:-webkit-autofill:active {
     bottom: 0;
     background: rgba(15, 23, 42, 0.4);
     display: flex;
-    align-items: flex-start; /* Changed from center to prevent top cutoff */
+    align-items: center; /* Center vertically */
     justify-content: center;
     padding: var(--space-6) var(--space-4);
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
-    overflow-y: auto; /* allow overlay scrolling if needed */
 }
 
 .modal-overlay.active {
@@ -338,8 +337,8 @@ input:-webkit-autofill:active {
     border-radius: 28px;
     width: 90%;
     max-width: 500px;
-    max-height: calc(100vh - var(--space-6) * 2); /* Leave space for padding */
-    margin: auto; /* Centers when combined with flex-start */
+    max-height: 100%; /* Guarantee it never exceeds the padded overlay */
+    margin: 0; /* Let flex handle positioning */
     display: flex;
     flex-direction: column;
     box-shadow: var(--shadow-lg);
@@ -411,6 +410,7 @@ input:-webkit-autofill:active {
     line-height: 1.6;
     overflow-y: auto; /* Scroll interno */
     flex: 1; /* Ocupa el espacio restante */
+    min-height: 0; /* Ensures scroll works in nested flex */
 }
 
 .modal-footer {
@@ -456,6 +456,53 @@ input:-webkit-autofill:active {
     margin: var(--space-4) 0;
     font-size: 0.875rem;
     color: var(--text-main);
+}
+
+/* Modern Switcher */
+.modern-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+    flex-shrink: 0;
+}
+.modern-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--border-color);
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 24px;
+}
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.modern-switch input:checked + .switch-slider {
+    background-color: var(--primary-color);
+}
+.modern-switch input:checked + .switch-slider:before {
+    transform: translateX(16px);
+}
+[data-theme="dark"] .modern-switch input:checked + .switch-slider {
+    background-color: var(--warning-color);
+}
+[data-theme="dark"] .switch-slider {
+    background-color: color-mix(in srgb, var(--border-color) 50%, #000);
 }
 
 /* Pill Buttons */
@@ -554,13 +601,11 @@ input:-webkit-autofill:active {
     .table-responsive td {
         border: none !important;
         position: relative;
-        padding-left: 50% !important;
-        padding-top: var(--space-2) !important;
-        padding-bottom: var(--space-2) !important;
+        padding-left: 40% !important;
+        padding-top: var(--space-3) !important;
+        padding-bottom: var(--space-3) !important;
         text-align: right !important;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
+        display: block; /* Allow <br> to work */
         min-height: 2.5rem;
     }
 
@@ -568,12 +613,14 @@ input:-webkit-autofill:active {
         content: attr(data-label);
         position: absolute;
         left: 0;
-        width: 45%;
+        top: var(--space-3);
+        width: 35%;
         padding-right: 10px;
-        white-space: nowrap;
+        white-space: normal;
         text-align: left;
         font-weight: 600;
         color: var(--text-muted);
+        line-height: 1.4;
     }
 }
 

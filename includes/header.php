@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) && empty($is_public)) {
 }
 
 $current_module = $_GET['module'] ?? 'dashboard';
+$is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -24,9 +25,7 @@ $current_module = $_GET['module'] ?? 'dashboard';
             if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.setAttribute('data-theme', 'dark');
             }
-            if (localStorage.getItem('sidebar_collapsed') === 'true') {
-                document.documentElement.classList.add('sidebar-is-collapsed');
-            }
+            // Sidebar is always collapsed on desktop now
         })();
     </script>
     <?php if(!empty($global_settings['favicon'])): ?>
@@ -51,13 +50,19 @@ $current_module = $_GET['module'] ?? 'dashboard';
 
     <!-- Quill.js CSS -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Tagify CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />
 
     <!-- Web App Manifest -->
     <link rel="manifest" href="manifest.php">
 
-    <link rel="stylesheet" href="assets/css/variables.css?v=<?php echo filemtime('assets/css/variables.css'); ?>">
-    <link rel="stylesheet" href="assets/css/global.css?v=<?php echo filemtime('assets/css/global.css'); ?>">
-    <link rel="stylesheet" href="assets/css/components.css?v=<?php echo filemtime('assets/css/components.css'); ?>">
+    <link rel="stylesheet" href="assets/css/variables.css?v=<?php echo file_exists('assets/css/variables.css') ? filemtime('assets/css/variables.css') : '1'; ?>">
+    <link rel="stylesheet" href="assets/css/global.css?v=<?php echo file_exists('assets/css/global.css') ? filemtime('assets/css/global.css') : '1'; ?>">
+    <link rel="stylesheet" href="assets/css/components.css?v=<?php echo file_exists('assets/css/components.css') ? filemtime('assets/css/components.css') : '1'; ?>">
+    <link rel="stylesheet" href="assets/css/profile-modal.css?v=<?php echo file_exists('assets/css/profile-modal.css') ? filemtime('assets/css/profile-modal.css') : '1'; ?>">
     <style>
         :root {
             --primary-color: <?php echo htmlspecialchars($global_settings['primary_color'] ?? '#4f46e5'); ?>;
@@ -117,9 +122,10 @@ $current_module = $_GET['module'] ?? 'dashboard';
     <!-- Fancybox CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css"/>
 </head>
-<body>
+<body class="<?php echo $is_popup ? 'is-popup' : ''; ?>">
 
 <div class="app-container">
+    <?php if (!$is_popup): ?>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header d-none d-md-flex" style="justify-content: center;">
@@ -145,155 +151,168 @@ $current_module = $_GET['module'] ?? 'dashboard';
         <nav class="sidebar-nav">
             <?php $perms = $_SESSION['user_permissions'] ?? []; ?>
             <?php if (in_array('dashboard', $perms)): ?>
-            <a href="index.php?module=dashboard&action=index" class="nav-item <?php echo $current_module === 'dashboard' ? 'active' : ''; ?>">
+            <a href="index.php?module=dashboard&action=index" class="nav-item <?php echo $current_module === 'dashboard' ? 'active' : ''; ?>" data-title="Dashboard">
                 <i class="ph ph-squares-four"></i>
                 <span>Dashboard</span>
             </a>
             <?php endif; ?>
+            
+            <?php if (in_array('workspace', $perms) || in_array('dashboard', $perms)): ?>
+            <a href="index.php?module=workspace&action=index" class="nav-item <?php echo $current_module === 'workspace' ? 'active' : ''; ?>" data-title="Workspace">
+                <i class="ph ph-briefcase"></i>
+                <span>Workspace</span>
+            </a>
+            <?php endif; ?>
+            
+            <?php if (in_array('task_manager', $perms)): ?>
+            <a href="index.php?module=task_manager&action=index" class="nav-item <?php echo $current_module === 'task_manager' ? 'active' : ''; ?>" data-title="Gestor de Tareas">
+                <i class="ph ph-kanban"></i>
+                <span>Gestor de Tareas</span>
+            </a>
+            <?php endif; ?>
+            
+            <?php if (in_array('romita', $perms)): ?>
+            <a href="index.php?module=romita&action=index" class="nav-item <?php echo $current_module === 'romita' ? 'active' : ''; ?>" data-title="Romita IA">
+                <i class="ph ph-sparkle"></i>
+                <span style="background: linear-gradient(90deg, #4f46e5, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;">Romita IA</span>
+            </a>
+            <?php endif; ?>
+            
+            <?php if (in_array('mensajes', $perms)): ?>
+            <a href="index.php?module=mensajes&action=index" class="nav-item <?php echo $current_module === 'mensajes' ? 'active' : ''; ?>" style="display:flex; justify-content:space-between; align-items:center;" data-title="Mensajes">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="ph ph-chat-circle-dots"></i> <span>Mensajes</span>
+                </div>
+                <span id="globalMsgBadge" style="display:none; align-items:center; justify-content:center; background:var(--msg-primary, #e83f6f); color:white; font-size:10px; font-weight:bold; width:18px; height:18px; min-width:18px; min-height:18px; flex:0 0 18px; border-radius:50%;">0</span>
+            </a>
+            <?php endif; ?>
+            <?php if (in_array('whatsapp', $perms)): ?>
+            <a href="index.php?module=whatsapp&action=index" class="nav-item <?php echo $current_module === 'whatsapp' ? 'active' : ''; ?>" data-title="WhatsApp">
+                <i class="ph ph-whatsapp-logo"></i>
+                <span>WhatsApp</span>
+            </a>
+            <?php endif; ?>
             <?php if (in_array('clients', $perms)): ?>
-            <a href="index.php?module=clients&action=index" class="nav-item <?php echo $current_module === 'clients' ? 'active' : ''; ?>">
+            <a href="index.php?module=clients&action=index" class="nav-item <?php echo $current_module === 'clients' ? 'active' : ''; ?>" data-title="Clientes">
                 <i class="ph ph-users"></i>
                 <span>Clientes</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('quotes', $perms)): ?>
-            <a href="index.php?module=quotes&action=index" class="nav-item <?php echo $current_module === 'quotes' ? 'active' : ''; ?>">
-                <i class="ph ph-file-text"></i>
-                <span>Cotizaciones</span>
+            <?php if (in_array('projects', $perms)): ?>
+            <a href="index.php?module=projects&action=index" class="nav-item <?php echo $current_module === 'projects' ? 'active' : ''; ?>" data-title="Proyectos">
+                <i class="ph ph-folders"></i>
+                <span>Proyectos</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('services', $perms)): ?>
-            <a href="index.php?module=services&action=index" class="nav-item <?php echo $current_module === 'services' ? 'active' : ''; ?>">
-                <i class="ph ph-package"></i>
-                <span>Servicios</span>
+            <?php if (in_array('reuniones', $perms)): ?>
+            <a href="index.php?module=reuniones&action=index" class="nav-item <?php echo $current_module === 'reuniones' ? 'active' : ''; ?>" data-title="Reuniones">
+                <i class="ph ph-video-camera"></i>
+                <span>Reuniones</span>
             </a>
+            <?php endif; ?>
+            <?php if (in_array('pizarras', $perms)): ?>
+            <a href="index.php?module=pizarras&action=index" class="nav-item <?php echo $current_module === 'pizarras' ? 'active' : ''; ?>" data-title="Pizarras">
+                <i class="ph ph-chalkboard"></i>
+                <span>Pizarras</span>
+            </a>
+            <?php endif; ?>
+            <?php if (in_array('quotes', $perms) || in_array('services', $perms)): ?>
+            <div class="nav-dropdown <?php echo in_array($current_module, ['quotes', 'services']) ? 'active' : ''; ?>">
+                <button class="nav-item dropdown-toggle" data-title="Área Comercial">
+                    <div style="display:flex; align-items:center; gap:var(--space-3);">
+                        <i class="ph ph-storefront"></i>
+                        <span>Área Comercial</span>
+                    </div>
+                    <i class="ph ph-caret-down dropdown-icon"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <?php if (in_array('quotes', $perms)): ?>
+                    <a href="index.php?module=quotes&action=index" class="dropdown-item <?php echo $current_module === 'quotes' ? 'active' : ''; ?>">Cotizaciones</a>
+                    <?php endif; ?>
+                    <?php if (in_array('services', $perms)): ?>
+                    <a href="index.php?module=services&action=index" class="dropdown-item <?php echo $current_module === 'services' ? 'active' : ''; ?>">Servicios</a>
+                    <?php endif; ?>
+                </div>
+            </div>
             <?php endif; ?>
             <?php if (in_array('work_orders', $perms)): ?>
-            <a href="index.php?module=work_orders&action=index" class="nav-item <?php echo $current_module === 'work_orders' ? 'active' : ''; ?>">
+            <a href="index.php?module=work_orders&action=index" class="nav-item <?php echo $current_module === 'work_orders' ? 'active' : ''; ?>" data-title="Órdenes de Servicio">
                 <i class="ph ph-clipboard-text"></i>
                 <span>Órdenes de Servicio</span>
             </a>
             <?php endif; ?>
             <?php if (in_array('calendar', $perms)): ?>
-            <a href="index.php?module=calendar&action=index" class="nav-item <?php echo $current_module === 'calendar' ? 'active' : ''; ?>">
+            <a href="index.php?module=calendar&action=index" class="nav-item <?php echo $current_module === 'calendar' ? 'active' : ''; ?>" data-title="Calendario">
                 <i class="ph ph-calendar"></i>
                 <span>Calendario</span>
             </a>
-            <a href="index.php?module=community&action=index" class="nav-item <?php echo $current_module === 'community' ? 'active' : ''; ?>">
+            <?php endif; ?>
+            
+            <?php if (in_array('community', $perms)): ?>
+            <a href="index.php?module=community&action=index" class="nav-item <?php echo $current_module === 'community' ? 'active' : ''; ?>" data-title="Community">
                 <i class="ph ph-calendar-check"></i>
                 <span>Community</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('tasks', $perms)): ?>
-            <a href="index.php?module=tasks&action=index" class="nav-item <?php echo $current_module === 'tasks' ? 'active' : ''; ?>">
-                <i class="ph ph-kanban"></i>
-                <span>Centro de Tareas</span>
-            </a>
-            <?php endif; ?>
-            <?php if (in_array('design_tasks', $perms)): ?>
-            <a href="index.php?module=design_tasks&action=index" class="nav-item <?php echo $current_module === 'design_tasks' ? 'active' : ''; ?>">
-                <i class="ph ph-paint-brush-broad"></i>
-                <span>Diseño Gráfico</span>
-            </a>
-            <?php endif; ?>
+
             <?php if (in_array('forms', $perms)): ?>
-            <a href="index.php?module=forms&action=index" class="nav-item <?php echo $current_module === 'forms' ? 'active' : ''; ?>">
+            <a href="index.php?module=forms&action=index" class="nav-item <?php echo $current_module === 'forms' ? 'active' : ''; ?>" data-title="Formularios">
                 <i class="ph ph-note-pencil"></i>
                 <span>Formularios</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('chat', $perms)): ?>
-            <a href="index.php?module=chat&action=index" class="nav-item <?php echo $current_module === 'chat' ? 'active' : ''; ?>">
-                <i class="ph ph-chat-circle-dots"></i>
-                <span>Chat</span>
+
+            <?php if (in_array('herramientas', $perms)): ?>
+            <a href="index.php?module=herramientas&action=index" class="nav-item <?php echo $current_module === 'herramientas' ? 'active' : ''; ?>" data-title="Herramientas">
+                <i class="ph ph-wrench"></i>
+                <span>Herramientas</span>
+            </a>
+            <?php endif; ?>
+
+            <?php if (in_array('contracts', $perms)): ?>
+            <a href="index.php?module=contracts&action=index" class="nav-item <?php echo $current_module === 'contracts' ? 'active' : ''; ?>" data-title="Contratos">
+                <i class="ph ph-signature"></i>
+                <span>Contratos</span>
             </a>
             <?php endif; ?>
 
             <?php if (in_array('admin', $perms)): ?>
-            <a href="index.php?module=admin&action=finances" class="nav-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'finances') ? 'active' : ''; ?>">
-                <i class="ph ph-trend-up"></i>
-                <span>Finanzas</span>
-            </a>
-            <a href="index.php?module=admin&action=payment_notes" class="nav-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'payment_notes') ? 'active' : ''; ?>">
-                <i class="ph ph-receipt"></i>
-                <span>Nota de Pago</span>
-            </a>
-            <a href="index.php?module=admin&action=rrhh" class="nav-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'rrhh') ? 'active' : ''; ?>">
-                <i class="ph ph-users-three"></i>
-                <span>RRHH</span>
-            </a>
-            <a href="index.php?module=client_portal&action=index" class="nav-item <?php echo $current_module === 'client_portal' ? 'active' : ''; ?>">
+            <div class="nav-dropdown <?php echo ($current_module === 'admin') ? 'active' : ''; ?>">
+                <button class="nav-item dropdown-toggle" data-title="Administración">
+                    <div style="display:flex; align-items:center; gap:var(--space-3);">
+                        <i class="ph ph-briefcase"></i>
+                        <span>Administración</span>
+                    </div>
+                    <i class="ph ph-caret-down dropdown-icon"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="index.php?module=admin&action=finances" class="dropdown-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'finances') ? 'active' : ''; ?>">Finanzas</a>
+                    <a href="index.php?module=admin&action=payment_notes" class="dropdown-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'payment_notes') ? 'active' : ''; ?>">Notas de Pago</a>
+                    <a href="index.php?module=admin&action=rrhh" class="dropdown-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'rrhh') ? 'active' : ''; ?>">RRHH</a>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <?php if (in_array('client_portal', $perms)): ?>
+            <a href="index.php?module=client_portal&action=index" class="nav-item <?php echo $current_module === 'client_portal' ? 'active' : ''; ?>" data-title="Portal de Cliente">
                 <i class="ph ph-app-window"></i>
                 <span>Portal de Cliente</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('config', $perms)): ?>
-            <a href="index.php?module=config&action=index" class="nav-item <?php echo $current_module === 'config' ? 'active' : ''; ?>">
-                <i class="ph ph-gear"></i>
-                <span>Configuración</span>
-            </a>
-            <?php endif; ?>
+
         </nav>
 
-        <!-- Mobile Sidebar Footer Logo -->
-        <div class="sidebar-footer d-md-none" style="padding: 2rem 1rem; text-align: center; margin-top: auto; border-top: 1px solid var(--border-color);">
-            <?php if(!empty($global_settings['logo_light']) && !empty($global_settings['logo_dark'])): ?>
-                <img src="<?php echo htmlspecialchars($global_settings['logo_light']); ?>" class="brand-logo-light" alt="Logo" style="height: 28px; object-fit: contain;">
-                <img src="<?php echo htmlspecialchars($global_settings['logo_dark']); ?>" class="brand-logo-dark" alt="Logo" style="height: 28px; object-fit: contain;">
-            <?php elseif(!empty($global_settings['logo_light'])): ?>
-                <img src="<?php echo htmlspecialchars($global_settings['logo_light']); ?>" alt="Logo" style="height: 28px; object-fit: contain;">
-            <?php else: ?>
-                <span style="font-weight: 800; font-size: 1.25rem; color: var(--primary-color); letter-spacing: -0.5px;">
-                    <?php echo htmlspecialchars($global_settings['site_name'] ?? 'ROMA SaaS'); ?>
-                </span>
-            <?php endif; ?>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Topbar -->
-        <header class="topbar">
-            <!-- Mobile Menu Toggle -->
-            <div class="d-md-none">
-                <button class="btn-icon" id="mobile-menu-toggle" style="border: none; background: transparent; padding: 0.5rem; color: var(--text-main); cursor: pointer;">
-                    <i class="ph ph-list" style="font-size: 1.75rem;"></i>
-                </button>
-            </div>
+        <!-- Sidebar Bottom: Profile -->
+        <div class="sidebar-bottom" style="margin-top: auto; padding: 1rem 0; display: flex; flex-direction: column; gap: 0.25rem; position: relative;">
             
-            <!-- Mobile Centered Logo (Hidden per user request, moved to sidebar footer) -->
-            <div class="topbar-mobile-logo d-none" style="position: absolute; left: 50%; transform: translateX(-50%); display: none; align-items: center; justify-content: center;">
-            </div>
+            <style>
+                [data-theme="dark"] .theme-switch-knob { left: 16px !important; background: var(--primary-color) !important; }
+            </style>
 
-            <div class="d-none d-md-block">
-                <button class="btn-icon" id="desktop-menu-toggle" style="border: none; background: transparent; padding: 0.5rem; color: var(--text-main); cursor: pointer;">
-                    <i class="ph ph-list" style="font-size: 1.75rem;"></i>
-                </button>
-            </div> <!-- Spacer for desktop -->
-
-            <div class="topbar-actions">
-                <!-- Global Drive Button -->
-                <button class="btn-icon" onclick="if(typeof DriveExplorer !== 'undefined') DriveExplorer.openGlobalModal()" title="Explorador de Archivos" style="border: none; background: transparent; cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                    <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i>
-                </button>
-
-                <!-- Push Subscribe Button -->
-                <button class="btn-icon push-subscribe-btn" onclick="if(window.subscribeToPush) subscribeToPush(); else alert('Notificaciones no soportadas');" title="Activar Notificaciones" style="border: none; background: transparent; cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                    <i class="ph ph-bell"></i>
-                </button>
-
-                <!-- Theme Toggle Button -->
-                <button class="btn-icon theme-toggle-btn" title="Cambiar Tema" style="border: none; background: transparent; cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                    <i class="ph ph-moon dark-icon"></i>
-                    <i class="ph ph-sun light-icon" style="display: none;"></i>
-                </button>
-
-                <div class="user-info d-flex align-items-center" style="gap: var(--space-2);">
-                    <div class="user-details d-none d-md-block" style="text-align: right;">
-                        <span style="display: block; font-weight: 500; font-size: 0.875rem;"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?></span>
-                        <span style="color: var(--text-muted); font-size: 0.75rem;"><?php echo htmlspecialchars($_SESSION['user_role'] ?? ''); ?></span>
-                    </div>
-                    <div id="topbar-avatar" style="width: 36px; height: 36px; background: var(--primary-color); color: white; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; overflow: hidden;" onclick="openProfileModal()">
+            <!-- User Info Card -->
+            <div class="sidebar-profile-card" id="profileCardToggle" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); padding: 0.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); cursor: pointer; margin: 0.5rem var(--space-3) 0 var(--space-3); border: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; width: 100%;">
+                    <div id="sidebar-avatar" style="width: 32px; height: 32px; flex-shrink: 0; background: var(--primary-color); color: white; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-weight: bold; overflow: hidden; margin: 0 auto;">
                         <?php
                         $stmtAv = $db->prepare('SELECT avatar FROM users WHERE id = ?');
                         $stmtAv->execute([$_SESSION['user_id']]);
@@ -304,15 +323,176 @@ $current_module = $_GET['module'] ?? 'dashboard';
                             <?php echo substr($_SESSION['user_name'] ?? 'U', 0, 1); ?>
                         <?php endif; ?>
                     </div>
+                    <div class="sidebar-profile-info" style="display: flex; flex-direction: column; overflow: hidden; white-space: nowrap;">
+                        <span style="font-weight: 600; font-size: 0.85rem; text-overflow: ellipsis; overflow: hidden; color: var(--text-main);"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?></span>
+                        <span style="color: var(--text-muted); font-size: 0.7rem; text-overflow: ellipsis; overflow: hidden;"><?php echo htmlspecialchars($_SESSION['user_role'] ?? ''); ?></span>
+                    </div>
                 </div>
-                <a href="index.php?module=auth&action=logout" class="btn btn-outline" title="Cerrar Sesión" style="display:flex; align-items:center; justify-content:center; padding: 0.5rem;">
-                    <i class="ph ph-sign-out" style="font-size: 1.25rem;"></i>
+                <div class="sidebar-profile-options" style="color: var(--text-muted); padding: 0 0.25rem;">
+                    <i class="ph ph-dots-three" style="font-size: 1.25rem;"></i>
+                </div>
+            </div>
+            
+            <!-- Modern Profile Popover Menu -->
+            <div class="profile-popover" id="profilePopover">
+                <div class="popover-header">
+                    <div class="popover-avatar">
+                        <?php if ($userAv): ?>
+                            <img src="<?php echo htmlspecialchars($userAv); ?>">
+                        <?php else: ?>
+                            <?php echo substr($_SESSION['user_name'] ?? 'U', 0, 1); ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="popover-user-info">
+                        <span class="popover-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?></span>
+                        <span class="popover-email"><?php echo htmlspecialchars($_SESSION['user_email'] ?? $_SESSION['user_role'] ?? ''); ?></span>
+                    </div>
+                </div>
+                
+                <div class="popover-divider"></div>
+                
+                <button class="popover-item" onclick="if(typeof openProfileModal === 'function') openProfileModal(); document.getElementById('profilePopover').classList.remove('active');">
+                    <i class="ph ph-user-circle"></i> Editar perfil
+                </button>
+                
+                <button class="popover-item theme-toggle-btn" style="justify-content: space-between;">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <i class="ph ph-moon dark-icon"></i>
+                        <i class="ph ph-sun light-icon" style="display: none;"></i>
+                        <span>Modo oscuro</span>
+                    </div>
+                    <div class="theme-switch-track" style="width: 32px; height: 18px; background: var(--border-color); border-radius: 18px; position: relative;">
+                        <div class="theme-switch-knob" style="width: 14px; height: 14px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.2);"></div>
+                    </div>
+                </button>
+
+                <?php if (in_array('conexiones', $perms)): ?>
+                <a href="index.php?module=conexiones&action=index" class="popover-item">
+                    <i class="ph ph-plugs-connected"></i> Conexiones
+                </a>
+                <?php endif; ?>
+
+                <?php if (in_array('config', $perms)): ?>
+                <a href="index.php?module=config&action=index" class="popover-item">
+                    <i class="ph ph-gear"></i> Configuración
+                </a>
+                <?php endif; ?>
+
+                <div class="popover-divider"></div>
+
+                <a href="index.php?module=auth&action=logout" class="popover-item text-danger">
+                    <i class="ph ph-sign-out"></i> Cerrar sesión
                 </a>
             </div>
-        </header>
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const profileCard = document.getElementById('profileCardToggle');
+                    const profilePopover = document.getElementById('profilePopover');
+                    
+                    if (profileCard && profilePopover) {
+                        profileCard.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            profilePopover.classList.toggle('active');
+                        });
+                        
+                        document.addEventListener('click', (e) => {
+                            if (!profilePopover.contains(e.target) && !profileCard.contains(e.target)) {
+                                profilePopover.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+            </script>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Fixed Mobile Header -->
+        <div class="mobile-topbar d-md-none">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <button class="btn-icon" id="mobile-menu-toggle" style="border: none; background: transparent; padding: 0.35rem; color: var(--text-main); cursor: pointer;">
+                    <i class="ph ph-list-dashes" style="font-size: 1.4rem;"></i>
+                </button>
+                <?php if(!empty($global_settings['logo_light']) && !empty($global_settings['logo_dark'])): ?>
+                    <img src="<?php echo htmlspecialchars($global_settings['logo_light']); ?>" class="brand-logo-light" alt="Logo" style="max-height: 22px; object-fit: contain;">
+                    <img src="<?php echo htmlspecialchars($global_settings['logo_dark']); ?>" class="brand-logo-dark" alt="Logo" style="max-height: 22px; object-fit: contain;">
+                <?php elseif(!empty($global_settings['logo_light'])): ?>
+                    <img src="<?php echo htmlspecialchars($global_settings['logo_light']); ?>" alt="Logo" style="max-height: 22px; object-fit: contain;">
+                <?php else: ?>
+                    <span style="font-weight: 800; font-size: 1.1rem; color: var(--primary-color); letter-spacing: -0.5px;">
+                        <?php echo htmlspecialchars($global_settings['site_name'] ?? 'ROMA SaaS'); ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <button class="btn-icon" onclick="if(typeof DriveExplorer !== 'undefined') DriveExplorer.openGlobalModal()" title="Archivos" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.1rem;">
+                    <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i>
+                </button>
+                <button class="btn-icon push-subscribe-btn" onclick="if(window.subscribeToPush) subscribeToPush(); else alert('Notificaciones no soportadas');" title="Notificaciones" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.1rem;">
+                    <i class="ph ph-bell"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Desktop sidebar collapse toggle removed -->
 
         <!-- Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <?php endif; ?>
+
+        <!-- Global Toast Container -->
+        <div id="global-toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+        <script>
+            window.showToast = function(msg, type = 'info') {
+                const container = document.getElementById('global-toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                
+                let icon = 'ph-info';
+                let bgColor = '#3b82f6'; // info blue
+                if (type === 'success') { icon = 'ph-check-circle'; bgColor = '#10b981'; }
+                if (type === 'error') { icon = 'ph-warning-circle'; bgColor = '#ef4444'; }
+                if (type === 'warning') { icon = 'ph-warning'; bgColor = '#f59e0b'; }
+
+                toast.style.cssText = `
+                    background: var(--bg-surface, #fff);
+                    color: var(--text-main, #1e293b);
+                    border-left: 4px solid ${bgColor};
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    transform: translateX(120%);
+                    opacity: 0;
+                    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                    pointer-events: auto;
+                    max-width: 350px;
+                `;
+                
+                toast.innerHTML = `<i class="ph ${icon}" style="font-size: 1.4rem; color: ${bgColor};"></i> <div>${msg}</div>`;
+                
+                container.appendChild(toast);
+                
+                // Animate in
+                requestAnimationFrame(() => {
+                    toast.style.transform = 'translateX(0)';
+                    toast.style.opacity = '1';
+                });
+                
+                // Animate out and remove
+                setTimeout(() => {
+                    toast.style.transform = 'translateX(120%)';
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            };
+        </script>
 
         <!-- Dynamic Content -->
-        <div class="content-wrapper">
+        <div class="content-wrapper" <?php if($is_popup) echo 'style="padding:0; height:100vh; overflow:hidden;"'; ?>>

@@ -1,6 +1,9 @@
 <?php
 // modules/month_board/ajax_update_post_status.php
 header('Content-Type: application/json');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../../config/database.php';
 require_once '../../includes/PushHelper.php';
 

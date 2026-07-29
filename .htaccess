@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Ignorar archivos o carpetas reales
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Sitemap
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+    # Ruta amigable para chat de invitados: /m/TOKEN
+    RewriteRule ^m/([^/]+)/?$ index.php?module=mensajes&action=guest&token=$1 [QSA,L]
+
+    # Ruta amigable para un servicio especifico: /servicio/22/slug
+    RewriteRule ^servicio/([0-9]+)/([^/]+)/?$ index.php?module=public&action=service&id=$1&slug=$2 [QSA,L]
+
+    # Ruta amigable para un servicio especifico sin slug: /servicio/22
+    RewriteRule ^servicio/([0-9]+)/?$ index.php?module=public&action=service&id=$1 [QSA,L]
+
+    # Ruta amigable para el catalogo: /catalogo
+    RewriteRule ^catalogo/?$ index.php?module=public&action=catalog [QSA,L]
+
+    # Ruta amigable para linktree (BioLinks): /l/slug
+    RewriteRule ^l/([^/]+)/?$ index.php?module=public&action=linktree&slug=$1 [QSA,L]
+
+</IfModule>

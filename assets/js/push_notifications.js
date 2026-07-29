@@ -4,7 +4,8 @@
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         
         try {
-            const registration = await navigator.serviceWorker.register('/CESARMENDOZA/service-worker.js');
+            const basePath = window.location.pathname.includes('/CESARMENDOZA/') ? '/CESARMENDOZA/' : '/';
+            const registration = await navigator.serviceWorker.register(basePath + 'service-worker.js');
             
             // Check if already subscribed
             const subscription = await registration.pushManager.getSubscription();

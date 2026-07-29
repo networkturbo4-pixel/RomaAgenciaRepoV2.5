@@ -10,10 +10,14 @@ $stmt_cat = $db->query("SELECT * FROM service_categories ORDER BY name ASC");
 $categories = $stmt_cat->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all services
+$show_trash = isset($_GET['trash']) ? true : false;
+$where_clause = $show_trash ? "s.deleted_at IS NOT NULL" : "s.deleted_at IS NULL";
+
 $stmt_serv = $db->query("
-    SELECT s.*, c.name as category_name
+    SELECT s.*, c.name as category_name, c.color_tag as category_color
     FROM services s
     LEFT JOIN service_categories c ON s.category_id = c.id
+    WHERE $where_clause
     ORDER BY s.created_at DESC
 ");
 $services = $stmt_serv->fetchAll(PDO::FETCH_ASSOC);
@@ -21,7 +25,183 @@ $services = $stmt_serv->fetchAll(PDO::FETCH_ASSOC);
 require_once 'includes/header.php';
 ?>
 
-<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); flex-wrap: wrap; gap: 1rem;">
+<style>
+/* Modern Cards Grid */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.service-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+}
+
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.05);
+}
+
+.service-cover {
+    width: 100%;
+    height: 140px;
+    background-color: var(--bg-body);
+    background-size: cover;
+    background-position: center;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+}
+
+.service-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 2.5rem;
+    opacity: 0.5;
+}
+
+.service-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    backdrop-filter: blur(4px);
+}
+
+.badge-active { background: rgba(34, 197, 94, 0.9); color: white; }
+.badge-paused { background: rgba(234, 179, 8, 0.9); color: white; }
+.badge-out_of_stock { background: rgba(239, 68, 68, 0.9); color: white; }
+
+.service-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.service-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-title);
+    margin: 0 0 0.75rem 0;
+    line-height: 1.3;
+}
+
+.service-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border: 1px solid;
+}
+
+.service-desc {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.service-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px dashed var(--border-color);
+}
+
+.service-price {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.service-price-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.service-actions {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    justify-content: space-between;
+    background: var(--bg-color, #f9fafb);
+    padding: 0.4rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.service-actions .btn-icon {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.service-actions .btn-icon:hover {
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Filters bar */
+.filters-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--bg-surface);
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.filters-bar input, .filters-bar select {
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-body);
+    color: var(--color-title);
+    outline: none;
+    font-family: inherit;
+}
+.filters-bar input:focus, .filters-bar select:focus {
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .service-card { box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+[data-theme="dark"] .service-card:hover { box-shadow: 0 12px 20px rgba(0,0,0,0.4); }
+</style>
+
+<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); flex-wrap: wrap; gap: 1rem;">
     <div style="display: flex; align-items: center; gap: 1.25rem;">
         <div style="width: 56px; height: 56px; background: var(--bg-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color);">
             <i class="ph ph-briefcase" style="font-size: 1.75rem; color: var(--primary-color);"></i>
@@ -32,360 +212,212 @@ require_once 'includes/header.php';
         </div>
     </div>
     <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <a href="index.php?module=public&action=catalog" target="_blank" class="btn btn-outline" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; color: var(--primary-color); border-color: var(--primary-color);">
+            <i class="ph ph-storefront"></i> Ver Catálogo
+        </a>
+        
+        <?php if ($show_trash): ?>
+            <a href="index.php?module=services" class="btn btn-outline" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none;">
+                <i class="ph ph-arrow-left"></i> Volver
+            </a>
+        <?php else: ?>
+            <a href="index.php?module=services&trash=1" class="btn btn-outline" title="Ver Papelera" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; color: var(--text-muted);">
+                <i class="ph ph-trash"></i> Papelera
+            </a>
+        <?php endif; ?>
+        
         <button class="btn btn-outline" onclick="ServiceModule.openCategoryModal()" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px;">
-            <i class="ph ph-folder-plus"></i> Nueva Categoría
+            <i class="ph ph-folder-plus"></i> Categorías
         </button>
-        <button class="btn btn-primary" onclick="ServiceModule.openServiceModal()" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px;">
+        <a href="index.php?module=services&action=form" class="btn btn-primary" title="Atajo: Ctrl + N" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none;">
             <i class="ph ph-plus"></i> Nuevo Servicio
-        </button>
+        </a>
     </div>
 </div>
 
-<div class="card">
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>SERVICIO</th>
-                    <th>CATEGORÍA</th>
-                    <th>PRECIO</th>
-                    <th style="text-align: right;">ACCIONES</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($services)): ?>
-                <tr>
-                    <td colspan="4" style="text-align: center; padding: 2rem; color: var(--color-text);">No hay servicios registrados.</td>
-                </tr>
-                <?php else: ?>
-                    <?php foreach ($services as $service): ?>
-                    <tr id="service-row-<?php echo $service['id']; ?>">
-                        <td data-label="SERVICIO">
-                            <div style="font-weight: 500; color: var(--color-title);" id="service-name-<?php echo $service['id']; ?>"><?php echo htmlspecialchars($service['name']); ?></div>
-                            <div style="font-size: 0.875rem; color: var(--color-text); margin-top: 0.25rem;" id="service-desc-<?php echo $service['id']; ?>">
-                                <?php echo $service['description'] ? htmlspecialchars($service['description']) : ''; ?>
-                            </div>
-                        </td>
-                        <td data-label="CATEGORÍA">
-                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--bg-body); border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border-color);">
-                                <i class="ph ph-folder" style="color: var(--color-text);"></i>
-                                <span id="service-cat-<?php echo $service['id']; ?>"><?php echo htmlspecialchars($service['category_name'] ?? 'Sin categoría'); ?></span>
-                            </span>
-                        </td>
-                        <td data-label="PRECIO">
-                            <div style="font-weight: 600; color: var(--primary-color);" id="service-price-<?php echo $service['id']; ?>">
-                                <?php 
-                                    $currency = $global_settings['currency'] ?? 'USD';
-                                    echo htmlspecialchars($currency) . ' ' . number_format($service['price'], 2); 
-                                ?>
-                            </div>
-                        </td>
-                        <td data-label="ACCIONES" style="text-align: right;">
-                            <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-                                <button class="btn-icon" onclick="ServiceModule.editService(<?php echo $service['id']; ?>)" title="Editar">
-                                    <i class="ph ph-pencil-simple"></i>
-                                </button>
-                                <button class="btn-icon" onclick="ServiceModule.deleteService(<?php echo $service['id']; ?>)" title="Eliminar" style="color: var(--color-danger);">
-                                    <i class="ph ph-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+<div class="filters-bar">
+    <div style="flex: 1; min-width: 250px; position: relative;">
+        <i class="ph ph-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+        <input type="text" id="searchInput" placeholder="Buscar servicios..." style="width: 100%; padding-left: 2.5rem;" onkeyup="ServiceModule.filterServices()">
     </div>
+    <select id="categoryFilter" style="min-width: 200px;" onchange="ServiceModule.filterServices()">
+        <option value="">Todas las categorías</option>
+        <?php foreach ($categories as $cat): ?>
+            <option value="<?php echo htmlspecialchars($cat['id']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+        <?php endforeach; ?>
+    </select>
 </div>
 
-<!-- Modal Servicio -->
-<style>
-    /* Service Modal Two-Column Layout */
-    #serviceModal .modal-content {
-        max-width: 1200px;
-        width: 92vw;
-    }
-    #serviceModal .svc-modal-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-    }
-    @media (max-width: 700px) {
-        #serviceModal .svc-modal-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-    /* Soft gray bordered inputs for the service modal */
-    #serviceModal .svc-input {
-        width: 100%;
-        padding: 0.6rem 0.85rem;
-        border: 1.5px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        color: var(--color-title);
-        background: var(--bg-surface);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        font-family: inherit;
-    }
-    #serviceModal .svc-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 37, 99, 235), 0.1);
-    }
-    #serviceModal .svc-input::placeholder {
-        color: #9ca3af;
-    }
-    #serviceModal select.svc-input {
-        cursor: pointer;
-        appearance: auto;
-    }
-    #serviceModal textarea.svc-input {
-        resize: vertical;
-        min-height: 50px;
-    }
-    #serviceModal .svc-field-label {
-        display: block;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--color-title);
-        margin-bottom: 0.4rem;
-        letter-spacing: 0.2px;
-    }
-    #serviceModal .svc-field-label .required {
-        color: #ef4444;
-        margin-left: 2px;
-    }
-    #serviceModal .svc-section-title {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #6b7280;
-        margin-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-    #serviceModal .svc-column {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-    /* Feature/Deliverable add section */
-    #serviceModal .svc-add-section {
-        padding: 0.85rem;
-        border: 1.5px dashed #d1d5db;
-        border-radius: 10px;
-        background: var(--bg-body, #f9fafb);
-        margin-top: 0.5rem;
-    }
-    #serviceModal .svc-add-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.4rem 0.9rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        border: 1.5px solid var(--primary-color);
-        background: var(--primary-color);
-        color: #fff;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    #serviceModal .svc-add-btn:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
-    /* Feature items list */
-    #serviceModal .svc-feature-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 0.65rem 0.85rem;
-        background: var(--bg-body, #f9fafb);
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        transition: border-color 0.2s ease;
-    }
-    #serviceModal .svc-feature-item:hover {
-        border-color: #c7c9ce;
-    }
-    /* Dark mode overrides */
-    [data-theme="dark"] #serviceModal .svc-input {
-        background: var(--bg-body);
-        border-color: var(--border-color);
-        color: #e2e8f0;
-    }
-    [data-theme="dark"] #serviceModal .svc-input:focus {
-        border-color: var(--primary-color);
-    }
-    [data-theme="dark"] #serviceModal .svc-input::placeholder {
-        color: #64748b;
-    }
-    [data-theme="dark"] #serviceModal .svc-section-title {
-        color: #94a3b8;
-    }
-    [data-theme="dark"] #serviceModal .svc-add-section {
-        background: var(--bg-surface);
-        border-color: var(--border-color);
-    }
-    [data-theme="dark"] #serviceModal .svc-feature-item {
-        background: var(--bg-surface);
-        border-color: var(--border-color);
-    }
-</style>
-<div class="modal-overlay" id="serviceModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title" id="serviceModalTitle">Nuevo Servicio</h2>
-            <button class="btn-icon close-modal" onclick="ServiceModule.closeServiceModal()"><i class="ph ph-x"></i></button>
+<div class="services-grid" id="servicesGrid">
+    <?php if (empty($services)): ?>
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: var(--radius-lg);">
+            <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"><i class="ph ph-briefcase"></i></div>
+            <h3 style="color: var(--color-title); font-size: 1.2rem; margin-bottom: 0.5rem;">No hay servicios registrados</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Comienza creando tu primer servicio para ofrecer a tus clientes.</p>
+            <a href="index.php?module=services&action=form" class="btn btn-primary"><i class="ph ph-plus"></i> Crear Servicio</a>
         </div>
-        <div class="modal-body">
-            <form id="serviceForm" onsubmit="return false;" autocomplete="off">
-                <input type="hidden" name="service_id" id="service_id">
+    <?php else: ?>
+        <?php foreach ($services as $service): 
+            $catColor = !empty($service['category_color']) ? $service['category_color'] : '#6b7280';
+            // Convert hex to rgb for background opacity
+            list($r, $g, $b) = sscanf($catColor, "#%02x%02x%02x");
+            $rgbaColor = "rgba($r, $g, $b, 0.1)";
+        ?>
+        <div class="service-card" id="service-card-<?php echo $service['id']; ?>" data-name="<?php echo strtolower(htmlspecialchars($service['name'])); ?>" data-category="<?php echo $service['category_id']; ?>">
+            
+            <?php 
+                // Build public link
+                $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'];
+                $base_dir = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
+                $public_link = $protocol . '://' . $host . $base_dir . "/servicio/" . $service['id'];
+                if (!empty($service['slug'])) {
+                    $public_link .= "/" . urlencode($service['slug']);
+                }
+            ?>
+            <div class="service-cover">
+                <?php if(!empty($service['cover_image'])): ?>
+                    <img src="uploads/services/<?php echo htmlspecialchars($service['cover_image']); ?>" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                <?php else: ?>
+                    <div class="service-cover-placeholder"><i class="ph ph-image"></i></div>
+                <?php endif; ?>
                 
-                <div class="svc-modal-grid">
-                    <!-- LEFT COLUMN: Name, Category, Description, Price -->
-                    <div class="svc-column">
-                        <div class="svc-section-title">
-                            <i class="ph ph-info"></i> Información del Servicio
-                        </div>
+                <?php
+                $status = $service['status'] ?? 'active';
+                $badgeClass = 'badge-active';
+                $badgeText = 'Activo';
+                if ($status === 'paused') { $badgeClass = 'badge-paused'; $badgeText = 'Pausado'; }
+                if ($status === 'out_of_stock') { $badgeClass = 'badge-out_of_stock'; $badgeText = 'Agotado'; }
+                ?>
+                <span class="service-badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
+            </div>
 
-                        <div>
-                            <label class="svc-field-label">Nombre del Servicio <span class="required">*</span></label>
-                            <input type="text" class="svc-input" name="name" id="service_name" placeholder="Ej: Consultoría IT" required>
-                        </div>
-                        
-                        <div>
-                            <label class="svc-field-label">Categoría <span class="required">*</span></label>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <select class="svc-input" name="category_id" id="service_category" required style="flex: 1;">
-                                    <option value="">Selecciona una categoría</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <button type="button" class="btn btn-outline" onclick="ServiceModule.openCategoryModal()" title="Nueva Categoría" style="padding: 0.5rem 0.75rem; border-radius: 8px; flex-shrink: 0;">
-                                    <i class="ph ph-plus"></i>
-                                </button>
-                            </div>
-                        </div>
+            <div class="service-content">
+                <h3 class="service-title"><?php echo htmlspecialchars($service['name']); ?></h3>
+                
+                <div>
+                    <span class="service-category" style="color: <?php echo $catColor; ?>; background-color: <?php echo $rgbaColor; ?>; border-color: <?php echo $catColor; ?>;">
+                        <i class="ph ph-folder"></i>
+                        <?php echo htmlspecialchars($service['category_name'] ?? 'Sin categoría'); ?>
+                    </span>
+                </div>
 
-                        <div>
-                            <label class="svc-field-label">Descripción</label>
-                            <textarea class="svc-input" name="description" id="service_description" rows="4" placeholder="Detalles del servicio..."></textarea>
-                        </div>
+                <div class="service-desc">
+                    <?php echo $service['description'] ? nl2br(htmlspecialchars($service['description'])) : '<span style="color: var(--text-muted); font-style: italic;">Sin descripción</span>'; ?>
+                </div>
 
+                <div class="service-footer">
+                    <div class="service-price">
+                        <?php if(isset($service['price_type']) && $service['price_type'] === 'packages'): ?>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Desde (Paquetes)</div>
+                        <?php elseif(isset($service['price_type']) && $service['price_type'] === 'monthly'): ?>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Mensual / Recurrente</div>
+                        <?php elseif(isset($service['price_type']) && $service['price_type'] === 'from'): ?>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Desde</div>
+                        <?php endif; ?>
                         <div>
-                            <label class="svc-field-label">Precio Estimado (<?php echo htmlspecialchars($global_settings['currency'] ?? 'USD'); ?>)</label>
-                            <input type="number" step="0.01" class="svc-input" name="price" id="service_price" placeholder="0.00" value="0.00">
+                            <?php 
+                                $srv_currency_code = !empty($service['currency']) ? trim($service['currency']) : trim(htmlspecialchars($global_settings['currency'] ?? 'USD'));
+                                $currency_symbols = ['PEN' => 'S/', 'USD' => '$', 'EUR' => '€', 'MXN' => '$', 'ARS' => '$', 'CLP' => '$', 'COP' => '$'];
+                                $srv_currency = $currency_symbols[$srv_currency_code] ?? $srv_currency_code;
+                                echo $srv_currency . ' ' . number_format($service['price'], 2); 
+                            ?>
                         </div>
                     </div>
-
-                    <!-- RIGHT COLUMN: Characteristics & Deliverables -->
-                    <div class="svc-column">
-                        <!-- Características -->
-                        <div>
-                            <div class="svc-section-title">
-                                <i class="ph ph-list-checks"></i> Características
-                            </div>
-                            <div class="svc-add-section">
-                                <input type="text" class="svc-input" id="feature_title" placeholder="Ej: Diseño de Logo" style="margin-bottom: 0.5rem;">
-                                <textarea class="svc-input" id="feature_desc" rows="2" placeholder="Descripción de la característica..." style="margin-bottom: 0.5rem;"></textarea>
-                                <button type="button" class="svc-add-btn" onclick="ServiceModule.addFeature()">
-                                    <i class="ph ph-plus-circle"></i> Añadir
-                                </button>
-                            </div>
-                            <div id="featuresList" style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.65rem;">
-                                <!-- Features will be added here -->
-                            </div>
-                        </div>
-
-                        <!-- Entregables -->
-                        <div style="margin-top: 0.5rem;">
-                            <div class="svc-section-title">
-                                <i class="ph ph-package"></i> Entregables
-                            </div>
-                            <div class="svc-add-section">
-                                <input type="text" class="svc-input" id="deliverable_title" placeholder="Ej: Manual de marca en PDF" style="margin-bottom: 0.5rem;">
-                                <textarea class="svc-input" id="deliverable_desc" rows="2" placeholder="Descripción del entregable..." style="margin-bottom: 0.5rem;"></textarea>
-                                <button type="button" class="svc-add-btn" onclick="ServiceModule.addDeliverable()">
-                                    <i class="ph ph-plus-circle"></i> Añadir
-                                </button>
-                            </div>
-                            <div id="deliverablesList" style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.65rem;">
-                                <!-- Deliverables will be added here -->
-                            </div>
-                        </div>
+                    <div class="service-actions">
+                        <?php if ($show_trash): ?>
+                            <button class="btn-icon" onclick="ServiceModule.restoreService(<?php echo $service['id']; ?>)" title="Restaurar" style="color: var(--primary-color);">
+                                <i class="ph ph-arrow-counter-clockwise"></i>
+                            </button>
+                        <?php else: ?>
+                            <button class="btn-icon" onclick="ServiceModule.copyLink(this, '<?php echo $public_link; ?>')" title="Copiar enlace" style="color: var(--primary-color);">
+                                <i class="ph ph-link"></i>
+                            </button>
+                            <button onclick="window.location.href='index.php?module=services&action=form&clone_id=<?php echo $service['id']; ?>'" class="btn-icon" title="Duplicar">
+                                <i class="ph ph-copy"></i>
+                            </button>
+                            <a href="index.php?module=services&action=form&id=<?php echo $service['id']; ?>" class="btn-icon" title="Editar" style="text-decoration: none;">
+                                <i class="ph ph-pencil-simple"></i>
+                            </a>
+                            <button class="btn-icon" onclick="ServiceModule.deleteService(<?php echo $service['id']; ?>)" title="Eliminar" style="color: var(--color-danger);">
+                                <i class="ph ph-trash"></i>
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
-            </form>
+            </div>
         </div>
-        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-            <button class="btn btn-outline" onclick="ServiceModule.closeServiceModal()">Cancelar</button>
-            <button type="button" class="btn btn-primary" id="btnSaveService" onclick="ServiceModule.saveService()">
-                <span class="btn-text">Guardar Servicio</span>
-            </button>
-        </div>
-    </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>
 
 <!-- Modal Categoría -->
-<div class="modal-overlay" id="categoryModal" style="z-index: 1060;"> <!-- Higher z-index to overlay service modal if both open -->
-    <div class="modal-content" style="max-width: 500px;">
+<div class="modal-overlay" id="categoryModal" style="z-index: 1060;">
+    <div class="modal-content" style="max-width: 850px;">
         <div class="modal-header">
             <h2 class="modal-title">Gestión de Categorías</h2>
             <button class="btn-icon close-modal" onclick="ServiceModule.closeCategoryModal()"><i class="ph ph-x"></i></button>
         </div>
-        <div class="modal-body">
-            <form id="categoryForm" onsubmit="return false;" style="margin-bottom: 1.5rem;">
-                <input type="hidden" name="category_id" id="category_id">
-                <div style="margin-bottom: 1rem;">
-                    <label class="form-label" style="font-size: 0.875rem;">Nombre de Categoría *</label>
-                    <input type="text" class="form-control" name="category_name" id="category_name" placeholder="Ej: Mantenimiento" required>
-                </div>
-                <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-                    <button type="button" class="btn btn-outline" id="btnCancelEditCategory" onclick="ServiceModule.cancelEditCategory()" style="display: none;">
-                        Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary" id="btnSaveCategory" onclick="ServiceModule.saveCategory()">
-                        <span class="btn-text">Guardar</span>
-                    </button>
-                </div>
-            </form>
+        <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+            <!-- Columna Izquierda: Formulario -->
+            <div style="background: var(--bg-body); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+                <h3 id="categoryFormTitle" style="margin-top: 0; font-size: 1.1rem; font-weight: 600; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--color-title);">
+                    <i class="ph ph-plus-circle" id="categoryFormIcon"></i> 
+                    <span id="categoryFormText">Añadir Nueva Categoría</span>
+                </h3>
+                <form id="categoryForm" onsubmit="return false;">
+                    <input type="hidden" name="category_id" id="category_id">
+                    <div style="margin-bottom: 1.25rem;">
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Nombre de la Categoría *</label>
+                        <input type="text" class="form-control" name="category_name" id="category_name" placeholder="Ej: Mantenimiento Preventivo" required style="background: var(--bg-surface);">
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Etiqueta de Color *</label>
+                        <div style="display: flex; gap: 0.75rem; align-items: center; background: var(--bg-surface); padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <input type="color" name="color_tag" id="color_tag" value="#4b5563" style="width: 36px; height: 36px; padding: 0; border: none; border-radius: 4px; cursor: pointer; flex-shrink: 0;">
+                            <span style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.3;">Selecciona un color para identificar visualmente esta categoría.</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button type="button" class="btn btn-primary" id="btnSaveCategory" onclick="ServiceModule.saveCategory()" style="width: 100%; justify-content: center;">
+                            <span class="btn-text">Guardar Categoría</span>
+                        </button>
+                        <button type="button" class="btn btn-outline" id="btnCancelEditCategory" onclick="ServiceModule.cancelEditCategory()" style="display: none; width: 100%; justify-content: center;">
+                            Cancelar Edición
+                        </button>
+                    </div>
+                </form>
+            </div>
 
-            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden;">
-                <div style="max-height: 250px; overflow-y: auto;">
-                    <table class="table" style="margin-bottom: 0;">
-                        <thead style="background: var(--bg-surface);">
-                            <tr>
-                                <th>CATEGORÍA</th>
-                                <th style="text-align: right;">ACCIONES</th>
-                            </tr>
-                        </thead>
-                        <tbody id="categoriesTableBody">
-                            <?php if (empty($categories)): ?>
-                            <tr>
-                                <td colspan="2" style="text-align: center; color: var(--color-text); padding: 1rem;">No hay categorías.</td>
-                            </tr>
-                            <?php else: ?>
-                                <?php foreach ($categories as $cat): ?>
-                                <tr id="cat-row-<?php echo $cat['id']; ?>">
-                                    <td id="cat-name-<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></td>
-                                    <td style="text-align: right;">
-                                        <button class="btn-icon" onclick="ServiceModule.editCategory(<?php echo $cat['id']; ?>, '<?php echo htmlspecialchars(addslashes($cat['name'])); ?>')" title="Editar">
-                                            <i class="ph ph-pencil-simple"></i>
-                                        </button>
-                                        <button class="btn-icon" onclick="ServiceModule.deleteCategory(<?php echo $cat['id']; ?>)" title="Eliminar" style="color: var(--color-danger);">
-                                            <i class="ph ph-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+            <!-- Columna Derecha: Lista -->
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); margin-top: 0; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">Categorías Existentes</h4>
+                <div style="max-height: 380px; overflow-y: auto; padding-right: 0.5rem;" id="categoriesListContainer">
+                    <?php if (empty($categories)): ?>
+                        <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 8px;">
+                            <i class="ph ph-folder-open" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
+                            <p style="margin: 0; font-size: 0.95rem;">No hay categorías creadas aún.</p>
+                        </div>
+                    <?php else: ?>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <?php foreach ($categories as $cat): ?>
+                            <div id="cat-row-<?php echo $cat['id']; ?>" style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; transition: border-color 0.2s;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; font-weight: 500; color: var(--color-title);">
+                                    <div style="width: 14px; height: 14px; border-radius: 50%; background-color: <?php echo htmlspecialchars($cat['color_tag'] ?? '#4b5563'); ?>; box-shadow: 0 0 0 2px rgba(255,255,255,0.8), 0 0 0 3px <?php echo htmlspecialchars($cat['color_tag'] ?? '#4b5563'); ?>;"></div>
+                                    <span id="cat-name-<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></span>
+                                </div>
+                                <div style="display: flex; gap: 0.25rem;">
+                                    <button class="btn-icon" onclick="ServiceModule.editCategory(<?php echo $cat['id']; ?>, '<?php echo htmlspecialchars(addslashes($cat['name'])); ?>', '<?php echo htmlspecialchars($cat['color_tag'] ?? '#4b5563'); ?>')" title="Editar" style="width: 32px; height: 32px; background: rgba(37, 99, 235, 0.1); color: var(--primary-color);">
+                                        <i class="ph ph-pencil-simple"></i>
+                                    </button>
+                                    <button class="btn-icon" onclick="ServiceModule.deleteCategory(<?php echo $cat['id']; ?>)" title="Eliminar" style="width: 32px; height: 32px; background: rgba(239, 68, 68, 0.1); color: var(--danger-color);">
+                                        <i class="ph ph-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

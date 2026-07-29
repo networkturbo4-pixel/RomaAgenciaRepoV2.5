@@ -122,6 +122,78 @@ const WorkOrderModule = {
         const input = document.getElementById('shareLinkInput');
         input.select();
         document.execCommand('copy');
-        alert('¡Enlace copiado al portapapeles!');
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: '¡Enlace copiado al portapapeles!',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        } else {
+            alert('¡Enlace copiado al portapapeles!');
+        }
+    },
+
+    archiveOrder: function(id) {
+        document.getElementById('archive_wo_id').value = id;
+        document.getElementById('modal-archive-order').classList.add('active');
+    },
+
+    executeArchive: function() {
+        const id = document.getElementById('archive_wo_id').value;
+        const btn = document.getElementById('btnConfirmArchiveWo');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Procesando...';
+        btn.disabled = true;
+
+        fetch('modules/work_orders/ajax_archive.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'id=' + id
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('modal-archive-order').classList.remove('active');
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: data.is_archived === 1 ? 'Orden archivada' : 'Orden restaurada',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        background: 'var(--bg-surface)',
+                        color: 'var(--color-text)'
+                    });
+                }
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'No se pudo modificar el estado.',
+                        confirmButtonColor: '#0f766e',
+                        background: 'var(--bg-surface)',
+                        color: 'var(--color-text)'
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            document.getElementById('modal-archive-order').classList.remove('active');
+        });
     }
 };

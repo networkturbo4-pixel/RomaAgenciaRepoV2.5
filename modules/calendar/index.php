@@ -22,7 +22,7 @@ try {
 
     // Fetch all projects with their work order data
     $stmtProjects = $db->query("
-        SELECT p.*, w.correlativo, w.brand_name, w.data, w.public_token 
+        SELECT p.*, w.correlativo, w.brand_name, w.data, w.public_token, w.is_archived
         FROM projects p
         JOIN work_orders w ON p.work_order_id = w.id
         ORDER BY p.id DESC
@@ -227,6 +227,42 @@ try {
         background: var(--primary-hover);
         color: white;
     }
+
+    /* Segmented Switcher Premium */
+    .segmented-control {
+        display: inline-flex;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 30px;
+        border: none;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .segmented-btn {
+        background: transparent;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #64748b;
+        border-radius: 26px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .segmented-btn:hover:not(.active) {
+        color: var(--primary-color);
+    }
+    .segmented-btn.active {
+        background: #ffffff;
+        color: var(--primary-color);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    [data-theme="dark"] .segmented-control {
+        background: #1e293b;
+    }
+    [data-theme="dark"] .segmented-btn.active {
+        background: var(--primary-color);
+        color: white;
+    }
 </style>
 
 <!-- Title and Header removed as requested -->
@@ -240,9 +276,9 @@ try {
 <div class="card calendar-main-card" style="margin-bottom: 2rem; padding: 0; overflow: hidden;">
     <!-- Switcher and Actions -->
     <div class="calendar-actions-header">
-        <div class="calendar-tabs">
-            <button class="btn btn-outline active-switcher" id="btn-active-projects" onclick="switchView('active')" style="background: var(--primary-color); color: white; border-color: var(--primary-color);">Activos</button>
-            <button class="btn btn-outline" id="btn-archived-projects" onclick="switchView('archived')">Archivados</button>
+        <div class="segmented-control">
+            <button class="segmented-btn active" id="btn-active-projects" onclick="switchView('active')">Activos</button>
+            <button class="segmented-btn" id="btn-archived-projects" onclick="switchView('archived')">Archivados</button>
         </div>
         <button class="btn btn-primary" id="btn-new-project" onclick="openNewProjectModal()">
             <i class="ph ph-plus"></i> Nuevo Proyecto
@@ -251,7 +287,7 @@ try {
 
     <div class="calendar-body-padding">
         <!-- Active Projects Grid -->
-        <div id="active-projects-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        <div id="active-projects-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
             <?php if (empty($activeProjects)): ?>
                 <p class="text-muted col-span-full">No hay proyectos activos.</p>
             <?php else: ?>
@@ -262,7 +298,7 @@ try {
         </div>
 
         <!-- Archived Projects Grid -->
-        <div id="archived-projects-container" style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        <div id="archived-projects-container" style="display: none; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
             <?php if (empty($archivedProjects)): ?>
                 <p class="text-muted col-span-full">No hay proyectos archivados.</p>
             <?php else: ?>
@@ -436,23 +472,13 @@ function switchView(view) {
     if (view === 'active') {
         activeContainer.style.display = 'grid';
         archivedContainer.style.display = 'none';
-        btnActive.style.background = 'var(--primary-color)';
-        btnActive.style.color = 'white';
-        btnActive.style.borderColor = 'var(--primary-color)';
-        
-        btnArchived.style.background = 'transparent';
-        btnArchived.style.color = 'var(--text-main)';
-        btnArchived.style.borderColor = 'var(--border-color)';
+        btnActive.classList.add('active');
+        btnArchived.classList.remove('active');
     } else {
         activeContainer.style.display = 'none';
         archivedContainer.style.display = 'grid';
-        btnArchived.style.background = 'var(--primary-color)';
-        btnArchived.style.color = 'white';
-        btnArchived.style.borderColor = 'var(--primary-color)';
-        
-        btnActive.style.background = 'transparent';
-        btnActive.style.color = 'var(--text-main)';
-        btnActive.style.borderColor = 'var(--border-color)';
+        btnArchived.classList.add('active');
+        btnActive.classList.remove('active');
     }
 }
 
@@ -695,6 +721,14 @@ function renderProjectCard($project) {
     $logoUrl = $project['logo'] ? htmlspecialchars($project['logo']) : 'assets/img/default-logo.png';
     $otCorrelativo = isset($project['correlativo']) ? htmlspecialchars($project['correlativo']) : 'No asignada';
     $publicToken = isset($project['public_token']) ? htmlspecialchars($project['public_token']) : '';
+    $isArchived = isset($project['is_archived']) && $project['is_archived'] == 1;
+
+    $enterButtonHtml = "";
+    if ($isArchived) {
+        $enterButtonHtml = "<button type='button' disabled title='La orden de servicio está archivada' style='display: flex; align-items: center; justify-content: center; width: 100%; background: #e2e8f0; color: #94a3b8; padding: 0.85rem; border-radius: 12px; font-weight: 600; border: none; cursor: not-allowed;'>Entrar al Tablero</button>";
+    } else {
+        $enterButtonHtml = "<a href='index.php?module=project_board&id={$project['id']}' style='display: flex; align-items: center; justify-content: center; width: 100%; background: var(--primary-color); color: white; padding: 0.85rem; border-radius: 12px; font-weight: 600; text-decoration: none; transition: background 0.2s, box-shadow 0.2s;' onmouseover='this.style.background=\"var(--primary-hover)\"; this.style.boxShadow=\"0 4px 12px rgba(79, 70, 229, 0.2)\"' onmouseout='this.style.background=\"var(--primary-color)\"; this.style.boxShadow=\"none\"'>Entrar al Tablero</a>";
+    }
 
     echo "
     <div style='background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s;' onmouseover='this.style.transform=\"translateY(-2px)\"; this.style.boxShadow=\"0 8px 24px rgba(0,0,0,0.08)\"' onmouseout='this.style.transform=\"none\"; this.style.boxShadow=\"0 4px 20px rgba(0,0,0,0.04)\"'>
@@ -713,38 +747,38 @@ function renderProjectCard($project) {
             </div>
         </div>
 
-        <!-- DESCRIPTION -->
-        <div style='margin-bottom: 1.25rem;'>
-            <div style='font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;'>Detalles</div>
-            <div style='font-size: 0.85rem; color: var(--color-title); line-height: 1.4;'>
-                Orden de Servicio asociada: <strong>{$otCorrelativo}</strong>. Este proyecto contiene la planificación de contenidos.
+        <!-- Middle to Bottom Section (Aligned via margin-top: auto) -->
+        <div style='margin-top: auto; display: flex; flex-direction: column;'>
+            <!-- DESCRIPTION -->
+            <div style='margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; background: var(--bg-color); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color);'>
+                <i class='ph ph-clipboard-text' style='color: var(--primary-color); font-size: 1.1rem;'></i>
+                <span style='font-size: 0.8rem; color: var(--text-muted);'>OS:</span>
+                <strong style='font-size: 0.85rem; color: var(--color-title);'>{$otCorrelativo}</strong>
             </div>
-        </div>
 
-        <!-- FOCUS AREA (Team Members) -->
-        <div style='margin-bottom: 1.25rem;'>
-            <div style='font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;'>Equipo Asignado</div>
-            {$teamHtml}
-        </div>
+            <!-- FOCUS AREA (Team Members) -->
+            <div style='margin-bottom: 1.25rem;'>
+                <div style='font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;'>Equipo Asignado</div>
+                {$teamHtml}
+            </div>
 
-        <!-- Stats/Actions Box -->
-        <div style='display: flex; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden;'>
-            <button type='button' onclick='openPublicWoModal(\"{$publicToken}\")' style='flex: 1; text-align: center; padding: 0.75rem; border: none; background: transparent; color: var(--color-title); font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-right: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;' onmouseover='this.style.background=\"rgba(0,0,0,0.02)\"' onmouseout='this.style.background=\"transparent\"'>
-                <i class='ph ph-file-text' style='color: var(--text-muted); font-size: 1.1rem;'></i> Ver OS
-            </button>
-            <button type='button' onclick='openEditProjectModal({$project['id']})' style='flex: 1; text-align: center; padding: 0.75rem; border: none; background: transparent; color: var(--primary-color); font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-right: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;' onmouseover='this.style.background=\"rgba(79,70,229,0.05)\"' onmouseout='this.style.background=\"transparent\"'>
-                <i class='ph ph-pencil' style='font-size: 1.1rem;'></i> Editar
-            </button>
-            <button type='button' onclick='deleteProject({$project['id']})' style='flex: 1; text-align: center; padding: 0.75rem; border: none; background: transparent; color: var(--danger-color); font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; transition: background 0.2s;' onmouseover='this.style.background=\"rgba(239,68,68,0.05)\"' onmouseout='this.style.background=\"transparent\"'>
-                <i class='ph ph-trash' style='font-size: 1.1rem;'></i> Eliminar
-            </button>
-        </div>
+            <!-- Stats/Actions Box -->
+            <div style='display: flex; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden;'>
+                <button type='button' onclick='openPublicWoModal(\"{$publicToken}\")' title='Ver OS' style='flex: 1; text-align: center; padding: 0.65rem; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s;' onmouseover='this.style.background=\"rgba(0,0,0,0.03)\"; this.style.color=\"var(--color-title)\"' onmouseout='this.style.background=\"transparent\"; this.style.color=\"var(--text-muted)\"'>
+                    <i class='ph ph-file-text' style='font-size: 1.3rem;'></i>
+                </button>
+                <button type='button' onclick='openEditProjectModal({$project['id']})' title='Editar' style='flex: 1; text-align: center; padding: 0.65rem; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s;' onmouseover='this.style.background=\"rgba(79,70,229,0.05)\"; this.style.color=\"var(--primary-color)\"' onmouseout='this.style.background=\"transparent\"; this.style.color=\"var(--text-muted)\"'>
+                    <i class='ph ph-pencil' style='font-size: 1.3rem;'></i>
+                </button>
+                <button type='button' onclick='deleteProject({$project['id']})' title='Eliminar' style='flex: 1; text-align: center; padding: 0.65rem; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;' onmouseover='this.style.background=\"rgba(239,68,68,0.05)\"; this.style.color=\"var(--danger-color)\"' onmouseout='this.style.background=\"transparent\"; this.style.color=\"var(--text-muted)\"'>
+                    <i class='ph ph-trash' style='font-size: 1.3rem;'></i>
+                </button>
+            </div>
 
-        <!-- Bottom Action -->
-        <div style='margin-top: auto;'>
-            <a href='index.php?module=project_board&id={$project['id']}' style='display: flex; align-items: center; justify-content: center; width: 100%; background: var(--primary-color); color: white; padding: 0.85rem; border-radius: 12px; font-weight: 600; text-decoration: none; transition: background 0.2s, box-shadow 0.2s;' onmouseover='this.style.background=\"var(--primary-hover)\"; this.style.boxShadow=\"0 4px 12px rgba(79, 70, 229, 0.2)\"' onmouseout='this.style.background=\"var(--primary-color)\"; this.style.boxShadow=\"none\"'>
-                Entrar al Tablero
-            </a>
+            <!-- Bottom Action -->
+            <div>
+                {$enterButtonHtml}
+            </div>
         </div>
     </div>
     ";

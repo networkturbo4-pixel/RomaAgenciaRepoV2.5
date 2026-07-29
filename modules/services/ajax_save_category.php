@@ -16,6 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = isset($_POST['category_id']) && $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null;
     $name = trim($_POST['category_name'] ?? '');
 
+    $color_tag = trim($_POST['color_tag'] ?? '#4b5563');
+
     if (empty($name)) {
         echo json_encode(['success' => false, 'message' => 'El nombre de la categoría es requerido']);
         exit;
@@ -23,13 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         if ($id) {
-            $stmt = $db->prepare("UPDATE service_categories SET name = :name WHERE id = :id");
-            $stmt->execute([':name' => $name, ':id' => $id]);
+            $stmt = $db->prepare("UPDATE service_categories SET name = :name, color_tag = :color_tag WHERE id = :id");
+            $stmt->execute([':name' => $name, ':color_tag' => $color_tag, ':id' => $id]);
             $categoryId = $id;
             $message = 'Categoría actualizada correctamente';
         } else {
-            $stmt = $db->prepare("INSERT INTO service_categories (name) VALUES (:name)");
-            $stmt->execute([':name' => $name]);
+            $stmt = $db->prepare("INSERT INTO service_categories (name, color_tag) VALUES (:name, :color_tag)");
+            $stmt->execute([':name' => $name, ':color_tag' => $color_tag]);
             $categoryId = $db->lastInsertId();
             $message = 'Categoría guardada correctamente';
         }
@@ -40,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'is_update' => $id ? true : false,
             'category' => [
                 'id' => $categoryId,
-                'name' => $name
+                'name' => $name,
+                'color_tag' => $color_tag
             ]
         ]);
     } catch (PDOException $e) {

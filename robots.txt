@@ -1,0 +1,18 @@
+User-agent: *
+Disallow: /api/
+Disallow: /ajax/
+Disallow: /config/
+Disallow: /includes/
+Disallow: /modules/admin/
+Disallow: /modules/auth/
+Disallow: /modules/config/
+Disallow: /modules/dashboard/
+Disallow: /modules/clients/
+Disallow: /modules/work_orders/
+Disallow: /modules/community/
+Disallow: /vendor/
+Allow: /modules/public/
+Allow: /assets/
+Allow: /uploads/services/
+
+Sitemap: https://romaagencia.lat/sitemap.xml

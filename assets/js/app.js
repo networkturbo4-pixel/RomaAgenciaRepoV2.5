@@ -84,9 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
     dropdownToggles.forEach(toggle => {
         toggle.addEventListener('click', (e) => {
-            e.preventDefault();
             const parent = toggle.closest('.nav-dropdown');
-            parent.classList.toggle('active');
+            if (parent) {
+                e.preventDefault();
+                parent.classList.toggle('active');
+            }
         });
     });
 
@@ -154,20 +156,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Global Chat Unread Check
-    const chatNavItem = document.querySelector('a[href*="module=chat"]');
-    if (chatNavItem) {
-        setInterval(async () => {
-            try {
-                const fd = new FormData();
-                fd.append('action', 'check_global_unreads');
-                const res = await fetch('modules/chat/ajax.php', { method: 'POST', body: fd });
-                const data = await res.json();
-                if (data.success && data.total_unread > 0) {
-                    chatNavItem.classList.add('chat-glowing-border');
-                } else {
-                    chatNavItem.classList.remove('chat-glowing-border');
-                }
-            } catch (e) {}
-        }, 3000);
+    const globalMsgBadge = document.getElementById('globalMsgBadge');
+    if (globalMsgBadge) {
+        function fetchGlobalUnreadCount() {
+            fetch('modules/mensajes/ajax.php?action=get_global_unread_count')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.count > 0) {
+                        globalMsgBadge.textContent = data.count > 99 ? '99+' : data.count;
+                        globalMsgBadge.style.display = 'flex';
+                    } else {
+                        globalMsgBadge.style.display = 'none';
+                    }
+                }).catch(() => {});
+        }
+        
+        fetchGlobalUnreadCount();
+        setInterval(fetchGlobalUnreadCount, 30000); // Check every 30 seconds
+        
+        // Also listen to push notifications
+        window.addEventListener('app:refresh_data', (e) => {
+            if (e.detail && e.detail.module === 'mensajes') {
+                fetchGlobalUnreadCount();
+            }
+        });
     }
 });

@@ -61,13 +61,64 @@ async function initPushNotifications() {
 // o si es un navegador de escritorio, podemos pedirlo. 
 // En iOS, el usuario debe haber añadido la web al Home Screen.
 document.addEventListener('DOMContentLoaded', () => {
-    // Es buena práctica inicializarlo con un botón si los permisos no están dados.
-    // Pero si ya están dados, o para Android/Desktop, lo lanzamos.
     if (Notification.permission === 'granted') {
         initPushNotifications();
     }
+    
+    // Iniciar el poller local de reuniones
+    startMeetingAlarm();
 });
 
 // Exponemos la función globalmente para poder llamarla desde un botón en la UI
 window.subscribeToPush = initPushNotifications;
+
+/**
+ * Alarma Local de Reuniones
+ */
+function startMeetingAlarm() {
+    const checkMeetings = async () => {
+        if (Notification.permission !== 'granted') return;
+        
+        try {
+            const res = await fetch('ajax/check_meetings.php');
+            const data = await res.json();
+            
+            if (data.success && data.meetings && data.meetings.length > 0) {
+                data.meetings.forEach(meet => {
+                    // Check if we already notified for this meeting
+                    const notified = JSON.parse(localStorage.getItem('notified_meetings') || '[]');
+                    if (!notified.includes(meet.id)) {
+                        
+                        // Enviar notificación a través de Service Worker o Notification API
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.ready.then(registration => {
+                                registration.showNotification('¡Reunión en 5 minutos!', {
+                                    body: `La reunión de ${meet.brand_name} ("${meet.motivo}") está a punto de empezar.`,
+                                    icon: '/assets/img/icon-192x192.png',
+                                    vibrate: [200, 100, 200],
+                                    data: { url: meet.meet_link || '/' }
+                                });
+                            });
+                        } else {
+                            new Notification('¡Reunión en 5 minutos!', {
+                                body: `La reunión de ${meet.brand_name} ("${meet.motivo}") está a punto de empezar.`,
+                                icon: '/assets/img/icon-192x192.png'
+                            });
+                        }
+                        
+                        notified.push(meet.id);
+                        localStorage.setItem('notified_meetings', JSON.stringify(notified));
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error verificando reuniones:', error);
+        }
+    };
+
+    // Check every 60 seconds
+    setInterval(checkMeetings, 60000);
+    // initial check
+    setTimeout(checkMeetings, 2000);
+}
 

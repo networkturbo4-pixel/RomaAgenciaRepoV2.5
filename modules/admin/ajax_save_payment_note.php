@@ -34,7 +34,14 @@ try {
     $total = $data['total'] ?? 0;
     $services_json = json_encode($data['servicios'] ?? []);
     $schedule_json = json_encode($data['cronograma'] ?? []);
+    $abonos_json = json_encode($data['abonos'] ?? []);
     $status = $data['status'] ?? 'En proceso';
+    $apply_igv = isset($data['apply_igv']) && $data['apply_igv'] ? 1 : 0;
+    $discount_percent = isset($data['discount_percent']) ? floatval($data['discount_percent']) : 0;
+    $show_memberships = isset($data['show_memberships']) ? (int)filter_var($data['show_memberships'], FILTER_VALIDATE_BOOLEAN) : 1;
+    $show_advances = isset($data['show_advances']) ? (int)filter_var($data['show_advances'], FILTER_VALIDATE_BOOLEAN) : 0;
+    $due_days = isset($data['due_days']) ? intval($data['due_days']) : 30;
+    $access_pin = !empty($data['access_pin']) ? substr(preg_replace('/[^0-9]/', '', $data['access_pin']), 0, 4) : null;
 
     // Find client_id if possible
     $stmtClient = $db->prepare("SELECT id FROM clients WHERE name = ? LIMIT 1");
@@ -46,13 +53,13 @@ try {
     $existing = $stmt->fetchColumn();
 
     if ($existing) {
-        $stmtUpdate = $db->prepare("UPDATE payment_notes SET client_id=?, client_name=?, company_name=?, start_date=?, total=?, services_json=?, schedule_json=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE note_code=?");
-        $stmtUpdate->execute([$client_id, $client_name, $company_name, $start_date, $total, $services_json, $schedule_json, $status, $note_code]);
+        $stmtUpdate = $db->prepare("UPDATE payment_notes SET client_id=?, client_name=?, company_name=?, start_date=?, total=?, services_json=?, schedule_json=?, abonos_json=?, status=?, apply_igv=?, discount_percent=?, show_memberships=?, show_advances=?, due_days=?, access_pin=?, updated_at=CURRENT_TIMESTAMP WHERE note_code=?");
+        $stmtUpdate->execute([$client_id, $client_name, $company_name, $start_date, $total, $services_json, $schedule_json, $abonos_json, $status, $apply_igv, $discount_percent, $show_memberships, $show_advances, $due_days, $access_pin, $note_code]);
         echo json_encode(['success' => true]);
     } else {
         $public_token = bin2hex(random_bytes(16));
-        $stmtInsert = $db->prepare("INSERT INTO payment_notes (note_code, client_id, client_name, company_name, start_date, total, services_json, schedule_json, status, public_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmtInsert->execute([$note_code, $client_id, $client_name, $company_name, $start_date, $total, $services_json, $schedule_json, $status, $public_token]);
+        $stmtInsert = $db->prepare("INSERT INTO payment_notes (note_code, client_id, client_name, company_name, start_date, total, services_json, schedule_json, abonos_json, status, public_token, apply_igv, discount_percent, show_memberships, show_advances, due_days, access_pin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmtInsert->execute([$note_code, $client_id, $client_name, $company_name, $start_date, $total, $services_json, $schedule_json, $abonos_json, $status, $public_token, $apply_igv, $discount_percent, $show_memberships, $show_advances, $due_days, $access_pin]);
         echo json_encode(['success' => true]);
     }
 

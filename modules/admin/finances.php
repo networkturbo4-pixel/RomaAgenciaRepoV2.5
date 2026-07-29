@@ -1735,10 +1735,26 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('btn-save-expense').addEventListener('click', async () => {
+        const fecha = document.getElementById('expense-fecha').value.trim();
+        const nombre = document.getElementById('expense-nombre').value.trim();
+        const montoVal = document.getElementById('expense-monto').value.trim();
+        const monto = parseFloat(montoVal);
+
+        // Client-side validation
+        const missing = [];
+        if (!fecha) missing.push('Fecha');
+        if (!nombre) missing.push('Nombre del Gasto');
+        if (!montoVal || isNaN(monto) || monto <= 0) missing.push('Monto (mayor a 0)');
+
+        if (missing.length > 0) {
+            alert('Campos obligatorios faltantes: ' + missing.join(', '));
+            return;
+        }
+
         const formData = new FormData();
-        formData.append('fecha', document.getElementById('expense-fecha').value);
-        formData.append('nombre_gasto', document.getElementById('expense-nombre').value);
-        formData.append('monto', document.getElementById('expense-monto').value);
+        formData.append('fecha', fecha);
+        formData.append('nombre_gasto', nombre);
+        formData.append('monto', montoVal);
         formData.append('categoria', document.getElementById('expense-categoria').value);
         const id = document.getElementById('expense-id').value;
         if (id) formData.append('id', id);

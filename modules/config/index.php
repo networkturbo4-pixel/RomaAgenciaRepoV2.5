@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Acceso Denegado: Solo el Administrador principal puede realizar modificaciones.');
         }
 
-        if (in_array($action_type, ['personalization', 'company', 'drive'])) {
+        if (in_array($action_type, ['personalization', 'company', 'drive', 'backups', 'mercadopago', 'google_workspace', 'ia'])) {
             $active_tab = 'tab-' . $action_type;
             // Generic settings update
             $stmt_check = $db->prepare("SELECT COUNT(*) FROM settings WHERE setting_key = :key");
@@ -169,74 +169,110 @@ $stmt_admin->execute([$_SESSION['user_id']]);
 $is_admin = ($stmt_admin->fetchColumn() == 1);
 ?>
 
-<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 1.25rem;">
-        <div style="width: 56px; height: 56px; background: var(--bg-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color);">
-            <i class="ph ph-gear" style="font-size: 1.75rem; color: var(--primary-color);"></i>
+<link rel="stylesheet" href="assets/css/config.css">
+
+<div class="settings-header">
+    <div style="display: flex; align-items: center; gap: 1.5rem; position: relative; z-index: 1;">
+        <div class="settings-header-icon">
+            <i class="ph ph-sliders-horizontal"></i>
         </div>
         <div>
-            <h1 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--color-title);">Configuración Avanzada</h1>
-            <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Administra personalización, datos de empresa, roles y usuarios.</p>
+            <h1 style="margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--color-title);">Configuración del Sistema</h1>
+            <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 13px; max-width: 500px;">Administra la personalización de la plataforma, roles, integraciones y parámetros generales para ajustar la experiencia a tu medida.</p>
         </div>
     </div>
 </div>
 
 <?php if ($success): ?>
-    <div style="background: #d1fae5; color: #059669; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
-        <i class="ph ph-check-circle"></i> <?php echo htmlspecialchars($success); ?>
+    <div class="settings-alert success">
+        <i class="ph ph-check-circle-fill"></i>
+        <div><?php echo htmlspecialchars($success); ?></div>
     </div>
 <?php endif; ?>
 
 <?php if ($error): ?>
-    <div style="background: #fee2e2; color: #ef4444; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
-        <i class="ph ph-warning-circle"></i> <?php echo htmlspecialchars($error); ?>
+    <div class="settings-alert error">
+        <i class="ph ph-warning-circle-fill"></i>
+        <div><?php echo htmlspecialchars($error); ?></div>
     </div>
 <?php endif; ?>
 
-<div class="card">
-    <div class="tabs-nav">
-        <button class="tab-btn <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>" data-tab="tab-personalization">
+<div class="settings-layout">
+    <div class="settings-sidebar">
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>" data-tab="tab-personalization">
             <i class="ph ph-palette"></i> Personalización
         </button>
-        <button class="tab-btn <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>" data-tab="tab-company">
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>" data-tab="tab-company">
             <i class="ph ph-buildings"></i> Datos de la Empresa
         </button>
-        <button class="tab-btn <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>" data-tab="tab-roles">
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>" data-tab="tab-roles">
             <i class="ph ph-shield-check"></i> Roles y Permisos
         </button>
-        <button class="tab-btn <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>" data-tab="tab-users">
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>" data-tab="tab-users">
             <i class="ph ph-users"></i> Usuarios
         </button>
-        <button class="tab-btn <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>" data-tab="tab-drive">
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>" data-tab="tab-drive">
             <i class="ph ph-google-drive-logo"></i> Google Drive
+        </button>
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-google_workspace' ? 'active' : ''; ?>" data-tab="tab-google_workspace">
+            <i class="ph ph-google-logo"></i> Google Workspace
+        </button>
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>" data-tab="tab-backups">
+            <i class="ph ph-database"></i> Copias de Seguridad
+        </button>
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-mercadopago' ? 'active' : ''; ?>" data-tab="tab-mercadopago">
+            <i class="ph ph-credit-card"></i> Mercado Pago
+        </button>
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-ia' ? 'active' : ''; ?>" data-tab="tab-ia">
+            <i class="ph ph-sparkle"></i> Inteligencia Artificial
         </button>
     </div>
 
     <!-- Tab Contents -->
-    <div class="tab-content">
+    <div class="settings-main">
         <!-- Tab 1: Personalization -->
-        <div id="tab-personalization" class="tab-pane <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>">
+        <div id="tab-personalization" class="settings-pane tab-pane <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>">
             <?php include 'modules/config/tabs/personalization.php'; ?>
         </div>
 
         <!-- Tab 2: Company Data -->
-        <div id="tab-company" class="tab-pane <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>">
+        <div id="tab-company" class="settings-pane tab-pane <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>">
             <?php include 'modules/config/tabs/company.php'; ?>
         </div>
 
         <!-- Tab 3: Roles -->
-        <div id="tab-roles" class="tab-pane <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>">
+        <div id="tab-roles" class="settings-pane tab-pane <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>">
             <?php include 'modules/config/tabs/roles.php'; ?>
         </div>
 
         <!-- Tab 4: Users -->
-        <div id="tab-users" class="tab-pane <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>">
+        <div id="tab-users" class="settings-pane tab-pane <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>">
             <?php include 'modules/config/tabs/users.php'; ?>
         </div>
 
         <!-- Tab 5: Drive -->
-        <div id="tab-drive" class="tab-pane <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>">
+        <div id="tab-drive" class="settings-pane tab-pane <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>">
             <?php include 'modules/config/tabs/drive.php'; ?>
+        </div>
+
+        <!-- Tab 5b: Google Workspace -->
+        <div id="tab-google_workspace" class="settings-pane tab-pane <?php echo $active_tab === 'tab-google_workspace' ? 'active' : ''; ?>">
+            <?php include 'modules/config/tabs/google_workspace.php'; ?>
+        </div>
+
+        <!-- Tab 6: Backups -->
+        <div id="tab-backups" class="settings-pane tab-pane <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>">
+            <?php include 'modules/config/tabs/backups.php'; ?>
+        </div>
+
+        <!-- Tab 7: Mercado Pago -->
+        <div id="tab-mercadopago" class="settings-pane tab-pane <?php echo $active_tab === 'tab-mercadopago' ? 'active' : ''; ?>">
+            <?php include 'modules/config/tabs/mercadopago.php'; ?>
+        </div>
+
+        <!-- Tab 9: Inteligencia Artificial (Gemini) -->
+        <div id="tab-ia" class="settings-pane tab-pane <?php echo $active_tab === 'tab-ia' ? 'active' : ''; ?>">
+            <?php include 'modules/config/tabs/ia.php'; ?>
         </div>
     </div>
 </div>

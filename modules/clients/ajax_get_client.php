@@ -24,7 +24,7 @@ try {
         exit();
     }
 
-    $stmtBrands = $db->prepare("SELECT id, name, logo FROM client_brands WHERE client_id = ?");
+    $stmtBrands = $db->prepare("SELECT id, name, logo, has_membership, services_ids, whatsapp_group FROM client_brands WHERE client_id = ?");
     $stmtBrands->execute([$id]);
     $brands = $stmtBrands->fetchAll(PDO::FETCH_ASSOC);
 

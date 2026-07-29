@@ -7,7 +7,9 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require __DIR__ . '/vendor/autoload.php';
-require_once 'includes/db.php';
+require_once 'config/database.php';
+$database = new Database();
+$db = $database->getConnection();
 
 $options = array(
     'cluster' => 'us2',

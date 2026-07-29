@@ -2,64 +2,109 @@
     </main>
 </div>
 
-<!-- Profile Modal -->
+<!-- Profile Modal (Modern Startup Style) -->
 <div class="modal-overlay" id="profile-modal">
-    <div class="modal-content" style="max-width:480px;">
-        <div class="modal-header">
-            <h2>Mi Perfil</h2>
-            <button class="btn-icon btn-close-modal"><i class="ph ph-x"></i></button>
-        </div>
-        <div class="modal-body">
-            <!-- Avatar Section -->
-            <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:1.5rem;">
-                <div id="profile-avatar-preview" style="width:80px; height:80px; border-radius:50%; background:var(--primary-color); color:white; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:700; overflow:hidden; margin-bottom:0.75rem; cursor:pointer; border:3px solid var(--border-color);" onclick="document.getElementById('profile-avatar-input').click()">
+    <div class="modal-content">
+        <div class="profile-hero">
+            <button class="profile-hero-close btn-close-modal"><i class="ph ph-x"></i></button>
+
+            <!-- Avatar -->
+            <div class="profile-avatar-wrap">
+                <div class="profile-avatar-circle" id="profile-avatar-preview" onclick="document.getElementById('profile-avatar-input').click()">
+                    <span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>
                 </div>
                 <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;">
-                <div style="display:flex; gap:0.5rem;">
-                    <button class="btn btn-outline" style="font-size:0.75rem; padding:0.3rem 0.75rem;" onclick="document.getElementById('profile-avatar-input').click()">
-                        <i class="ph ph-camera"></i> Cambiar foto
-                    </button>
-                    <button class="btn btn-outline" id="btn-remove-avatar" style="font-size:0.75rem; padding:0.3rem 0.75rem; color:var(--danger-color); border-color:var(--danger-color);">
-                        <i class="ph ph-trash"></i>
-                    </button>
-                </div>
             </div>
+            <div class="profile-avatar-actions">
+                <button class="pma-btn pma-btn-upload" onclick="document.getElementById('profile-avatar-input').click()">
+                    <i class="ph ph-upload-simple"></i> Cambiar
+                </button>
+                <button class="pma-btn pma-btn-remove" id="btn-remove-avatar">
+                    <i class="ph ph-trash-simple"></i> Quitar
+                </button>
+            </div>
+        </div>
 
-            <!-- Profile Fields -->
-            <div class="form-group" style="margin-bottom:0.75rem;">
-                <label class="form-label" style="font-size:0.8rem;">Nombre completo</label>
-                <input type="text" id="profile-name" class="form-control" style="border:1px solid var(--border-color);">
-            </div>
-            <div class="form-group" style="margin-bottom:0.75rem;">
-                <label class="form-label" style="font-size:0.8rem;">Nombre de usuario</label>
-                <input type="text" id="profile-username" class="form-control" placeholder="@usuario" style="border:1px solid var(--border-color);">
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
-                <div class="form-group">
-                    <label class="form-label" style="font-size:0.8rem;">Correo</label>
-                    <input type="email" id="profile-email" class="form-control" style="border:1px solid var(--border-color);">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" style="font-size:0.8rem;">Teléfono</label>
-                    <input type="text" id="profile-phone" class="form-control" placeholder="+51..." style="border:1px solid var(--border-color);">
-                </div>
-            </div>
-            <button class="btn btn-primary" id="btn-save-profile" style="width:100%; margin-bottom:1rem;">
-                <i class="ph ph-floppy-disk"></i> Guardar Cambios
+        <!-- Tabs Navigation -->
+        <div class="profile-tabs-nav">
+            <button class="profile-tab-btn active" data-tab="profile-info-tab">
+                <i class="ph ph-user-circle"></i> Información
             </button>
+            <button class="profile-tab-btn" data-tab="profile-security-tab">
+                <i class="ph ph-shield-check"></i> Seguridad
+            </button>
+        </div>
 
-            <!-- Password Section -->
-            <hr style="border:0; border-top:1px solid var(--border-color); margin:1rem 0;">
-            <h3 style="font-size:0.9rem; font-weight:600; margin-bottom:0.75rem;"><i class="ph ph-lock-key"></i> Cambiar Contraseña</h3>
-            <div class="form-group" style="margin-bottom:0.75rem;">
-                <input type="password" id="profile-current-pw" class="form-control" placeholder="Contraseña actual" style="border:1px solid var(--border-color);">
+        <!-- Tab: Info -->
+        <div class="profile-tab-pane active" id="profile-info-tab">
+            <div class="pm-field">
+                <label>Nombre completo</label>
+                <div class="pm-field-icon">
+                    <i class="ph ph-user"></i>
+                    <input type="text" id="profile-name" placeholder="Tu nombre completo">
+                </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
-                <input type="password" id="profile-new-pw" class="form-control" placeholder="Nueva contraseña" style="border:1px solid var(--border-color);">
-                <input type="password" id="profile-confirm-pw" class="form-control" placeholder="Confirmar" style="border:1px solid var(--border-color);">
+            <div class="pm-field">
+                <label>Nombre de usuario</label>
+                <div class="pm-field-icon">
+                    <i class="ph ph-at"></i>
+                    <input type="text" id="profile-username" placeholder="nombre_de_usuario">
+                </div>
             </div>
-            <button class="btn btn-outline" id="btn-change-pw" style="width:100%;">
-                <i class="ph ph-key"></i> Actualizar Contraseña
+            <div class="pm-field-row">
+                <div class="pm-field">
+                    <label>Correo electrónico</label>
+                    <div class="pm-field-icon">
+                        <i class="ph ph-envelope-simple"></i>
+                        <input type="email" id="profile-email" placeholder="correo@ejemplo.com">
+                    </div>
+                </div>
+                <div class="pm-field">
+                    <label>Teléfono</label>
+                    <div class="pm-field-icon">
+                        <i class="ph ph-phone"></i>
+                        <input type="text" id="profile-phone" placeholder="+51 999 999 999">
+                    </div>
+                </div>
+            </div>
+            <button class="pm-save-btn" id="btn-save-profile">
+                <i class="ph ph-check-circle"></i> Guardar cambios
+            </button>
+        </div>
+
+        <!-- Tab: Security -->
+        <div class="profile-tab-pane" id="profile-security-tab">
+            <div class="pm-pw-header">
+                <div class="pm-pw-header-icon"><i class="ph ph-lock-key"></i></div>
+                <div class="pm-pw-header-text">
+                    <h4>Cambiar contraseña</h4>
+                    <p>Asegúrate de usar una contraseña segura</p>
+                </div>
+            </div>
+            <div class="pm-field">
+                <label>Contraseña actual</label>
+                <div class="pm-field-pw">
+                    <input type="password" id="profile-current-pw" placeholder="••••••••">
+                    <button type="button" class="pm-pw-toggle" tabindex="-1"><i class="ph ph-eye"></i></button>
+                </div>
+            </div>
+            <div class="pm-field">
+                <label>Nueva contraseña</label>
+                <div class="pm-field-pw">
+                    <input type="password" id="profile-new-pw" placeholder="Mínimo 8 caracteres">
+                    <button type="button" class="pm-pw-toggle" tabindex="-1"><i class="ph ph-eye"></i></button>
+                </div>
+                <div class="pm-pw-strength"><div class="pm-pw-strength-bar" id="pm-pw-strength-bar"></div></div>
+            </div>
+            <div class="pm-field">
+                <label>Confirmar contraseña</label>
+                <div class="pm-field-pw">
+                    <input type="password" id="profile-confirm-pw" placeholder="Repite la contraseña">
+                    <button type="button" class="pm-pw-toggle" tabindex="-1"><i class="ph ph-eye"></i></button>
+                </div>
+            </div>
+            <button class="pm-pw-btn" id="btn-change-pw">
+                <i class="ph ph-key"></i> Actualizar contraseña
             </button>
         </div>
     </div>
@@ -71,6 +116,11 @@
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <!-- Pusher -->
 <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+<!-- Flatpickr -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+<!-- Tagify -->
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
 
 <script src="assets/js/app.js?v=<?php echo filemtime('assets/js/app.js'); ?>"></script>
 <script src="assets/js/push_notifications.js?v=<?php echo filemtime('assets/js/push_notifications.js'); ?>"></script>
@@ -79,9 +129,17 @@
 <?php endif; ?>
 
 <script>
+<?php if (isset($_SESSION['user_id'])): ?>
 // Profile Modal Logic
 async function openProfileModal() {
-    document.getElementById('profile-modal').classList.add('active');
+    const modal = document.getElementById('profile-modal');
+    modal.classList.add('active');
+    // Reset to first tab
+    document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.profile-tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('.profile-tab-btn[data-tab="profile-info-tab"]').classList.add('active');
+    document.getElementById('profile-info-tab').classList.add('active');
+
     const res = await fetch('modules/config/ajax_update_profile.php', {
         method: 'POST', body: new URLSearchParams({ action: 'get_profile' })
     });
@@ -94,11 +152,52 @@ async function openProfileModal() {
     document.getElementById('profile-phone').value = u.phone || '';
     const preview = document.getElementById('profile-avatar-preview');
     if (u.avatar) {
-        preview.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+        preview.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;"><span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
     } else {
-        preview.innerHTML = (u.name || 'U').charAt(0).toUpperCase();
+        preview.innerHTML = `${(u.name || 'U').charAt(0).toUpperCase()}<span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
     }
 }
+
+// Tab Switching
+document.querySelectorAll('.profile-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.profile-tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+});
+
+// Password Visibility Toggle
+document.querySelectorAll('.pm-pw-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const input = btn.previousElementSibling;
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'ph ph-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'ph ph-eye';
+        }
+    });
+});
+
+// Password Strength Indicator
+document.getElementById('profile-new-pw').addEventListener('input', function() {
+    const bar = document.getElementById('pm-pw-strength-bar');
+    const val = this.value;
+    bar.className = 'pm-pw-strength-bar';
+    if (val.length === 0) { bar.className = 'pm-pw-strength-bar'; return; }
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    if (score <= 1) bar.classList.add('weak');
+    else if (score <= 2) bar.classList.add('medium');
+    else bar.classList.add('strong');
+});
 
 // Avatar upload
 document.getElementById('profile-avatar-input').addEventListener('change', async function() {
@@ -109,8 +208,9 @@ document.getElementById('profile-avatar-input').addEventListener('change', async
     const res = await fetch('modules/config/ajax_update_profile.php', { method: 'POST', body: fd });
     const data = await res.json();
     if (data.success) {
-        document.getElementById('profile-avatar-preview').innerHTML = `<img src="${data.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
-        document.getElementById('topbar-avatar').innerHTML = `<img src="${data.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+        document.getElementById('profile-avatar-preview').innerHTML = `<img src="${data.avatar}" style="width:100%;height:100%;object-fit:cover;"><span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
+        const sidebarAvatar = document.getElementById('sidebar-avatar');
+        if (sidebarAvatar) sidebarAvatar.innerHTML = `<img src="${data.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Foto actualizada', showConfirmButton:false, timer:2000 });
     } else {
         Swal.fire({ icon:'error', title:'Error', text: data.error });
@@ -122,14 +222,17 @@ document.getElementById('btn-remove-avatar').addEventListener('click', async () 
     const res = await fetch('modules/config/ajax_update_profile.php', { method:'POST', body: new URLSearchParams({ action:'remove_avatar' }) });
     if ((await res.json()).success) {
         const name = document.getElementById('profile-name').value || 'U';
-        document.getElementById('profile-avatar-preview').innerHTML = name.charAt(0).toUpperCase();
-        document.getElementById('topbar-avatar').innerHTML = name.charAt(0).toUpperCase();
+        document.getElementById('profile-avatar-preview').innerHTML = `${name.charAt(0).toUpperCase()}<span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
+        const sidebarAvatar = document.getElementById('sidebar-avatar');
+        if (sidebarAvatar) sidebarAvatar.innerHTML = name.charAt(0).toUpperCase();
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Foto eliminada', showConfirmButton:false, timer:2000 });
     }
 });
 
 // Save profile
 document.getElementById('btn-save-profile').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-save-profile');
+    btn.classList.add('loading');
     const fd = new URLSearchParams({
         action: 'update_profile',
         name: document.getElementById('profile-name').value,
@@ -139,11 +242,14 @@ document.getElementById('btn-save-profile').addEventListener('click', async () =
     });
     const res = await fetch('modules/config/ajax_update_profile.php', { method:'POST', body: fd });
     const data = await res.json();
+    btn.classList.remove('loading');
     if (data.success) {
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Perfil actualizado', showConfirmButton:false, timer:2000 });
-        // Update topbar name
+        // Update topbar/sidebar name
         const nameSpan = document.querySelector('.user-details span:first-child');
         if (nameSpan) nameSpan.textContent = document.getElementById('profile-name').value;
+        const sidebarName = document.querySelector('.sidebar-profile-info span:first-child');
+        if (sidebarName) sidebarName.textContent = document.getElementById('profile-name').value;
     } else {
         Swal.fire({ icon:'error', title:'Error', text: data.error });
     }
@@ -164,10 +270,12 @@ document.getElementById('btn-change-pw').addEventListener('click', async () => {
         document.getElementById('profile-current-pw').value = '';
         document.getElementById('profile-new-pw').value = '';
         document.getElementById('profile-confirm-pw').value = '';
+        document.getElementById('pm-pw-strength-bar').className = 'pm-pw-strength-bar';
     } else {
         Swal.fire({ icon:'error', title:'Error', text: data.error });
     }
 });
+<?php endif; ?>
 </script>
 
 <!-- Fancybox JS -->
@@ -178,10 +286,15 @@ document.getElementById('btn-change-pw').addEventListener('click', async () => {
     });
 </script>
 
+<?php if (isset($_SESSION['user_id'])): ?>
 <!-- Google Drive Explorer -->
-<link rel="stylesheet" href="assets/css/drive.css?v=<?php echo filemtime('assets/css/drive.css'); ?>">
-<script src="assets/js/drive.js?v=<?php echo filemtime('assets/js/drive.js'); ?>"></script>
+<link rel="stylesheet" href="assets/css/drive.css?v=<?php echo filemtime('assets/css/drive.css'); ?>_2">
+<script src="assets/js/drive.js?v=<?php echo filemtime('assets/js/drive.js'); ?>_2"></script>
 <?php include 'includes/drive_modal.php'; ?>
+
+<!-- Command Palette -->
+<script src="assets/js/command_palette.js?v=<?php echo filemtime('assets/js/command_palette.js'); ?>"></script>
+<?php endif; ?>
 
 <!-- Web Push Notifications -->
 <script src="assets/js/push.js"></script>
@@ -206,7 +319,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Global: Force disable autocomplete on all search/filter inputs
+document.querySelectorAll('input[type="text"], input[type="search"]').forEach(function(input) {
+    const id = (input.id || '').toLowerCase();
+    const placeholder = (input.placeholder || '').toLowerCase();
+    const name = (input.name || '').toLowerCase();
+    if (id.includes('search') || id.includes('filter') || id.includes('buscar') ||
+        placeholder.includes('buscar') || placeholder.includes('search') || placeholder.includes('filtrar') ||
+        name.includes('search') || name.includes('filter')) {
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('readonly', '');
+        input.value = '';
+        input.addEventListener('focus', function() {
+            this.removeAttribute('readonly');
+        }, { once: true });
+    }
+});
 </script>
 
+<?php
+// Pseudo-Cron para Copias de Seguridad Automáticas
+try {
+    global $db;
+    if (isset($_SESSION['user_id'])) {
+        // Solo verificamos si el usuario activo es administrador para no comprometer la seguridad
+        $stmt_check_admin = $db->prepare("SELECT role_id FROM users WHERE id = ?");
+        $stmt_check_admin->execute([$_SESSION['user_id']]);
+        if ($stmt_check_admin->fetchColumn() == 1) {
+            $stmt_bset = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'backup_frequency'");
+            $backup_freq = $stmt_bset->fetchColumn() ?: 'disabled';
+            
+            if ($backup_freq !== 'disabled') {
+                $stmt_blast = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'last_backup_time'");
+                $last_backup = (int)($stmt_blast->fetchColumn() ?: 0);
+                $interval = ($backup_freq === 'daily') ? 86400 : 604800; // 24 horas o 7 días
+                
+                if (time() - $last_backup > $interval) {
+                    $stmt_btype = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'backup_auto_type'");
+                    $auto_type = $stmt_btype->fetchColumn() ?: 'db';
+                    
+                    // Actualizamos last_backup_time inmediatamente para evitar que se dispare múltiples veces simultáneamente
+                    $new_time = time();
+                    $stmt_upd = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'last_backup_time'");
+                    $stmt_upd->execute([$new_time]);
+                    if ($stmt_upd->rowCount() == 0) {
+                        $db->query("INSERT INTO settings (setting_key, setting_value) VALUES ('last_backup_time', '$new_time')");
+                    }
+
+                    echo "<script>
+                        window.addEventListener('load', function() {
+                            setTimeout(() => {
+                                console.log('Ejecutando copia de seguridad automática en segundo plano...');
+                                fetch('ajax/ajax_run_backup.php?type={$auto_type}&auto=1').catch(e => console.error(e));
+                            }, 5000);
+                        });
+                    </script>";
+                }
+            }
+        }
+    }
+} catch (Exception $e) {}
+?>
 </body>
 </html>

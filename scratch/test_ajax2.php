@@ -1,8 +1,7 @@
 <?php
-$_POST['action'] = 'edit_message';
-$_POST['message_id'] = 104; // Use an existing text message ID from run_query3
-$_POST['message'] = 'Excelente editado';
-// Mock session
-session_start();
-$_SESSION['user_id'] = 1;
-require_once 'c:\xampp\htdocs\CESARMENDOZA\modules\chat\ajax.php';
+$_SERVER['REQUEST_METHOD'] = 'POST';
+$_POST['action'] = 'get_channel_messages';
+$_POST['channel_id'] = 1;
+
+// Mock the session inside the actual script context or just run it via curl if we can.
+// Better to just grep the PHP error log if there is one.

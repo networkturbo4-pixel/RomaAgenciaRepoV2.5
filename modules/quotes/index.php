@@ -90,6 +90,29 @@ require_once 'includes/header.php';
     </div>
 </div>
 
+<!-- Modal: Eliminar Cotización -->
+<div id="modal-delete-quote" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+            <h2 class="modal-title" style="color: var(--danger-color);"><i class="ph ph-warning-circle"></i> Eliminar Cotización</h2>
+            <button class="btn-close-circular btn-close-modal" onclick="document.getElementById('modal-delete-quote').classList.remove('active')"><i class="ph ph-x"></i></button>
+        </div>
+        
+        <input type="hidden" id="delete_quote_id" value="">
+        
+        <div class="modal-body">
+            <p style="margin-top: 1rem; color: var(--color-text);">¿Estás seguro de que deseas eliminar esta cotización?</p>
+            <p style="color: var(--text-muted); font-size: 0.875rem;">Esta acción <strong>no se puede deshacer</strong> y se perderán todos los datos asociados.</p>
+        </div>
+
+        <div class="modal-footer" style="border-top: none; display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem;">
+            <button type="button" class="btn btn-pill btn-light btn-close-modal" onclick="document.getElementById('modal-delete-quote').classList.remove('active')">Cancelar</button>
+            <button type="button" id="btnConfirmDeleteQuote" class="btn btn-pill" style="background: var(--danger-color); color: white;" onclick="executeDeleteQuote()">Sí, Eliminar</button>
+        </div>
+    </div>
+</div>
+
+
 <!-- DataTables initialization -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -287,27 +310,47 @@ $(document).ready(function() {
 });
 
 function deleteQuote(id) {
-    Swal.fire({
-        title: '¿Estás seguro?',
-        text: "No podrás revertir esta acción.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.post('modules/quotes/ajax_delete_quote.php', { id: id }, function(response) {
-                if (response.success) {
-                    Swal.fire('Eliminado', 'La cotización ha sido eliminada.', 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', response.message, 'error');
-                }
-            }, 'json');
+    document.getElementById('delete_quote_id').value = id;
+    document.getElementById('modal-delete-quote').classList.add('active');
+}
+
+function executeDeleteQuote() {
+    const id = document.getElementById('delete_quote_id').value;
+    const btn = document.getElementById('btnConfirmDeleteQuote');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Eliminando...';
+    btn.disabled = true;
+    
+    $.post('modules/quotes/ajax_delete_quote.php', { id: id }, function(response) {
+        document.getElementById('modal-delete-quote').classList.remove('active');
+        if (response.success) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Cotización eliminada',
+                showConfirmButton: false,
+                timer: 2500,
+                background: 'var(--bg-surface)',
+                color: 'var(--color-text)'
+            });
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: response.message || 'No se pudo eliminar la cotización.',
+                confirmButtonColor: '#0f766e',
+                background: 'var(--bg-surface)',
+                color: 'var(--color-text)'
+            });
         }
+    }, 'json').fail(function() {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        document.getElementById('modal-delete-quote').classList.remove('active');
     });
 }
 </script>

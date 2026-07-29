@@ -92,21 +92,25 @@ foreach($roles_raw as $row) {
                 
                 <div class="form-group">
                     <label>Permisos de Módulos</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="dashboard"> Dashboard</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="clients"> Clientes</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="services"> Servicios</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="work_orders"> Órdenes de Servicio</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="calendar"> Calendario</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="month_board"> Board Mensual</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="project_board"> Board de Proyectos</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="tasks"> Mis Tareas</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="quotes"> Cotizaciones</label>
-
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="chat"> Chat</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="design_tasks"> Diseño Gráfico</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="admin"> Administración</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="config"> Configuración</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                        <?php 
+                        $all_modules = [
+                            'dashboard' => 'Dashboard', 'clients' => 'Clientes', 'services' => 'Servicios', 'work_orders' => 'Órdenes de Servicio',
+                            'calendar' => 'Calendario', 'reuniones' => 'Reuniones', 'month_board' => 'Board Mensual', 'project_board' => 'Board de Proyectos',
+                            'projects' => 'Proyectos', 'quotes' => 'Cotizaciones', 'mensajes' => 'Mensajes', 'pizarras' => 'Pizarras',
+                            'forms' => 'Formularios', 'contracts' => 'Contratos', 'community' => 'Community', 'client_portal' => 'Portal de Cliente',
+                            'conexiones' => 'Conexiones', 'admin' => 'Administración', 'config' => 'Configuración', 'herramientas' => 'Herramientas'
+                        ];
+                        foreach($all_modules as $mod_key => $mod_name):
+                        ?>
+                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.6rem;">
+                            <div class="modern-switch">
+                                <input type="checkbox" name="modules[]" value="<?php echo $mod_key; ?>">
+                                <span class="switch-slider"></span>
+                            </div>
+                            <?php echo $mod_name; ?>
+                        </label>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
@@ -144,21 +148,16 @@ foreach($roles_raw as $row) {
                 
                 <div class="form-group">
                     <label>Permisos de Módulos</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="dashboard" class="edit-perm-cb"> Dashboard</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="clients" class="edit-perm-cb"> Clientes</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="services" class="edit-perm-cb"> Servicios</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="work_orders" class="edit-perm-cb"> Órdenes de Servicio</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="calendar" class="edit-perm-cb"> Calendario</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="month_board" class="edit-perm-cb"> Board Mensual</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="project_board" class="edit-perm-cb"> Board de Proyectos</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="tasks" class="edit-perm-cb"> Mis Tareas</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="quotes" class="edit-perm-cb"> Cotizaciones</label>
-
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="chat" class="edit-perm-cb"> Chat</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="design_tasks" class="edit-perm-cb"> Diseño Gráfico</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="admin" class="edit-perm-cb"> Administración</label>
-                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" name="modules[]" value="config" class="edit-perm-cb"> Configuración</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                        <?php foreach($all_modules as $mod_key => $mod_name): ?>
+                        <label style="font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.6rem;">
+                            <div class="modern-switch">
+                                <input type="checkbox" name="modules[]" value="<?php echo $mod_key; ?>" class="edit-perm-cb">
+                                <span class="switch-slider"></span>
+                            </div>
+                            <?php echo $mod_name; ?>
+                        </label>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>

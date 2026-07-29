@@ -28,7 +28,7 @@
     /* Backgrounds */
     --bg-color: #f8fafc;
     --bg-surface: #ffffff;
-    --bg-sidebar: #ffffff; /* Ahora el sidebar es blanco en modo claro */
+    --bg-sidebar: #ffffff;
     
     /* Text Colors */
     --text-main: var(--color-title, #1e293b);
@@ -65,9 +65,9 @@
 
 /* Modo Oscuro (Dark Theme) */
 [data-theme="dark"] {
-    --bg-color: #070709;
-    --bg-surface: #141417;
-    --bg-sidebar: #141417; /* Sidebar del mismo color que la superficie en modo oscuro */
+    --bg-color: #000000;
+    --bg-surface: #121212;
+    --bg-sidebar: #121212;
     
     /* Adaptive Semantic Colors para contraste OLED */
     --color-blue: #60a5fa;

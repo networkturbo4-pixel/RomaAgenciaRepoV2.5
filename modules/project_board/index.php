@@ -392,13 +392,16 @@ try {
             <div class="project-header-info">
                 <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo">
                 <div>
-                    <h1><?php echo htmlspecialchars($project['brand_name']); ?> - <?php echo htmlspecialchars($servicio); ?></h1>
-                    <p>Orden de Servicio: <strong><?php echo htmlspecialchars($project['correlativo']); ?></strong> | Estado: <span style="text-transform: uppercase; font-weight: bold; color: <?php echo $project['status'] === 'active' ? '#059669' : '#4b5563'; ?>;"><?php echo htmlspecialchars($project['status']); ?></span></p>
+                    <h1><?php echo htmlspecialchars($project['brand_name']); ?></h1>
+                    <?php 
+                        $statusEs = strtolower($project['status']) === 'active' ? 'ACTIVO' : (strtolower($project['status']) === 'inactive' ? 'INACTIVO' : strtoupper($project['status']));
+                    ?>
+                    <p>Orden de Servicio: <strong><?php echo htmlspecialchars($project['correlativo']); ?></strong> | Estado: <span style="font-weight: bold; color: <?php echo strtolower($project['status']) === 'active' ? '#059669' : '#4b5563'; ?>;"><?php echo $statusEs; ?></span></p>
                 </div>
             </div>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <div class="project-header-actions-mobile">
             <form method="GET" action="index.php" style="display: flex; gap: 0.5rem; background: var(--bg-color); padding: 0.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                 <input type="hidden" name="module" value="project_board">
                 <input type="hidden" name="id" value="<?php echo $projectId; ?>">
@@ -424,14 +427,41 @@ try {
                 </select>
             </form>
 
-            <button class="btn btn-outline" onclick="openProjectInfoOffcanvas()" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;">
+            <button class="btn btn-outline btn-responsive-full" onclick="openProjectInfoOffcanvas()">
                 <i class="ph ph-info"></i> Información del proyecto
             </button>
-            <button class="btn btn-primary" onclick="openNewMonthModal()" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;">
+            <button class="btn btn-primary btn-responsive-full" onclick="openNewMonthModal()">
                 <i class="ph ph-plus"></i> Añadir Nuevo Mes
             </button>
         </div>
     </div>
+
+<style>
+.project-header-actions-mobile {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+.btn-responsive-full {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+}
+@media (max-width: 576px) {
+    .project-header { flex-direction: column; align-items: flex-start !important; gap: 1rem; }
+    .project-header-actions-mobile { 
+        flex-wrap: wrap; 
+        justify-content: flex-start !important; 
+        width: 100%; 
+        margin-top: 0.5rem; 
+    }
+    .project-header-actions-mobile form { width: 100%; flex-wrap: wrap; }
+    .project-header-actions-mobile form select { flex: 1; min-width: 120px; }
+    .btn-responsive-full { flex: 1; min-width: max-content; justify-content: center; }
+}
+</style>
 
     <!-- Months Grid -->
     <div class="months-grid">
@@ -468,6 +498,26 @@ try {
                     ");
                     $stmtC->execute([$m['id']]);
                     $commentsCount = $stmtC->fetchColumn();
+                    
+                    // Obtener conteo de los estados del pipeline
+                    $stmtS = $db->prepare("
+                        SELECT 
+                            SUM(CASE WHEN status = 'Borrador' THEN 1 ELSE 0 END) as c_borrador,
+                            SUM(CASE WHEN status = 'En Revisión' THEN 1 ELSE 0 END) as c_revision,
+                            SUM(CASE WHEN status = 'Aprobado' THEN 1 ELSE 0 END) as c_aprobado,
+                            SUM(CASE WHEN status = 'Publicado' THEN 1 ELSE 0 END) as c_publicado
+                        FROM month_posts 
+                        WHERE month_id = ?
+                    ");
+                    $stmtS->execute([$m['id']]);
+                    $statusCounts = $stmtS->fetch(PDO::FETCH_ASSOC);
+                    
+                    $c_borrador = $statusCounts['c_borrador'] ?? 0;
+                    $c_revision = $statusCounts['c_revision'] ?? 0;
+                    $c_aprobado = $statusCounts['c_aprobado'] ?? 0;
+                    $c_publicado = $statusCounts['c_publicado'] ?? 0;
+                    
+                    $progressPct = $postsCount > 0 ? round(($c_publicado / $postsCount) * 100) : 0;
                 ?>
                 <div class="mc-card">
                     <h2 class="mc-title"><?php echo $monthNames[$m['month']] . ' ' . $m['year']; ?></h2>
@@ -486,9 +536,15 @@ try {
                     <div class="mc-progress-wrapper">
                         <div class="mc-progress-header">
                             <span>PROGRESO</span>
-                            <span>0%</span>
+                            <span><?php echo $progressPct; ?>%</span>
                         </div>
-                        <div class="mc-progress-bar"><div class="mc-progress-fill" style="width: 0%"></div></div>
+                        <div class="mc-progress-bar"><div class="mc-progress-fill" style="width: <?php echo $progressPct; ?>%"></div></div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;"><span style="color: #64748b; font-size: 0.9rem;"><?php echo $c_borrador; ?></span><span>Borrador</span></div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;"><span style="color: #eab308; font-size: 0.9rem;"><?php echo $c_revision; ?></span><span>Revisión</span></div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;"><span style="color: #3b82f6; font-size: 0.9rem;"><?php echo $c_aprobado; ?></span><span>Aprobado</span></div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;"><span style="color: #10b981; font-size: 0.9rem;"><?php echo $c_publicado; ?></span><span>Publicado</span></div>
+                        </div>
                     </div>
                     
                     <div class="mc-date"><?php echo htmlspecialchars($fmtDate); ?></div>
@@ -497,6 +553,7 @@ try {
                     
                     <div class="mc-footer-top">
                         <span class="mc-status <?php echo $statusClass; ?>"><?php echo htmlspecialchars($m['status']); ?></span>
+                        <?php if (isset($role_id) && $role_id == 1): ?>
                         <div class="mc-actions">
                             <button class="mc-btn-text text-blue" onclick="editMonth(<?php echo $m['id']; ?>)">
                                 <i class="ph ph-pencil-simple"></i> EDITAR
@@ -505,17 +562,13 @@ try {
                                 <i class="ph ph-trash"></i> ELIMINAR
                             </button>
                         </div>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="mc-footer-bottom">
-                        <a href="index.php?module=month_board&id=<?php echo $m['id']; ?>" class="mc-btn-enter">
+                        <a href="index.php?module=month_board&id=<?php echo $m['id']; ?>" class="mc-btn-enter" style="width: 100%;">
                             <i class="ph ph-pencil-simple"></i> Entrar
                         </a>
-                        <select class="mc-select" onchange="changeContentPhase(<?php echo $m['id']; ?>, this)">
-                            <option value="En Borrador" <?php echo ($m['content_phase'] ?? 'En Borrador') === 'En Borrador' ? 'selected' : ''; ?>>En Borrador</option>
-                            <option value="Grilla de contenidos" <?php echo ($m['content_phase'] ?? '') === 'Grilla de contenidos' ? 'selected' : ''; ?>>Grilla de contenidos</option>
-                            <option value="Parrilla de contenidos" <?php echo ($m['content_phase'] ?? '') === 'Parrilla de contenidos' ? 'selected' : ''; ?>>Parrilla de contenidos</option>
-                        </select>
                     </div>
                 </div>
             <?php endforeach; ?>

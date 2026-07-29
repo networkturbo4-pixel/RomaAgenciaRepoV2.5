@@ -14,24 +14,38 @@ if (!isset($_SESSION['user_id'])) {
 $db = (new Database())->getConnection();
 
 // Support both JSON and FormData
-if (isset($_POST['fecha'])) {
+$id = 0;
+$fecha = '';
+$nombre_gasto = '';
+$monto = 0;
+$categoria = '';
+
+if (!empty($_POST)) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-    $fecha = $_POST['fecha'] ?? '';
-    $nombre_gasto = $_POST['nombre_gasto'] ?? '';
-    $monto = isset($_POST['monto']) ? floatval($_POST['monto']) : 0;
-    $categoria = $_POST['categoria'] ?? '';
+    $fecha = trim($_POST['fecha'] ?? '');
+    $nombre_gasto = trim($_POST['nombre_gasto'] ?? '');
+    $monto = floatval(str_replace(',', '.', $_POST['monto'] ?? '0'));
+    $categoria = trim($_POST['categoria'] ?? '');
 } else {
-    $data = json_decode(file_get_contents('php://input'), true);
-    $id = isset($data['id']) ? intval($data['id']) : 0;
-    $fecha = $data['fecha'] ?? '';
-    $nombre_gasto = $data['nombre_gasto'] ?? '';
-    $monto = isset($data['monto']) ? floatval($data['monto']) : 0;
-    $categoria = $data['categoria'] ?? '';
+    $raw = file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    if (is_array($data)) {
+        $id = isset($data['id']) ? intval($data['id']) : 0;
+        $fecha = trim($data['fecha'] ?? '');
+        $nombre_gasto = trim($data['nombre_gasto'] ?? '');
+        $monto = floatval(str_replace(',', '.', $data['monto'] ?? '0'));
+        $categoria = trim($data['categoria'] ?? '');
+    }
 }
 
-if (empty($fecha) || empty($nombre_gasto) || $monto <= 0) {
+$missing = [];
+if (empty($fecha)) $missing[] = 'fecha';
+if (empty($nombre_gasto)) $missing[] = 'nombre_gasto';
+if ($monto <= 0) $missing[] = 'monto (debe ser mayor a 0)';
+
+if (!empty($missing)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Campos obligatorios: fecha, nombre_gasto y monto.']);
+    echo json_encode(['success' => false, 'message' => 'Campos faltantes: ' . implode(', ', $missing) . '.']);
     exit();
 }
 

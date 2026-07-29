@@ -1,0 +1,585 @@
+/* ================================================================
+   Profile Modal — Modern Startup Style
+   ================================================================ */
+
+/* Override modal-content for profile specifically */
+#profile-modal .modal-content {
+    max-width: 520px;
+    border-radius: 24px;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ── Hero Banner ─────────────────────────────────────────────── */
+.profile-hero {
+    position: relative;
+    background: var(--bg-surface);
+    padding: 2rem 2rem 3rem;
+    text-align: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profile-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+.profile-hero-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-color);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1.1rem;
+    z-index: 2;
+}
+
+.profile-hero-close:hover {
+    background: var(--border-color);
+    color: var(--text-main);
+    transform: rotate(90deg);
+}
+
+/* ── Avatar Container ────────────────────────────────────────── */
+.profile-avatar-wrap {
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+}
+
+.profile-avatar-circle {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid var(--border-color);
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.25rem;
+    font-weight: 700;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.profile-avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-circle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+}
+
+/* Camera overlay on hover */
+.profile-avatar-circle::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+.profile-avatar-circle:hover::after {
+    opacity: 1;
+}
+
+.profile-avatar-cam {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.profile-avatar-circle:hover .profile-avatar-cam {
+    opacity: 1;
+}
+
+/* Avatar action buttons */
+.profile-avatar-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.75rem;
+}
+
+.profile-avatar-actions .pma-btn {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+    font-family: var(--font-family);
+    letter-spacing: 0.01em;
+}
+
+.profile-avatar-actions .pma-btn-upload {
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.profile-avatar-actions .pma-btn-upload:hover {
+    background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+.profile-avatar-actions .pma-btn-remove {
+    background: color-mix(in srgb, var(--danger-color) 10%, transparent);
+    color: var(--danger-color);
+    border: 1px solid color-mix(in srgb, var(--danger-color) 20%, transparent);
+}
+
+.profile-avatar-actions .pma-btn-remove:hover {
+    background: color-mix(in srgb, var(--danger-color) 20%, transparent);
+}
+
+/* ── Tabs Navigation ─────────────────────────────────────────── */
+.profile-tabs-nav {
+    display: flex;
+    gap: 0;
+    padding: 0 2rem;
+    margin-top: -0.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.profile-tab-btn {
+    flex: 1;
+    padding: 0.85rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2.5px solid transparent;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-family: var(--font-family);
+    letter-spacing: 0.02em;
+    position: relative;
+}
+
+.profile-tab-btn i {
+    font-size: 1rem;
+}
+
+.profile-tab-btn:hover {
+    color: var(--primary-color);
+}
+
+.profile-tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+[data-theme="dark"] .profile-tab-btn:hover {
+    color: var(--warning-color);
+}
+
+[data-theme="dark"] .profile-tab-btn.active {
+    color: var(--warning-color);
+    border-bottom-color: var(--warning-color);
+}
+
+/* Divider under tabs */
+.profile-tabs-nav::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 2rem;
+    right: 2rem;
+    height: 1px;
+    background: var(--border-color);
+}
+
+/* ── Tab Panes ───────────────────────────────────────────────── */
+.profile-tab-pane {
+    display: none;
+    padding: 1.5rem 2rem 2rem;
+    animation: profileFadeUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-tab-pane.active {
+    display: block;
+}
+
+@keyframes profileFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Form Fields (Modern Floating) ───────────────────────────── */
+.pm-field {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.pm-field label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+}
+
+.pm-field input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.875rem;
+    font-family: var(--font-family);
+    color: var(--text-main);
+    background: var(--bg-color);
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.25s ease;
+    outline: none;
+}
+
+.pm-field input:focus {
+    border-color: var(--primary-color);
+    background: var(--bg-surface);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.pm-field input::placeholder {
+    color: color-mix(in srgb, var(--text-muted) 60%, transparent);
+}
+
+.pm-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+}
+
+.pm-field-row .pm-field {
+    margin-bottom: 0;
+}
+
+/* Field with icon */
+.pm-field-icon {
+    position: relative;
+}
+
+.pm-field-icon i {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1rem;
+    pointer-events: none;
+    transition: color 0.25s ease;
+}
+
+.pm-field-icon input {
+    padding-left: 2.5rem;
+}
+
+.pm-field-icon:focus-within i {
+    color: var(--primary-color);
+}
+
+/* ── Save Button ─────────────────────────────────────────────── */
+.pm-save-btn {
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: var(--font-family);
+    color: var(--color-btn-text, white);
+    background: var(--color-btn-bg, var(--primary-color));
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.pm-save-btn:hover {
+    background: var(--color-btn-hover, var(--primary-hover));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+
+.pm-save-btn:active {
+    transform: translateY(0);
+}
+
+/* Loading state */
+.pm-save-btn.loading {
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.pm-save-btn.loading::after {
+    content: '';
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: pmSpin 0.6s linear infinite;
+}
+
+@keyframes pmSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Password Section ────────────────────────────────────────── */
+.pm-pw-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.pm-pw-header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+[data-theme="dark"] .pm-pw-header-icon {
+    background: color-mix(in srgb, var(--warning-color) 12%, transparent);
+    color: var(--warning-color);
+}
+
+.pm-pw-header-text h4 {
+    font-size: 0.9rem;
+    font-weight: 650;
+    margin: 0;
+    color: var(--text-main);
+}
+
+.pm-pw-header-text p {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 0.15rem 0 0 0;
+}
+
+.pm-pw-btn {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: var(--font-family);
+    color: var(--text-main);
+    background: var(--bg-color);
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.25s ease;
+    margin-top: 1.25rem;
+}
+
+.pm-pw-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 5%, transparent);
+}
+
+/* ── Password Visibility Toggle ──────────────────────────────── */
+.pm-field-pw {
+    position: relative;
+}
+
+.pm-field-pw input {
+    padding-right: 2.75rem;
+}
+
+.pm-pw-toggle {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: color 0.2s ease;
+}
+
+.pm-pw-toggle:hover {
+    color: var(--text-main);
+}
+
+/* ── Password Strength Indicator ─────────────────────────────── */
+.pm-pw-strength {
+    height: 3px;
+    background: var(--border-color);
+    border-radius: 3px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.pm-pw-strength-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.pm-pw-strength-bar.weak { width: 33%; background: #ef4444; }
+.pm-pw-strength-bar.medium { width: 66%; background: #f59e0b; }
+.pm-pw-strength-bar.strong { width: 100%; background: #10b981; }
+
+/* ── Success Checkmark Animation ─────────────────────────────── */
+@keyframes pmCheck {
+    0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(0deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.pm-success-pulse {
+    animation: pmCheck 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    #profile-modal .modal-content {
+        max-width: 100%;
+        border-radius: 24px 24px 0 0;
+    }
+
+    .profile-hero {
+        padding: 2rem 1.5rem 3rem;
+    }
+
+    .profile-tab-pane {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+
+    .profile-tabs-nav {
+        padding: 0 1.5rem;
+    }
+
+    .profile-tabs-nav::after {
+        left: 1.5rem;
+        right: 1.5rem;
+    }
+
+    .pm-field-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .pm-field-row .pm-field {
+        margin-bottom: 1.25rem;
+    }
+
+    .profile-avatar-circle {
+        width: 80px;
+        height: 80px;
+        font-size: 1.85rem;
+    }
+}
+
+/* ── Dark Mode Refinements ───────────────────────────────────── */
+[data-theme="dark"] .profile-hero {
+    background: var(--bg-surface);
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] #profile-modal .modal-content {
+    border-color: rgba(255,255,255,0.06);
+}
+
+[data-theme="dark"] .pm-field input {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .pm-field input:focus {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--warning-color);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--warning-color) 10%, transparent);
+}
+
+[data-theme="dark"] .pm-save-btn {
+    background: var(--color-btn-bg, var(--primary-color));
+}
+
+[data-theme="dark"] .pm-save-btn:hover {
+    background: var(--color-btn-hover, var(--primary-hover));
+}
+
+[data-theme="dark"] .pm-pw-btn:hover {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+    background: color-mix(in srgb, var(--warning-color) 6%, transparent);
+}
+
+[data-theme="dark"] .profile-avatar-circle {
+    border-color: var(--border-color);
+}

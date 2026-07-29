@@ -1,11 +1,10 @@
 <?php
-require_once '../config/database.php';
+require 'config/database.php';
+$db = (new Database())->getConnection();
 try {
-    $db = (new Database())->getConnection();
-    // Use IF NOT EXISTS equivalent for column? Or just try adding it
-    $db->exec("ALTER TABLE post_comments ADD COLUMN phase VARCHAR(100) DEFAULT 'Parrilla Final';");
-    echo "Columna agregada correctamente.";
+    $db->exec("ALTER TABLE whiteboards ADD COLUMN access_type ENUM('restricted', 'public') NOT NULL DEFAULT 'restricted'");
+    $db->exec("ALTER TABLE whiteboards ADD COLUMN public_role ENUM('viewer', 'editor') NOT NULL DEFAULT 'viewer'");
+    echo "OK";
 } catch (Exception $e) {
-    echo "Error: " . $e->getMessage();
+    echo $e->getMessage();
 }
-?>

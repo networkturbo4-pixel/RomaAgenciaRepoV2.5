@@ -234,6 +234,41 @@ class GoogleDriveHelper {
     }
 
     /**
+     * Search files in Google Drive based on a query
+     */
+    public function searchFiles($query) {
+        if (!$this->isConfigured) return false;
+        try {
+            $optParams = [
+                'q' => $query,
+                'pageSize' => 100,
+                'fields' => 'files(id, name, mimeType, iconLink, webViewLink, webContentLink, createdTime)',
+                'orderBy' => 'createdTime desc',
+                'supportsAllDrives' => true,
+                'includeItemsFromAllDrives' => true
+            ];
+
+            $results = $this->service->files->listFiles($optParams);
+            
+            $files = [];
+            foreach ($results->getFiles() as $file) {
+                $files[] = [
+                    'id' => $file->getId(),
+                    'name' => $file->getName(),
+                    'mimeType' => $file->getMimeType(),
+                    'webViewLink' => $file->getWebViewLink(),
+                    'webContentLink' => $file->getWebContentLink(),
+                    'createdTime' => $file->getCreatedTime()
+                ];
+            }
+            return $files;
+        } catch (Exception $e) {
+            error_log("Google Drive searchFiles Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Obtiene información de una sola carpeta (útil para breadcrumbs)
      */
     public function getFolderInfo($folderId) {
@@ -249,6 +284,8 @@ class GoogleDriveHelper {
             return false;
         }
     }
+
+
 
     /**
      * Hace público un archivo con permisos de edición
@@ -309,7 +346,10 @@ class GoogleDriveHelper {
 
         try {
             $this->client->setDefer(true);
-            $request = $this->service->files->create($fileMetadata, ['fields' => 'id, webViewLink, webContentLink']);
+            $request = $this->service->files->create($fileMetadata, [
+                'fields' => 'id, webViewLink, webContentLink',
+                'supportsAllDrives' => true
+            ]);
             $this->client->setDefer(false);
 
             $chunkSizeBytes = 5 * 1024 * 1024; // 5MB chunks
@@ -460,6 +500,58 @@ class GoogleDriveHelper {
             ];
         } catch (Exception $e) {
             error_log("Error renombrando archivo en Drive: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Descarga un archivo desde Google Drive
+     * @param string $fileId ID del archivo
+     * @param string $destinationPath Ruta donde se guardará el archivo
+     * @return bool True si tuvo éxito, False en caso contrario
+     */
+    public function downloadFile($fileId, $destinationPath) {
+        if (!$this->isConfigured) return false;
+        try {
+            $response = $this->service->files->get($fileId, ['alt' => 'media']);
+            $content = $response->getBody()->getContents();
+            return file_put_contents($destinationPath, $content) !== false;
+        } catch (Exception $e) {
+            error_log("Error descargando archivo de Drive: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Devuelve el contenido binario de un archivo de Drive para hacer stream.
+     */
+    public function streamFile($fileId) {
+        if (!$this->isConfigured) return false;
+        try {
+            $response = $this->service->files->get($fileId, ['alt' => 'media']);
+            return $response->getBody()->getContents();
+        } catch (Exception $e) {
+            error_log("Error streaming archivo de Drive: " . $e->getMessage());
+            return false;
+        }
+    }
+    public function moveFile($fileId, $newParentId) {
+        if (!$this->isConfigured) return false;
+        try {
+            // Retrieve the existing parents to remove
+            $file = $this->service->files->get($fileId, ['fields' => 'parents']);
+            $previousParents = join(',', $file->parents);
+
+            // Move the file to the new folder
+            $emptyFileMetadata = new \Google_Service_Drive_DriveFile();
+            $file = $this->service->files->update($fileId, $emptyFileMetadata, [
+                'addParents' => $newParentId,
+                'removeParents' => $previousParents,
+                'fields' => 'id, parents'
+            ]);
+            return true;
+        } catch (Exception $e) {
+            error_log("Error moviendo archivo en Drive: " . $e->getMessage());
             return false;
         }
     }

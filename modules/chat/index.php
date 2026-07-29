@@ -21,30 +21,30 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
 <div id="chat-app" class="chat-app">
     <!-- Sidebar Panel -->
     <aside class="chat-sidebar" id="chat-sidebar">
-        <div class="chat-sidebar-header" style="display:flex; align-items:center; justify-content:space-between; padding: 1.5rem 1.5rem 0.5rem;">
-            <div style="display:flex; align-items:center; gap: 0.5rem;">
-                <h2 style="margin:0; font-size:1.5rem; font-weight:700;">Chats</h2>
-                <button class="chat-icon-btn-sm" id="btn-amoled-toggle" title="Modo AMOLED Puro" style="color:var(--text-muted); font-size:1.2rem;"><i class="ph ph-moon-stars"></i></button>
-                <button class="chat-icon-btn-sm" id="btn-chat-settings" title="Ajustes de Chat (Fondo / Spotify)" style="color:var(--text-muted); font-size:1.2rem;"><i class="ph ph-gear"></i></button>
+        <div class="chat-sidebar-header">
+            <div class="chat-header-info">
+                <h2>Chats</h2>
+                <button class="chat-icon-btn-sm" id="btn-amoled-toggle" title="Modo AMOLED Puro"><i class="ph ph-moon-stars"></i></button>
+                <button class="chat-icon-btn-sm" id="btn-chat-settings" title="Ajustes de Chat (Fondo / Spotify)"><i class="ph ph-gear"></i></button>
             </div>
             <button class="chat-icon-btn d-md-none-chat" id="btn-close-chat-sidebar" title="Cerrar"><i class="ph ph-arrow-left"></i></button>
         </div>
 
-        <div class="chat-filters" style="padding: 1rem 1rem 0; display:flex; gap:0.5rem; overflow-x:auto;">
-            <button class="chat-filter-pill active" data-filter="all" style="padding:0.25rem 0.75rem; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-size:0.8rem; cursor:pointer; white-space:nowrap;">Todos</button>
-            <button class="chat-filter-pill" data-filter="group" style="padding:0.25rem 0.75rem; border-radius:20px; border:1px solid var(--border-color); background:transparent; color:var(--text-muted); font-size:0.8rem; cursor:pointer; white-space:nowrap;">Grupos</button>
-            <button class="chat-filter-pill" data-filter="direct" style="padding:0.25rem 0.75rem; border-radius:20px; border:1px solid var(--border-color); background:transparent; color:var(--text-muted); font-size:0.8rem; cursor:pointer; white-space:nowrap;">Directos</button>
+        <div class="chat-filters">
+            <button class="chat-filter-pill active" data-filter="all">Todos</button>
+            <button class="chat-filter-pill" data-filter="group">Grupos</button>
+            <button class="chat-filter-pill" data-filter="direct">Directos</button>
         </div>
 
-        <div class="chat-sidebar-pane active" id="pane-unified" style="margin-top: 0.5rem; flex:1; display:flex; flex-direction:column; min-height:0;">
-            <div class="chat-section-title" style="padding: 0.5rem 1rem; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.8rem; font-weight:600; text-transform:uppercase; color:var(--text-muted);">Conversaciones</span>
-                <div style="display:flex; gap:0.5rem;">
-                    <button class="chat-icon-btn-sm bg-light-green" id="btn-new-group" title="Nuevo Grupo" style="background:color-mix(in srgb, var(--primary-color) 15%, transparent); color:var(--primary-color); border:none; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ph ph-users-three"></i></button>
-                    <button class="chat-icon-btn-sm bg-light-green" id="btn-new-dm" title="Nuevo DM" style="background:color-mix(in srgb, var(--primary-color) 15%, transparent); color:var(--primary-color); border:none; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="ph ph-user-plus"></i></button>
+        <div class="chat-sidebar-pane active" id="pane-unified">
+            <div class="chat-section-title">
+                <span>Conversaciones</span>
+                <div>
+                    <button class="chat-icon-btn-sm" id="btn-new-group" title="Nuevo Grupo"><i class="ph ph-users-three"></i></button>
+                    <button class="chat-icon-btn-sm" id="btn-new-dm" title="Nuevo DM"><i class="ph ph-user-plus"></i></button>
                 </div>
             </div>
-            <div id="channel-list-unified" class="channel-list" style="flex:1; overflow-y:auto;"></div>
+            <div id="channel-list-unified" class="channel-list"></div>
         </div>
     </aside>
 
@@ -55,17 +55,16 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
             <button class="chat-icon-btn d-md-none-chat" id="btn-back-chat">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <div class="chat-header-info" style="display:flex; align-items:center; gap:0.5rem; flex:1;">
-                <div id="chat-header-avatar" style="width:40px; height:40px; border-radius:50%; background-size:cover; background-position:center; display:none;"></div>
+            <div class="chat-header-info">
+                <div id="chat-header-avatar" class="chat-header-avatar" style="display:none;"></div>
                 <div>
-                    <h3 id="chat-channel-name" style="margin:0;">Selecciona un chat</h3>
+                    <h3 id="chat-channel-name">Selecciona un chat</h3>
                     <span id="chat-channel-meta" class="chat-meta" style="display:none;"></span>
                 </div>
             </div>
             
             <div class="chat-header-actions" style="display:flex; gap:0.5rem; align-items:center;">
-                <button class="chat-icon-btn-sm" id="btn-group-info" title="Información del Chat" style=" color:var(--text-muted);"><i class="ph ph-info"></i></button>
-                
+                <button class="chat-icon-btn-sm" id="btn-group-info" title="Información del Chat"><i class="ph ph-info"></i></button>
                 <button class="chat-icon-btn" id="btn-chat-bg" title="Cambiar Fondo" style="display:none;"><i class="ph ph-paint-roller"></i></button>
             </div>
         </div>
@@ -116,6 +115,44 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
+        <!-- Multimedia Lightbox -->
+        <div id="chat-multimedia-lightbox" class="chat-multimedia-lightbox" style="display:none;">
+            <div class="lightbox-header">
+                <div class="lightbox-title" id="lightbox-title">Archivo</div>
+                <div class="lightbox-actions">
+                    <button class="chat-icon-btn" id="btn-lightbox-download" title="Descargar"><i class="ph ph-download-simple"></i></button>
+                    <button class="chat-icon-btn" id="btn-lightbox-close" title="Cerrar"><i class="ph ph-x"></i></button>
+                </div>
+            </div>
+            <div class="lightbox-body" id="lightbox-body">
+                <!-- Content injected here (img, video, iframe) -->
+            </div>
+        </div>
+
+        <!-- Drive Folder Picker Modal -->
+        <div class="modal fade" id="drivePickerModal" tabindex="-1" style="z-index:1060;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius:16px;">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Seleccionar Carpeta de Drive</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <div id="drive-picker-breadcrumbs" style="padding:0.75rem 1rem; border-bottom:1px solid var(--border-color); font-size:0.85rem; background:var(--bg-surface);">
+                            <span class="drive-breadcrumb" data-id="root" style="cursor:pointer; color:var(--primary-color);">Mi Unidad</span>
+                        </div>
+                        <div id="drive-picker-list" style="height:300px; overflow-y:auto; padding:0.5rem;">
+                            <!-- Folders here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btn-confirm-drive-folder">Seleccionar Aquí</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Input Area -->
         <div class="chat-input-area" id="chat-input-area" style="display:none;">
             <div id="reply-preview-box" style="display:none;">
@@ -127,7 +164,7 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <div class="chat-input-wrapper">
                 <div class="chat-input-actions" style="margin-right: 0.5rem; position: relative;">
-                    <button class="chat-icon-btn-sm" id="btn-attachment-menu" title="Adjuntar" style="color:#9ca3af;">
+                    <button class="chat-icon-btn" id="btn-attachment-menu" title="Adjuntar">
                         <i class="ph ph-plus"></i>
                     </button>
                     <!-- Attachment Menu Popup -->
@@ -174,77 +211,28 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 
                 <div class="chat-input-actions">
-                    <button class="chat-icon-btn-sm" id="btn-emoji-picker" style="color:#9ca3af;" title="Emojis"><i class="ph ph-smiley"></i></button>
-                    <button class="chat-send-btn" id="btn-voice-msg" title="Nota de voz"><i class="ph-fill ph-microphone"></i></button>
-                    <button class="chat-send-btn" id="btn-send" title="Enviar" style="display:none;">
+                    <button class="chat-icon-btn" id="btn-emoji-picker" title="Emojis"><i class="ph ph-smiley"></i></button>
+                    <button class="chat-icon-btn" id="btn-voice-msg" title="Nota de voz"><i class="ph-fill ph-microphone"></i></button>
+                    <button class="chat-icon-btn btn-send-msg" id="btn-send" title="Enviar" style="display:none;">
                         <i class="ph-fill ph-paper-plane-right"></i>
                     </button>
                 </div>
             </div>
             <div class="chat-file-preview" id="chat-file-preview" style="display:none;">
-                <div id="file-preview-list" style="display:flex; gap:0.5rem; overflow-x:auto;"></div>
-                <button class="chat-icon-btn-sm" id="btn-remove-file" style="margin-left: auto; margin-top: auto; margin-bottom: auto;"><i class="ph ph-x"></i></button>
+                <div id="file-preview-list"></div>
+                <button class="chat-icon-btn-sm" id="btn-remove-file"><i class="ph ph-x"></i></button>
             </div>
         </div>
     </main>
 
-    <!-- Chat Info Panel -->
-    <div id="chat-info-panel" class="chat-info-panel">
-        <div class="info-panel-header">
-            <button class="chat-icon-btn-sm" id="btn-close-info"><i class="ph ph-x"></i></button>
-            <span>Info. del chat</span>
-        </div>
-        <div class="info-panel-body">
-            <div class="info-panel-avatar">
-                <div id="info-panel-icon" class="info-avatar-circle"><i class="ph ph-users"></i></div>
-                <h3 id="info-panel-name">Canal</h3>
-                <p id="info-panel-desc" class="info-desc">Sin descripción</p>
-            </div>
-            <div class="info-section">
-                <div class="info-section-header" id="info-media-header">
-                    <span><i class="ph ph-image"></i> Medios</span>
-                    <span id="info-media-count" class="info-count">0</span>
-                </div>
-                <div id="info-media-grid" class="info-media-grid"></div>
-            </div>
-            <div class="info-section">
-                <div class="info-section-header">
-                    <span><i class="ph ph-file-text"></i> Documentos</span>
-                    <span id="info-docs-count" class="info-count">0</span>
-                </div>
-                <div id="info-docs-list" class="info-docs-list"></div>
-            </div>
-            <div class="info-section">
-                <div class="info-section-header">
-                    <span><i class="ph ph-link"></i> Enlaces</span>
-                    <span id="info-links-count" class="info-count">0</span>
-                </div>
-                <div id="info-links-list" class="info-links-list"></div>
-            </div>
-            <div class="info-section">
-                <div class="info-section-header">
-                    <span><i class="ph ph-push-pin"></i> Mensajes fijados</span>
-                    <span id="info-pinned-count" class="info-count">0</span>
-                </div>
-                <div id="info-pinned-list" class="info-pinned-list"></div>
-            </div>
-            <div class="info-section">
-                <div class="info-section-header">
-                    <span><i class="ph ph-users-three"></i> Miembros</span>
-                    <span id="info-members-count" class="info-count">0</span>
-                </div>
-                <div id="info-members-list" class="info-members-list"></div>
-            </div>
-        </div>
-    </div>
-
     <!-- Right Sidebar (Chat Info) -->
-    <aside class="chat-right-sidebar" id="chat-right-sidebar" style="display:none; width:360px; background:var(--bg-surface); border-left:1px solid var(--border-color); flex-direction:column; overflow:hidden;">
-        <div class="crs-header" style="padding:1.25rem 1.5rem; display:flex; align-items:center; gap:1rem; border-bottom:1px solid var(--border-color);">
-            <button class="chat-icon-btn" id="btn-close-right-sidebar" style="margin-left:-0.5rem;"><i class="ph ph-x"></i></button>
-            <h3 style="margin:0; font-size:1.1rem; color:var(--text-main);">Info. del chat</h3>
+    <!-- Chat Info Panel -->
+    <aside class="chat-info-panel" id="chat-info-panel">
+        <div class="chat-info-header">
+            <button class="chat-icon-btn-sm" id="btn-close-info"><i class="ph ph-x"></i></button>
+            <h3>Info. del chat</h3>
         </div>
-        <div class="crs-body" style="flex:1; overflow-y:auto; padding:1.5rem;">
+        <div class="chat-info-body">
             <!-- Top Section (Avatar & Name) -->
             <div style="text-align:center; margin-bottom:2rem; position:relative;">
                 <div id="crs-avatar-container" style="position:relative; width:140px; height:140px; margin:0 auto 1rem;">
@@ -269,6 +257,21 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
                     <i class="ph ph-pencil-simple crs-edit-icon" id="btn-edit-crs-desc" style="display:none; color:var(--text-muted); cursor:pointer;"></i>
                 </div>
                 <div id="crs-desc" style="font-size:0.95rem; color:var(--text-main); line-height:1.5; padding:1rem; background:color-mix(in srgb, var(--primary-color) 5%, transparent); border-radius:8px;">Sin descripción</div>
+            </div>
+
+            <!-- Google Drive Config -->
+            <div id="crs-drive-section" style="margin-bottom:2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                    <div style="color:var(--text-muted); font-size:0.8rem; font-weight:600; text-transform:uppercase;">Almacenamiento (Google Drive)</div>
+                </div>
+                <div style="padding:1rem; background:var(--bg-color); border:1px solid var(--border-color); border-radius:8px;">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">Los archivos enviados a este chat se guardarán en esta carpeta.</p>
+                    <div style="display:flex; gap:0.5rem; flex-direction:column;">
+                        <input type="hidden" id="crs-drive-folder-id">
+                        <input type="text" id="crs-drive-folder-name" class="form-control" readonly placeholder="No configurada" style="font-size:0.85rem;">
+                        <button class="btn btn-outline-primary w-100" id="btn-select-drive-folder" style="font-size:0.85rem;"><i class="ph ph-folder"></i> Seleccionar Carpeta</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Public Group & Link (Groups Only) -->
@@ -588,7 +591,7 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
             <div>
                 <label style="display:block; font-weight:600; font-size:1rem; margin-bottom:1rem; color:var(--text-main);">Pregunta</label>
                 <div style="position:relative;">
-                    <input type="text" id="poll-question" placeholder="Haz una pregunta" class="chat-input" style="width:100%; border-bottom:2px solid var(--primary-color); border-radius:0; padding-right:2.5rem; padding-bottom:0.5rem; padding-top:0.5rem; background:transparent; font-size:1rem;">
+                    <input type="text" id="poll-question" placeholder="Haz una pregunta" class="chat-input" style="width:100%; border:1px solid color-mix(in srgb, var(--text-main) 15%, transparent); border-radius:4px; padding:0.6rem 2.5rem 0.6rem 0.75rem; background:transparent; font-size:1rem; outline:none; box-shadow:none; color:var(--text-main);">
                     <i class="ph ph-smiley" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:1.4rem; cursor:pointer;"></i>
                 </div>
             </div>
@@ -598,26 +601,23 @@ $allUsers = $stmtAllUsers->fetchAll(PDO::FETCH_ASSOC);
                 <div id="poll-options-container" style="display:flex; flex-direction:column; gap:0.5rem;">
                     <!-- Default 2 options -->
                     <div class="poll-option-row" style="position:relative; display:flex; align-items:center; gap:0.5rem;">
-                        <input type="text" placeholder="Añade texto" class="chat-input poll-option-input" style="flex:1; border-bottom:1px solid var(--border-color); border-radius:0; background:transparent; padding-right:2rem;">
-                        <i class="ph ph-smiley" style="position:absolute; right:2.5rem; color:var(--text-muted); font-size:1.1rem; cursor:pointer;"></i>
-                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab;"></i>
+                        <div style="position:relative; flex:1;">
+                            <input type="text" placeholder="Añade texto" class="chat-input poll-option-input" style="width:100%; border:1px solid color-mix(in srgb, var(--text-main) 15%, transparent); border-radius:4px; padding:0.6rem 2.5rem 0.6rem 0.75rem; background:transparent; font-size:0.95rem; outline:none; box-shadow:none; color:var(--text-main);">
+                            <i class="ph ph-smiley" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:1.2rem; cursor:pointer;"></i>
+                        </div>
+                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab; font-size:1.2rem;"></i>
                     </div>
                     <div class="poll-option-row" style="position:relative; display:flex; align-items:center; gap:0.5rem;">
-                        <input type="text" placeholder="Añade texto" class="chat-input poll-option-input" style="flex:1; border-bottom:1px solid var(--border-color); border-radius:0; background:transparent; padding-right:2rem;">
-                        <i class="ph ph-smiley" style="position:absolute; right:2.5rem; color:var(--text-muted); font-size:1.1rem; cursor:pointer;"></i>
-                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab;"></i>
+                        <div style="position:relative; flex:1;">
+                            <input type="text" placeholder="Añade texto" class="chat-input poll-option-input" style="width:100%; border:1px solid color-mix(in srgb, var(--text-main) 15%, transparent); border-radius:4px; padding:0.6rem 2.5rem 0.6rem 0.75rem; background:transparent; font-size:0.95rem; outline:none; box-shadow:none; color:var(--text-main);">
+                            <i class="ph ph-smiley" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:1.2rem; cursor:pointer;"></i>
+                        </div>
+                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab; font-size:1.2rem;"></i>
                     </div>
                 </div>
             </div>
             
-            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid color-mix(in srgb, var(--border-color) 50%, transparent); padding-top:1rem; margin-top:0.5rem;">
-                <span style="font-weight:600; font-size:0.95rem; color:var(--text-main);">Permitir varias respuestas</span>
-                <label class="switch" style="position:relative; display:inline-block; width:40px; height:24px;">
-                    <input type="checkbox" id="poll-allow-multiple" checked style="opacity:0; width:0; height:0;">
-                    <span class="slider round" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:var(--primary-color); border-radius:24px; transition:.4s;"></span>
-                    <span class="slider-knob" style="position:absolute; content:''; height:18px; width:18px; left:21px; bottom:3px; background-color:var(--bg-surface); border-radius:50%; transition:.4s;"></span>
-                </label>
-            </div>
+            
         </div>
         
         <div class="modal-footer" style="padding:1rem 0 0; border:none; display:flex; justify-content:flex-end;">
@@ -655,7 +655,7 @@ const MONTH_NAMES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio'
             <div>
                 <label style="display:block; font-weight:600; font-size:1rem; margin-bottom:1rem; color:var(--text-main);">Título de la lista</label>
                 <div style="position:relative;">
-                    <input type="text" id="task-title" placeholder="Ej. Tareas de la semana" class="chat-input" style="width:100%; border-bottom:2px solid var(--primary-color); border-radius:0; padding-right:2.5rem; padding-bottom:0.5rem; padding-top:0.5rem; background:transparent; font-size:1rem;">
+                    <input type="text" id="task-title" placeholder="Ej. Tareas de la semana" class="chat-input" style="width:100%; border:1px solid color-mix(in srgb, var(--text-main) 15%, transparent); border-radius:4px; padding:0.6rem 0.75rem; background:transparent; font-size:1rem; outline:none; box-shadow:none; color:var(--text-main);">
                 </div>
             </div>
 
@@ -663,12 +663,12 @@ const MONTH_NAMES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio'
                 <label style="display:block; font-weight:600; font-size:0.95rem; margin-bottom:0.75rem; color:var(--text-main);">Tareas</label>
                 <div id="task-items-container" style="display:flex; flex-direction:column; gap:0.5rem;">
                     <div class="task-item-row" style="position:relative; display:flex; align-items:center; gap:0.5rem;">
-                        <input type="text" placeholder="Añade una tarea" class="chat-input task-item-input" style="flex:1; border-bottom:1px solid var(--border-color); border-radius:0; background:transparent; padding-right:2rem;">
-                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab;"></i>
+                        <input type="text" placeholder="Añade una tarea" class="chat-input task-item-input" style="flex:1; border:1px solid color-mix(in srgb, var(--text-main) 15%, transparent); border-radius:4px; padding:0.6rem 0.75rem; background:transparent; font-size:0.95rem; outline:none; box-shadow:none; color:var(--text-main);">
+                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab; font-size:1.2rem;"></i>
                     </div>
                     <div class="task-item-row" style="position:relative; display:flex; align-items:center; gap:0.5rem;">
-                        <input type="text" placeholder="Añade una tarea" class="chat-input task-item-input" style="flex:1; border-bottom:1px solid var(--border-color); border-radius:0; background:transparent; padding-right:2rem;">
-                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab;"></i>
+                        <input type="text" placeholder="Añade una tarea" class="chat-input task-item-input" style="flex:1; border:1px solid color-mix(in srgb, var(--text-main) 15%, transparent); border-radius:4px; padding:0.6rem 0.75rem; background:transparent; font-size:0.95rem; outline:none; box-shadow:none; color:var(--text-main);">
+                        <i class="ph ph-equals" style="color:var(--text-muted); cursor:grab; font-size:1.2rem;"></i>
                     </div>
                 </div>
             </div>

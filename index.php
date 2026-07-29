@@ -1,6 +1,12 @@
 <?php
 // index.php
 session_start();
+
+// PREVENT CACHING: Force the browser to always fetch the latest version of the CRM
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
 require_once 'config/database.php';
 
 // Instantiate DB and connect
@@ -24,9 +30,12 @@ if (!isset($_SESSION['user_id'])) {
     if ($module !== 'auth' 
         && !($module === 'work_orders' && $action === 'public') 
         && !($module === 'chat' && $action === 'public')
+        && !($module === 'mensajes' && $action === 'guest')
         && !($module === 'forms' && $action === 'fill')
         && !($module === 'forms' && $action === 'ajax_submit_form')
         && !($module === 'admin' && $action === 'payment_note_webview' && isset($_GET['view']) && $_GET['view'] === 'public')
+        && !($module === 'pizarras' && $action === 'join_invite')
+        && !($module === 'pizarras' && $action === 'view')
         && $module !== 'public'
     ) {
         header("Location: index.php?module=auth&action=login");
@@ -39,7 +48,7 @@ if (!isset($_SESSION['user_id'])) {
     $role_id = $stmtRole->fetchColumn();
 
     $user_permissions = [];
-    $allowed_modules = ['auth', 'dashboard', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'tasks', 'quotes', 'chat', 'design_tasks', 'forms', 'client_portal'];
+    $allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'client_portal', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca'];
     
     if ($role_id) {
         if ($role_id == 1) {
@@ -60,6 +69,8 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'forms' && $action === 'ajax_submit_form')
         && !($module === 'forms' && $action === 'view_submission')
         && !($module === 'admin' && $action === 'payment_note_webview' && isset($_GET['view']) && $_GET['view'] === 'public')
+        && !($module === 'pizarras' && $action === 'join_invite')
+        && !($module === 'pizarras' && $action === 'view')
         && $module !== 'public'
     ) {
         if (!in_array($module, $user_permissions)) {
@@ -76,7 +87,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Map modules to their respective files
-$allowed_modules = ['auth', 'dashboard', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'tasks', 'quotes', 'chat', 'design_tasks', 'forms', 'client_portal', 'public'];
+$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'client_portal', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca'];
 if (in_array($module, $allowed_modules)) {
     $module_file = "modules/{$module}/{$action}.php";
     if (file_exists($module_file)) {

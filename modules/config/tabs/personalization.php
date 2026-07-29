@@ -48,36 +48,67 @@
         </div>
     </div>
 
-    <div class="form-group">
-        <label for="favicon">Favicon</label>
-        <input type="file" id="favicon" name="favicon" class="form-control" accept="image/*">
-        <?php if(!empty($settings['favicon'])): ?>
-            <small class="text-muted">Actual: <img src="<?php echo htmlspecialchars($settings['favicon']); ?>" width="20" style="vertical-align: middle;"></small>
-        <?php endif; ?>
-    </div>
+    <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: var(--space-6); margin-bottom: var(--space-4);">Identidad Visual</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4);">
+        <!-- Favicon -->
+        <div class="upload-card-wrapper">
+            <input type="file" id="favicon" name="favicon" accept="image/*">
+            <div class="upload-card-content">
+                <i class="ph ph-image"></i>
+                <h4 class="upload-card-title">Favicon</h4>
+                <span class="upload-card-subtitle">Click para cambiar</span>
+            </div>
+            <?php if(!empty($settings['favicon'])): ?>
+                <div class="upload-card-preview">
+                    <img src="<?php echo htmlspecialchars($settings['favicon']); ?>" alt="Favicon">
+                </div>
+            <?php endif; ?>
+        </div>
 
-    <div class="form-group">
-        <label for="logo_light">Logo (Modo Claro)</label>
-        <input type="file" id="logo_light" name="logo_light" class="form-control" accept="image/*">
-        <?php if(!empty($settings['logo_light'])): ?>
-            <small class="text-muted">Actual: <img src="<?php echo htmlspecialchars($settings['logo_light']); ?>" height="30" style="vertical-align: middle;"></small>
-        <?php endif; ?>
-    </div>
+        <!-- Logo Claro -->
+        <div class="upload-card-wrapper">
+            <input type="file" id="logo_light" name="logo_light" accept="image/*">
+            <div class="upload-card-content">
+                <i class="ph ph-sun"></i>
+                <h4 class="upload-card-title">Logo (Modo Claro)</h4>
+                <span class="upload-card-subtitle">Click para cambiar</span>
+            </div>
+            <?php if(!empty($settings['logo_light'])): ?>
+                <div class="upload-card-preview">
+                    <img src="<?php echo htmlspecialchars($settings['logo_light']); ?>" alt="Logo Claro">
+                </div>
+            <?php endif; ?>
+        </div>
 
-    <div class="form-group">
-        <label for="logo_dark">Logo (Modo Oscuro)</label>
-        <input type="file" id="logo_dark" name="logo_dark" class="form-control" accept="image/*">
-        <?php if(!empty($settings['logo_dark'])): ?>
-            <small class="text-muted">Actual: <img src="<?php echo htmlspecialchars($settings['logo_dark']); ?>" height="30" style="vertical-align: middle; background: #333;"></small>
-        <?php endif; ?>
-    </div>
+        <!-- Logo Oscuro -->
+        <div class="upload-card-wrapper" style="background: var(--bg-surface);">
+            <input type="file" id="logo_dark" name="logo_dark" accept="image/*">
+            <div class="upload-card-content">
+                <i class="ph ph-moon"></i>
+                <h4 class="upload-card-title">Logo (Modo Oscuro)</h4>
+                <span class="upload-card-subtitle">Click para cambiar</span>
+            </div>
+            <?php if(!empty($settings['logo_dark'])): ?>
+                <div class="upload-card-preview" style="background: #1e293b;">
+                    <img src="<?php echo htmlspecialchars($settings['logo_dark']); ?>" alt="Logo Oscuro">
+                </div>
+            <?php endif; ?>
+        </div>
 
-    <div class="form-group">
-        <label for="logo_collapsed">Logo (Colapsado / Icono)</label>
-        <input type="file" id="logo_collapsed" name="logo_collapsed" class="form-control" accept="image/*">
-        <?php if(!empty($settings['logo_collapsed'])): ?>
-            <small class="text-muted">Actual: <img src="<?php echo htmlspecialchars($settings['logo_collapsed']); ?>" height="30" style="vertical-align: middle;"></small>
-        <?php endif; ?>
+        <!-- Logo Colapsado -->
+        <div class="upload-card-wrapper">
+            <input type="file" id="logo_collapsed" name="logo_collapsed" accept="image/*">
+            <div class="upload-card-content">
+                <i class="ph ph-app-window"></i>
+                <h4 class="upload-card-title">Logo (Icono)</h4>
+                <span class="upload-card-subtitle">Para menú cerrado</span>
+            </div>
+            <?php if(!empty($settings['logo_collapsed'])): ?>
+                <div class="upload-card-preview">
+                    <img src="<?php echo htmlspecialchars($settings['logo_collapsed']); ?>" alt="Logo Colapsado">
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
     <hr style="margin: var(--space-6) 0; border: 0; border-top: 1px solid var(--border-color);">
@@ -235,71 +266,40 @@
         <?php endforeach; ?>
     </div>
 
-    <!-- Live Preview -->
-    <div class="card mb-4" style="background: #f8fafc; border: 1px dashed var(--border-color);">
-        <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: var(--space-2); text-transform: uppercase;">Previsualización</h4>
-        <div id="font-preview-box" style="padding: var(--space-4); background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
-            <h2 id="preview-title" style="margin-bottom: var(--space-2); color: var(--text-main);">Este es un Título de Prueba</h2>
-            <p id="preview-text" style="color: var(--text-muted); margin-bottom: var(--space-4);">Este es un texto de prueba que sirve como frase o párrafo descriptivo para ver cómo luce la fuente seleccionada.</p>
-            <div style="display: flex; gap: var(--space-4); align-items: center;">
-                <button type="button" id="preview-btn" class="btn" style="background: var(--primary-color); color: white;">Botón de Prueba</button>
-                <a href="#" id="preview-link" style="color: var(--primary-color);">Enlace de Prueba</a>
+
+    <hr style="margin: var(--space-6) 0; border: 0; border-top: 1px solid var(--border-color);">
+
+    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: var(--space-4);">Optimización para Motores de Búsqueda (SEO)</h3>
+    <div style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-4);">
+        <div class="form-group">
+            <label for="seo_title_suffix">Sufijo del Título (Ej. "| Gestión Integral")</label>
+            <div class="input-with-icon">
+                <i class="ph ph-text-aa"></i>
+                <input type="text" id="seo_title_suffix" name="seo_title_suffix" class="form-control" value="<?php echo htmlspecialchars($settings['seo_title_suffix'] ?? ' | Gestión Integral para su Empresa'); ?>">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="seo_description">Meta Descripción Global</label>
+            <div class="input-with-icon">
+                <i class="ph ph-article"></i>
+                <textarea id="seo_description" name="seo_description" class="form-control" rows="3" style="padding-left: 2.5rem;"><?php echo htmlspecialchars($settings['seo_description'] ?? 'Eleve su productividad al siguiente nivel. Gestione sus proyectos, analice datos en tiempo real y coordine a su equipo.'); ?></textarea>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="seo_keywords">Palabras Clave (Separadas por comas)</label>
+            <div class="input-with-icon">
+                <i class="ph ph-hash"></i>
+                <input type="text" id="seo_keywords" name="seo_keywords" class="form-control" value="<?php echo htmlspecialchars($settings['seo_keywords'] ?? 'CRM, Gestión de Proyectos, Análisis de Datos, Productividad, Agencia'); ?>">
             </div>
         </div>
     </div>
 
-    <div class="mt-2">
+    <div class="mt-4">
         <button type="submit" class="btn btn-primary">
             <i class="ph ph-floppy-disk"></i> Guardar Personalización
         </button>
     </div>
 </form>
 
-<script>
-// Load Google Fonts dynamically for preview
-function loadFont(fontName) {
-    const id = 'font-' + fontName.replace(/\s+/g, '-').toLowerCase();
-    if (!document.getElementById(id)) {
-        const link = document.createElement('link');
-        link.id = id;
-        link.rel = 'stylesheet';
-        link.href = 'https://fonts.googleapis.com/css2?family=' + fontName.replace(/\s+/g, '+') + ':wght@400;600&display=swap';
-        document.head.appendChild(link);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const titleSelect = document.getElementById('font_titles');
-    const textSelect = document.getElementById('font_text');
-    const linkSelect = document.getElementById('font_links');
-    const btnSelect = document.getElementById('font_buttons');
-    
-    const previewTitle = document.getElementById('preview-title');
-    const previewText = document.getElementById('preview-text');
-    const previewLink = document.getElementById('preview-link');
-    const previewBtn = document.getElementById('preview-btn');
-    
-    function updatePreview() {
-        loadFont(titleSelect.value);
-        previewTitle.style.fontFamily = `"${titleSelect.value}", sans-serif`;
-        
-        loadFont(textSelect.value);
-        previewText.style.fontFamily = `"${textSelect.value}", sans-serif`;
-        
-        loadFont(linkSelect.value);
-        previewLink.style.fontFamily = `"${linkSelect.value}", sans-serif`;
-        
-        loadFont(btnSelect.value);
-        previewBtn.style.fontFamily = `"${btnSelect.value}", sans-serif`;
-    }
-
-    [titleSelect, textSelect, linkSelect, btnSelect].forEach(sel => {
-        sel.addEventListener('change', updatePreview);
-        // Load initial font
-        loadFont(sel.value);
-    });
-    
-    // Initial update
-    updatePreview();
-});
-</script>

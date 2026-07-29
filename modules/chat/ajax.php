@@ -1,6 +1,8 @@
 <?php
 // modules/chat/ajax.php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../../config/database.php';
 
 header('Content-Type: application/json');
@@ -185,10 +187,25 @@ try {
                 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
                 $ext = pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION);
                 $filename = 'chat_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-                move_uploaded_file($_FILES['attachment']['tmp_name'], $uploadDir . $filename);
+                $targetPath = $uploadDir . $filename;
+                move_uploaded_file($_FILES['attachment']['tmp_name'], $targetPath);
+                
                 $attachment = 'uploads/chat/' . $filename;
                 $attachmentName = $_FILES['attachment']['name'];
                 if ($messageType === 'text' && empty($message)) $messageType = 'file';
+
+                // Subir a Drive si el canal tiene carpeta configurada
+                $stmtDrive = $db->prepare("SELECT drive_folder_id FROM chat_channels WHERE id = ?");
+                $stmtDrive->execute([$channelId]);
+                $driveFolderId = $stmtDrive->fetchColumn();
+                
+                if (!empty($driveFolderId)) {
+                    require_once '../../includes/GoogleDriveHelper.php';
+                    $drive = new GoogleDriveHelper();
+                    if ($drive->isConfigured()) {
+                        $driveFile = $drive->uploadFile($targetPath, $attachmentName, $driveFolderId);
+                    }
+                }
             }
 
             $stmt = $db->prepare("INSERT INTO chat_messages (channel_id, user_id, message, message_type, card_data, attachment, attachment_name, reply_to_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
@@ -637,6 +654,41 @@ try {
                 echo json_encode(['success' => true, 'reactions' => $reactions, 'my_reactions' => $my_reactions]);
             } else {
                 echo json_encode(['error' => 'Faltan datos']);
+            }
+            break;
+
+
+        // ── MARK MESSAGES DELIVERED ──
+        case 'mark_delivered':
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            if ($channelId > 0 && $userId) {
+                $db->prepare("INSERT IGNORE INTO chat_message_reads (message_id, user_id, status) SELECT id, ?, 'delivered' FROM chat_messages WHERE channel_id = ? AND user_id != ? AND id NOT IN (SELECT message_id FROM chat_message_reads WHERE user_id = ? AND status IN ('delivered','read'))")->execute([$userId, $channelId, $userId, $userId]);
+            }
+            echo json_encode(['success' => true]);
+            break;
+
+        // ── MARK MESSAGES READ ──
+        case 'mark_read':
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            if ($channelId > 0 && $userId) {
+                $db->prepare("UPDATE chat_channel_members SET last_read_at = NOW() WHERE channel_id = ? AND user_id = ?")->execute([$channelId, $userId]);
+                // Update specific read status
+                $db->prepare("INSERT IGNORE INTO chat_message_reads (message_id, user_id, status) SELECT id, ?, 'read' FROM chat_messages WHERE channel_id = ? AND user_id != ? AND id NOT IN (SELECT message_id FROM chat_message_reads WHERE user_id = ? AND status = 'read')")->execute([$userId, $channelId, $userId, $userId]);
+                $db->prepare("UPDATE chat_message_reads SET status = 'read' WHERE user_id = ? AND message_id IN (SELECT id FROM chat_messages WHERE channel_id = ?)")->execute([$userId, $channelId]);
+            }
+            echo json_encode(['success' => true]);
+            break;
+
+
+        // ── SAVE DRIVE FOLDER ──
+        case 'save_drive_folder':
+            $channelId = (int)($_POST['channel_id'] ?? 0);
+            $folderId = $_POST['folder_id'] ?? '';
+            if ($channelId > 0 && !empty($folderId)) {
+                $db->prepare("UPDATE chat_channels SET drive_folder_id = ? WHERE id = ?")->execute([$folderId, $channelId]);
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Invalid data']);
             }
             break;
 

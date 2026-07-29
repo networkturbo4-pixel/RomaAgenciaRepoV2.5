@@ -1,0 +1,21 @@
+Array
+(
+    [0] => Array
+        (
+            [Table] => service_features
+            [Create Table] => CREATE TABLE `service_features` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `service_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `type` varchar(20) NOT NULL DEFAULT 'feature',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `sort_order` int(11) DEFAULT 0,
+  `stage` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `service_id` (`service_id`),
+  CONSTRAINT `service_features_ibfk_1` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=187 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        )
+
+)

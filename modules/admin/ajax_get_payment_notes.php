@@ -29,13 +29,22 @@ try {
             'total' => $note['total'],
             'servicios' => json_decode($note['services_json'], true) ?: [],
             'cronograma' => json_decode($note['schedule_json'], true) ?: [],
+            'abonos' => json_decode($note['abonos_json'] ?? '[]', true) ?: [],
+            'apply_igv' => (bool)$note['apply_igv'],
+            'discount_percent' => floatval($note['discount_percent']),
+            'show_memberships' => (bool)($note['show_memberships'] ?? true),
+            'show_advances' => (bool)($note['show_advances'] ?? false),
             'status' => $note['status'],
-            'public_token' => $note['public_token']
+            'public_token' => $note['public_token'],
+            'due_days' => intval($note['due_days'] ?? 30),
+            'access_pin' => $note['access_pin'] ?? null,
+            'view_count' => intval($note['view_count'] ?? 0),
+            'last_viewed_at' => $note['last_viewed_at'] ?? null
         ];
     }
 
     $stmtClients = $db->query("
-        SELECT c.id, c.name, 
+        SELECT c.id, c.name, c.whatsapp, c.email, 
                GROUP_CONCAT(b.name SEPARATOR '||') as brands
         FROM clients c
         LEFT JOIN client_brands b ON c.id = b.client_id

@@ -368,6 +368,9 @@ require_once 'includes/header.php';
         </div>
     </div>
     <div style="display: flex; align-items: center;">
+        <a href="index.php?module=admin&action=asistencia" class="btn btn-outline" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; margin-right: 0.5rem;">
+            <i class="ph ph-clock"></i> Ver Asistencias
+        </a>
         <button class="btn btn-primary" onclick="RrhhModule.openModal(0)" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px;">
             <i class="ph ph-user-plus"></i> Nuevo Empleado
         </button>
@@ -459,6 +462,16 @@ require_once 'includes/header.php';
                     <div class="form-group" style="flex: 1;">
                         <label class="form-label">Fecha Contratación *</label>
                         <input type="date" class="form-control" id="emp_hire_date" name="hire_date" required>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Entrada Programada</label>
+                        <input type="time" class="form-control" id="emp_work_start" name="work_start">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Salida Programada</label>
+                        <input type="time" class="form-control" id="emp_work_end" name="work_end">
                     </div>
                 </div>
                 <div class="form-group mb-3">

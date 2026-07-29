@@ -55,10 +55,16 @@ try {
             $stmt->execute([$client_id]);
             $client = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Get payments
-            $stmt = $db->prepare("SELECT note_code, company_name, start_date, total, status, public_token, schedule_json FROM payment_notes WHERE client_id = ? ORDER BY id DESC");
-            $stmt->execute([$client_id]);
-            $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Get payments (try with discount_percent, fallback without it)
+            try {
+                $stmt = $db->prepare("SELECT note_code, company_name, start_date, total, status, public_token, schedule_json, abonos_json, discount_percent FROM payment_notes WHERE client_id = ? ORDER BY id DESC");
+                $stmt->execute([$client_id]);
+                $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                $stmt = $db->prepare("SELECT note_code, company_name, start_date, total, status, public_token, schedule_json, abonos_json FROM payment_notes WHERE client_id = ? ORDER BY id DESC");
+                $stmt->execute([$client_id]);
+                $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
 
             // Get active projects (from work_orders/project_months)
             // Need to join clients -> client_brands -> work_orders -> projects -> project_months
@@ -188,55 +194,150 @@ try {
                 $files = $drive->listFiles($targetFolderId);
                 if ($files) $allFiles = $files;
             } else {
-                // Present assigned folders as the root directory
-                
-                // Get project month folders
-                $stmt = $db->prepare("
-                    SELECT pm.drive_folder_id, pm.month, pm.year, cb.name as brand_name
-                    FROM project_months pm
-                    JOIN projects p ON pm.project_id = p.id
-                    JOIN work_orders w ON p.work_order_id = w.id
-                    JOIN client_brands cb ON w.brand_name = cb.name
-                    WHERE cb.client_id = ? AND pm.drive_folder_id IS NOT NULL
-                ");
+                // Fetch the client's assigned drive folder
+                $stmt = $db->prepare("SELECT drive_folder_id FROM clients WHERE id = ?");
                 $stmt->execute([$client_id]);
-                $projectFolders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $clientInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                $monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-                foreach ($projectFolders as $pf) {
-                    $m = (int)$pf['month'];
-                    $mName = ($m >= 1 && $m <= 12 ? $monthNames[$m] : 'Mes');
-                    $folderName = $mName . ' ' . $pf['year'];
-                    $allFiles[] = [
-                        'id' => $pf['drive_folder_id'],
-                        'name' => $folderName,
-                        'mimeType' => 'application/vnd.google-apps.folder',
-                        'webViewLink' => '',
-                        'webContentLink' => '',
-                        'category' => 'Calendario'
-                    ];
-                }
-
-                // Get design task folders
-                $stmt = $db->prepare("SELECT drive_folder_id, title FROM design_tasks WHERE deleted_at IS NULL AND client_id = ? AND drive_folder_id IS NOT NULL");
-                $stmt->execute([$client_id]);
-                $designFolders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                foreach ($designFolders as $df) {
-                    $allFiles[] = [
-                        'id' => $df['drive_folder_id'],
-                        'name' => $df['title'],
-                        'mimeType' => 'application/vnd.google-apps.folder',
-                        'webViewLink' => '',
-                        'webContentLink' => '',
-                        'category' => 'Diseño'
-                    ];
+                if ($clientInfo && !empty($clientInfo['drive_folder_id'])) {
+                    $drive = new GoogleDriveHelper();
+                    if ($drive->isConfigured()) {
+                        $files = $drive->listFiles($clientInfo['drive_folder_id']);
+                        if ($files) $allFiles = $files;
+                    } else {
+                        echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                        exit();
+                    }
+                } else {
+                    // No folder assigned to client
+                    $allFiles = [];
                 }
             }
 
             echo json_encode(['success' => true, 'files' => $allFiles]);
             break;
+
+        case 'delete_drive_items':
+            if (!isset($_SESSION['client_portal_id'])) {
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit();
+            }
+            $itemIds = json_decode($_POST['item_ids'] ?? '[]');
+            $drive = new GoogleDriveHelper();
+            if (!$drive->isConfigured()) {
+                echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                exit();
+            }
+            $successCount = 0;
+            foreach ($itemIds as $id) {
+                if ($drive->deleteFile($id)) $successCount++;
+            }
+            echo json_encode(['success' => true, 'deleted' => $successCount]);
+            break;
+
+        case 'move_drive_items':
+            if (!isset($_SESSION['client_portal_id'])) {
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit();
+            }
+            $itemIds = json_decode($_POST['item_ids'] ?? '[]');
+            $newParentId = $_POST['new_parent_id'] ?? '';
+            if (!$newParentId) {
+                echo json_encode(['success' => false, 'error' => 'Carpeta destino no especificada']);
+                exit();
+            }
+            $drive = new GoogleDriveHelper();
+            if (!$drive->isConfigured()) {
+                echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                exit();
+            }
+            $successCount = 0;
+            foreach ($itemIds as $id) {
+                if ($drive->moveFile($id, $newParentId)) $successCount++;
+            }
+            echo json_encode(['success' => true, 'moved' => $successCount]);
+            break;
+
+        case 'share_drive_item':
+            if (!isset($_SESSION['client_portal_id'])) {
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit();
+            }
+            $fileId = $_POST['file_id'] ?? '';
+            $drive = new GoogleDriveHelper();
+            if (!$drive->isConfigured()) {
+                echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                exit();
+            }
+            if ($drive->makePublic($fileId)) {
+                // Return success, the frontend already has the webViewLink or we can fetch it
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'No se pudo compartir']);
+            }
+            break;
+
+        case 'rename_drive_item':
+            if (!isset($_SESSION['client_portal_id'])) {
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit();
+            }
+            $fileId = $_POST['file_id'] ?? '';
+            $newName = $_POST['new_name'] ?? '';
+            if (!$fileId || !$newName) {
+                echo json_encode(['success' => false, 'error' => 'Datos inválidos']);
+                exit();
+            }
+            $drive = new GoogleDriveHelper();
+            if (!$drive->isConfigured()) {
+                echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                exit();
+            }
+            if ($drive->renameFile($fileId, $newName)) {
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'No se pudo cambiar el nombre']);
+            }
+            break;
+
+        case 'get_drive_folders_tree':
+            if (!isset($_SESSION['client_portal_id'])) {
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit();
+            }
+            $client_id = $_SESSION['client_portal_id'];
+            $drive = new GoogleDriveHelper();
+            if (!$drive->isConfigured()) {
+                echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                exit();
+            }
+
+            // Fetch the client's assigned drive folder
+            $stmt = $db->prepare("SELECT drive_folder_id FROM clients WHERE id = ?");
+            $stmt->execute([$client_id]);
+            $clientInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $rootFolders = [];
+
+            if ($clientInfo && !empty($clientInfo['drive_folder_id'])) {
+                // Fetch subfolders of the client's root folder
+                $files = $drive->listFiles($clientInfo['drive_folder_id']);
+                if ($files) {
+                    foreach ($files as $f) {
+                        if ($f['mimeType'] === 'application/vnd.google-apps.folder') {
+                            $rootFolders[] = [
+                                'id' => $f['id'],
+                                'name' => $f['name'],
+                                'category' => 'Carpeta'
+                            ];
+                        }
+                    }
+                }
+            }
+
+            echo json_encode(['success' => true, 'folders' => $rootFolders]);
+            break;
+
 
         default:
             echo json_encode(['success' => false, 'error' => 'Acción no válida']);

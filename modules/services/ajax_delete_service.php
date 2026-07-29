@@ -23,15 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $db->beginTransaction();
 
-        // Eliminar las características del servicio primero para evitar error de llave foránea
-        $stmtFeatures = $db->prepare("DELETE FROM service_features WHERE service_id = :id");
-        $stmtFeatures->execute([':id' => $id]);
-
-        $stmt = $db->prepare("DELETE FROM services WHERE id = :id");
+        // Soft delete: set deleted_at to current timestamp
+        $stmt = $db->prepare("UPDATE services SET deleted_at = NOW() WHERE id = :id");
         $stmt->execute([':id' => $id]);
 
         $db->commit();
-        echo json_encode(['success' => true, 'message' => 'Servicio eliminado correctamente']);
+        echo json_encode(['success' => true, 'message' => 'Servicio movido a la papelera']);
     } catch (PDOException $e) {
         $db->rollBack();
         error_log("Error deleting service: " . $e->getMessage());

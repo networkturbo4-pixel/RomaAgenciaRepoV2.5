@@ -6,7 +6,26 @@ if (session_status() === PHP_SESSION_NONE) {
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    // Debug: log session state to help diagnose the issue
+    $debug_info = [
+        'session_id' => session_id(),
+        'session_status' => session_status(),
+        'session_data' => $_SESSION,
+        'cookie_set' => isset($_COOKIE[session_name()]),
+        'cookie_name' => session_name(),
+        'cookie_value' => $_COOKIE[session_name()] ?? 'NOT SET',
+        'request_method' => $_SERVER['REQUEST_METHOD'],
+        'timestamp' => date('Y-m-d H:i:s'),
+        'post_keys' => array_keys($_POST),
+    ];
+    $log_dir = __DIR__ . '/../../logs';
+    if (!is_dir($log_dir)) @mkdir($log_dir, 0777, true);
+    file_put_contents($log_dir . '/quote_save_debug.log', json_encode($debug_info, JSON_PRETTY_PRINT) . "\n---\n", FILE_APPEND);
+    
+    echo json_encode([
+        'success' => false, 
+        'message' => 'No autorizado - Sesión no encontrada. Session ID: ' . session_id() . ', Cookie: ' . (isset($_COOKIE[session_name()]) ? 'presente' : 'ausente')
+    ]);
     exit();
 }
 

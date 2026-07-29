@@ -12,6 +12,8 @@ $name = $_POST['name'] ?? '';
 $whatsapp = $_POST['whatsapp'] ?? '';
 $email = $_POST['email'] ?? '';
 $dni = $_POST['dni'] ?? '';
+$drive_folder_id = $_POST['drive_folder_id'] ?? null;
+if ($drive_folder_id === '') $drive_folder_id = null;
 $deletedBrands = json_decode($_POST['deleted_brands'] ?? '[]', true);
 $brands = $_POST['brands'] ?? [];
 
@@ -24,12 +26,12 @@ try {
     $db->beginTransaction();
 
     if ($id) {
-        $stmt = $db->prepare("UPDATE clients SET name = ?, whatsapp = ?, email = ?, dni = ? WHERE id = ?");
-        $stmt->execute([$name, $whatsapp, $email, $dni, $id]);
+        $stmt = $db->prepare("UPDATE clients SET name = ?, whatsapp = ?, email = ?, dni = ?, drive_folder_id = ? WHERE id = ?");
+        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id, $id]);
         $clientId = $id;
     } else {
-        $stmt = $db->prepare("INSERT INTO clients (name, whatsapp, email, dni) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$name, $whatsapp, $email, $dni]);
+        $stmt = $db->prepare("INSERT INTO clients (name, whatsapp, email, dni, drive_folder_id) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id]);
         $clientId = $db->lastInsertId();
     }
 
@@ -52,6 +54,10 @@ try {
         $brandName = $brand['name'] ?? '';
         $brandLogo = $brand['logo'] ?? '';
 
+        $brandHasMembership = isset($brand['has_membership']) && $brand['has_membership'] == '1' ? 1 : 0;
+        $brandServicesIds = $brand['services_ids'] ?? '[]'; // should be json string
+        $brandWhatsappGroup = $brand['whatsapp_group'] ?? null;
+
         // Check if there is a file upload for this brand
         if (isset($_FILES["brands_files_$index"]) && $_FILES["brands_files_$index"]['error'] === UPLOAD_ERR_OK) {
             $tmpName = $_FILES["brands_files_$index"]['tmp_name'];
@@ -65,11 +71,11 @@ try {
         }
 
         if ($brandId) {
-            $stmt = $db->prepare("UPDATE client_brands SET name = ?, logo = ? WHERE id = ? AND client_id = ?");
-            $stmt->execute([$brandName, $brandLogo, $brandId, $clientId]);
+            $stmt = $db->prepare("UPDATE client_brands SET name = ?, logo = ?, has_membership = ?, services_ids = ?, whatsapp_group = ? WHERE id = ? AND client_id = ?");
+            $stmt->execute([$brandName, $brandLogo, $brandHasMembership, $brandServicesIds, $brandWhatsappGroup, $brandId, $clientId]);
         } else {
-            $stmt = $db->prepare("INSERT INTO client_brands (client_id, name, logo) VALUES (?, ?, ?)");
-            $stmt->execute([$clientId, $brandName, $brandLogo]);
+            $stmt = $db->prepare("INSERT INTO client_brands (client_id, name, logo, has_membership, services_ids, whatsapp_group) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$clientId, $brandName, $brandLogo, $brandHasMembership, $brandServicesIds, $brandWhatsappGroup]);
         }
     }
 

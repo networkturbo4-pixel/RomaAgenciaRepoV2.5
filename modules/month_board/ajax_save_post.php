@@ -33,12 +33,17 @@ try {
     $visual_references = isset($_POST['visual_references']) ? json_encode($_POST['visual_references']) : null;
     $variations = isset($_POST['variations']) ? $_POST['variations'] : null;
     $drive_images = !empty($_POST['drive_images']) ? $_POST['drive_images'] : null;
+    $paint_data = !empty($_POST['paint_data']) ? $_POST['paint_data'] : null;
 
     if (!$month_id || !$concept) {
         echo json_encode(['success' => false, 'error' => 'Datos incompletos']);
         exit();
     }
 
+
+    if (!empty($reference_image_link) && $status === 'Borrador') {
+        $status = 'En Revisión';
+    }
 
     if ($id > 0) {
         // Save old image link to history if it has changed
@@ -56,11 +61,11 @@ try {
 
         $stmt = $db->prepare("UPDATE month_posts SET 
             post_date = ?, concept = ?, copy_text = ?, platform = ?, status = ?, image_link = ?, reference_image_link = ?,
-            post_type = ?, end_date = ?, periodicity = ?, reminder = ?, formats = ?, design_brief = ?, visual_references = ?, variations = ?, drive_images = ?
+            post_type = ?, end_date = ?, periodicity = ?, reminder = ?, formats = ?, design_brief = ?, visual_references = ?, variations = ?, drive_images = ?, paint_data = ?
             WHERE id = ?");
         $stmt->execute([
             $post_date, $concept, $copy_text, $platform, $status, $image_link, $reference_image_link,
-            $post_type, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images,
+            $post_type, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images, $paint_data,
             $id
         ]);
         
@@ -77,11 +82,11 @@ try {
     } else {
         $stmt = $db->prepare("INSERT INTO month_posts 
             (month_id, post_date, concept, copy_text, platform, status, image_link, reference_image_link,
-             post_type, end_date, periodicity, reminder, formats, design_brief, visual_references, variations, drive_images) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+             post_type, end_date, periodicity, reminder, formats, design_brief, visual_references, variations, drive_images, paint_data) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $month_id, $post_date, $concept, $copy_text, $platform, $status, $image_link, $reference_image_link,
-            $post_type, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images
+            $post_type, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images, $paint_data
         ]);
         $newId = $db->lastInsertId();
         
