@@ -365,6 +365,10 @@ class SystemUpdater {
     }
 
     private function runCommand($cmd) {
+        if (strpos($cmd, 'git ') === 0) {
+            $cmd = 'git -c safe.directory=* ' . substr($cmd, 4);
+        }
+
         $descriptor = [
             0 => ["pipe", "r"],
             1 => ["pipe", "w"],
