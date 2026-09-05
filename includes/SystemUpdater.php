@@ -19,6 +19,42 @@ class SystemUpdater {
         $this->basePath = realpath(__DIR__ . '/..');
     }
 
+    /**
+     * Revalida o reconecta la conexión a la base de datos si el servidor la cerró por inactividad
+     */
+    public function reconnectDb() {
+        $this->db = null;
+        try {
+            require_once __DIR__ . '/../config/database.php';
+            $dbInstance = new Database();
+            $this->db = $dbInstance->getConnection();
+            if ($this->db instanceof PDO) {
+                @$this->db->exec("SET SESSION wait_timeout = 600, interactive_timeout = 600");
+            }
+        } catch (\Throwable $e) {
+            $this->log("Aviso de reconexión DB: " . $e->getMessage());
+        }
+        return $this->db;
+    }
+
+    /**
+     * Obtiene una conexión PDO activa garantizada, reconectando automáticamente si se perdió
+     */
+    public function getDb() {
+        try {
+            if ($this->db instanceof PDO) {
+                $test = $this->db->query("SELECT 1");
+                if ($test !== false) {
+                    return $this->db;
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->db = null;
+        }
+
+        return $this->reconnectDb();
+    }
+
     private function log($message) {
         $timestamp = date('H:i:s');
         $this->log[] = "[$timestamp] $message";
@@ -330,6 +366,7 @@ class SystemUpdater {
             }
 
             // PASO 3: Verificación y aplicación de migraciones SQL (no destructivas)
+            $this->reconnectDb();
             $this->log("Paso 3/4: Verificando posibles migraciones de base de datos...");
             $migrationsApplied = $this->runMigrations();
             if ($migrationsApplied > 0) {
@@ -463,6 +500,9 @@ class SystemUpdater {
 
         $this->log("✅ Se actualizaron $copiedCount archivos del sistema.");
 
+        // Revalidar conexión MySQL tras la descarga y extracción pesada de archivos
+        $this->reconnectDb();
+
         // Guardar metadata del nuevo commit en base de datos
         $this->setSetting('system_current_commit', $latestCommitSha);
         $this->setSetting('system_current_commit_date', $latestCommitDate);
@@ -531,8 +571,14 @@ class SystemUpdater {
      * Escanea y aplica migraciones SQL de forma no destructiva
      */
     public function runMigrations() {
+        $db = $this->getDb();
+        if (!$db) {
+            $this->log("Aviso: Conexión a la base de datos no disponible para migraciones.");
+            return 0;
+        }
+
         // Asegurar que exista la tabla para control de migraciones
-        $this->db->exec("
+        $db->exec("
             CREATE TABLE IF NOT EXISTS `system_migrations` (
                 `id` int(11) NOT NULL AUTO_INCREMENT,
                 `migration_name` varchar(255) NOT NULL,
@@ -543,8 +589,8 @@ class SystemUpdater {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
 
-        $stmtApplied = $this->db->query("SELECT migration_name FROM system_migrations");
-        $applied = $stmtApplied->fetchAll(PDO::FETCH_COLUMN);
+        $stmtApplied = $db->query("SELECT migration_name FROM system_migrations");
+        $applied = $stmtApplied ? $stmtApplied->fetchAll(PDO::FETCH_COLUMN) : [];
 
         // Buscar archivos SQL de migración en la raíz y en database/migrations/
         $migrationFiles = [];
@@ -566,8 +612,8 @@ class SystemUpdater {
         }
 
         // Determinar siguiente lote (batch)
-        $stmtBatch = $this->db->query("SELECT COALESCE(MAX(batch), 0) + 1 FROM system_migrations");
-        $nextBatch = intval($stmtBatch->fetchColumn());
+        $stmtBatch = $db->query("SELECT COALESCE(MAX(batch), 0) + 1 FROM system_migrations");
+        $nextBatch = $stmtBatch ? intval($stmtBatch->fetchColumn()) : 1;
 
         $appliedCount = 0;
         foreach ($migrationFiles as $name => $path) {
@@ -580,14 +626,14 @@ class SystemUpdater {
 
             if (!empty(trim($sqlContent))) {
                 // Desactivar temporalmente foreign keys para migraciones
-                $this->db->exec("SET FOREIGN_KEY_CHECKS=0;");
+                @$db->exec("SET FOREIGN_KEY_CHECKS=0;");
                 
                 // Ejecutar sentencias individuales tolerando columnas ya existentes
                 $queries = $this->splitSqlQueries($sqlContent);
                 foreach ($queries as $query) {
                     if (empty(trim($query))) continue;
                     try {
-                        $this->db->exec($query);
+                        $db->exec($query);
                     } catch (PDOException $e) {
                         // Ignorar errores benignos como "Duplicate column name" o "Table already exists"
                         $msg = $e->getMessage();
@@ -598,11 +644,11 @@ class SystemUpdater {
                         $this->log("Aviso en query de migración: " . $e->getMessage());
                     }
                 }
-                $this->db->exec("SET FOREIGN_KEY_CHECKS=1;");
+                @$db->exec("SET FOREIGN_KEY_CHECKS=1;");
             }
 
             // Registrar como ejecutada
-            $stmtInsert = $this->db->prepare("INSERT INTO system_migrations (migration_name, batch) VALUES (?, ?)");
+            $stmtInsert = $db->prepare("INSERT INTO system_migrations (migration_name, batch) VALUES (?, ?)");
             $stmtInsert->execute([$name, $nextBatch]);
             $appliedCount++;
         }
@@ -683,21 +729,34 @@ class SystemUpdater {
 
     private function getSetting($key, $default = '') {
         try {
-            $stmt = $this->db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
+            $db = $this->getDb();
+            if (!$db) return $default;
+            $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
             $stmt->execute([$key]);
             $val = $stmt->fetchColumn();
             return ($val !== false && $val !== null) ? $val : $default;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return $default;
         }
     }
 
     public function setSetting($key, $val) {
         try {
-            $stmt = $this->db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (:key, :val) ON DUPLICATE KEY UPDATE setting_value = :val");
+            $db = $this->getDb();
+            if (!$db) return;
+            $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (:key, :val) ON DUPLICATE KEY UPDATE setting_value = :val");
             $stmt->execute([':key' => $key, ':val' => $val]);
-        } catch (Exception $e) {
-            // Ignorar
+        } catch (\Throwable $e) {
+            // Si la conexión se perdió, forzar reconexión y reintentar una vez más
+            try {
+                $db = $this->reconnectDb();
+                if ($db) {
+                    $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (:key, :val) ON DUPLICATE KEY UPDATE setting_value = :val");
+                    $stmt->execute([':key' => $key, ':val' => $val]);
+                }
+            } catch (\Throwable $ex) {
+                $this->log("Aviso al guardar configuración ($key): " . $ex->getMessage());
+            }
         }
     }
 }
