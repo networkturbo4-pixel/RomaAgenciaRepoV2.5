@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Acceso Denegado: Solo el Administrador principal puede realizar modificaciones.');
         }
 
-        if (in_array($action_type, ['personalization', 'company', 'drive', 'backups', 'mercadopago', 'google_workspace', 'ia'])) {
+        if (in_array($action_type, ['personalization', 'company', 'drive', 'backups', 'updates', 'mercadopago', 'google_workspace', 'ia'])) {
             $active_tab = 'tab-' . $action_type;
             // Generic settings update
             $stmt_check = $db->prepare("SELECT COUNT(*) FROM settings WHERE setting_key = :key");
@@ -220,6 +220,9 @@ $is_admin = ($stmt_admin->fetchColumn() == 1);
         <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>" data-tab="tab-backups">
             <i class="ph ph-database"></i> Copias de Seguridad
         </button>
+        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-updates' ? 'active' : ''; ?>" data-tab="tab-updates">
+            <i class="ph ph-rocket-launch"></i> Actualizaciones
+        </button>
         <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-mercadopago' ? 'active' : ''; ?>" data-tab="tab-mercadopago">
             <i class="ph ph-credit-card"></i> Mercado Pago
         </button>
@@ -263,6 +266,11 @@ $is_admin = ($stmt_admin->fetchColumn() == 1);
         <!-- Tab 6: Backups -->
         <div id="tab-backups" class="settings-pane tab-pane <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>">
             <?php include 'modules/config/tabs/backups.php'; ?>
+        </div>
+
+        <!-- Tab 6b: System Updates -->
+        <div id="tab-updates" class="settings-pane tab-pane <?php echo $active_tab === 'tab-updates' ? 'active' : ''; ?>">
+            <?php include 'modules/config/tabs/updates.php'; ?>
         </div>
 
         <!-- Tab 7: Mercado Pago -->

@@ -459,6 +459,237 @@ try {
     </div>
 </div>
 
+<!-- Modal Bloqueo por Exceso de Tardanza (Google Authenticator) -->
+<style>
+@keyframes shakeLockModal {
+    0%, 100% { transform: scale(1) translateX(0); }
+    20%, 60% { transform: scale(1.015) translateX(-8px); }
+    40%, 80% { transform: scale(1.015) translateX(8px); }
+}
+.shake-modal {
+    animation: shakeLockModal 0.35s ease-in-out !important;
+}
+body.system-locked-late {
+    overflow: hidden !important;
+}
+body.system-locked-late .dashboard-page-wrapper,
+body.system-locked-late .sidebar-container,
+body.system-locked-late .main-header,
+body.system-locked-late header {
+    filter: blur(8px) grayscale(50%) !important;
+    pointer-events: none !important;
+    user-select: none !important;
+}
+#modal-bloqueo-tardanza.active {
+    z-index: 9999999 !important;
+    background: rgba(10, 15, 29, 0.88) !important;
+    backdrop-filter: blur(14px) !important;
+    display: flex !important;
+}
+</style>
+<div class="modal-overlay <?php echo !empty($is_user_blocked_late) ? 'active' : ''; ?>" id="modal-bloqueo-tardanza" data-enforce-lock="<?php echo !empty($is_user_blocked_late) ? '1' : '0'; ?>">
+    <div class="modal-content" style="max-width: 480px; border-top: 4px solid #ef4444; box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.25);">
+        <div class="modal-header" style="align-items: flex-start;">
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+                    <i class="ph ph-lock-key"></i>
+                </div>
+                <div>
+                    <h3 class="modal-title" style="color: #ef4444; font-size: 1.2rem; margin: 0;">Acceso Bloqueado</h3>
+                    <p style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Estás fuera del horario de ingreso permitido</p>
+                </div>
+            </div>
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Bloqueo obligatorio: ingresa el código para continuar">
+                <i class="ph ph-lock"></i>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.5;">
+                <div id="bloqueo-info-msg" style="color: var(--color-text); font-weight: 500;">
+                    <?php if (!empty($is_user_blocked_late) && !empty($bloqueo_info)): ?>
+                        <div style="font-weight: 700; color: #dc2626; margin-bottom: 0.35rem; font-size: 0.95rem;">
+                            ⚠️ Estás fuera del horario de ingreso permitido
+                        </div>
+                        <div>⏰ <b>Hora actual:</b> <?php echo $bloqueo_info['hora_actual']; ?></div>
+                        <div>📌 <b>Hora de entrada programada:</b> <?php echo $bloqueo_info['hora_programada']; ?></div>
+                        <div style="color: #d97706; font-weight: 700; margin-top: 0.35rem;">
+                            ⏱️ Tardanza acumulada: <?php echo $bloqueo_info['minutos_tarde']; ?> minutos (Límite de bloqueo: <?php echo $bloqueo_info['bloqueo_minutos']; ?> min)
+                        </div>
+                    <?php else: ?>
+                        Has superado el tiempo máximo de tolerancia para el inicio de tu jornada.
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <form id="form-desbloqueo-tardanza" onsubmit="event.preventDefault(); AsistenciaWidget.submitUnlock();">
+                <!-- Pregunta sobre Horas Extras -->
+                <div style="background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; margin-bottom: 1.25rem;">
+                    <label style="font-weight: 700; font-size: 0.92rem; color: var(--color-title); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="ph ph-clock-countdown" style="color: var(--primary-color);"></i> ¿Realizarás horas extras hoy?
+                    </label>
+                    <div style="display: flex; gap: 1.5rem; margin-bottom: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem;">
+                            <input type="radio" name="realiza_horas_extras" value="1" onchange="document.getElementById('div-motivo-he').style.display='block';">
+                            <b>Sí</b>, realizaré horas extras
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem;">
+                            <input type="radio" name="realiza_horas_extras" value="0" checked onchange="document.getElementById('div-motivo-he').style.display='none';">
+                            <b>No</b>
+                        </label>
+                    </div>
+                    <div id="div-motivo-he" style="display: none; margin-top: 0.6rem;">
+                        <input type="text" name="motivo_horas_extras" id="motivo_horas_extras" class="form-control" placeholder="Indica cantidad aproximada o motivo (Ej. 1 hora / Cierre de campaña)" style="font-size: 0.85rem;">
+                    </div>
+                </div>
+
+                <!-- Input Código Google Authenticator -->
+                <div class="form-group mb-4">
+                    <label class="form-label" style="font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem;">
+                        <i class="ph ph-shield-check" style="color: #10b981; font-size: 1.1rem;"></i> Código de Google Authenticator
+                    </label>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.6rem 0;">
+                        Solicita el código dinámico de 6 dígitos a tu supervisor para desbloquear:
+                    </p>
+                    <input type="text" name="otp_code" id="otp_code_input" class="form-control" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required style="font-size: 1.4rem; letter-spacing: 0.35em; text-align: center; font-weight: 800; padding: 0.6rem; border: 2px solid var(--border-color); border-radius: 10px;">
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-primary w-100" id="btn-unlock-submit" style="font-weight: 700; background: #ef4444; border-color: #ef4444; padding: 0.85rem; font-size: 1rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;">
+                        <i class="ph ph-lock-key-open"></i> Desbloquear y Marcar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Fin de Jornada y Descanso Motivador hasta Mañana -->
+<div class="modal-overlay <?php echo !empty($is_user_shift_ended) ? 'active' : ''; ?>" id="modal-fin-jornada" data-enforce-lock="<?php echo !empty($is_user_shift_ended) ? '1' : '0'; ?>">
+    <div class="modal-content" style="max-width: 520px; border-top: 4px solid #8b5cf6; text-align: center; padding: 2.2rem 2rem; background: var(--bg-surface); box-shadow: 0 25px 60px -15px rgba(139, 92, 246, 0.35);">
+        <div style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(59, 130, 246, 0.25)); color: #a78bfa; display: flex; align-items: center; justify-content: center; font-size: 2.6rem; margin: 0 auto 1.25rem auto; box-shadow: 0 0 25px rgba(139, 92, 246, 0.3);">
+            <i class="ph ph-moon-stars"></i>
+        </div>
+
+        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-title); margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+            🌟 ¡Gran trabajo el día de hoy!
+        </h2>
+        <p style="font-size: 0.95rem; font-weight: 600; color: #a78bfa; margin-bottom: 1.25rem;">
+            Tu jornada laboral ha concluido por hoy
+        </p>
+
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; font-size: 0.92rem; line-height: 1.6; color: var(--color-text); text-align: left;">
+            <p style="margin: 0 0 0.75rem 0;">
+                <i>"El éxito es la suma de pequeños esfuerzos repetidos día tras día. El descanso oportuno es fundamental para renovar tu energía, creatividad y bienestar personal."</i>
+            </p>
+            <div style="border-top: 1px solid rgba(139, 92, 246, 0.2); padding-top: 0.75rem; font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.3rem;">
+                <div id="fin-jornada-details">
+                    <?php if (!empty($is_user_shift_ended) && !empty($shift_end_info)): ?>
+                        <?php if ($shift_end_info['salida_marcada']): ?>
+                            <span style="color: #10b981; font-weight: 700;">✅ Salida registrada a las <?php echo $shift_end_info['hora_salida_registrada']; ?></span>
+                        <?php else: ?>
+                            <span style="color: #f59e0b; font-weight: 700;">⏰ Salida programada: <?php echo $shift_end_info['hora_salida_programada']; ?> (Jornada concluida)</span>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+                <span>🔒 El sistema permanecerá bloqueado hasta tu próximo horario laboral de mañana.</span>
+            </div>
+        </div>
+
+        <div id="fin-jornada-actions" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <?php if (!empty($is_user_shift_ended) && !empty($shift_end_info) && !$shift_end_info['salida_marcada']): ?>
+                <button type="button" class="btn btn-primary" onclick="AsistenciaWidget.mark('salida')" style="font-weight: 700; background: #8b5cf6; border-color: #8b5cf6; padding: 0.85rem; font-size: 1rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;">
+                    <i class="ph ph-sign-out"></i> Registrar Salida y Descansar
+                </button>
+            <?php endif; ?>
+            <a href="index.php?module=auth&action=logout" class="btn btn-outline" style="padding: 0.75rem; font-size: 0.92rem; border-radius: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <i class="ph ph-sign-out"></i> Cerrar Sesión
+            </a>
+        </div>
+
+        <!-- Sección Desbloqueo Fin de Jornada / Horas Extras con Google Authenticator -->
+        <div id="fin-jornada-unlock-section" style="margin-top: 1.25rem; border-top: 1px dashed rgba(139, 92, 246, 0.3); padding-top: 1.1rem;">
+            <button type="button" class="btn btn-outline w-100" id="btn-toggle-fin-unlock" onclick="AsistenciaWidget.toggleFinUnlock()" style="border-color: rgba(139, 92, 246, 0.4); color: #a78bfa; font-weight: 700; padding: 0.75rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(139, 92, 246, 0.08); transition: all 0.2s ease;">
+                <i class="ph ph-lock-key-open"></i> ¿Trabajarás horas extras? Desbloquear con Código
+            </button>
+
+            <form id="form-desbloqueo-fin" style="display: none; text-align: left; margin-top: 1rem; background: rgba(139, 92, 246, 0.06); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 12px; padding: 1.25rem;" onsubmit="event.preventDefault(); AsistenciaWidget.submitFinUnlock();">
+                
+                <!-- Pregunta sobre Horas Extras -->
+                <div style="background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 1.1rem;">
+                    <label style="font-weight: 700; font-size: 0.9rem; color: var(--color-title); display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.45rem;">
+                        <i class="ph ph-clock-countdown" style="color: #8b5cf6; font-size: 1.1rem;"></i> ¿Realizarás horas extras hoy?
+                    </label>
+                    <div style="display: flex; gap: 1.25rem; margin-bottom: 0.4rem;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.88rem; color: var(--color-text);">
+                            <input type="radio" name="fin_realiza_horas_extras" value="1" checked onchange="document.getElementById('div-fin-motivo-he').style.display='block';">
+                            <b>Sí</b>, realizaré horas extras
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.88rem; color: var(--color-text);">
+                            <input type="radio" name="fin_realiza_horas_extras" value="0" onchange="document.getElementById('div-fin-motivo-he').style.display='none';">
+                            <b>No</b>, solo acceso regular
+                        </label>
+                    </div>
+                    <div id="div-fin-motivo-he" style="margin-top: 0.5rem;">
+                        <input type="text" name="fin_motivo_horas_extras" id="fin_motivo_horas_extras" class="form-control" placeholder="Indica cantidad aproximada o motivo (Ej. 2 horas / Cierre de mes)" style="font-size: 0.85rem; padding: 0.55rem 0.75rem; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <!-- Input Código Google Authenticator -->
+                <div class="form-group mb-3">
+                    <label class="form-label" style="font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; color: var(--color-title);">
+                        <i class="ph ph-shield-check" style="color: #10b981; font-size: 1.1rem;"></i> Código de Google Authenticator
+                    </label>
+                    <p style="font-size: 0.76rem; color: var(--text-muted); margin: 0 0 0.5rem 0;">
+                        Solicita el código dinámico de 6 dígitos a tu supervisor para autorizar:
+                    </p>
+                    <input type="text" name="fin_otp_code" id="fin_otp_code_input" class="form-control" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required style="font-size: 1.35rem; letter-spacing: 0.3em; text-align: center; font-weight: 800; padding: 0.55rem; border: 2px solid rgba(139, 92, 246, 0.4); border-radius: 10px;">
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100" id="btn-fin-unlock-submit" style="font-weight: 700; background: #8b5cf6; border-color: #8b5cf6; padding: 0.8rem; font-size: 0.95rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;">
+                    <i class="ph ph-lock-key-open"></i> Desbloquear Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Antes de Horario Laboral -->
+<div class="modal-overlay <?php echo !empty($is_user_before_shift) ? 'active' : ''; ?>" id="modal-antes-jornada" data-enforce-lock="<?php echo !empty($is_user_before_shift) ? '1' : '0'; ?>">
+    <div class="modal-content" style="max-width: 480px; border-top: 4px solid #3b82f6; text-align: center; padding: 2rem; background: var(--bg-surface); box-shadow: 0 25px 60px -15px rgba(59, 130, 246, 0.3);">
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 2.4rem; margin: 0 auto 1.25rem auto;">
+            <i class="ph ph-sun-horizon"></i>
+        </div>
+
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--color-title); margin-bottom: 0.4rem;">
+            🌅 ¡Buenos días!
+        </h2>
+        <p style="font-size: 0.92rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            Aún no inicia tu horario laboral
+        </p>
+
+        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5; color: var(--color-text);">
+            <div>📌 Tu horario de entrada programado es a las: <b style="color: var(--primary-color);"><?php echo !empty($before_shift_info['hora_entrada_programada']) ? $before_shift_info['hora_entrada_programada'] : '09:00'; ?></b></div>
+            <div style="margin-top: 0.4rem; font-size: 0.85rem; color: var(--text-muted);">
+                Podrás ingresar a la plataforma y registrar tu asistencia al iniciar tu jornada laboral.
+            </div>
+        </div>
+
+        <a href="index.php?module=auth&action=logout" class="btn btn-outline w-100" style="padding: 0.75rem; font-size: 0.92rem; border-radius: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i class="ph ph-sign-out"></i> Cerrar Sesión
+        </a>
+    </div>
+</div>
+
+<?php if (!empty($is_user_blocked_late) || !empty($is_user_shift_ended) || !empty($is_user_before_shift)): ?>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.classList.add('system-locked-late');
+        const inp = document.getElementById('otp_code_input');
+        if (inp && <?php echo !empty($is_user_blocked_late) ? 'true' : 'false'; ?>) setTimeout(() => inp.focus(), 300);
+    });
+</script>
+<?php endif; ?>
+
 <?php if($is_admin): ?>
 <!-- Modal Visor de Permisos -->
 <div class="modal-overlay" id="modal-visor-permisos">
@@ -542,7 +773,72 @@ try {
                 body: 'action=status'
             })
             .then(r => r.json())
-            .then(res => { if (res.success) this.renderButtons(res.data); });
+            .then(res => {
+                if (res.success) {
+                    this.renderButtons(res.data);
+
+                    // 1. Fin de Jornada (Desconexión / Salida)
+                    if (res.is_shift_ended && res.shift_end_info) {
+                        document.body.classList.add('system-locked-late');
+                        const modalFin = document.getElementById('modal-fin-jornada');
+                        if (modalFin) {
+                            modalFin.dataset.enforceLock = '1';
+                            modalFin.classList.add('active');
+                            const det = document.getElementById('fin-jornada-details');
+                            if (det) {
+                                if (res.shift_end_info.salida_marcada) {
+                                    det.innerHTML = `<span style="color: #10b981; font-weight: 700;">✅ Salida registrada a las ${res.shift_end_info.hora_salida_registrada}</span>`;
+                                } else {
+                                    det.innerHTML = `<span style="color: #f59e0b; font-weight: 700;">⏰ Salida programada: ${res.shift_end_info.hora_salida_programada} (Jornada concluida)</span>`;
+                                }
+                            }
+                            const actions = document.getElementById('fin-jornada-actions');
+                            if (actions && res.shift_end_info.salida_marcada) {
+                                actions.innerHTML = `
+                                    <a href="index.php?module=auth&action=logout" class="btn btn-outline" style="padding: 0.75rem; font-size: 0.92rem; border-radius: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                        <i class="ph ph-sign-out"></i> Cerrar Sesión
+                                    </a>
+                                `;
+                            }
+                        }
+                    }
+                    // 2. Antes de Horario Laboral
+                    else if (res.is_before_shift && res.before_shift_info) {
+                        document.body.classList.add('system-locked-late');
+                        const modalAntes = document.getElementById('modal-antes-jornada');
+                        if (modalAntes) {
+                            modalAntes.dataset.enforceLock = '1';
+                            modalAntes.classList.add('active');
+                        }
+                    }
+                    // 3. Tardanza Extrema Matutina
+                    else if (res.is_blocked_late && res.bloqueo_info) {
+                        document.body.classList.add('system-locked-late');
+                        const modalBloqueo = document.getElementById('modal-bloqueo-tardanza');
+                        if (modalBloqueo) {
+                            modalBloqueo.dataset.enforceLock = '1';
+                            modalBloqueo.classList.add('active');
+                        }
+                        const infoMsg = document.getElementById('bloqueo-info-msg');
+                        if (infoMsg) {
+                            infoMsg.innerHTML = `
+                                <div style="font-weight: 700; color: #dc2626; margin-bottom: 0.35rem; font-size: 0.95rem;">
+                                    ⚠️ Estás fuera del horario de ingreso permitido
+                                </div>
+                                <div>⏰ <b>Hora actual:</b> ${res.bloqueo_info.hora_actual || ''}</div>
+                                <div>📌 <b>Hora de entrada programada:</b> ${res.bloqueo_info.hora_programada || ''}</div>
+                                <div style="color: #d97706; font-weight: 700; margin-top: 0.35rem;">
+                                    ⏱️ Tardanza acumulada: ${res.bloqueo_info.minutos_tarde} minutos (Límite de bloqueo: ${res.bloqueo_info.bloqueo_minutos} min)
+                                </div>
+                            `;
+                        }
+                        setTimeout(() => {
+                            const inp = document.getElementById('otp_code_input');
+                            if (inp) inp.focus();
+                        }, 250);
+                    }
+                }
+            });
         },
         renderButtons: function(data) {
             const container = document.getElementById('asistencia-buttons');
@@ -567,28 +863,287 @@ try {
 
             const formatTime = (dtStr) => dtStr ? dtStr.split(' ')[1].substring(0, 5) : '';
 
+            const tardanzaBadge = (data && (data.es_tardanza == 1 || data.minutos_tarde > 0))
+                ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-warning-circle"></i> Tardanza (${data.minutos_tarde}m)</span>`
+                : (data && data.entrada ? `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-check-circle"></i> Puntual</span>` : '');
+
+            const horasExtrasBadge = (data && data.realiza_horas_extras == 1)
+                ? `<span style="background: rgba(139, 92, 246, 0.18); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;" title="${data.motivo_horas_extras || 'Horas extras autorizadas'}"><i class="ph ph-clock-countdown"></i> Horas Extras</span>`
+                : '';
+
             if (!data) {
                 statusText.innerHTML = `<span class="status-dot"></span> Esperando entrada`;
                 createBtn('Marcar Entrada', 'entrada', 'ph-sign-in');
             } else if (data.salida) {
-                statusText.innerHTML = `<span class="status-dot" style="background: #94a3b8; box-shadow: 0 0 8px rgba(148,163,184,0.4);"></span> Jornada Terminada`;
+                statusText.innerHTML = `<span class="status-dot" style="background: #94a3b8; box-shadow: 0 0 8px rgba(148,163,184,0.4);"></span> Jornada Terminada ${tardanzaBadge} ${horasExtrasBadge}`;
             } else if (!data.inicio_refrigerio) {
-                statusText.innerHTML = `<span class="status-dot"></span> Trabajando · Inició ${formatTime(data.entrada)}`;
+                statusText.innerHTML = `<span class="status-dot"></span> Trabajando · Inició ${formatTime(data.entrada)} ${tardanzaBadge} ${horasExtrasBadge}`;
                 createBtn('Refrigerio', 'inicio_refrigerio', 'ph-coffee');
                 createBtn('Salida', 'salida', 'ph-sign-out', true);
             } else if (!data.fin_refrigerio) {
-                statusText.innerHTML = `<span class="status-dot" style="background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4);"></span> En Refrigerio`;
+                statusText.innerHTML = `<span class="status-dot" style="background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4);"></span> En Refrigerio ${tardanzaBadge} ${horasExtrasBadge}`;
                 createBtn('Fin Refrigerio', 'fin_refrigerio', 'ph-play');
             } else {
-                statusText.innerHTML = `<span class="status-dot"></span> Trabajando · Ref. terminado`;
+                statusText.innerHTML = `<span class="status-dot"></span> Trabajando · Ref. terminado ${tardanzaBadge} ${horasExtrasBadge}`;
                 createBtn('Marcar Salida', 'salida', 'ph-sign-out', true);
             }
         },
         mark: function(action) {
-            fetch('ajax/ajax_asistencia.php', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: `action=${action}` })
+            fetch('ajax/ajax_asistencia.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `action=${action}`
+            })
             .then(r => r.json())
-            .then(res => { if(res.success) this.loadStatus(); else alert(res.message); })
-            .catch(e => alert('Error de conexión'));
+            .then(res => {
+                if (res.requires_unlock || res.bloqueado) {
+                    // Abrir modal de bloqueo por tardanza
+                    const infoMsg = document.getElementById('bloqueo-info-msg');
+                    if (infoMsg) {
+                        infoMsg.innerHTML = `
+                            <div style="font-weight: 700; color: #dc2626; margin-bottom: 0.35rem; font-size: 0.95rem;">
+                                ⚠️ Estás fuera del horario de ingreso permitido
+                            </div>
+                            <div>⏰ <b>Hora registrada:</b> ${res.hora_marcada || ''}</div>
+                            <div>📌 <b>Hora de entrada programada:</b> ${res.hora_programada || ''}</div>
+                            <div style="color: #d97706; font-weight: 700; margin-top: 0.35rem;">
+                                ⏱️ Tardanza acumulada: ${res.minutos_tarde} minutos (Límite de bloqueo: ${res.bloqueo_minutos} min)
+                            </div>
+                        `;
+                    }
+                    document.getElementById('otp_code_input').value = '';
+                    document.getElementById('modal-bloqueo-tardanza').classList.add('active');
+                    setTimeout(() => document.getElementById('otp_code_input').focus(), 300);
+                    return;
+                }
+
+                if(res.success) {
+                    this.loadStatus();
+                    if (action === 'entrada') {
+                        if (res.is_late || res.es_tardanza == 1) {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: '⚠️ ¡Estás tarde!',
+                                    html: `
+                                        <p style="font-size: 1.05rem; margin-bottom: 0.8rem; color: var(--color-text);">
+                                            Has registrado tu asistencia fuera del horario establecido.
+                                        </p>
+                                        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 0.85rem 1rem; text-align: left; font-size: 0.9rem; line-height: 1.6;">
+                                            <div>⏰ <b>Hora registrada:</b> <span style="font-weight:700;">${res.hora_marcada || ''}</span></div>
+                                            <div>📌 <b>Hora programada:</b> <span>${res.hora_programada || ''} (+${res.tolerancia_minutos || 5} min tolerancia)</span></div>
+                                            <div style="margin-top: 0.4rem; font-size: 0.95rem; color: #d97706; font-weight: 700;">
+                                                ⏱️ Tiempo de tardanza: ${res.minutos_tarde} minutos tarde
+                                            </div>
+                                        </div>
+                                    `,
+                                    confirmButtonText: 'Entendido',
+                                    confirmButtonColor: '#f59e0b',
+                                    background: 'var(--bg-surface, #ffffff)',
+                                    color: 'var(--color-text, #1e293b)'
+                                });
+                            } else {
+                                alert(`⚠️ ¡Estás tarde! Tu entrada fue registrada a las ${res.hora_marcada} con ${res.minutos_tarde} min de tardanza.`);
+                            }
+                        } else {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Entrada Registrada a Tiempo!',
+                                    html: `<p style="font-size: 1rem; color: var(--color-text);">Registraste tu ingreso a las <b>${res.hora_marcada || ''}</b>.<br>¡Que tengas un excelente día de trabajo!</p>`,
+                                    confirmButtonColor: '#10b981',
+                                    timer: 3500,
+                                    background: 'var(--bg-surface, #ffffff)',
+                                    color: 'var(--color-text, #1e293b)'
+                                });
+                            } else {
+                                alert(res.message);
+                            }
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: res.message,
+                                showConfirmButton: false,
+                                timer: 2500
+                            });
+                        } else {
+                            alert(res.message);
+                        }
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Atención',
+                            text: res.message,
+                            confirmButtonColor: '#ef4444'
+                        });
+                    } else {
+                        alert(res.message);
+                    }
+                }
+            })
+            .catch(e => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo registrar la asistencia.' });
+                } else {
+                    alert('Error de conexión');
+                }
+            });
+        },
+        submitUnlock: function() {
+            const form = document.getElementById('form-desbloqueo-tardanza');
+            const btn = document.getElementById('btn-unlock-submit');
+            const otpCode = document.getElementById('otp_code_input').value.trim();
+            const heRadio = form.querySelector('input[name="realiza_horas_extras"]:checked');
+            const realizaHE = heRadio ? heRadio.value : '0';
+            const motivoHE = document.getElementById('motivo_horas_extras').value.trim();
+
+            if (!otpCode || otpCode.length !== 6) {
+                alert('Ingresa el código de 6 dígitos de Google Authenticator.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Verificando...';
+
+            const fd = new FormData();
+            fd.append('action', 'unlock_and_entrada');
+            fd.append('otp_code', otpCode);
+            fd.append('realiza_horas_extras', realizaHE);
+            fd.append('motivo_horas_extras', motivoHE);
+
+            fetch('ajax/ajax_asistencia.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-lock-key-open"></i> Desbloquear y Marcar';
+                if (res.success) {
+                    window.isUnlockedBySystem = true;
+                    const modalBloqueo = document.getElementById('modal-bloqueo-tardanza');
+                    if (modalBloqueo) {
+                        modalBloqueo.dataset.enforceLock = '0';
+                        modalBloqueo.classList.remove('active');
+                    }
+                    document.body.classList.remove('system-locked-late');
+                    this.loadStatus();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Desbloqueado con Éxito!',
+                            html: `
+                                <p style="margin-bottom:0.75rem; font-size:1.05rem;">${res.message}</p>
+                                ${res.realiza_horas_extras ? '<div style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:0.6rem; font-size:0.88rem; color:#065f46; font-weight:600;">⏱️ Horas extras confirmadas para esta jornada.</div>' : ''}
+                            `,
+                            confirmButtonColor: '#10b981'
+                        });
+                    } else {
+                        alert(res.message);
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Código Inválido',
+                            text: res.message,
+                            confirmButtonColor: '#ef4444'
+                        });
+                    } else {
+                        alert(res.message);
+                    }
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-lock-key-open"></i> Desbloquear y Marcar';
+                alert('Error de conexión con el servidor');
+            });
+        },
+        toggleFinUnlock: function() {
+            const form = document.getElementById('form-desbloqueo-fin');
+            const btn = document.getElementById('btn-toggle-fin-unlock');
+            if (!form) return;
+            const isHidden = (form.style.display === 'none' || form.style.display === '');
+            form.style.display = isHidden ? 'block' : 'none';
+            if (isHidden) {
+                if (btn) btn.style.background = 'rgba(139, 92, 246, 0.2)';
+                const inp = document.getElementById('fin_otp_code_input');
+                if (inp) setTimeout(() => inp.focus(), 150);
+            } else {
+                if (btn) btn.style.background = 'rgba(139, 92, 246, 0.08)';
+            }
+        },
+        submitFinUnlock: function() {
+            const form = document.getElementById('form-desbloqueo-fin');
+            const btn = document.getElementById('btn-fin-unlock-submit');
+            const otpCode = document.getElementById('fin_otp_code_input').value.trim();
+            const heRadio = form.querySelector('input[name="fin_realiza_horas_extras"]:checked');
+            const realizaHE = heRadio ? heRadio.value : '0';
+            const motivoHE = document.getElementById('fin_motivo_horas_extras').value.trim();
+
+            if (!otpCode || otpCode.length !== 6) {
+                alert('Ingresa el código de 6 dígitos de Google Authenticator.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Verificando...';
+
+            const fd = new FormData();
+            fd.append('action', 'unlock_fin_jornada');
+            fd.append('otp_code', otpCode);
+            fd.append('realiza_horas_extras', realizaHE);
+            fd.append('motivo_horas_extras', motivoHE);
+
+            fetch('ajax/ajax_asistencia.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-lock-key-open"></i> Desbloquear Sistema';
+                if (res.success) {
+                    window.isUnlockedBySystem = true;
+                    const modalFin = document.getElementById('modal-fin-jornada');
+                    if (modalFin) {
+                        modalFin.dataset.enforceLock = '0';
+                        modalFin.classList.remove('active');
+                    }
+                    document.body.classList.remove('system-locked-late');
+                    this.loadStatus();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Desbloqueado con Éxito!',
+                            html: `
+                                <p style="margin-bottom:0.75rem; font-size:1.05rem;">${res.message}</p>
+                                ${res.realiza_horas_extras ? '<div style="background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.3); border-radius:8px; padding:0.6rem; font-size:0.88rem; color:#7c3aed; font-weight:600;">⏱️ Horas extras activadas. Recuerda registrar tu salida al concluir.</div>' : ''}
+                            `,
+                            confirmButtonColor: '#8b5cf6'
+                        });
+                    } else {
+                        alert(res.message);
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Código Inválido',
+                            text: res.message,
+                            confirmButtonColor: '#ef4444'
+                        });
+                    } else {
+                        alert(res.message);
+                    }
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-lock-key-open"></i> Desbloquear Sistema';
+                alert('Error de conexión con el servidor');
+            });
         },
         submitPermiso: function() {
             const form = document.getElementById('form-permiso');
@@ -609,7 +1164,65 @@ try {
             .catch(e => alert('Error de conexión'));
         }
     };
-    document.addEventListener('DOMContentLoaded', () => AsistenciaWidget.loadStatus());
+    document.addEventListener('DOMContentLoaded', () => {
+        AsistenciaWidget.loadStatus();
+
+        // Proteger todos los modales de bloqueo contra cierre arbitrario o manipulación
+        const lockedModalIds = ['modal-bloqueo-tardanza', 'modal-fin-jornada', 'modal-antes-jornada'];
+        window.isUnlockedBySystem = false;
+
+        lockedModalIds.forEach(id => {
+            const m = document.getElementById(id);
+            if (m) {
+                m.addEventListener('mousedown', e => e.stopPropagation(), true);
+                m.addEventListener('mouseup', e => e.stopPropagation(), true);
+                m.addEventListener('click', e => {
+                    if (e.target === m) {
+                        e.stopPropagation();
+                        const content = m.querySelector('.modal-content');
+                        if (content) {
+                            content.classList.remove('shake-modal');
+                            void content.offsetWidth;
+                            content.classList.add('shake-modal');
+                            setTimeout(() => content.classList.remove('shake-modal'), 400);
+                        }
+                    }
+                }, true);
+
+                const observer = new MutationObserver(() => {
+                    if (!window.isUnlockedBySystem && (document.body.classList.contains('system-locked-late') || m.dataset.enforceLock === '1')) {
+                        if (!m.classList.contains('active')) {
+                            m.classList.add('active');
+                        }
+                        if (!document.body.classList.contains('system-locked-late')) {
+                            document.body.classList.add('system-locked-late');
+                        }
+                    }
+                });
+                observer.observe(m, { attributes: true, attributeFilter: ['class', 'style'] });
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                for (const id of lockedModalIds) {
+                    const mb = document.getElementById(id);
+                    if (mb && mb.classList.contains('active')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const content = mb.querySelector('.modal-content');
+                        if (content) {
+                            content.classList.remove('shake-modal');
+                            void content.offsetWidth;
+                            content.classList.add('shake-modal');
+                            setTimeout(() => content.classList.remove('shake-modal'), 400);
+                        }
+                        break;
+                    }
+                }
+            }
+        }, true);
+    });
 
     <?php if($is_admin): ?>
     const AdminAsistencia = {
@@ -629,24 +1242,51 @@ try {
                         return;
                     }
                     res.data.forEach(u => {
+                        let tardanzaTag = '';
+                        if (u.entrada && (u.es_tardanza == 1 || u.minutos_tarde > 0)) {
+                            tardanzaTag = ` <span class="badge-status" style="background: #f59e0b; color: white;" title="Tardanza de ${u.minutos_tarde} min"><i class="ph ph-warning-circle"></i> Tardanza (${u.minutos_tarde}m)</span>`;
+                        }
+
+                        let otpTag = '';
+                        if (u.bloqueado_por_tardanza == 1) {
+                            otpTag = ` <span class="badge-status" style="background: #dc2626; color: white;" title="Desbloqueado con Google Authenticator"><i class="ph ph-shield-check"></i> OTP Desbloqueado</span>`;
+                        }
+
+                        let heTag = '';
+                        if (u.realiza_horas_extras == 1) {
+                            heTag = ` <span class="badge-status" style="background: #059669; color: white;" title="Horas Extras: ${u.motivo_horas_extras || 'Confirmado'}"><i class="ph ph-clock-clockwise"></i> Horas Extras</span>`;
+                        }
+
+                        let extraBadges = tardanzaTag + otpTag + heTag;
+
                         let estadoHtml = '';
-                        if(u.salida) estadoHtml = '<span class="badge-status badge-completed">Salida</span>';
-                        else if(u.fin_refrigerio) estadoHtml = '<span class="badge-status badge-pending">En Jornada (Ref. Terminado)</span>';
-                        else if(u.inicio_refrigerio) estadoHtml = '<span class="badge-status" style="background: #f59e0b; color: white;">En Refrigerio</span>';
-                        else if(u.entrada) estadoHtml = '<span class="badge-status badge-pending">En Jornada</span>';
+                        if(u.salida) estadoHtml = '<span class="badge-status badge-completed">Salida</span>' + extraBadges;
+                        else if(u.fin_refrigerio) estadoHtml = '<span class="badge-status badge-pending">En Jornada (Ref. Terminado)</span>' + extraBadges;
+                        else if(u.inicio_refrigerio) estadoHtml = '<span class="badge-status" style="background: #f59e0b; color: white;">En Refrigerio</span>' + extraBadges;
+                        else if(u.entrada) estadoHtml = '<span class="badge-status badge-pending">En Jornada</span>' + extraBadges;
                         else if(u.estado_permiso) {
                             let color = u.estado_permiso === 'Aprobado' ? '#10b981' : (u.estado_permiso === 'Rechazado' ? '#ef4444' : '#f59e0b');
                             estadoHtml = `<span class="badge-status" style="background: ${color}; color: white;">Permiso: ${u.estado_permiso}</span> <br><small>${u.motivo_permiso}</small>`;
                         }
                         else estadoHtml = '<span class="badge-status" style="background: var(--border-color); color: var(--text-muted);">Sin Asistencia</span>';
 
+                        let entradaHtml = '-';
+                        if (u.entrada) {
+                            const horaEnt = u.entrada.split(' ')[1].substring(0, 5);
+                            if (u.es_tardanza == 1 || u.minutos_tarde > 0) {
+                                entradaHtml = `<span style="font-weight: 700; color: #f59e0b;">${horaEnt}</span> <small style="color: #f59e0b; font-weight: 700;">(tarde)</small>`;
+                            } else {
+                                entradaHtml = `<span style="font-weight: 600; color: #10b981;">${horaEnt}</span> <small style="color: #10b981;">(a tiempo)</small>`;
+                            }
+                        }
+
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td data-label="EMPLEADO"><b>${u.name}</b><br><small>${u.email}</small></td>
                             <td data-label="ESTADO">${estadoHtml}</td>
-                            <td data-label="ENTRADA">${u.entrada ? u.entrada.split(' ')[1] : '-'}</td>
-                            <td data-label="REFRIGERIO">${u.inicio_refrigerio ? u.inicio_refrigerio.split(' ')[1] : '-'} / ${u.fin_refrigerio ? u.fin_refrigerio.split(' ')[1] : '-'}</td>
-                            <td data-label="SALIDA">${u.salida ? u.salida.split(' ')[1] : '-'}</td>
+                            <td data-label="ENTRADA">${entradaHtml}</td>
+                            <td data-label="REFRIGERIO">${u.inicio_refrigerio ? u.inicio_refrigerio.split(' ')[1].substring(0, 5) : '-'} / ${u.fin_refrigerio ? u.fin_refrigerio.split(' ')[1].substring(0, 5) : '-'}</td>
+                            <td data-label="SALIDA">${u.salida ? u.salida.split(' ')[1].substring(0, 5) : '-'}</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -987,7 +1627,37 @@ try {
             }
 
             const args = decodeArgs(data.args);
-            const credential = await navigator.credentials.create(args);
+
+            // Limpiar parámetros incompatibles con Google Credential Manager (Android)
+            if (args.publicKey) {
+                // Eliminar extensiones no estándar que Android rechaza
+                if (args.publicKey.extensions) {
+                    delete args.publicKey.extensions;
+                }
+                // Forzar autenticador de plataforma (huella/FaceID del dispositivo)
+                if (!args.publicKey.authenticatorSelection) {
+                    args.publicKey.authenticatorSelection = {};
+                }
+                args.publicKey.authenticatorSelection.authenticatorAttachment = 'platform';
+                args.publicKey.authenticatorSelection.userVerification = 'preferred';
+                // 'discouraged' evita que Google Credential Manager intercepte y muestre el menú de NFC/USB/passkey
+                args.publicKey.authenticatorSelection.residentKey = 'discouraged';
+                args.publicKey.authenticatorSelection.requireResidentKey = false;
+                // Asegurar attestation none (máxima compatibilidad)
+                args.publicKey.attestation = 'none';
+            }
+
+            let credential;
+            try {
+                credential = await navigator.credentials.create(args);
+            } catch (firstErr) {
+                console.warn('Primer intento falló, reintentando sin restricción de plataforma:', firstErr.message);
+                // Reintentar sin authenticatorAttachment (algunos dispositivos antiguos lo rechazan)
+                if (args.publicKey && args.publicKey.authenticatorSelection) {
+                    delete args.publicKey.authenticatorSelection.authenticatorAttachment;
+                }
+                credential = await navigator.credentials.create(args);
+            }
 
             const registerData = new URLSearchParams();
             registerData.append('action', 'process_register');
@@ -1007,8 +1677,12 @@ try {
                 alert(verifyData.error || 'Fallo el registro biométrico.');
             }
         } catch (e) {
-            console.error(e);
-            if (e.name !== 'NotAllowedError') {
+            console.error('Error biométrico:', e);
+            if (e.name === 'NotAllowedError') {
+                // El usuario canceló, no mostrar nada
+            } else if (e.name === 'NotReadableError') {
+                alert('Tu dispositivo no pudo completar el registro. Intenta:\n\n1. Reiniciar el navegador Chrome\n2. Verificar que tienes huella/PIN configurado en Ajustes\n3. Actualizar Google Play Services');
+            } else {
                 alert('Error al registrar huella: ' + e.message);
             }
         }

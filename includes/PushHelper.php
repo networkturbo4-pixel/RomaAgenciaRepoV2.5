@@ -1,5 +1,9 @@
 <?php
 // includes/PushHelper.php
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+
 if (!defined('VAPID_PUBLIC_KEY')) {
     define('VAPID_PUBLIC_KEY', 'BAhu9ZcA2cypGC--dbgdXicyU_K4cvZUdRhP4nQ7Y4t8M2LN156sVAWKg1swXA6KIyjBZvZkeIKqTZxxNpdNksI');
     define('VAPID_PRIVATE_KEY', 'QaRTxhVHLghTyAGwSw63Bw3sYMqPRpZi8wmvAqR0YWA');
@@ -44,6 +48,11 @@ class PushHelper {
         ];
         
         try {
+            if (!class_exists('Minishlink\WebPush\WebPush') || !class_exists('Minishlink\WebPush\Subscription')) {
+                error_log("Push Notice: Minishlink\\WebPush classes not available.");
+                return;
+            }
+
             $webPush = new Minishlink\WebPush\WebPush($auth);
             
             $payloadData = [
@@ -75,7 +84,7 @@ class PushHelper {
                     $db->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")->execute([$report->getEndpoint()]);
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("Push Error: " . $e->getMessage());
         }
     }

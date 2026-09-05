@@ -1,7 +1,7 @@
 <?php
 // ajax_delete_public_comment.php
 header('Content-Type: application/json');
-require_once 'config/database.php';
+require_once __DIR__ . '/config/database.php';
 
 try {
     $db = (new Database())->getConnection();
@@ -16,6 +16,6 @@ try {
     $stmt->execute([$id]);
 
     echo json_encode(['success' => true]);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

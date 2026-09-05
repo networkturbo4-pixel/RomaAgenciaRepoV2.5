@@ -8,6 +8,132 @@ require_once 'includes/header.php';
         echo file_get_contents($css_path); 
     }
 ?>
+/* BioLink App-Style Redesign */
+.biolink-card {
+    background: var(--bg-card, #ffffff);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.biolink-card:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+}
+.biolink-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border-radius: 12px;
+    border: 1.5px solid var(--border-color, #e5e7eb);
+    background: var(--bg-body, #f9fafb);
+    color: var(--text-main, #111827);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.25s ease;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    outline: none;
+}
+.biolink-input:focus {
+    border-color: var(--primary-color, #4f46e5);
+    background: var(--bg-card, #ffffff);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+.biolink-input-group {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-body, #f9fafb);
+    transition: all 0.25s ease;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+}
+.biolink-input-group:focus-within {
+    border-color: var(--primary-color, #4f46e5);
+    background: var(--bg-card, #ffffff);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+.biolink-input-group span {
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+    color: var(--text-muted, #6b7280);
+    border-right: 1px solid var(--border-color, #e5e7eb);
+    background: var(--bg-surface, #f3f4f6);
+}
+.biolink-input-group input {
+    flex: 1;
+    border: none;
+    padding: 0.875rem 1rem;
+    background: transparent;
+    color: var(--text-main, #111827);
+    font-size: 0.95rem;
+    outline: none;
+    box-shadow: none;
+}
+.biolink-textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border-radius: 12px;
+    border: 1.5px solid var(--border-color, #e5e7eb);
+    background: var(--bg-body, #f9fafb);
+    color: var(--text-main, #111827);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.25s ease;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    outline: none;
+    min-height: 100px;
+    resize: vertical;
+}
+.biolink-textarea:focus {
+    border-color: var(--primary-color, #4f46e5);
+    background: var(--bg-card, #ffffff);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+/* Fix: no transform animations on linktree tab */
+@keyframes fadeInOnly {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.herr-tab-content[data-tool-content="linktree"].active {
+    animation: fadeInOnly 0.3s ease;
+}
+/* BioLink Editor Layout: left scrolls, right fixed */
+.biolink-editor-layout {
+    display: flex;
+    gap: 2rem;
+    height: calc(100vh - 180px);
+    min-height: 500px;
+    padding: 1rem 0;
+}
+.biolink-editor-left {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-right: 0.5rem;
+    min-width: 0;
+}
+.biolink-editor-left::-webkit-scrollbar {
+    width: 5px;
+}
+.biolink-editor-left::-webkit-scrollbar-track {
+    background: transparent;
+}
+.biolink-editor-left::-webkit-scrollbar-thumb {
+    background: var(--border-color, #e5e7eb);
+    border-radius: 999px;
+}
+.biolink-editor-left::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted, #9ca3af);
+}
+.biolink-editor-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
 </style>
 
 <!-- Module Header -->
@@ -561,44 +687,44 @@ require_once 'includes/header.php';
                 </div>
             </div>
 
-            <div style="display:flex;gap:3rem; padding: 1rem 0;">
-                <div style="flex:1; display:flex; flex-direction:column; gap:1.5rem;">
+            <div class="biolink-editor-layout">
+                <div class="biolink-editor-left">
                     <!-- Campos del perfil -->
-                    <div style="background:var(--bg-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                    <div class="biolink-card">
                         <h4 style="margin-bottom:1.5rem;font-weight:700;font-size:1.1rem;color:var(--text-main);"><i class="ph ph-user-circle"></i> Información Básica</h4>
                         <input type="hidden" id="lt_id" value="">
                         
                         <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
                             <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Slug (URL Corta) *</label>
-                            <div style="display:flex;align-items:center; border: 1px solid var(--border-color); border-radius: 8px; overflow:hidden; focus-within: border-color:var(--primary-color);">
-                                <span style="background:var(--bg-body);padding:0.75rem 1rem;font-size:0.9rem;color:var(--text-muted);border-right:1px solid var(--border-color)">/l/</span>
-                                <input type="text" id="lt_slug" class="qr-field-input" style="border:none; border-radius:0; padding:0.75rem; box-shadow:none;" placeholder="mi-marca">
+                            <div class="biolink-input-group">
+                                <span>/l/</span>
+                                <input type="text" id="lt_slug" placeholder="mi-marca">
                             </div>
                         </div>
 
                         <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
                             <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Título *</label>
-                            <input type="text" id="lt_title" class="qr-field-input" style="padding:0.75rem; border-radius:8px;" placeholder="Nombre de la Marca">
+                            <input type="text" id="lt_title" class="biolink-input" placeholder="Nombre de la Marca">
                         </div>
 
                         <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
                             <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Biografía</label>
-                            <textarea id="lt_bio" class="qr-field-textarea" style="padding:0.75rem; border-radius:8px; min-height:80px;" placeholder="Descripción corta..."></textarea>
+                            <textarea id="lt_bio" class="biolink-textarea" placeholder="Descripción corta..."></textarea>
                         </div>
 
                         <div style="display:flex; flex-direction:column; gap:0.5rem;">
                             <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Imagen de Perfil</label>
-                            <input type="file" id="lt_image" class="qr-file-input" style="padding:0.5rem; border:1px dashed var(--border-color); border-radius:8px; background:var(--bg-body);" accept="image/*">
+                            <input type="file" id="lt_image" class="biolink-input" style="padding:0.5rem; border:1.5px dashed var(--border-color); cursor:pointer;" accept="image/*">
                         </div>
                     </div>
 
                     <!-- Personalización -->
-                    <div style="background:var(--bg-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                    <div class="biolink-card">
                         <h4 style="margin-bottom:1.5rem;font-weight:700;font-size:1.1rem;color:var(--text-main);"><i class="ph ph-paint-brush"></i> Tema y Diseño</h4>
                         
                         <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-                            <label style="font-size:0.85rem; font-weight:500;">Tema Predefinido</label>
-                            <select id="lt_theme_preset" class="qr-field-select" style="padding:0.75rem; border-radius:8px;" onchange="linktreeApplyTheme(this.value)">
+                            <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted)">Tema Predefinido</label>
+                            <select id="lt_theme_preset" class="biolink-input" onchange="linktreeApplyTheme(this.value)">
                                 <option value="custom">Personalizado</option>
                                 <option value="cyberpunk">Neón Oscuro (Cyberpunk)</option>
                                 <option value="minimal">Minimalista Blanco</option>
@@ -609,8 +735,8 @@ require_once 'includes/header.php';
 
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
                             <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:500;">Tipografía</label>
-                                <select id="lt_font_family" class="qr-field-select" style="padding:0.75rem; border-radius:8px;">
+                                <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted)">Tipografía</label>
+                                <select id="lt_font_family" class="biolink-input">
                                     <option value="Inter">Inter (Moderna)</option>
                                     <option value="Roboto">Roboto (Clásica)</option>
                                     <option value="Playfair Display">Playfair (Elegante)</option>
@@ -619,8 +745,8 @@ require_once 'includes/header.php';
                                 </select>
                             </div>
                             <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:500;">Formato del Botón</label>
-                                <select id="lt_btn_style" class="qr-field-select" style="padding:0.75rem; border-radius:8px;">
+                                <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted)">Formato del Botón</label>
+                                <select id="lt_btn_style" class="biolink-input">
                                     <option value="rounded-md">Redondeado (Suave)</option>
                                     <option value="rounded-full">Píldora (Redondo total)</option>
                                     <option value="rounded-none">Cuadrado</option>
@@ -669,18 +795,18 @@ require_once 'includes/header.php';
                     </div>
 
                     <!-- Enlaces -->
-                    <div style="background:var(--bg-card); padding:1.5rem; border-radius:16px; border:1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                    <div class="biolink-card">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
                             <h4 style="font-weight:700;font-size:1.1rem;color:var(--text-main);margin:0;"><i class="ph ph-squares-four"></i> Contenido / Bloques</h4>
                         </div>
                         <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap;">
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:0.85rem; border-radius:8px;" onclick="linktreeAddLink('link')"><i class="ph ph-link"></i> Enlace</button>
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:0.85rem; border-radius:8px;" onclick="linktreeAddLink('whatsapp')"><i class="ph ph-whatsapp-logo"></i> WhatsApp</button>
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:0.85rem; border-radius:8px;" onclick="linktreeAddLink('youtube')"><i class="ph ph-youtube-logo"></i> YouTube</button>
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:0.85rem; border-radius:8px;" onclick="linktreeAddLink('spotify')"><i class="ph ph-spotify-logo"></i> Spotify</button>
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:0.85rem; border-radius:8px;" onclick="linktreeAddLink('map')"><i class="ph ph-map-pin"></i> Mapa</button>
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:0.85rem; border-radius:8px;" onclick="linktreeAddLink('text')"><i class="ph ph-text-t"></i> Título</button>
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:0.85rem; border-radius:8px;" onclick="linktreeAddLink('faq')"><i class="ph ph-question"></i> FAQ</button>
+                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('link')"><i class="ph ph-link"></i> Enlace</button>
+                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('whatsapp')"><i class="ph ph-whatsapp-logo"></i> WhatsApp</button>
+                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('youtube')"><i class="ph ph-youtube-logo"></i> YouTube</button>
+                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('spotify')"><i class="ph ph-spotify-logo"></i> Spotify</button>
+                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('map')"><i class="ph ph-map-pin"></i> Mapa</button>
+                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('text')"><i class="ph ph-text-t"></i> Título</button>
+                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('faq')"><i class="ph ph-question"></i> FAQ</button>
                         </div>
                         
                         <div id="lt_links_container" style="display:flex; flex-direction:column; gap:0.75rem;">
@@ -690,7 +816,7 @@ require_once 'includes/header.php';
                 </div>
 
                 <!-- Preview (Mockup de celular) -->
-                <div style="position:relative; margin: 0 auto;">
+                <div class="biolink-editor-right" id="lt_preview_wrapper">
                     <div style="width:340px; border: 12px solid #1f2937; border-radius: 2.5rem; height: 700px; overflow:hidden; position:relative; background:#f4f4f5; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), inset 0 0 0 2px #374151;" id="lt_preview_box">
                         <!-- Notch -->
                         <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:24px; background:#1f2937; border-bottom-left-radius:16px; border-bottom-right-radius:16px; z-index:10;"></div>

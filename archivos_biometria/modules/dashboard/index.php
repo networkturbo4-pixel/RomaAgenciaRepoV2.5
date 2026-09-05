@@ -419,7 +419,32 @@ $recent_activity = array_slice($recent_activity, 0, 7);
             }
 
             const args = decodeArgs(data.args);
-            const credential = await navigator.credentials.create(args);
+
+            // Limpiar parámetros incompatibles con Google Credential Manager (Android)
+            if (args.publicKey) {
+                if (args.publicKey.extensions) {
+                    delete args.publicKey.extensions;
+                }
+                if (!args.publicKey.authenticatorSelection) {
+                    args.publicKey.authenticatorSelection = {};
+                }
+                args.publicKey.authenticatorSelection.authenticatorAttachment = 'platform';
+                args.publicKey.authenticatorSelection.userVerification = 'preferred';
+                args.publicKey.authenticatorSelection.residentKey = 'discouraged';
+                args.publicKey.authenticatorSelection.requireResidentKey = false;
+                args.publicKey.attestation = 'none';
+            }
+
+            let credential;
+            try {
+                credential = await navigator.credentials.create(args);
+            } catch (firstErr) {
+                console.warn('Primer intento falló, reintentando sin restricción de plataforma:', firstErr.message);
+                if (args.publicKey && args.publicKey.authenticatorSelection) {
+                    delete args.publicKey.authenticatorSelection.authenticatorAttachment;
+                }
+                credential = await navigator.credentials.create(args);
+            }
 
             const registerData = new URLSearchParams();
             registerData.append('action', 'process_register');
@@ -439,8 +464,12 @@ $recent_activity = array_slice($recent_activity, 0, 7);
                 alert(verifyData.error || 'Fallo el registro biométrico.');
             }
         } catch (e) {
-            console.error(e);
-            if (e.name !== 'NotAllowedError') {
+            console.error('Error biométrico:', e);
+            if (e.name === 'NotAllowedError') {
+                // El usuario canceló
+            } else if (e.name === 'NotReadableError') {
+                alert('Tu dispositivo no pudo completar el registro. Intenta:\n\n1. Reiniciar el navegador Chrome\n2. Verificar que tienes huella/PIN configurado en Ajustes\n3. Actualizar Google Play Services');
+            } else {
                 alert('Error al registrar huella: ' + e.message);
             }
         }

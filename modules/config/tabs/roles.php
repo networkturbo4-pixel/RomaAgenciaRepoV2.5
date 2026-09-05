@@ -95,10 +95,9 @@ foreach($roles_raw as $row) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                         <?php 
                         $all_modules = [
-                            'dashboard' => 'Dashboard', 'clients' => 'Clientes', 'services' => 'Servicios', 'work_orders' => 'Órdenes de Servicio',
-                            'calendar' => 'Calendario', 'reuniones' => 'Reuniones', 'month_board' => 'Board Mensual', 'project_board' => 'Board de Proyectos',
-                            'projects' => 'Proyectos', 'quotes' => 'Cotizaciones', 'mensajes' => 'Mensajes', 'pizarras' => 'Pizarras',
-                            'forms' => 'Formularios', 'contracts' => 'Contratos', 'community' => 'Community', 'client_portal' => 'Portal de Cliente',
+                            'dashboard' => 'Dashboard', 'workspace' => 'Workspace', 'desarrollo_marca' => 'Desarrollo de Marca', 'clients' => 'Clientes', 'services' => 'Servicios', 'work_orders' => 'Órdenes de Servicio',
+                            'calendar' => 'Calendario', 'reuniones' => 'Reuniones', 'quotes' => 'Cotizaciones', 'mensajes' => 'Mensajes', 'pizarras' => 'Pizarras',
+                            'forms' => 'Formularios', 'contracts' => 'Contratos', 'romita' => 'Romita IA', 'client_portal' => 'Portal de Cliente',
                             'conexiones' => 'Conexiones', 'admin' => 'Administración', 'config' => 'Configuración', 'herramientas' => 'Herramientas'
                         ];
                         foreach($all_modules as $mod_key => $mod_name):

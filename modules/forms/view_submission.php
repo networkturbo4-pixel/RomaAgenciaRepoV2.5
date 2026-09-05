@@ -1,7 +1,9 @@
 <?php
-// modules/forms/view_submission.php — Public view of a filled brief (same design as PDF)
-require_once '../../config/database.php';
-$db = (new Database())->getConnection();
+// modules/forms/view_submission.php — Modern Public View of a submitted brief
+if (!isset($db)) {
+    require_once __DIR__ . '/../../config/database.php';
+    $db = (new Database())->getConnection();
+}
 
 $correlativo = $_GET['ref'] ?? '';
 $id = $_GET['id'] ?? '';
@@ -28,12 +30,11 @@ if (!$sub) { die("Brief no encontrado."); }
 $fields = json_decode($sub['fields_json'] ?: '[]', true);
 $data = json_decode($sub['data_json'] ?: '{}', true);
 $settings = json_decode($sub['settings_json'] ?: '{}', true);
-$brandColor = $global_settings['primary_color'] ?? '#03624c';
+$brandColor = $global_settings['primary_color'] ?? '#4f46e5';
 $siteName = $global_settings['site_name'] ?? 'Roma Agencia';
 $logoUrl = $global_settings['logo_light'] ?? '';
 $dateFormatted = date('d \d\e F \d\e Y, H:i', strtotime($sub['created_at']));
 
-// Spanish month names
 $meses_en = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 $meses_es = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 $dateFormatted = str_replace($meses_en, $meses_es, $dateFormatted);
@@ -44,97 +45,275 @@ $dateFormatted = str_replace($meses_en, $meses_es, $dateFormatted);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo htmlspecialchars($sub['correlativo']); ?> — <?php echo htmlspecialchars($sub['form_title']); ?></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
-.brief-page{max-width:780px;margin:0 auto;padding:0 1rem 3rem}
+:root {
+    --primary-color: <?php echo $brandColor; ?>;
+    --primary-light: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --text-title: #0f172a;
+    --text-body: #334155;
+    --text-muted: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-page: #09090b;
+        --bg-card: #18181b;
+        --border-color: #27272a;
+        --text-title: #f8fafc;
+        --text-body: #e2e8f0;
+        --text-muted: #94a3b8;
+    }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-body);
+    min-height: 100vh;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+.brief-page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 4rem;
+}
 
 /* Header Banner */
-.brief-header{background:linear-gradient(135deg,<?php echo $brandColor; ?>,#065f46);padding:48px 40px 40px;color:white;position:relative;overflow:hidden;border-radius:0 0 24px 24px;margin-bottom:2rem}
-.brief-header::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%}
-.brief-header::after{content:'';position:absolute;bottom:-60px;right:100px;width:140px;height:140px;background:rgba(255,255,255,.04);border-radius:50%}
-.brief-header img{height:32px;margin-bottom:16px;filter:brightness(0) invert(1)}
-.brief-header h1{font-size:1.8rem;font-weight:800;margin-bottom:6px;letter-spacing:-.5px;position:relative;z-index:1}
-.brief-header p{font-size:.95rem;opacity:.8;font-weight:400;position:relative;z-index:1}
+.brief-header {
+    background: linear-gradient(135deg, var(--primary-color), color-mix(in srgb, var(--primary-color) 70%, black));
+    padding: 2.5rem 2rem;
+    color: #ffffff;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
 
-/* Info Cards */
-.info-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:1.5rem}
-.info-card{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:18px 20px;transition:transform .15s,box-shadow .15s}
-.info-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.06)}
-.info-card-label{font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px}
-.info-card-value{font-size:1rem;font-weight:700;color:#1e293b}
-.info-card-value.accent{color:<?php echo $brandColor; ?>;font-size:1.15rem}
+.brief-header img {
+    height: 32px;
+    margin-bottom: 1rem;
+    filter: brightness(0) invert(1);
+    display: block;
+}
+
+.brief-header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+}
+
+.brief-header p {
+    font-size: 0.875rem;
+    opacity: 0.85;
+}
+
+/* Info Cards Grid */
+.info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 1.25rem;
+}
+
+.info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+}
+
+.info-card-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+}
+
+.info-card-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-title);
+}
+
+.info-card-value.accent {
+    color: var(--primary-color);
+    font-family: monospace;
+}
 
 /* Respondent Card */
-.respondent-card{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;border-radius:14px;padding:20px 24px;margin-bottom:1.5rem;display:flex;align-items:center;gap:18px}
-.respondent-avatar{width:56px;height:56px;background:<?php echo $brandColor; ?>;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.4rem;font-weight:800;flex-shrink:0;box-shadow:0 4px 12px rgba(3,98,76,.2)}
-.respondent-info h3{font-size:1.05rem;font-weight:700;color:#1e293b;margin-bottom:2px}
-.respondent-info p{font-size:.85rem;color:#64748b}
+.respondent-card {
+    background: var(--primary-light);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 20%, transparent);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.respondent-avatar {
+    width: 46px;
+    height: 46px;
+    background: var(--primary-color);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.respondent-info h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-title);
+    margin-bottom: 2px;
+}
+
+.respondent-info p {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
 
 /* Fields Table */
-.fields-card{background:white;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:1.5rem}
-.fields-section-header{background:<?php echo $brandColor; ?>;color:white;padding:12px 24px;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:8px}
-.fields-section-header i{font-size:1rem}
-.field-row{display:flex;border-bottom:1px solid #f1f5f9;transition:background .15s}
-.field-row:last-child{border-bottom:none}
-.field-row:hover{background:#f8fafc}
-.field-label{width:38%;padding:14px 24px;font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;line-height:1.7;display:flex;align-items:flex-start;gap:4px}
-.field-label .req{color:#ef4444;font-size:.8rem}
-.field-value{width:62%;padding:14px 24px;font-size:.9rem;color:#1e293b;line-height:1.7;word-break:break-word}
-.field-value a{color:<?php echo $brandColor; ?>;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.field-value a:hover{text-decoration:underline}
-.field-value.empty{color:#cbd5e1;font-style:italic}
-.field-divider{background:<?php echo $brandColor; ?>;color:white;padding:11px 24px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
-.field-row-alt{background:#f8fafc}
+.fields-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
 
-/* Status Badge */
-.status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.status-nuevo{background:rgba(59,130,246,.1);color:#2563eb}
-.status-revisado{background:rgba(16,185,129,.1);color:#059669}
-.status-archivado{background:rgba(100,116,139,.1);color:#64748b}
+.fields-section-header {
+    background: var(--primary-color);
+    color: #ffffff;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 
-/* Footer */
-.brief-footer{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-top:1px solid #e2e8f0;font-size:.75rem;color:#94a3b8}
-.brief-footer a{color:<?php echo $brandColor; ?>;text-decoration:none;font-weight:600}
+.field-row {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.field-row:last-child {
+    border-bottom: none;
+}
+
+.field-label {
+    width: 36%;
+    padding: 0.9rem 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    line-height: 1.5;
+}
+
+.field-value {
+    width: 64%;
+    padding: 0.9rem 1.25rem;
+    font-size: 0.875rem;
+    color: var(--text-title);
+    line-height: 1.5;
+    word-break: break-word;
+    font-weight: 500;
+}
+
+.field-divider {
+    background: var(--primary-color);
+    color: #ffffff;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
 
 /* Print Button */
-.print-btn{position:fixed;bottom:24px;right:24px;background:<?php echo $brandColor; ?>;color:white;border:none;padding:14px 24px;border-radius:14px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(3,98,76,.25);transition:all .2s;z-index:10}
-.print-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(3,98,76,.35)}
-
-@media print{
-    body{background:white}
-    .brief-header{border-radius:0;margin-bottom:1rem}
-    .print-btn{display:none!important}
-    .info-card:hover,.field-row:hover{transform:none;box-shadow:none;background:inherit}
-    @page{margin:0;size:A4}
+.print-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+    z-index: 10;
 }
-@media(max-width:600px){
-    .brief-header{padding:32px 24px 28px;border-radius:0 0 16px 16px}
-    .brief-header h1{font-size:1.4rem}
-    .field-label,.field-value{padding:10px 16px}
-    .field-label{width:100%;padding-bottom:0}
-    .field-value{width:100%}
-    .field-row{flex-direction:column}
-    .info-cards{grid-template-columns:1fr 1fr}
-    .respondent-card{padding:16px}
+
+.print-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+}
+
+.brief-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+@media print {
+    body { background: #ffffff !important; }
+    .print-btn { display: none !important; }
+    @page { margin: 0; size: A4; }
+}
+
+@media (max-width: 600px) {
+    .field-row { flex-direction: column; }
+    .field-label, .field-value { width: 100%; padding: 0.6rem 1rem; }
+    .field-label { padding-bottom: 0; }
 }
 </style>
 </head>
 <body>
 
 <div class="brief-page">
-    <!-- Header -->
     <div class="brief-header">
         <?php if(!empty($logoUrl)): ?>
         <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="Logo">
         <?php endif; ?>
         <h1><?php echo htmlspecialchars($sub['form_title']); ?></h1>
-        <p>Brief de servicio</p>
+        <p>Brief de servicio registrado</p>
     </div>
 
-    <!-- Info Cards -->
     <div class="info-cards">
         <div class="info-card">
             <div class="info-card-label">Correlativo</div>
@@ -150,11 +329,10 @@ body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b;min-height:
         </div>
         <div class="info-card">
             <div class="info-card-label">Estado</div>
-            <div class="info-card-value"><span class="status-badge status-<?php echo $sub['status']; ?>"><?php echo ucfirst($sub['status']); ?></span></div>
+            <div class="info-card-value"><?php echo ucfirst($sub['status']); ?></div>
         </div>
     </div>
 
-    <!-- Respondent -->
     <?php if(!empty($sub['respondent_name']) || !empty($sub['respondent_email'])): ?>
     <div class="respondent-card">
         <div class="respondent-avatar"><?php echo strtoupper(mb_substr($sub['respondent_name'] ?: '?', 0, 1)); ?></div>
@@ -165,9 +343,10 @@ body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b;min-height:
     </div>
     <?php endif; ?>
 
-    <!-- Fields -->
     <div class="fields-card">
-        <div class="fields-section-header"><i class="ph ph-clipboard-text"></i> Respuestas del Brief</div>
+        <div class="fields-section-header">
+            <i class="ph-bold ph-clipboard-text"></i> Respuestas del Brief
+        </div>
         <?php 
         $rowIdx = 0;
         foreach($fields as $f): 
@@ -184,12 +363,11 @@ body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b;min-height:
             $driveUrl = $data[$key . '_drive_url'] ?? $data['file_' . $f['id'] . '_drive_url'] ?? '';
             $fileName = $data[$key . '_file_name'] ?? $data['file_' . $f['id'] . '_file_name'] ?? '';
         ?>
-        <div class="field-row <?php echo $rowIdx % 2 !== 0 ? 'field-row-alt' : ''; ?>">
+        <div class="field-row">
             <div class="field-label">
                 <?php echo htmlspecialchars($f['label']); ?>
-                <?php if(!empty($f['required'])): ?><span class="req">*</span><?php endif; ?>
             </div>
-            <div class="field-value <?php echo empty($val) && empty($driveUrl) ? 'empty' : ''; ?>">
+            <div class="field-value">
                 <?php if($f['type'] === 'file' && !empty($driveUrl)): ?>
                     <?php 
                         $urls = is_array($driveUrl) ? $driveUrl : [$driveUrl];
@@ -197,30 +375,29 @@ body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b;min-height:
                         foreach($urls as $idx => $url):
                             $fn = $names[$idx] ?? 'Ver archivo';
                     ?>
-                        <a href="<?php echo htmlspecialchars($url); ?>" target="_blank" style="display:inline-flex; align-items:center; gap:6px; margin-bottom:4px; margin-right:12px; background:rgba(3,98,76,0.05); padding:6px 12px; border-radius:8px; border:1px solid rgba(3,98,76,0.1);">
-                            <i class="ph-fill ph-file-pdf" style="color:#ef4444; font-size:1.1rem;"></i> 
+                        <a href="<?php echo htmlspecialchars($url); ?>" target="_blank" style="color: var(--primary-color); font-weight:600; display:inline-flex; align-items:center; gap:6px; margin:2px 8px 2px 0; background:var(--primary-light); padding:6px 10px; border-radius:8px; text-decoration:none;">
+                            <i class="ph-bold ph-paperclip"></i> 
                             <?php echo htmlspecialchars($fn); ?>
                         </a>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <?php echo htmlspecialchars($val ?: 'Sin respuesta'); ?>
+                    <?php echo htmlspecialchars($val ?: '—'); ?>
                 <?php endif; ?>
             </div>
         </div>
         <?php $rowIdx++; endforeach; ?>
     </div>
 
-    <!-- Footer -->
     <div class="brief-footer">
-        <div>Generado por <?php echo htmlspecialchars($siteName); ?> • Documento confidencial</div>
+        <div>Generado por <?php echo htmlspecialchars($siteName); ?></div>
         <div><?php echo date('Y'); ?></div>
     </div>
 </div>
 
-<!-- Print/Download Button -->
 <button class="print-btn" onclick="window.print()">
-    <i class="ph ph-printer"></i> Imprimir / PDF
+    <i class="ph-bold ph-printer"></i> Imprimir / Guardar PDF
 </button>
 
 </body>
 </html>
+

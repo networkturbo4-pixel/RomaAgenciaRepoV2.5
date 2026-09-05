@@ -21,6 +21,11 @@ try {
     $month = isset($_POST['month']) ? (int)$_POST['month'] : 0;
     $year = isset($_POST['year']) ? (int)$_POST['year'] : 0;
     $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
+    $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : null;
+
+    if (!$due_date && $year && $month) {
+        $due_date = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $year, $month)));
+    }
     
     $folder_references = isset($_POST['folder_references']) ? $_POST['folder_references'] : null;
     $folder_editables = isset($_POST['folder_editables']) ? $_POST['folder_editables'] : null;
@@ -55,10 +60,10 @@ try {
     // Insert new month
     $stmtInsert = $db->prepare("
         INSERT INTO project_months 
-        (project_id, month, year, start_date, folder_references, folder_editables, folder_finals, status, drive_folder_id, drive_folder_link, drive_folders_json) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'pendiente', ?, ?, ?)
+        (project_id, month, year, start_date, due_date, folder_references, folder_editables, folder_finals, status, drive_folder_id, drive_folder_link, drive_folders_json) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?, ?, ?)
     ");
-    $stmtInsert->execute([$project_id, $month, $year, $start_date, $folder_references, $folder_editables, $folder_finals, $driveFolderId, $driveFolderLink, $drive_folders_json]);
+    $stmtInsert->execute([$project_id, $month, $year, $start_date, $due_date, $folder_references, $folder_editables, $folder_finals, $driveFolderId, $driveFolderLink, $drive_folders_json]);
 
     echo json_encode(['success' => true]);
 

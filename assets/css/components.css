@@ -624,3 +624,277 @@ input:-webkit-autofill:active {
     }
 }
 
+/* ==========================================================================
+   SweetAlert2 Modern Design System Integration (Light & Dark Theme)
+   ========================================================================== */
+.swal2-popup {
+    background: var(--bg-surface) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--border-color) !important;
+    font-family: var(--font-family, 'Inter', sans-serif) !important;
+    padding: 1.75rem !important;
+}
+
+.swal2-popup.swal2-zero-pad {
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 28px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-surface) !important;
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.swal2-popup.swal2-zero-pad .swal2-html-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    color: inherit !important;
+    overflow: visible !important;
+}
+
+.app-modal-actions {
+    display: none !important;
+}
+
+.app-modal-dialog {
+    text-align: left;
+    background: var(--bg-surface);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.app-modal-header {
+    padding: 1.5rem 2rem 1.25rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-surface);
+}
+
+.app-modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.app-modal-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary-color) 15%, transparent);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.app-modal-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.app-modal-titles span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+}
+
+.app-modal-titles h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.app-close-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.app-close-circle:hover {
+    background: var(--border-color);
+    color: var(--text-main);
+    transform: rotate(90deg);
+}
+
+.app-modal-body {
+    padding: 1.75rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.app-modal-footer {
+    padding: 1.25rem 2rem;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-app-cancel {
+    background: var(--bg-color);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 0.65rem 1.4rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-app-cancel:hover {
+    background: var(--border-color);
+    color: var(--text-main);
+}
+
+.btn-app-submit {
+    background: var(--secondary-color, #10b981);
+    color: #ffffff;
+    border: none;
+    padding: 0.65rem 1.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--secondary-color, #10b981) 40%, transparent);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-app-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--secondary-color, #10b981) 55%, transparent);
+    filter: brightness(1.08);
+}
+
+/* ==========================================================================
+   Tagify Dark Mode & Contrast Overrides
+   ========================================================================== */
+.tagify {
+    --tags-border-color: var(--border-color, rgba(255, 255, 255, 0.1)) !important;
+    --tags-hover-border-color: var(--primary-color, #6366f1) !important;
+    --tags-focus-border-color: var(--primary-color, #6366f1) !important;
+    background: var(--bg-color, #0a0a0a) !important;
+    color: var(--text-main, #fff) !important;
+    border-radius: 14px !important;
+    padding: 0.35rem 0.65rem !important;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)) !important;
+    box-sizing: border-box !important;
+}
+
+.tagify__tag {
+    margin: 2px !important;
+    background: transparent !important;
+}
+
+.tagify__tag > div {
+    border-radius: 8px !important;
+    padding: 0.3rem 0.65rem !important;
+    background: var(--tag-bg, rgba(99, 102, 241, 0.2)) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--tag-border, rgba(99, 102, 241, 0.4)) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+.tagify__tag > div::before {
+    display: none !important;
+}
+
+.tagify__tag-text {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.2px !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6) !important;
+}
+
+.tagify__tag__removeBtn {
+    color: #ffffff !important;
+    opacity: 0.75 !important;
+    margin-left: 6px !important;
+    font-size: 0.95rem !important;
+}
+.tagify__tag__removeBtn:hover {
+    opacity: 1 !important;
+    color: #ef4444 !important;
+    background: transparent !important;
+}
+
+.tagify__input {
+    color: var(--text-main, #ffffff) !important;
+    font-size: 0.9rem !important;
+}
+.tagify__input::before {
+    color: var(--text-muted, #9ca3af) !important;
+    opacity: 0.6 !important;
+}
+
+/* Tagify Dropdown Box & Inner Wrapper */
+.tagify__dropdown {
+    background: var(--bg-surface, #1e1e1e) !important;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12)) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6) !important;
+    overflow: hidden !important;
+    z-index: 999999 !important;
+}
+
+.tagify__dropdown__wrapper {
+    background: var(--bg-surface, #1e1e1e) !important;
+    border: none !important;
+    padding: 0.4rem !important;
+    box-shadow: none !important;
+}
+
+.tagify__dropdown__item {
+    color: var(--text-main, #ffffff) !important;
+    background: transparent !important;
+    padding: 0.65rem 0.95rem !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    margin: 2px 0 !important;
+    transition: all 0.15s ease !important;
+    cursor: pointer !important;
+}
+
+.tagify__dropdown__item:hover,
+.tagify__dropdown__item--active {
+    background: var(--primary-color, #6366f1) !important;
+    color: #ffffff !important;
+}
+
+.tagify__dropdown__item--hidden {
+    display: none !important;
+}
+
+
+

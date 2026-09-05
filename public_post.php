@@ -120,13 +120,27 @@ function renderMedia($urlStr) {
         elseif (preg_match('/\.(mp4|webm|mov)(\?.*)?$/i', $url)) {
             return '<video controls style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 12px; background: #000;"><source src="'.htmlspecialchars($url).'" type="video/mp4"></video>';
         }
-        // TikTok with video ID
-        elseif (preg_match('/tiktok\.com\/@[\w.]+\/video\/(\d+)/', $url, $tkMatch)) {
+        // TikTok with numeric video ID
+        elseif (preg_match('/tiktok\.com\/(?:@[^\/]+\/video\/|v\/|embed\/v2\/|embed\/)?(\d{15,25})/i', $url, $tkMatch)) {
             return '<div style="width:100%;max-width:320px;margin:0 auto;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:#000;"><iframe width="100%" height="100%" src="https://www.tiktok.com/embed/v2/'.$tkMatch[1].'" frameborder="0" allowfullscreen style="border:none;"></iframe></div>';
         }
-        // TikTok (any other tiktok URL)
+        // TikTok general/short URL (CSP blocks direct iframes, show interactive card)
         elseif (preg_match('/tiktok\.com/i', $url)) {
-            return '<div style="width:100%;max-width:320px;margin:0 auto;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:#000;"><iframe width="100%" height="100%" src="'.htmlspecialchars($url).'" frameborder="0" allowfullscreen style="border:none;"></iframe></div>';
+            $short = mb_strlen($url) > 55 ? mb_substr($url, 0, 52).'…' : $url;
+            return '
+            <div style="background:linear-gradient(135deg,#050b0f,#0d161d,#050b0f);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem;border:1px solid rgba(105,201,208,0.25);position:relative;overflow:hidden;min-height:220px;">
+                <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(105,201,208,0.12),transparent 70%);pointer-events:none;"></div>
+                <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(105,201,208,0.15);border:1px solid rgba(105,201,208,0.3);padding:5px 14px;border-radius:30px;font-size:0.75rem;font-weight:800;letter-spacing:0.5px;color:#69c9d0;text-transform:uppercase;font-family:Inter,sans-serif;">
+                    <i class="ph ph-tiktok-logo"></i> TikTok Video
+                </div>
+                <div style="width:60px;height:60px;border-radius:50%;background:rgba(105,201,208,0.12);border:2px solid rgba(105,201,208,0.25);display:flex;align-items:center;justify-content:center;">
+                    <i class="ph ph-tiktok-logo" style="font-size:1.8rem;color:#69c9d0;"></i>
+                </div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.25);word-break:break-all;text-align:center;max-width:260px;background:rgba(255,255,255,0.04);border-radius:6px;padding:4px 8px;border:1px solid rgba(255,255,255,0.07);">'.htmlspecialchars($short).'</div>
+                <a href="'.htmlspecialchars($url).'" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#00f2fe,#fe2c55);color:#000;padding:10px 22px;border-radius:25px;text-decoration:none;font-weight:800;font-size:0.85rem;font-family:Inter,sans-serif;box-shadow:0 4px 15px rgba(0,242,254,0.35);">
+                    <i class="ph ph-play"></i> Ver en TikTok
+                </a>
+            </div>';
         }
         // Instagram — Meta blocks embeds, show social card
         elseif (preg_match('/instagram\.com\/(?:p|reel|tv)\//i', $url)) {

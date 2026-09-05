@@ -11,271 +11,334 @@ require_once 'includes/header.php';
 :root {
     --brand-primary: var(--secondary-color, #10b981);
     --brand-secondary: var(--primary-color, #6366f1);
-    --brand-bg: var(--bg-color, #f8fafc);
-    --brand-card-bg: var(--bg-surface, #ffffff);
-    --brand-text-main: var(--color-title, #0f172a);
-    --brand-text-muted: var(--color-text, #64748b);
-    --brand-border: var(--border-color, #e2e8f0);
+    --brand-bg: var(--bg-color, #09090b);
+    --brand-card-bg: var(--bg-surface, #141417);
+    --brand-text-main: var(--color-title, #f8fafc);
+    --brand-text-muted: var(--color-text, #94a3b8);
+    --brand-border: var(--border-color, rgba(255, 255, 255, 0.08));
 }
 
 [data-theme="dark"] {
-    --brand-primary: var(--secondary-color, #34d399);
-    --brand-bg: var(--bg-color, #0f172a);
-    --brand-card-bg: var(--bg-surface, #1e293b);
+    --brand-primary: var(--secondary-color, #10b981);
+    --brand-secondary: var(--primary-color, #6366f1);
+    --brand-bg: var(--bg-color, #09090b);
+    --brand-card-bg: var(--bg-surface, #141417);
     --brand-text-main: var(--color-title, #f8fafc);
     --brand-text-muted: var(--color-text, #94a3b8);
-    --brand-border: var(--border-color, #334155);
+    --brand-border: var(--border-color, rgba(255, 255, 255, 0.08));
 }
 
 .brand-container {
-    padding: var(--space-6, 1.5rem);
-    max-width: 1400px;
+    padding: 1.5rem;
+    max-width: 1440px;
     margin: 0 auto;
     font-family: var(--font-family, 'Inter', sans-serif);
 }
 
-/* Header Section */
+/* Header Section App Style */
 .brand-header {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 1.25rem 1.75rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
     flex-wrap: wrap;
     gap: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.brand-title-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .brand-title h1 {
-    font-size: 1.75rem;
+    font-size: 1.45rem;
     font-weight: 700;
     color: var(--brand-text-main);
     margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    letter-spacing: -0.3px;
+}
+
+.brand-title span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--brand-text-muted);
 }
 
 .brand-actions .btn-primary {
-    background: var(--brand-secondary);
+    background: var(--secondary-color, #10b981);
     color: white;
     border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
+    padding: 0.65rem 1.5rem;
+    border-radius: 9999px;
     font-weight: 600;
     font-size: 0.9rem;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--secondary-color, #10b981) 35%, transparent);
 }
 
 .brand-actions .btn-primary:hover {
-    background: var(--color-btn-hover, #4f46e5);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 8px -1px var(--primary-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--secondary-color, #10b981) 50%, transparent);
+    filter: brightness(1.08);
 }
 
 /* Project Cards Grid */
 .brand-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 1.5rem;
+}
+@media (max-width: 480px) {
+    .brand-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
 }
 
 .brand-tabs-container {
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
     display: flex;
 }
 .brand-tabs {
     display: inline-flex;
-    background: var(--brand-border);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
     padding: 0.35rem;
-    border-radius: 12px;
-    gap: 0.25rem;
+    border-radius: 9999px;
+    gap: 0.35rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 .brand-tab {
     background: transparent;
     border: none;
-    padding: 0.6rem 1.25rem;
-    border-radius: 10px;
-    font-size: 0.95rem;
+    padding: 0.55rem 1.35rem;
+    border-radius: 9999px;
+    font-size: 0.88rem;
     font-weight: 600;
     color: var(--brand-text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 0.45rem;
+    transition: all 0.2s ease;
 }
 .brand-tab:hover {
     color: var(--brand-text-main);
 }
 .brand-tab.active {
-    background: var(--brand-card-bg);
+    background: var(--bg-color);
     color: var(--brand-text-main);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .brand-tab.active i {
-    color: var(--brand-secondary);
+    color: var(--secondary-color, #10b981);
 }
 
+/* ==========================================================================
+   Ultra Modern App Style Project Card (Light & Dark Theme)
+   ========================================================================== */
 .project-card {
-    background: var(--brand-card-bg);
-    border-radius: 20px;
-    padding: 1.25rem;
-    box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    border: 1px solid rgba(0,0,0,0.03);
+    background: var(--bg-surface, #141417);
+    border-radius: 24px;
+    padding: 1.4rem;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.1rem;
+    position: relative;
+    overflow: hidden;
 }
-[data-theme="dark"] .project-card {
-    border: 1px solid var(--brand-border);
-    box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.3);
+
+[data-theme="light"] .project-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .project-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12), 0 8px 10px -4px rgba(0, 0, 0, 0.05);
+    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 40%, var(--border-color, rgba(255, 255, 255, 0.08)));
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.35), 0 0 20px color-mix(in srgb, var(--primary-color) 10%, transparent);
 }
 
-/* Card Header: Avatar, Name, Date, Status */
-.card-header-top {
+[data-theme="light"] .project-card:hover {
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12), 0 0 15px color-mix(in srgb, var(--primary-color) 8%, transparent);
+}
+
+/* Card Top Bar (Status, Timer, Menu) */
+.app-card-top-bar {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-}
-
-.card-client-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.client-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--brand-secondary);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.client-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-.client-meta h4 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--brand-text-main);
-}
-.assigned-users-stack {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-.assigned-users-stack .avatar-sm {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid var(--brand-card-bg);
-    margin-left: -10px;
-    object-fit: cover;
-    background: var(--brand-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--brand-text-main);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-.assigned-users-stack .avatar-sm:first-child {
-    margin-left: 0;
-}
-.client-meta-bottom {
-    display: flex;
     align-items: center;
     gap: 0.5rem;
 }
-.client-meta-bottom span.date {
-    font-size: 0.75rem;
-    color: var(--brand-text-muted);
-}
 
-.status-badge {
-    padding: 0.25rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--brand-primary);
-}
-
-.status-badge.pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-.status-badge.completed { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
-.status-badge.archived { background: rgba(100, 116, 139, 0.1); color: #64748b; }
-
-.card-preview {
-    width: 100%;
-    height: 180px;
-    border-radius: 12px;
-    background: #f1f5f9;
-    overflow: hidden;
+.app-card-badges-left {
     display: flex;
-    position: relative;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
 }
-[data-theme="dark"] .card-preview { background: #0f172a; }
 
-.card-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.app-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+.app-status-badge .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.app-status-badge.active,
+.app-status-badge.activo {
+    background: rgba(16, 185, 129, 0.14);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.35);
+}
+[data-theme="light"] .app-status-badge.active,
+[data-theme="light"] .app-status-badge.activo {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+.app-status-badge.active .status-dot,
+.app-status-badge.activo .status-dot {
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+}
+
+.app-status-badge.pending,
+.app-status-badge.pendiente {
+    background: rgba(245, 158, 11, 0.14);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.35);
+}
+[data-theme="light"] .app-status-badge.pending,
+[data-theme="light"] .app-status-badge.pendiente {
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+.app-status-badge.pending .status-dot,
+.app-status-badge.pendiente .status-dot {
+    background: #f59e0b;
+}
+
+.app-status-badge.completed,
+.app-status-badge.completado {
+    background: rgba(99, 102, 241, 0.14);
+    color: #818cf8;
+    border-color: rgba(99, 102, 241, 0.35);
+}
+[data-theme="light"] .app-status-badge.completed,
+[data-theme="light"] .app-status-badge.completado {
+    background: rgba(99, 102, 241, 0.12);
+    color: #4338ca;
+    border-color: rgba(99, 102, 241, 0.3);
+}
+.app-status-badge.completed .status-dot,
+.app-status-badge.completado .status-dot {
+    background: #818cf8;
+}
+
+.app-status-badge.archived,
+.app-status-badge.archivado {
+    background: rgba(148, 163, 184, 0.14);
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.35);
+}
+[data-theme="light"] .app-status-badge.archived,
+[data-theme="light"] .app-status-badge.archivado {
+    background: rgba(100, 116, 139, 0.12);
+    color: #475569;
+    border-color: rgba(100, 116, 139, 0.3);
+}
+.app-status-badge.archived .status-dot,
+.app-status-badge.archivado .status-dot {
+    background: #94a3b8;
 }
 
 .modern-timer {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #fff;
-    padding: 0.35rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    z-index: 2;
+    gap: 0.35rem;
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fbbf24;
+    padding: 0.22rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.modern-timer i {
+    color: #fbbf24;
+    font-size: 0.85rem;
+}
+[data-theme="light"] .modern-timer {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+[data-theme="light"] .modern-timer i {
+    color: #d97706;
 }
 .modern-timer.expired {
-    background: rgba(239, 68, 68, 0.85);
+    background: rgba(239, 68, 68, 0.18) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #ef4444 !important;
+}
+.modern-timer.expired i {
+    color: #ef4444 !important;
 }
 
-.client-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.card-actions-top {
+.app-btn-more {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--bg-color, #09090b);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    font-size: 1.15rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.app-btn-more:hover {
+    background: var(--border-color);
+    color: var(--text-main, #ffffff);
+    transform: scale(1.05);
 }
 
 .btn-icon {
@@ -294,14 +357,6 @@ require_once 'includes/header.php';
     color: var(--brand-text-main);
 }
 [data-theme="dark"] .btn-icon:hover { background: rgba(255,255,255,0.1); }
-
-.card-preview.split-preview {
-    display: flex;
-    gap: 2px;
-}
-.card-preview.split-preview img {
-    width: 50%;
-}
 
 /* SweetAlert Modern App Style */
 .swal2-modern-popup {
@@ -324,114 +379,383 @@ require_once 'includes/header.php';
     padding: 0.6rem 1.5rem !important;
 }
 
-/* Card Content: Title & Tags */
-.card-content h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.15rem;
-    color: var(--brand-text-main);
-    font-weight: 700;
-    line-height: 1.3;
-}
-.card-content p {
-    margin: 0;
-    font-size: 0.85rem;
-    color: var(--brand-text-muted);
-    line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+/* ==========================================================================
+   Modern App Style Project Card Components
+   ========================================================================== */
+
+/* Project Hero Header */
+.app-card-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    cursor: pointer;
 }
 
-.card-tags {
+.app-card-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-main, #ffffff);
+    line-height: 1.35;
+    letter-spacing: -0.3px;
+    transition: color 0.2s ease;
+}
+.project-card:hover .app-card-title {
+    color: var(--primary-color, #818cf8);
+}
+
+.app-client-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.app-client-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: color-mix(in srgb, #f97316 18%, transparent);
+    color: #fb923c;
+    border: 1px solid color-mix(in srgb, #f97316 35%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+.app-client-info {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.app-client-name {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--text-main, #ffffff);
+}
+.app-client-date {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Meta: Tags & Collaborators */
+.app-card-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 30px;
+}
+.app-card-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-bottom: 1rem;
+    gap: 0.35rem;
+    flex: 1;
 }
 
 .tag-pill {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.72rem;
     font-weight: 600;
-    border: none;
+    letter-spacing: 0.2px;
     display: inline-flex;
     align-items: center;
+    border: 1px solid transparent;
 }
 
-/* Card Details Grid */
-.card-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    border-top: 1px solid rgba(0,0,0,0.04);
-    padding-top: 1rem;
-    margin-top: auto;
+/* Assigned Users Stack */
+.assigned-users-stack {
+    display: inline-flex;
+    align-items: center;
+    flex-direction: row;
+    height: 28px;
+    flex-shrink: 0;
 }
-[data-theme="dark"] .card-details { border-top-color: rgba(255,255,255,0.05); }
-
-.brand-dates-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-    background: var(--brand-bg);
-    padding: 0.75rem;
-    border-radius: 12px;
-}
-.brand-date-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-.brand-date-item span.label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--brand-text-muted);
+.assigned-users-stack .avatar-sm,
+.assigned-users-stack .avatar-placeholder,
+.assigned-users-stack .avatar-more {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-surface, #141417);
+    margin-left: -8px;
+    position: relative;
+    flex-shrink: 0;
+    font-size: 0.72rem;
     font-weight: 700;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+    vertical-align: middle;
+    transition: transform 0.2s ease;
 }
-.brand-date-item span.value {
-    font-size: 0.85rem;
+.assigned-users-stack > *:first-child {
+    margin-left: 0 !important;
+}
+.assigned-users-stack > *:hover {
+    transform: scale(1.15) translateY(-2px);
+    z-index: 20 !important;
+}
+.assigned-users-stack .avatar-placeholder {
+    background: var(--brand-secondary, #6366f1);
+    color: #ffffff;
+}
+.assigned-users-stack .avatar-more {
+    background: var(--border-color, #27272a);
+    color: var(--brand-text-muted, #94a3b8);
+}
+.app-unassigned-pill {
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
     font-weight: 600;
-    color: var(--brand-text-main);
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-}
-.brand-date-item i {
-    color: var(--brand-primary);
-    font-size: 1.1rem;
+    gap: 0.3rem;
+    background: color-mix(in srgb, var(--border-color) 40%, transparent);
+    padding: 0.2rem 0.55rem;
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
 }
 
-.brand-drive-btn {
+/* Card Progress Section */
+.card-progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.95rem 1.1rem;
+    border-radius: 18px;
+    background: var(--bg-color, #09090b);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    transition: border-color 0.2s ease;
+}
+[data-theme="light"] .card-progress-section {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+.card-progress-section:hover {
+    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 30%, var(--border-color));
+}
+
+.card-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.progress-header-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted, #94a3b8);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.85rem 1rem;
-    background: rgba(66, 133, 244, 0.08); /* Light Google Drive Blue */
-    border-radius: 12px;
-    color: #1e40af;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-decoration: none;
-    margin-top: 0.75rem;
-    transition: background 0.2s, transform 0.1s;
+    gap: 0.45rem;
 }
-[data-theme="dark"] .brand-drive-btn { color: #60a5fa; background: rgba(66, 133, 244, 0.15); }
-.brand-drive-btn:hover {
-    background: rgba(66, 133, 244, 0.15);
-    transform: translateY(-1px);
+.progress-header-title i {
+    font-size: 1rem;
+    color: var(--primary-color, #6366f1);
 }
-.brand-drive-btn .left {
+
+.progress-percentage-badge {
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 0.15rem 0.6rem;
+    border-radius: 9999px;
+    letter-spacing: 0.3px;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid transparent;
+}
+.progress-percentage-badge.low {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.25);
+}
+.progress-percentage-badge.mid {
+    background: color-mix(in srgb, var(--primary-color, #6366f1) 18%, transparent);
+    color: #818cf8;
+    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 35%, transparent);
+}
+.progress-percentage-badge.high {
+    background: color-mix(in srgb, var(--secondary-color, #10b981) 18%, transparent);
+    color: #10b981;
+    border-color: color-mix(in srgb, var(--secondary-color, #10b981) 35%, transparent);
+}
+
+.card-progress-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    position: relative;
+}
+[data-theme="light"] .card-progress-track {
+    background: #e2e8f0;
+}
+
+.card-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #6366f1 0%, #06b6d4 50%, #10b981 100%);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.card-progress-stats {
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
 }
-.brand-drive-btn i.ph-google-drive-logo {
-    font-size: 1.25rem;
-    color: #4285F4;
+.stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+    padding: 0.25rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+.stat-chip i {
+    font-size: 0.95rem;
+}
+.stat-chip.tasks i {
+    color: #818cf8;
+}
+.stat-chip.subtasks i {
+    color: #34d399;
+}
+.stat-chip b {
+    color: var(--text-main, #ffffff);
+    font-weight: 700;
+}
+
+/* Modern Split Dates Grid */
+.app-card-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+}
+
+.app-date-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    background: var(--bg-color, #09090b);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    padding: 0.75rem 0.9rem;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+}
+[data-theme="light"] .app-date-chip {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+.app-date-chip span.label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.app-date-chip span.label i {
+    font-size: 0.85rem;
+}
+.app-date-chip.start span.label i {
+    color: var(--secondary-color, #10b981);
+}
+.app-date-chip.due span.label i {
+    color: #ef4444;
+}
+.app-date-chip span.value {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-main, #ffffff);
+    letter-spacing: -0.2px;
+}
+
+/* Modern App Drive CTA */
+.app-drive-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: color-mix(in srgb, #3b82f6 12%, var(--bg-color));
+    border: 1px solid color-mix(in srgb, #3b82f6 30%, transparent);
+    border-radius: 16px;
+    color: #60a5fa;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.app-drive-cta:hover {
+    background: color-mix(in srgb, #3b82f6 20%, var(--bg-color));
+    border-color: color-mix(in srgb, #3b82f6 50%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px color-mix(in srgb, #3b82f6 20%, transparent);
+}
+.drive-cta-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.drive-cta-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: color-mix(in srgb, #3b82f6 20%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    color: #3b82f6;
+}
+.drive-cta-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    text-align: left;
+}
+.drive-cta-text span {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-main, #ffffff);
+}
+.drive-cta-text small {
+    font-size: 0.7rem;
+    color: #93c5fd;
+    font-weight: 500;
+}
+.drive-cta-arrow {
+    font-size: 1.1rem;
+    color: #60a5fa;
+    opacity: 0.8;
+    transition: transform 0.2s ease;
+}
+.app-drive-cta:hover .drive-cta-arrow {
+    transform: translateX(2px) translateY(-2px);
+    opacity: 1;
 }
 
 .detail-row {
@@ -465,16 +789,17 @@ require_once 'includes/header.php';
     border-radius: 50%;
 }
 
-/* --- SIDEBAR DRAWER --- */
+/* --- SIDEBAR DRAWER (APP STYLE) --- */
 .drawer-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.4);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .drawer-overlay.active {
@@ -484,17 +809,18 @@ require_once 'includes/header.php';
 
 .drawer-panel {
     position: fixed;
-    top: 0; right: -650px;
-    width: 100%; max-width: 600px;
+    top: 0; right: -700px;
+    width: 100%; max-width: 620px;
     height: 100%;
-    background: var(--brand-card-bg);
-    box-shadow: -15px 0 40px rgba(0,0,0,0.12);
+    background: var(--bg-surface, #121212);
+    box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
     z-index: 1001;
     transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
-    border-top-left-radius: 24px;
-    border-bottom-left-radius: 24px;
+    border-top-left-radius: 28px;
+    border-bottom-left-radius: 28px;
+    border-left: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
     overflow: hidden;
 }
 
@@ -503,23 +829,51 @@ require_once 'includes/header.php';
 }
 
 .drawer-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--brand-border);
+    padding: 1.5rem 2rem 1.25rem 2rem;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: var(--bg-surface, #121212);
 }
 
-.drawer-header h2 {
-    margin: 0;
+.drawer-header-titles {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.drawer-header-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary-color, #6366f1) 15%, transparent);
+    color: var(--primary-color, #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 1.4rem;
-    font-weight: 800;
-    color: var(--brand-text-main);
-    letter-spacing: -0.02em;
+    flex-shrink: 0;
+}
+
+.drawer-header-titles h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main, #ffffff);
+    letter-spacing: -0.3px;
+}
+
+.drawer-header-titles span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted, #9ca3af);
 }
 
 .drawer-body {
-    padding: 1.5rem;
+    padding: 1.75rem 2rem;
     flex: 1;
     overflow-y: auto;
     display: flex;
@@ -530,86 +884,104 @@ require_once 'includes/header.php';
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.45rem;
 }
 
 .form-group label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: var(--brand-text-main);
-    margin-bottom: 0.2rem;
+    color: var(--text-muted, #9ca3af);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .form-control {
-    padding: 0.85rem 1.25rem;
-    border-radius: 12px;
-    border: 1px solid var(--brand-border);
-    background: var(--bg-body, #f8fafc);
-    color: var(--brand-text-main);
+    padding: 0.85rem 1.15rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    background: var(--bg-color, #0a0a0a);
+    color: var(--text-main, #ffffff);
     font-family: inherit;
     font-size: 0.95rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
-[data-theme="dark"] .form-control { background: #0f172a; }
 
 .form-control:focus {
     outline: none;
-    border-color: var(--brand-secondary);
-    background: var(--brand-card-bg);
-    box-shadow: 0 0 0 4px var(--primary-bg);
+    border-color: var(--primary-color, #6366f1);
+    background: var(--bg-color, #0a0a0a);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
 }
 
-textarea.form-control {
-    resize: vertical;
-    min-height: 100px;
+.form-control::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+    font-weight: 400;
+}
+
+select.form-control option {
+    background: var(--bg-surface, #1e1e1e);
+    color: var(--text-main, #ffffff);
 }
 
 .drawer-footer {
-    padding: 1.5rem;
-    border-top: 1px solid var(--brand-border);
+    padding: 1.25rem 2rem;
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 0.75rem;
+    background: var(--bg-surface, #121212);
 }
 
-.btn-secondary {
-    background: var(--bg-body, #f8fafc);
-    border: 1px solid var(--brand-border);
-    color: var(--brand-text-main);
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
+.drawer-footer .btn-secondary {
+    background: var(--bg-color, #1e1e1e);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    color: var(--text-muted, #9ca3af);
+    padding: 0.65rem 1.4rem;
+    border-radius: 9999px;
     font-weight: 600;
+    font-size: 0.88rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
-[data-theme="dark"] .btn-secondary { background: #0f172a; }
 
-.btn-secondary:hover { background: var(--brand-border); }
+.drawer-footer .btn-secondary:hover {
+    background: var(--border-color);
+    color: var(--text-main);
+}
 
-.brand-actions .btn-primary, .drawer-footer .btn-primary {
-    background: var(--brand-secondary);
-    color: white;
+.drawer-footer .btn-primary {
+    background: var(--secondary-color, #10b981);
+    color: #ffffff;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
+    padding: 0.65rem 1.75rem;
+    border-radius: 9999px;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 10px var(--primary-bg);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--secondary-color, #10b981) 40%, transparent);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.brand-actions .btn-primary:hover, .drawer-footer .btn-primary:hover {
-    background: var(--color-btn-hover, #4f46e5);
+.drawer-footer .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px var(--primary-bg);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--secondary-color, #10b981) 55%, transparent);
+    filter: brightness(1.08);
 }
 
 /* Tag Manager mini UI */
 .tag-manager-wrapper {
-    border: 1px solid var(--brand-border);
-    border-radius: 8px;
-    padding: 0.75rem;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 16px;
+    padding: 1rem;
 }
 .tag-list-editable {
     display: flex;
@@ -618,54 +990,139 @@ textarea.form-control {
     margin-bottom: 0.75rem;
 }
 .tag-edit-pill {
-    padding: 0.2rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--brand-secondary);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    gap: 0.35rem;
+    background: var(--bg-surface, #1e1e1e);
+    color: var(--text-main, #ffffff);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
     cursor: pointer;
+    transition: all 0.15s ease;
 }
 .tag-edit-pill.selected {
-    background: var(--brand-secondary);
-    color: white;
+    background: var(--primary-color, #6366f1);
+    color: #ffffff;
+    border-color: var(--primary-color, #6366f1);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--primary-color, #6366f1) 40%, transparent);
 }
 .add-tag-form {
     display: flex;
     gap: 0.5rem;
 }
 .add-tag-form input[type="color"] {
-    width: 36px; height: 36px; padding: 0; border: none; border-radius: 4px; overflow: hidden; cursor: pointer;
+    width: 36px; height: 36px; padding: 0; border: none; border-radius: 8px; overflow: hidden; cursor: pointer;
+}
+
+/* Client Search Autocomplete App Style */
+#client_results {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--bg-surface, #18181b) !important;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12)) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 1000;
+    padding: 0.4rem;
+    display: none;
+}
+
+.client-search-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.04));
+}
+.client-search-item:last-child {
+    border-bottom: none;
+}
+.client-search-item:hover {
+    background: color-mix(in srgb, var(--primary-color, #6366f1) 18%, transparent) !important;
+}
+
+.client-search-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: color-mix(in srgb, #f97316 20%, transparent);
+    color: #f97316;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.client-search-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow: hidden;
+}
+
+.client-search-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-main, #ffffff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.client-search-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted, #9ca3af);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Tagify Assigned Users Modern Badge Style */
+#p_users + .tagify .tagify__tag > div {
+    background: color-mix(in srgb, var(--primary-color, #6366f1) 15%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--primary-color, #6366f1) 40%, transparent) !important;
+}
+#p_users + .tagify .tagify__tag-text {
+    color: var(--primary-color, #6366f1) !important;
+    font-weight: 700 !important;
 }
 
 /* 3 dots dropdown */
 .dropdown-menu {
     position: absolute;
     right: 0; top: 100%;
-    background: var(--brand-card-bg);
-    border: 1px solid var(--brand-border);
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    min-width: 120px;
+    background: var(--bg-surface, #1e1e1e);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    min-width: 140px;
     display: none;
     flex-direction: column;
     z-index: 10;
     overflow: hidden;
+    padding: 0.3rem;
 }
 .dropdown-menu.show { display: flex; }
 .dropdown-item {
-    padding: 0.5rem 1rem;
+    padding: 0.55rem 0.85rem;
     font-size: 0.85rem;
-    color: var(--brand-text-main);
+    color: var(--text-main, #ffffff);
     cursor: pointer;
-    border-bottom: 1px solid var(--brand-border);
+    border-radius: 8px;
 }
-.dropdown-item:last-child { border-bottom: none; }
-.dropdown-item:hover { background: rgba(0,0,0,0.03); }
-[data-theme="dark"] .dropdown-item:hover { background: rgba(255,255,255,0.05); }
+.dropdown-item:hover { background: color-mix(in srgb, var(--primary-color, #6366f1) 15%, transparent); }
 .dropdown-item.danger { color: #ef4444; }
 
 @media (max-width: 768px) {
@@ -718,17 +1175,18 @@ textarea.form-control {
 
 <div class="brand-container">
     <div class="brand-header">
-        <div class="brand-title">
-            <h1 style="display:flex; align-items:center; gap:0.5rem;">
-                <a href="index.php?module=workspace" class="btn-icon" style="color:var(--brand-text-main); text-decoration:none; padding:0.4rem; background:var(--brand-card-bg); border:1px solid var(--brand-border); box-shadow:0 2px 4px rgba(0,0,0,0.02);" title="Volver">
-                    <i class="ph ph-arrow-left"></i>
-                </a>
-                Desarrollo de Marca
-            </h1>
+        <div class="brand-title-group">
+            <a href="index.php?module=workspace" class="btn-app-cancel" style="padding: 0.5rem 0.85rem; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;" title="Volver">
+                <i class="ph-bold ph-arrow-left" style="font-size: 1.1rem;"></i>
+            </a>
+            <div class="brand-title" style="display: flex; flex-direction: column; gap: 0.15rem;">
+                <span>Catálogo General</span>
+                <h1>Desarrollo de Marca</h1>
+            </div>
         </div>
         <div class="brand-actions">
             <button class="btn-primary" onclick="openDrawer()">
-                <i class="ph ph-plus"></i> Nuevo Proyecto
+                <i class="ph-bold ph-plus"></i> Nuevo Proyecto
             </button>
         </div>
     </div>
@@ -737,10 +1195,10 @@ textarea.form-control {
     <div class="brand-tabs-container">
         <div class="brand-tabs">
             <button class="brand-tab active" data-filter="Active" onclick="filterProjects('Active')">
-                <i class="ph-fill ph-lightning"></i> Activo
+                <i class="ph-bold ph-lightning"></i> Activo
             </button>
             <button class="brand-tab" data-filter="Archived" onclick="filterProjects('Archived')">
-                <i class="ph ph-archive-box"></i> Archivado
+                <i class="ph-bold ph-archive-box"></i> Archivado
             </button>
         </div>
     </div>
@@ -754,46 +1212,57 @@ textarea.form-control {
     </div>
 </div>
 
-<!-- Drawer Off-Canvas -->
+<!-- Drawer Off-Canvas (App Style) -->
 <div class="drawer-overlay" id="brand-drawer">
     <div class="drawer-panel" onclick="event.stopPropagation()">
         <div class="drawer-header">
-            <h2 id="drawer-title">Crear Proyecto</h2>
-            <button class="btn-icon" onclick="closeDrawer()">
-                <i class="ph ph-x"></i>
+            <div class="drawer-header-titles">
+                <div class="drawer-header-badge">
+                    <i class="ph-bold ph-folder-notch-plus"></i>
+                </div>
+                <div>
+                    <span>Formulario de Gestión</span>
+                    <h2 id="drawer-title">Crear Proyecto</h2>
+                </div>
+            </div>
+            <button class="app-close-circle" onclick="closeDrawer()">
+                <i class="ph-bold ph-x"></i>
             </button>
         </div>
         <div class="drawer-body">
             <input type="hidden" id="p_id" value="0">
             
             <div class="form-group">
-                <label>Título del Proyecto</label>
-                <input type="text" id="p_title" class="form-control" placeholder="Ej. Healthcare Landing Page Redesign">
+                <label><i class="ph-bold ph-text-t"></i> Título del Proyecto</label>
+                <input type="text" id="p_title" class="form-control" placeholder="Ej. Rediseño de Identidad Visual Corporativa">
             </div>
 
             <div class="form-group" style="position:relative;">
-                <label>Cliente (Buscar)</label>
-                <input type="text" id="p_client" class="form-control" placeholder="Buscar cliente por nombre..." onkeyup="searchClients(this.value)" autocomplete="off">
+                <label><i class="ph-bold ph-user"></i> Cliente (Búsqueda AJAX)</label>
+                <div style="position:relative; display:flex; align-items:center;">
+                    <input type="text" id="p_client" class="form-control" placeholder="Escribe el nombre, empresa o correo..." oninput="searchClients(this.value)" onfocus="searchClients(this.value)" autocomplete="off" style="padding-left: 2.75rem; width:100%;">
+                    <i class="ph-bold ph-magnifying-glass" style="position:absolute; left:1rem; color:var(--text-muted); font-size:1.15rem; pointer-events:none;"></i>
+                </div>
                 <input type="hidden" id="p_client_id" value="">
-                <div id="client_results" style="position:absolute; top:100%; left:0; right:0; background:var(--brand-card-bg); border:1px solid var(--brand-border); max-height:200px; overflow-y:auto; z-index:100; display:none; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1);"></div>
+                <div id="client_results"></div>
             </div>
             
             <div class="form-group">
-                <label>Usuarios Asignados</label>
-                <input id="p_users" class="form-control" placeholder="Asignar miembros del equipo...">
+                <label><i class="ph-bold ph-users-three"></i> Miembros Asignados</label>
+                <input id="p_users" class="form-control" placeholder="Asignar colaboradores del equipo...">
             </div>
 
             <div class="form-group">
-                <label>Formulario / Brief Vinculado (Opcional)</label>
+                <label><i class="ph-bold ph-notebook"></i> Brief / Formulario Vinculado (Opcional)</label>
                 <select id="p_form_submission" class="form-control">
-                    <option value="">-- Sin formulario --</option>
+                    <option value="">-- Sin formulario vinculado --</option>
                 </select>
-                <div style="font-size:0.8rem; color:var(--brand-text-muted); margin-top:0.25rem;">Puedes vincular una respuesta del módulo de formularios como el Brief del proyecto.</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">Puedes asociar las respuestas enviadas por el cliente a este proyecto.</div>
             </div>
 
-            <div class="form-group" style="display: flex; gap: 1rem;">
-                <div style="flex:1;">
-                    <label>Estado</label>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.85rem;">
+                <div>
+                    <label><i class="ph-bold ph-faders"></i> Estado</label>
                     <select id="p_status" class="form-control">
                         <option value="Active">Activo</option>
                         <option value="Pending">Pendiente</option>
@@ -801,46 +1270,46 @@ textarea.form-control {
                         <option value="Archived">Archivado</option>
                     </select>
                 </div>
-                <div style="flex:1;">
-                    <label>Fecha de Inicio</label>
+                <div>
+                    <label><i class="ph-bold ph-calendar"></i> Fecha Inicio</label>
                     <input type="date" id="p_start" class="form-control" onchange="calcFormDuration()">
                 </div>
-                <div style="flex:1;">
-                    <label>Fecha Límite</label>
+                <div>
+                    <label><i class="ph-bold ph-calendar-check"></i> Fecha Límite</label>
                     <input type="date" id="p_due" class="form-control" onchange="calcFormDuration()">
                 </div>
             </div>
-            <div id="form-duration-calc" style="font-size: 0.85rem; color: var(--brand-secondary); margin-top: 0.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem;"></div>
+            <div id="form-duration-calc" style="font-size: 0.82rem; color: var(--secondary-color, #10b981); font-weight: 600; display: flex; align-items: center; gap: 0.4rem;"></div>
 
             <div class="form-group">
-                <label>Imágenes de Portada</label>
+                <label><i class="ph-bold ph-image"></i> Imágenes de Portada / Moodboard</label>
                 <input type="file" id="p_cover" class="form-control" multiple accept="image/*">
                 <input type="hidden" id="p_existing_covers" value="">
-                <div id="p_cover_preview" style="font-size:0.8rem; color:var(--brand-text-muted); margin-top:0.25rem;"></div>
+                <div id="p_cover_preview" style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;"></div>
             </div>
 
-            <div class="form-group" style="margin-top: 1rem;">
-                <label style="display:flex; align-items:center; gap:0.5rem; color:#3b82f6; font-size:0.95rem;">
-                    <i class="ph ph-google-drive-logo" style="font-size:1.25rem;"></i> Carpeta Global del Proyecto (Opcional)
+            <div class="form-group" style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 1rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; color:#3b82f6; font-size:0.88rem; margin-bottom: 0.35rem;">
+                    <i class="ph-fill ph-google-drive-logo" style="font-size:1.25rem;"></i> Carpeta de Google Drive
                 </label>
-                <div style="font-size:0.8rem; color:var(--brand-text-muted); margin-bottom:0.5rem;">Si la dejas vacía, el sistema creará una carpeta nueva automáticamente.</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.6rem;">Si dejas el campo vacío se generará automáticamente.</div>
                 <div style="display:flex; gap:0.5rem;">
-                    <input type="text" id="p_drive" class="form-control" placeholder="Enlace de la carpeta global..." style="flex:1;">
+                    <input type="text" id="p_drive" class="form-control" placeholder="https://drive.google.com/..." style="flex:1;">
                     <input type="hidden" id="p_drive_id" value="">
-                    <button class="btn-secondary" onclick="openDrivePicker()" style="color:#3b82f6; border-color:#bfdbfe; background:#eff6ff; font-weight:600; padding: 0.6rem 1.5rem;">Elegir</button>
+                    <button class="btn-secondary" onclick="openDrivePicker()" style="color:#3b82f6; border-color:color-mix(in srgb, #3b82f6 30%, transparent); background:color-mix(in srgb, #3b82f6 12%, transparent); font-weight:600; padding: 0.6rem 1.25rem; border-radius: 12px;">Elegir</button>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Etiquetas (Selecciona las del proyecto)</label>
-                <div class="tag-manager-wrapper">
-                    <div class="tag-list-editable" id="tag-selector-list">
+                <label><i class="ph-bold ph-tag"></i> Etiquetas del Proyecto</label>
+                <div class="tag-manager-wrapper" style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 1rem;">
+                    <div class="tag-list-editable" id="tag-selector-list" style="margin-bottom: 0.85rem;">
                         <!-- Tags rendered here -->
                     </div>
-                    <div class="add-tag-form">
-                        <input type="color" id="new_tag_color" value="#6366f1">
-                        <input type="text" id="new_tag_name" class="form-control" placeholder="Nueva etiqueta" style="flex:1; padding: 0.5rem;">
-                        <button class="btn-primary" onclick="createNewTag()" style="padding: 0.5rem 1rem;"><i class="ph ph-plus"></i></button>
+                    <div class="add-tag-form" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="color" id="new_tag_color" value="#10b981" style="width: 36px; height: 36px; border: none; border-radius: 10px; cursor: pointer; background: transparent; padding: 0;">
+                        <input type="text" id="new_tag_name" class="form-control" placeholder="Nombre de etiqueta..." style="flex:1; padding: 0.55rem 0.85rem; font-size: 0.88rem;">
+                        <button class="btn-primary" onclick="createNewTag()" style="padding: 0.55rem 1rem; border-radius: 10px;"><i class="ph-bold ph-plus"></i></button>
                     </div>
                 </div>
             </div>
@@ -848,7 +1317,7 @@ textarea.form-control {
         </div>
         <div class="drawer-footer">
             <button class="btn-secondary" onclick="closeDrawer()">Cancelar</button>
-            <button class="btn-primary" onclick="saveProject()">Guardar</button>
+            <button class="btn-primary" onclick="saveProject()"><i class="ph-bold ph-check"></i> Guardar Proyecto</button>
         </div>
     </div>
 </div>
@@ -1025,73 +1494,154 @@ function renderProjects() {
     });
 
     if(filtered.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--brand-text-muted); grid-column: 1/-1;">No hay proyectos en esta categoría.</div>';
+        container.innerHTML = '<div style="text-align:center; padding: 3rem 1.5rem; color: var(--brand-text-muted); grid-column: 1/-1; font-weight: 500; font-size: 0.95rem;">No hay proyectos en esta categoría.</div>';
         return;
     }
 
     filtered.forEach(p => {
-        let dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+        let dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
         let avatarLetter = p.client_name ? p.client_name.charAt(0).toUpperCase() : 'C';
-        let clientName = p.client_name || 'Cliente sin nombre';
+        let clientName = p.client_name || 'Cliente sin asignar';
         
-        let timerHtml = p.due_date ? `<div class="modern-timer" data-start="${p.start_date || ''}" data-due="${p.due_date}"><i class="ph ph-hourglass-high"></i> <span class="timer-text">Calculando...</span></div>` : '';
-        let imagesHtml = p.cover_image ? `<div class="card-preview" style="cursor: pointer;" onclick="window.location.href='index.php?module=desarrollo_marca&action=view&id=${p.id}'" title="Entrar al Proyecto"><img src="${p.cover_image.split(',')[0]}" onerror="this.src='https://placehold.co/600x400/f1f5f9/64748b?text=Cover'">${timerHtml}</div>` : `<div class="card-preview" style="cursor: pointer;" onclick="window.location.href='index.php?module=desarrollo_marca&action=view&id=${p.id}'" title="Entrar al Proyecto"><img src="https://placehold.co/600x400/f1f5f9/64748b?text=No+Image">${timerHtml}</div>`;
+        let timerHtml = p.due_date ? `<div class="modern-timer" data-start="${p.start_date || ''}" data-due="${p.due_date}"><i class="ph-bold ph-hourglass-medium"></i> <span class="timer-text">Calculando...</span></div>` : '';
 
-        let tagsHtml = p.tags && p.tags.length > 0 ? p.tags.map(t => `<span class="tag-pill" style="background-color: ${t.color}15; color: ${t.color};">${t.name}</span>`).join('') : '';
+        let tagsHtml = p.tags && p.tags.length > 0 ? p.tags.map(t => `<span class="tag-pill" style="background: color-mix(in srgb, ${t.color || '#6366f1'} 15%, transparent); color: ${t.color || '#6366f1'}; border: 1px solid color-mix(in srgb, ${t.color || '#6366f1'} 30%, transparent);">${t.name}</span>`).join('') : '';
         let startDateFormatted = p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin definir';
         let dueDateFormatted = p.due_date ? new Date(p.due_date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin definir';
 
+        let isOverdue = false;
+        if (p.due_date && p.status !== 'Completed') {
+            isOverdue = new Date(p.due_date + 'T23:59:59') < new Date();
+        }
+
         const statusMap = { 'Active': 'Activo', 'Pending': 'Pendiente', 'Completed': 'Completado', 'Archived': 'Archivado' };
-        let displayStatus = statusMap[p.status] || p.status;
+        let displayStatus = statusMap[p.status] || p.status || 'Activo';
+        let statusKey = (p.status || 'Active').toLowerCase();
         
+        // Perfectly aligned assigned users avatar stack
         let avatarsHtml = '';
         if (p.assigned_users && p.assigned_users.length > 0) {
             avatarsHtml = `<div class="assigned-users-stack">`;
-            p.assigned_users.slice(0, 3).forEach((u, i) => {
-                let initial = u.name.charAt(0).toUpperCase();
+            p.assigned_users.slice(0, 4).forEach((u, i) => {
+                let initial = (u.name || 'U').charAt(0).toUpperCase();
                 let zIndex = 10 - i;
-                avatarsHtml += u.avatar && u.avatar !== 'default.png' ? `<img src="${u.avatar}" class="avatar-sm" style="z-index:${zIndex};" title="${u.name}">` : `<div class="avatar-sm avatar-placeholder" style="z-index:${zIndex};" title="${u.name}">${initial}</div>`;
+                let safeName = (u.name || 'Usuario').replace(/"/g, '&quot;');
+                if (u.avatar && u.avatar !== 'default.png') {
+                    avatarsHtml += `<img src="${u.avatar}" class="avatar-sm" style="z-index:${zIndex};" title="${safeName}" alt="${safeName}" onerror="this.outerHTML='<div class=\\'avatar-sm avatar-placeholder\\' style=\\'z-index:${zIndex};\\' title=\\'${safeName}\\'>${initial}</div>'">`;
+                } else {
+                    avatarsHtml += `<div class="avatar-sm avatar-placeholder" style="z-index:${zIndex};" title="${safeName}">${initial}</div>`;
+                }
             });
-            if (p.assigned_users.length > 3) avatarsHtml += `<div class="avatar-sm avatar-more" style="z-index:1;">+${p.assigned_users.length - 3}</div>`;
+            if (p.assigned_users.length > 4) {
+                avatarsHtml += `<div class="avatar-sm avatar-more" style="z-index:1;" title="${p.assigned_users.length - 4} colaboradores más">+${p.assigned_users.length - 4}</div>`;
+            }
             avatarsHtml += `</div>`;
         }
+
+        // Progress Scale Calculation and Component
+        let progressVal = Math.min(100, Math.max(0, parseInt(p.progress || 0)));
+        let progressBadgeClass = progressVal >= 100 ? 'high' : (progressVal > 20 ? 'mid' : 'low');
+        let totalTasks = parseInt(p.total_tasks || 0);
+        let completedTasks = parseInt(p.completed_tasks || 0);
+        let totalSubtasks = parseInt(p.total_subtasks || 0);
+        let completedSubtasks = parseInt(p.completed_subtasks || 0);
 
         let card = document.createElement('div');
         card.className = 'project-card';
         card.innerHTML = `
-            <div class="card-header-top">
-                <div class="card-client-info">
-                    <div class="client-avatar">${avatarLetter}</div>
-                    <div class="client-meta">
-                        <h4>${clientName}</h4>
-                        <div class="client-meta-bottom">
-                            <span class="date">${dateStr}</span>
-                            <span class="status-badge ${p.status.toLowerCase()}">${displayStatus}</span>
-                        </div>
-                    </div>
+            <!-- Top Action & Status Bar -->
+            <div class="app-card-top-bar">
+                <div class="app-card-badges-left">
+                    <span class="app-status-badge ${statusKey}">
+                        <span class="status-dot"></span>
+                        ${displayStatus}
+                    </span>
+                    ${timerHtml}
                 </div>
-                <div class="card-actions-top">
-                    <div style="position:relative;">
-                        <button class="btn-icon" onclick="toggleMenu(event, ${p.id})"><i class="ph ph-dots-three"></i></button>
-                        <div class="dropdown-menu" id="menu-${p.id}">
-                            <div class="dropdown-item" onclick="openDrawer(${p.id})"><i class="ph ph-pencil-simple"></i> Editar</div>
-                            <div class="dropdown-item" onclick="archiveProject(${p.id}, '${p.status === 'Archived' ? 'Active' : 'Archived'}')"><i class="ph ${p.status === 'Archived' ? 'ph-arrow-u-up-left' : 'ph-archive-box'}"></i> ${p.status === 'Archived' ? 'Restaurar' : 'Archivar'}</div>
-                            <div class="dropdown-item danger" onclick="deleteProject(${p.id})"><i class="ph ph-trash"></i> Eliminar</div>
-                        </div>
+                <div style="position:relative;">
+                    <button class="app-btn-more" onclick="toggleMenu(event, ${p.id})" title="Opciones de Proyecto">
+                        <i class="ph-bold ph-dots-three"></i>
+                    </button>
+                    <div class="dropdown-menu" id="menu-${p.id}">
+                        <div class="dropdown-item" onclick="openDrawer(${p.id})"><i class="ph-bold ph-pencil-simple"></i> Editar</div>
+                        <div class="dropdown-item" onclick="archiveProject(${p.id}, '${p.status === 'Archived' ? 'Active' : 'Archived'}')"><i class="ph-bold ${p.status === 'Archived' ? 'ph-arrow-u-up-left' : 'ph-archive-box'}"></i> ${p.status === 'Archived' ? 'Restaurar' : 'Archivar'}</div>
+                        <div class="dropdown-item danger" onclick="deleteProject(${p.id})"><i class="ph-bold ph-trash"></i> Eliminar</div>
                     </div>
                 </div>
             </div>
-            ${imagesHtml}
-            <div class="card-content"><h3>${p.title}</h3></div>
-            <div class="card-details">
-                ${avatarsHtml}
-                ${tagsHtml ? `<div style="display:flex; flex-wrap:wrap; gap: 0.4rem; margin-bottom: 0.75rem;">${tagsHtml}</div>` : ''}
-                <div class="brand-dates-grid">
-                    <div class="brand-date-item"><span class="label">Inicio</span><span class="value"><i class="ph ph-calendar-plus"></i> ${startDateFormatted}</span></div>
-                    <div class="brand-date-item"><span class="label">Límite</span><span class="value"><i class="ph ph-calendar-check"></i> ${dueDateFormatted}</span></div>
+
+            <!-- Project Hero & Client -->
+            <div class="app-card-hero" onclick="window.location.href='index.php?module=desarrollo_marca&action=view&id=${p.id}'" title="Abrir tablero de proyecto">
+                <h3 class="app-card-title">${p.title}</h3>
+                <div class="app-client-row">
+                    <div class="app-client-avatar">${avatarLetter}</div>
+                    <div class="app-client-info">
+                        <span class="app-client-name">${clientName}</span>
+                        <span class="app-client-date"><i class="ph-bold ph-calendar-plus"></i> ${dateStr}</span>
+                    </div>
                 </div>
-                ${p.drive_folder_url ? `<a href="${p.drive_folder_url}" target="_blank" class="brand-drive-btn"><div class="left"><i class="ph-fill ph-google-drive-logo"></i> Carpeta de Proyecto</div><i class="ph ph-caret-right" style="color: inherit; opacity: 0.5;"></i></a>` : ''}
             </div>
+
+            <!-- Meta: Tags & Assigned Collaborators -->
+            <div class="app-card-meta-row">
+                <div class="app-card-tags">
+                    ${tagsHtml ? tagsHtml : '<span style="font-size:0.72rem; color:var(--text-muted); opacity:0.6;"><i class="ph-bold ph-tag"></i> Sin etiquetas</span>'}
+                </div>
+                <div>
+                    ${avatarsHtml ? avatarsHtml : '<span class="app-unassigned-pill"><i class="ph-bold ph-user-plus"></i> Sin asignar</span>'}
+                </div>
+            </div>
+
+            <!-- Escala de Progreso App Widget -->
+            <div class="card-progress-section" onclick="window.location.href='index.php?module=desarrollo_marca&action=view&id=${p.id}'" style="cursor: pointer;" title="Ver fases y tareas">
+                <div class="card-progress-header">
+                    <span class="progress-header-title">
+                        <i class="ph-fill ph-chart-donut"></i> Escala de Progreso
+                    </span>
+                    <span class="progress-percentage-badge ${progressBadgeClass}">
+                        ${progressVal}%
+                    </span>
+                </div>
+                <div class="card-progress-track">
+                    <div class="card-progress-fill" style="width: ${progressVal}%;"></div>
+                </div>
+                <div class="card-progress-stats">
+                    <div class="stat-chip tasks" title="${completedTasks} de ${totalTasks} tareas completadas">
+                        <i class="ph-bold ph-check-circle"></i>
+                        <span><b>${completedTasks}</b>/${totalTasks} tareas</span>
+                    </div>
+                    <div class="stat-chip subtasks" title="${completedSubtasks} de ${totalSubtasks} subtareas completadas">
+                        <i class="ph-bold ph-list-checks"></i>
+                        <span><b>${completedSubtasks}</b>/${totalSubtasks} subtareas</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dates Timeline Grid -->
+            <div class="app-card-dates">
+                <div class="app-date-chip start">
+                    <span class="label"><i class="ph-bold ph-calendar-blank"></i> Inicio</span>
+                    <span class="value">${startDateFormatted}</span>
+                </div>
+                <div class="app-date-chip due ${isOverdue ? 'overdue' : ''}">
+                    <span class="label"><i class="ph-bold ph-clock"></i> Límite</span>
+                    <span class="value" style="${isOverdue ? 'color:#ef4444;' : ''}">${dueDateFormatted}</span>
+                </div>
+            </div>
+
+            <!-- Google Drive Project Folder CTA -->
+            ${p.drive_folder_url ? `
+                <a href="${p.drive_folder_url}" target="_blank" class="app-drive-cta" onclick="event.stopPropagation()">
+                    <div class="drive-cta-left">
+                        <div class="drive-cta-icon"><i class="ph-fill ph-google-drive-logo"></i></div>
+                        <div class="drive-cta-text">
+                            <span>Carpeta de Proyecto</span>
+                            <small>Abrir en Google Drive</small>
+                        </div>
+                    </div>
+                    <i class="ph-bold ph-arrow-square-out drive-cta-arrow"></i>
+                </a>
+            ` : ''}
         `;
         container.appendChild(card);
     });
@@ -1216,23 +1766,43 @@ function saveProject() {
 }
 
 function deleteProject(id) {
+    let modalHtml = `
+        <div class="app-modal-dialog" style="text-align: left; background: var(--bg-surface, #121212); color: var(--text-main, #ffffff); border-radius: 28px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.45);">
+            <div class="app-modal-header" style="padding: 1.5rem 2rem 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));">
+                <div class="app-modal-title-group" style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div class="app-modal-icon-badge" style="width: 44px; height: 44px; border-radius: 14px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                        <i class="ph-bold ph-trash"></i>
+                    </div>
+                    <div class="app-modal-titles" style="display: flex; flex-direction: column; gap: 0.15rem;">
+                        <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted, #9ca3af);">Zona de Peligro</span>
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main, #ffffff);">¿Eliminar Proyecto?</h3>
+                    </div>
+                </div>
+                <button class="app-close-circle" onclick="Swal.close()" style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-color, #1e1e1e); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08)); color: var(--text-muted, #9ca3af); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem;"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div class="app-modal-body" style="padding: 1.75rem 2rem;">
+                <p style="margin:0; font-size:0.95rem; color:var(--text-muted); line-height:1.6;">
+                    Se eliminará permanentemente este proyecto y todo su registro de tareas asociadas. ¿Estás seguro de que deseas continuar?
+                </p>
+            </div>
+            <div class="app-modal-footer" style="padding: 1.25rem 2rem; display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));">
+                <button onclick="Swal.close()" style="background: var(--bg-color, #1e1e1e); color: var(--text-muted, #9ca3af); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); padding: 0.65rem 1.4rem; border-radius: 9999px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">Cancelar</button>
+                <button id="swal-confirm-del-project" style="background: #ef4444; color: #fff; border: none; padding: 0.65rem 1.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);"><i class="ph-bold ph-trash"></i> Sí, Eliminar</button>
+            </div>
+        </div>
+    `;
+
     Swal.fire({
-        title: '¿Eliminar Proyecto?',
-        text: "Esta acción no se puede deshacer.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: 'var(--brand-text-muted)',
-        background: 'var(--brand-card-bg)',
-        color: 'var(--brand-text-main)',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar',
-        customClass: {
-            popup: 'swal2-modern-popup'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            executeDelete(id);
+        html: modalHtml,
+        width: '520px',
+        showConfirmButton: false,
+        showCancelButton: false,
+        customClass: { popup: 'swal2-zero-pad', actions: 'app-modal-actions' },
+        didOpen: () => {
+            document.getElementById('swal-confirm-del-project').addEventListener('click', () => {
+                executeDelete(id);
+                Swal.close();
+            });
         }
     });
 }
@@ -1245,31 +1815,50 @@ function executeDelete(id) {
     .then(r => r.json())
     .then(data => {
         if(data.success) {
-            if(typeof Swal !== 'undefined') Swal.fire('Eliminado', '', 'success');
             loadProjects();
         }
     });
 }
 
 function archiveProject(id, newStatus) {
-    let actionText = newStatus === 'Archived' ? 'Archivar' : 'Restaurar';
+    let isArchiving = newStatus === 'Archived';
+    let modalHtml = `
+        <div class="app-modal-dialog" style="text-align: left; background: var(--bg-surface, #121212); color: var(--text-main, #ffffff); border-radius: 28px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.45);">
+            <div class="app-modal-header" style="padding: 1.5rem 2rem 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));">
+                <div class="app-modal-title-group" style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div class="app-modal-icon-badge" style="width: 44px; height: 44px; border-radius: 14px; background: color-mix(in srgb, var(--primary-color, #4f46e5) 15%, transparent); color: var(--primary-color, #6366f1); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                        <i class="ph-bold ${isArchiving ? 'ph-archive' : 'ph-arrow-counter-clockwise'}"></i>
+                    </div>
+                    <div class="app-modal-titles" style="display: flex; flex-direction: column; gap: 0.15rem;">
+                        <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted, #9ca3af);">Gestión de Estado</span>
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main, #ffffff);">${isArchiving ? '¿Archivar Proyecto?' : '¿Restaurar Proyecto?'}</h3>
+                    </div>
+                </div>
+                <button class="app-close-circle" onclick="Swal.close()" style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-color, #1e1e1e); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08)); color: var(--text-muted, #9ca3af); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem;"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div class="app-modal-body" style="padding: 1.75rem 2rem;">
+                <p style="margin:0; font-size:0.95rem; color:var(--text-muted); line-height:1.6;">
+                    ${isArchiving ? 'El proyecto se moverá a la pestaña de Archivados y dejará de aparecer en la vista activa.' : 'El proyecto volverá al tablero principal como Activo.'}
+                </p>
+            </div>
+            <div class="app-modal-footer" style="padding: 1.25rem 2rem; display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));">
+                <button onclick="Swal.close()" style="background: var(--bg-color, #1e1e1e); color: var(--text-muted, #9ca3af); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); padding: 0.65rem 1.4rem; border-radius: 9999px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">Cancelar</button>
+                <button id="swal-confirm-archive-project" style="background: var(--primary-color, #4f46e5); color: #fff; border: none; padding: 0.65rem 1.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 15px color-mix(in srgb, var(--primary-color, #4f46e5) 40%, transparent);"><i class="ph-bold ph-check"></i> Confirmar</button>
+            </div>
+        </div>
+    `;
+
     Swal.fire({
-        title: `¿${actionText} Proyecto?`,
-        text: newStatus === 'Archived' ? "Podrás verlo en la pestaña de Archivados." : "El proyecto volverá a estar Activo.",
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--brand-primary)',
-        cancelButtonColor: 'var(--brand-text-muted)',
-        background: 'var(--brand-card-bg)',
-        color: 'var(--brand-text-main)',
-        confirmButtonText: 'Aceptar',
-        cancelButtonText: 'Cancelar',
-        customClass: {
-            popup: 'swal2-modern-popup'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            executeArchive(id, newStatus);
+        html: modalHtml,
+        width: '520px',
+        showConfirmButton: false,
+        showCancelButton: false,
+        customClass: { popup: 'swal2-zero-pad', actions: 'app-modal-actions' },
+        didOpen: () => {
+            document.getElementById('swal-confirm-archive-project').addEventListener('click', () => {
+                executeArchive(id, newStatus);
+                Swal.close();
+            });
         }
     });
 }
@@ -1313,7 +1902,7 @@ let searchClientTimer;
 function searchClients(query) {
     clearTimeout(searchClientTimer);
     const resultsDiv = document.getElementById('client_results');
-    if(query.trim().length < 2) {
+    if(!query || query.trim().length < 1) {
         resultsDiv.style.display = 'none';
         return;
     }
@@ -1328,8 +1917,19 @@ function searchClients(query) {
                 resultsDiv.innerHTML = '';
                 data.clients.forEach(c => {
                     let div = document.createElement('div');
-                    div.className = 'dropdown-item';
-                    div.innerText = c.name;
+                    div.className = 'client-search-item';
+                    let initial = (c.name || 'C').charAt(0).toUpperCase();
+                    let subText = c.business_name || c.email || c.phone || 'Cliente Registrado';
+                    
+                    div.innerHTML = `
+                        <div class="client-search-avatar">
+                            ${c.avatar && c.avatar !== 'default.png' ? `<img src="${c.avatar}" style="width:100%; height:100%; border-radius:10px; object-fit:cover;">` : initial}
+                        </div>
+                        <div class="client-search-details">
+                            <div class="client-search-name">${c.name}</div>
+                            <div class="client-search-sub">${subText}</div>
+                        </div>
+                    `;
                     div.onclick = () => {
                         document.getElementById('p_client').value = c.name;
                         document.getElementById('p_client_id').value = c.id;
@@ -1339,11 +1939,11 @@ function searchClients(query) {
                 });
                 resultsDiv.style.display = 'block';
             } else {
-                resultsDiv.innerHTML = '<div class="dropdown-item" style="color:var(--brand-text-muted);">No se encontraron clientes</div>';
+                resultsDiv.innerHTML = '<div style="padding:0.75rem; text-align:center; color:var(--text-muted); font-size:0.85rem;"><i class="ph-bold ph-warning-circle"></i> No se encontraron clientes</div>';
                 resultsDiv.style.display = 'block';
             }
         });
-    }, 300);
+    }, 250);
 }
 
 document.addEventListener('click', function(e) {

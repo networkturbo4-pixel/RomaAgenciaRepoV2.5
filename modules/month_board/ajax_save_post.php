@@ -25,6 +25,8 @@ try {
     $reference_image_link = $_POST['reference_image_link'] ?? '';
 
     $post_type = $_POST['post_type'] ?? '';
+    $content_pillar = !empty($_POST['content_pillar']) ? trim($_POST['content_pillar']) : 'Educación';
+    $qa_checklist = isset($_POST['qa_checklist']) ? (is_array($_POST['qa_checklist']) ? json_encode($_POST['qa_checklist']) : $_POST['qa_checklist']) : null;
     $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
     $periodicity = $_POST['periodicity'] ?? '';
     $reminder = $_POST['reminder'] ?? '';
@@ -41,7 +43,28 @@ try {
     }
 
 
-    if (!empty($reference_image_link) && $status === 'Borrador') {
+    // Check if user is admin (role_id === 1)
+    $stmtRole = $db->prepare("SELECT role_id FROM users WHERE id = ?");
+    $stmtRole->execute([$_SESSION['user_id']]);
+    $user_role = (int)$stmtRole->fetchColumn();
+    $is_admin = ($user_role === 1);
+
+    if ($id > 0 && !$is_admin) {
+        // Non-admin users cannot alter end_date
+        $stmtCurr = $db->prepare("SELECT end_date FROM month_posts WHERE id = ?");
+        $stmtCurr->execute([$id]);
+        $end_date = $stmtCurr->fetchColumn();
+    }
+
+    // Auto-set creation post_date if missing
+    if (empty($post_date)) {
+        $post_date = date('Y-m-d H:i:s');
+    }
+
+    // Auto-transition: If an image is added in "Post Terminado", status becomes 'Publicado'
+    if (!empty($image_link) && $post_type === 'Post Terminado') {
+        $status = 'Publicado';
+    } elseif (!empty($reference_image_link) && $status === 'Borrador') {
         $status = 'En Revisión';
     }
 
@@ -61,11 +84,11 @@ try {
 
         $stmt = $db->prepare("UPDATE month_posts SET 
             post_date = ?, concept = ?, copy_text = ?, platform = ?, status = ?, image_link = ?, reference_image_link = ?,
-            post_type = ?, end_date = ?, periodicity = ?, reminder = ?, formats = ?, design_brief = ?, visual_references = ?, variations = ?, drive_images = ?, paint_data = ?
+            post_type = ?, content_pillar = ?, end_date = ?, periodicity = ?, reminder = ?, formats = ?, design_brief = ?, visual_references = ?, variations = ?, drive_images = ?, paint_data = ?, qa_checklist = ?
             WHERE id = ?");
         $stmt->execute([
             $post_date, $concept, $copy_text, $platform, $status, $image_link, $reference_image_link,
-            $post_type, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images, $paint_data,
+            $post_type, $content_pillar, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images, $paint_data, $qa_checklist,
             $id
         ]);
         
@@ -82,11 +105,11 @@ try {
     } else {
         $stmt = $db->prepare("INSERT INTO month_posts 
             (month_id, post_date, concept, copy_text, platform, status, image_link, reference_image_link,
-             post_type, end_date, periodicity, reminder, formats, design_brief, visual_references, variations, drive_images, paint_data) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+             post_type, content_pillar, end_date, periodicity, reminder, formats, design_brief, visual_references, variations, drive_images, paint_data, qa_checklist) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $month_id, $post_date, $concept, $copy_text, $platform, $status, $image_link, $reference_image_link,
-            $post_type, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images, $paint_data
+            $post_type, $content_pillar, $end_date, $periodicity, $reminder, $formats, $design_brief, $visual_references, $variations, $drive_images, $paint_data, $qa_checklist
         ]);
         $newId = $db->lastInsertId();
         

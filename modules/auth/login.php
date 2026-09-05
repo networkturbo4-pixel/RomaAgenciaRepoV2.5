@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['user_role'] = $user['role_id'] ?? null;
             header("Location: index.php?module=dashboard&action=index");
             exit();
         } else {
@@ -518,14 +518,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return;
         }
 
+        // El correo es obligatorio para buscar la credencial vinculada al usuario
+        const emailField = document.getElementById('email');
+        if (!emailField || !emailField.value.trim()) {
+            alert('Escribe tu correo electrónico primero y luego presiona "Ingresar con Huella / FaceID".');
+            if (emailField) emailField.focus();
+            return;
+        }
+
         try {
             const loginDataInit = new URLSearchParams();
             loginDataInit.append('action', 'get_login_args');
-            
-            const emailField = document.getElementById('email');
-            if (emailField && emailField.value) {
-                loginDataInit.append('email', emailField.value);
-            }
+            loginDataInit.append('email', emailField.value.trim());
 
             const res = await fetch('modules/auth/webauthn_api.php', {
                 method: 'POST',
@@ -538,7 +542,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 data = JSON.parse(text);
             } catch (err) {
                 console.error("Respuesta del servidor no es JSON:", text);
-                alert("Error del servidor: Revisa la consola (F12) para ver el error exacto.");
+                alert("Error del servidor. Intenta de nuevo.");
                 return;
             }
             
@@ -547,12 +551,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             const args = decodeArgs(data.args);
+
+            // Limpiar extensiones incompatibles con Android
+            if (args.publicKey) {
+                if (args.publicKey.extensions) {
+                    delete args.publicKey.extensions;
+                }
+            }
             
             const credential = await navigator.credentials.get(args);
             
             const loginData = new URLSearchParams();
             loginData.append('action', 'process_login');
-            loginData.append('id', credential.id); // credential.id is base64url usually
+            if (credential.rawId) {
+                loginData.append('id', arrayBufferToBase64(credential.rawId));
+            } else {
+                loginData.append('id', credential.id);
+            }
             loginData.append('clientDataJSON', arrayBufferToBase64(credential.response.clientDataJSON));
             loginData.append('authenticatorData', arrayBufferToBase64(credential.response.authenticatorData));
             loginData.append('signature', arrayBufferToBase64(credential.response.signature));
@@ -572,7 +587,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 verifyData = JSON.parse(verifyText);
             } catch(err) {
                 console.error("Verificación no es JSON:", verifyText);
-                alert("Error al verificar en servidor. Revisa consola.");
+                alert("Error al verificar en servidor. Intenta de nuevo.");
                 return;
             }
 
@@ -582,8 +597,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert(verifyData.error || 'Fallo la verificación biométrica.');
             }
         } catch (e) {
-            console.error(e);
-            if (e.name !== 'NotAllowedError') {
+            console.error('Error biométrico login:', e);
+            if (e.name === 'NotAllowedError') {
+                // El usuario canceló
+            } else if (e.name === 'NotReadableError') {
+                alert('No se pudo acceder al sensor biométrico. Reinicia Chrome e intenta de nuevo.');
+            } else {
                 alert('Error al verificar huella: ' + e.message);
             }
         }

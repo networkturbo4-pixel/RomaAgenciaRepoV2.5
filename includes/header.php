@@ -163,11 +163,19 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
                 <span>Workspace</span>
             </a>
             <?php endif; ?>
-            
-            <?php if (in_array('task_manager', $perms)): ?>
-            <a href="index.php?module=task_manager&action=index" class="nav-item <?php echo $current_module === 'task_manager' ? 'active' : ''; ?>" data-title="Gestor de Tareas">
-                <i class="ph ph-kanban"></i>
-                <span>Gestor de Tareas</span>
+
+            <?php if (in_array('task_manager', $perms) || in_array('workspace', $perms) || in_array('dashboard', $perms)): ?>
+            <a href="index.php?module=task_manager&action=index" class="nav-item <?php echo $current_module === 'task_manager' ? 'active' : ''; ?>" data-title="Tareas">
+                <i class="ph ph-check-square-offset"></i>
+                <span>Tareas</span>
+            </a>
+            <?php endif; ?>
+
+
+            <?php if (in_array('desarrollo_marca', $perms) || in_array('dashboard', $perms)): ?>
+            <a href="index.php?module=desarrollo_marca&action=index" class="nav-item <?php echo $current_module === 'desarrollo_marca' ? 'active' : ''; ?>" data-title="Desarrollo de Marca">
+                <i class="ph ph-paint-brush-broad"></i>
+                <span>Desarrollo de Marca</span>
             </a>
             <?php endif; ?>
             
@@ -186,22 +194,10 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
                 <span id="globalMsgBadge" style="display:none; align-items:center; justify-content:center; background:var(--msg-primary, #e83f6f); color:white; font-size:10px; font-weight:bold; width:18px; height:18px; min-width:18px; min-height:18px; flex:0 0 18px; border-radius:50%;">0</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('whatsapp', $perms)): ?>
-            <a href="index.php?module=whatsapp&action=index" class="nav-item <?php echo $current_module === 'whatsapp' ? 'active' : ''; ?>" data-title="WhatsApp">
-                <i class="ph ph-whatsapp-logo"></i>
-                <span>WhatsApp</span>
-            </a>
-            <?php endif; ?>
             <?php if (in_array('clients', $perms)): ?>
             <a href="index.php?module=clients&action=index" class="nav-item <?php echo $current_module === 'clients' ? 'active' : ''; ?>" data-title="Clientes">
                 <i class="ph ph-users"></i>
                 <span>Clientes</span>
-            </a>
-            <?php endif; ?>
-            <?php if (in_array('projects', $perms)): ?>
-            <a href="index.php?module=projects&action=index" class="nav-item <?php echo $current_module === 'projects' ? 'active' : ''; ?>" data-title="Proyectos">
-                <i class="ph ph-folders"></i>
-                <span>Proyectos</span>
             </a>
             <?php endif; ?>
             <?php if (in_array('reuniones', $perms)): ?>
@@ -245,13 +241,6 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             <a href="index.php?module=calendar&action=index" class="nav-item <?php echo $current_module === 'calendar' ? 'active' : ''; ?>" data-title="Calendario">
                 <i class="ph ph-calendar"></i>
                 <span>Calendario</span>
-            </a>
-            <?php endif; ?>
-            
-            <?php if (in_array('community', $perms)): ?>
-            <a href="index.php?module=community&action=index" class="nav-item <?php echo $current_module === 'community' ? 'active' : ''; ?>" data-title="Community">
-                <i class="ph ph-calendar-check"></i>
-                <span>Community</span>
             </a>
             <?php endif; ?>
 

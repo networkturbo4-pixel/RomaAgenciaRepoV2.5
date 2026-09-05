@@ -5,6 +5,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$stmtUserRole = $db->prepare("SELECT role_id FROM users WHERE id = ?");
+$stmtUserRole->execute([$_SESSION['user_id']]);
+$userRoleId = (int)$stmtUserRole->fetchColumn();
+$isAdmin = ($userRoleId === 1);
+
 $monthId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if (!$monthId) {
@@ -49,6 +54,17 @@ foreach ($posts as &$p) {
 }
 unset($p); // CRITICAL: break the reference to prevent overwriting the last element in subsequent loops
 
+// Calculate overall month progress
+$totalPostsCount = count($posts);
+$completedPostsCount = 0;
+foreach ($posts as $pst) {
+    if (in_array($pst['status'], ['Publicado', 'Aprobado'])) {
+        $completedPostsCount++;
+    }
+}
+$monthProgressPct = $totalPostsCount > 0 ? round(($completedPostsCount / $totalPostsCount) * 100) : 0;
+$isMonthComplete = ($totalPostsCount > 0 && $monthProgressPct >= 100) || strtolower($monthData['status'] ?? '') === 'finalizado';
+
 $monthNames = [
     1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 
     5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 
@@ -64,6 +80,28 @@ $statusColors = [
     'Archivado' => ['bg' => 'rgba(147, 51, 234, 0.1)', 'color' => '#9333ea'],
 ];
 
+// Content Pillars Definitions & Palette
+$pillarDefinitions = [
+    'Educación' => ['label' => 'Educación', 'color' => '#3b82f6', 'bg' => 'rgba(59,130,246,0.15)', 'icon' => 'ph-graduation-cap'],
+    'Ventas' => ['label' => 'Ventas', 'color' => '#f43f5e', 'bg' => 'rgba(244,63,94,0.15)', 'icon' => 'ph-tag'],
+    'Branding' => ['label' => 'Branding', 'color' => '#8b5cf6', 'bg' => 'rgba(139,92,246,0.15)', 'icon' => 'ph-sparkle'],
+    'Entretenimiento' => ['label' => 'Entretenimiento', 'color' => '#f59e0b', 'bg' => 'rgba(245,158,11,0.15)', 'icon' => 'ph-mask-happy'],
+    'Comunidad' => ['label' => 'Comunidad', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.15)', 'icon' => 'ph-users-three'],
+    'Testimonial' => ['label' => 'Testimonial', 'color' => '#06b6d4', 'bg' => 'rgba(6,182,212,0.15)', 'icon' => 'ph-star']
+];
+
+$pillarCounts = [];
+foreach ($pillarDefinitions as $pKey => $pDef) {
+    $pillarCounts[$pKey] = 0;
+}
+foreach ($posts as $pst) {
+    $pPil = $pst['content_pillar'] ?? 'Educación';
+    if (!isset($pillarCounts[$pPil])) {
+        $pillarCounts[$pPil] = 0;
+    }
+    $pillarCounts[$pPil]++;
+}
+
 require_once 'includes/header.php';
 ?>
 <!-- Swiper JS & CSS -->
@@ -78,6 +116,7 @@ require_once 'includes/header.php';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 
 <style>
+    /* ===== HEADER REDESIGN ===== */
     .board-header {
         display: flex;
         align-items: center;
@@ -85,89 +124,105 @@ require_once 'includes/header.php';
         gap: 1.5rem;
         margin-bottom: 2rem;
         flex-wrap: wrap;
-        background: linear-gradient(145deg, var(--bg-surface), #f8fafc);
-        padding: 1.5rem 2rem;
-        border-radius: 24px;
-        border: 1px solid rgba(255,255,255,0.8);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.9));
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 1.1rem 1.6rem;
+        border-radius: 20px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
         position: relative;
-        overflow: hidden;
-    }
-    .board-header::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), #3b82f6, #8b5cf6);
-        opacity: 0.8;
     }
     [data-theme="dark"] .board-header {
-        background: linear-gradient(145deg, var(--bg-surface), #111827);
-        border: 1px solid rgba(255,255,255,0.05);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        background: #121212;
+        border: 1px solid #27272a;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
     }
 
+    .board-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-shrink: 0;
+    }
     .btn-back-compact {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
         text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         flex-shrink: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
     .btn-back-compact:hover {
         background: var(--primary-color);
         color: white;
         border-color: var(--primary-color);
-        transform: translateX(-4px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        transform: translateX(-3px);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
     }
     [data-theme="dark"] .btn-back-compact {
-        background: #1e293b;
-        border-color: #334155;
-        color: #94a3b8;
+        background: #181818;
+        border-color: #27272a;
+        color: #e4e4e7;
     }
 
     .board-header-info {
         display: flex;
         align-items: center;
-        gap: 1.25rem;
-        flex: 1;
+        gap: 0.85rem;
     }
     .board-header-info img {
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
         object-fit: contain;
         background: #ffffff;
-        padding: 0.5rem;
-        box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-        border: 1px solid rgba(0,0,0,0.03);
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .board-header-info img:hover {
-        transform: scale(1.08) rotate(-3deg);
+        padding: 0.35rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border: 1px solid var(--border-color);
     }
     [data-theme="dark"] .board-header-info img {
-        background: #1e293b;
-        border-color: #334155;
+        background: #181818;
+        border-color: #27272a;
     }
 
     .board-title {
-        font-size: 1.8rem;
+        font-size: 1.55rem;
         font-weight: 800;
         color: var(--color-title);
         margin: 0;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
+    }
+    .board-meta-row {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        letter-spacing: -0.5px;
+        gap: 0.45rem;
+        margin-top: 0.25rem;
+        flex-wrap: wrap;
+    }
+    .board-brand-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .board-ot-badge {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.12rem 0.45rem;
+        border-radius: 6px;
     }
     .phase-badge {
         font-size: 0.75rem;
@@ -488,12 +543,12 @@ require_once 'includes/header.php';
         box-shadow: 0 8px 20px rgba(0,0,0,0.06);
     }
     [data-theme="dark"] .btn-top-action {
-        background: rgba(30, 41, 59, 0.8);
-        border-color: rgba(255, 255, 255, 0.05);
+        background: #181818;
+        border-color: #27272a;
         color: #cbd5e1;
     }
     [data-theme="dark"] .btn-top-action:hover {
-        background: #1e293b;
+        background: #27272a;
         color: #10b981;
     }
     .btn-top-action i {
@@ -529,10 +584,309 @@ require_once 'includes/header.php';
     .btn-publish i {
         font-size: 1.25rem;
     }
+
+    /* Cronómetro Total del Mes (Header Component Redesigned) */
+    .month-total-timer-card {
+        background: rgba(15, 23, 42, 0.03);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 0.65rem 1.15rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        min-width: 250px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    [data-theme="dark"] .month-total-timer-card {
+        background: #181818;
+        border-color: #27272a;
+    }
+    .month-total-timer-card.active {
+        border-color: rgba(56, 189, 248, 0.3);
+        box-shadow: 0 4px 20px rgba(56, 189, 248, 0.08);
+    }
+    .month-total-timer-card.warning {
+        border-color: rgba(245, 158, 11, 0.4);
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.12);
+    }
+    .month-total-timer-card.expired {
+        border-color: rgba(239, 68, 68, 0.4);
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.12);
+    }
+    .month-total-timer-card.completed {
+        border-color: rgba(16, 185, 129, 0.4);
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.12);
+    }
+    .month-total-timer-card.upcoming {
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.12);
+    }
+
+    .mtt-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    .mtt-pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #38bdf8;
+        box-shadow: 0 0 10px #38bdf8;
+        display: inline-block;
+        animation: pulse-dot 1.8s infinite;
+    }
+    .month-total-timer-card.warning .mtt-pulse-dot { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+    .month-total-timer-card.expired .mtt-pulse-dot { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+    .month-total-timer-card.completed .mtt-pulse-dot { background: #10b981; box-shadow: 0 0 10px #10b981; }
+    .month-total-timer-card.upcoming .mtt-pulse-dot { background: #8b5cf6; box-shadow: 0 0 10px #8b5cf6; }
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(1.3); }
+    }
+
+    .mtt-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--text-muted);
+        flex: 1;
+        margin-left: 0.35rem;
+    }
+    .mtt-counter-box {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+    }
+    .mtt-counter-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.5px;
+        color: var(--color-title);
+        line-height: 1.1;
+    }
+    .month-total-timer-card.active .mtt-counter-value { color: #38bdf8; }
+    [data-theme="light"] .month-total-timer-card.active .mtt-counter-value { color: #0284c7; }
+    .month-total-timer-card.warning .mtt-counter-value { color: #f59e0b; }
+    .month-total-timer-card.expired .mtt-counter-value { color: #ef4444; }
+    .month-total-timer-card.completed .mtt-counter-value { color: #10b981; }
+    .month-total-timer-card.upcoming .mtt-counter-value { color: #8b5cf6; }
+
+    .mtt-status-pill {
+        font-size: 0.62rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 0.12rem 0.45rem;
+        border-radius: 6px;
+        letter-spacing: 0.4px;
+    }
+    .status-pill-active {
+        background: rgba(56, 189, 248, 0.15);
+        color: #0284c7;
+    }
+    [data-theme="dark"] .status-pill-active {
+        color: #38bdf8;
+    }
+    .status-pill-warning {
+        background: rgba(245, 158, 11, 0.15);
+        color: #d97706;
+    }
+    [data-theme="dark"] .status-pill-warning {
+        color: #fbbf24;
+    }
+    .status-pill-expired {
+        background: rgba(239, 68, 68, 0.15);
+        color: #dc2626;
+    }
+    [data-theme="dark"] .status-pill-expired {
+        color: #f87171;
+    }
+    .status-pill-completed {
+        background: rgba(16, 185, 129, 0.15);
+        color: #059669;
+    }
+    [data-theme="dark"] .status-pill-completed {
+        color: #34d399;
+    }
+    .status-pill-upcoming {
+        background: rgba(139, 92, 246, 0.15);
+        color: #7c3aed;
+    }
+    [data-theme="dark"] .status-pill-upcoming {
+        color: #a78bfa;
+    }
+    .mtt-dates {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-weight: 500;
+    }
+
+    /* RIGHT ACTIONS GROUP */
+    .header-actions-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .header-action-buttons {
+        display: flex;
+        align-items: center;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 3px;
+        gap: 2px;
+    }
+    [data-theme="dark"] .header-action-buttons {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    .btn-top-action {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 10px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .btn-top-action:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--color-title);
+    }
+    [data-theme="dark"] .btn-top-action:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+    }
+    .btn-top-action i {
+        font-size: 1.15rem;
+    }
+    .btn-publish {
+        background: var(--color-btn-bg, var(--primary-color));
+        color: var(--color-btn-text, #ffffff);
+        border: none;
+        font-weight: 700;
+        padding: 0.65rem 1.25rem;
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 16px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 30%, transparent);
+        white-space: nowrap;
+        font-size: 0.88rem;
+        cursor: pointer;
+    }
+    .btn-publish:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 45%, transparent);
+        background: var(--color-btn-hover, var(--primary-hover, var(--primary-color)));
+        color: var(--color-btn-text, #ffffff);
+    }
+
+    /* POST CARD TIMERS */
+    .post-live-timer {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(15, 23, 42, 0.82);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #38bdf8;
+        padding: 0.3rem 0.65rem;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+        z-index: 10;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.3px;
+        transition: all 0.25s ease;
+    }
+    .post-live-timer.warning {
+        background: rgba(245, 158, 11, 0.92);
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.35);
+        animation: pulse-timer-warning 2s infinite ease-in-out;
+    }
+    .post-live-timer.expired {
+        background: rgba(239, 68, 68, 0.92);
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.35);
+    }
+    .post-live-timer.completed {
+        background: rgba(16, 185, 129, 0.92);
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.35);
+    }
+    .post-live-timer.upcoming {
+        background: rgba(99, 102, 241, 0.92);
+        color: #ffffff;
+        border-color: rgba(255,255,255,0.35);
+    }
+    @keyframes pulse-timer-warning {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.04); }
+    }
+
+    @media (max-width: 992px) {
+        .board-header {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 1.25rem;
+            padding: 1.25rem;
+        }
+        .board-header-left {
+            width: 100%;
+        }
+        .month-total-timer-card {
+            width: 100%;
+            min-width: unset;
+        }
+        .header-actions-group {
+            width: 100%;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .header-action-buttons {
+            flex: 1;
+            justify-content: space-around;
+        }
+    }
+    @media (max-width: 576px) {
+        .header-action-buttons {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .action-btn-label {
+            display: none;
+        }
+        .btn-publish {
+            width: 100%;
+        }
+    }
 </style>
 
 <div class="board-header">
-    <div style="display: flex; align-items: center; gap: 1.5rem; flex: 1; flex-wrap: wrap;">
+    <div class="board-header-left">
         <a href="index.php?module=project_board&id=<?php echo $monthData['project_id']; ?>" class="btn-back-compact" title="Volver a los Meses">
             <i class="ph ph-arrow-left"></i>
         </a>
@@ -542,58 +896,277 @@ require_once 'includes/header.php';
                 <h1 class="board-title">
                     <?php echo $monthNames[$monthData['month']] . ' ' . $monthData['year']; ?>
                 </h1>
+                <div class="board-meta-row">
+                    <span class="board-brand-name"><i class="ph-bold ph-storefront"></i> <?php echo htmlspecialchars($monthData['brand_name']); ?></span>
+                    <?php $mbCorrelativo = (strpos($monthData['correlativo'] ?? '', 'OT-') === 0) ? $monthData['correlativo'] : 'OT-' . ($monthData['correlativo'] ?? ''); ?>
+                    <span class="board-ot-badge"><?php echo htmlspecialchars($mbCorrelativo); ?></span>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Center: Redesigned Month Total Timer HUD -->
+    <div class="month-total-timer-card <?php echo $isMonthComplete ? 'completed' : 'active'; ?>" id="month-total-timer" data-start="<?php echo htmlspecialchars($monthData['start_date'] ?? ''); ?>" data-due="<?php echo htmlspecialchars($monthData['due_date'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($monthData['status'] ?? ''); ?>" data-progress="<?php echo $monthProgressPct; ?>" data-posts="<?php echo $totalPostsCount; ?>">
+        <div class="mtt-header">
+            <span class="mtt-pulse-dot"></span>
+            <span class="mtt-label">Tiempo Restante del Mes</span>
+            <span class="mtt-status-pill <?php echo $isMonthComplete ? 'status-pill-completed' : 'status-pill-active'; ?>" id="mtt-status-pill"><?php echo $isMonthComplete ? 'Terminado' : 'En Curso'; ?></span>
+        </div>
+        <div class="mtt-counter-box">
+            <div class="mtt-counter-value" id="mtt-countdown"><?php echo $isMonthComplete ? 'Terminado' : 'Calculando...'; ?></div>
+        </div>
+        <?php if (!empty($monthData['start_date']) && !empty($monthData['due_date'])): ?>
+        <div class="mtt-dates">
+            <i class="ph ph-calendar-blank"></i> <?php echo date('d M', strtotime($monthData['start_date'])) . ' - ' . date('d M Y', strtotime($monthData['due_date'])); ?>
+        </div>
+        <?php endif; ?>
+    </div>
     
-    <div class="header-actions-mobile">
-        <button class="btn btn-top-action" onclick="startPresentation()" title="Iniciar Presentación">
-            <i class="ph ph-presentation-chart"></i> <span class="d-none d-md-inline">Presentación</span>
-        </button>
-        <button class="btn btn-top-action" onclick="openSocialProfilesModal()" title="Vista Previa de Perfiles Sociales">
-            <i class="ph ph-instagram-logo"></i> <span class="d-none d-md-inline">Perfiles</span>
-        </button>
-        <button class="btn btn-top-action" onclick="openShareModal()" title="Compartir">
-            <i class="ph ph-share-network"></i>
-        </button>
-        <button class="btn btn-top-action" onclick="openUploadDriveModal()" title="Subir Archivos a Google Drive">
-            <i class="ph ph-upload-simple"></i>
-        </button>
+    <!-- Right Actions Group -->
+    <div class="header-actions-group">
+        <div class="header-action-buttons">
+            <button class="btn-top-action" onclick="startPresentation()" title="Iniciar Presentación">
+                <i class="ph ph-presentation-chart"></i>
+                <span class="action-btn-label">Presentación</span>
+            </button>
+            <button class="btn-top-action" onclick="openSocialProfilesModal()" title="Vista Previa de Perfiles Sociales">
+                <i class="ph ph-instagram-logo"></i>
+                <span class="action-btn-label">Perfiles</span>
+            </button>
+            <button class="btn-top-action" onclick="openShareModal()" title="Compartir Tablero">
+                <i class="ph ph-share-network"></i>
+                <span class="action-btn-label">Compartir</span>
+            </button>
+            <button class="btn-top-action" onclick="openUploadDriveModal()" title="Subir Archivos a Google Drive">
+                <i class="ph ph-upload-simple"></i>
+                <span class="action-btn-label">Drive</span>
+            </button>
+        </div>
         <button class="btn btn-publish btn-responsive-full" onclick="openPostModal()">
-            <i class="ph ph-plus"></i> Añadir Publicación
+            <i class="ph-bold ph-plus"></i> <span>Añadir Publicación</span>
         </button>
     </div>
 </div>
 
-<style>
-.header-actions-mobile {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-}
-.btn-responsive-full {
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-@media (max-width: 576px) {
-    .header-actions-mobile { 
-        flex-wrap: wrap;
-        justify-content: flex-start !important; 
-        margin-top: 1rem; 
-        width: 100%;
+<script>
+function updateMonthBoardTimer() {
+    // 1. Month Total Timer in Header
+    const card = document.getElementById('month-total-timer');
+    if (card) {
+        const dueStr = card.getAttribute('data-due');
+        const startStr = card.getAttribute('data-start');
+        const status = (card.getAttribute('data-status') || '').toLowerCase();
+        const progress = parseInt(card.getAttribute('data-progress') || '0', 10);
+        const posts = parseInt(card.getAttribute('data-posts') || '0', 10);
+        const countEl = document.getElementById('mtt-countdown');
+        const pillEl = document.getElementById('mtt-status-pill');
+        const now = new Date();
+
+        if (status === 'finalizado' || (posts > 0 && progress >= 100)) {
+            card.className = 'month-total-timer-card completed';
+            if (pillEl) {
+                pillEl.className = 'mtt-status-pill status-pill-completed';
+                pillEl.textContent = 'Terminado';
+            }
+            if (countEl) countEl.textContent = 'Terminado';
+        } else if (!dueStr) {
+            if (countEl) countEl.textContent = 'Sin fecha';
+            if (pillEl) {
+                pillEl.className = 'mtt-status-pill status-pill-upcoming';
+                pillEl.textContent = 'Sin fecha';
+            }
+        } else {
+            const due = new Date(dueStr + (dueStr.includes('T') ? '' : 'T23:59:59'));
+            const start = startStr ? new Date(startStr + (startStr.includes('T') ? '' : 'T00:00:00')) : new Date();
+
+            if (now < start) {
+                card.className = 'month-total-timer-card upcoming';
+                if (pillEl) {
+                    pillEl.className = 'mtt-status-pill status-pill-upcoming';
+                    pillEl.textContent = 'Por Iniciar';
+                }
+                const diffUpcoming = start - now;
+                const upDays = Math.floor(diffUpcoming / (1000 * 60 * 60 * 24));
+                const upHours = String(Math.floor((diffUpcoming % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+                const upMins = String(Math.floor((diffUpcoming % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+                const upSecs = String(Math.floor((diffUpcoming % (1000 * 60)) / 1000)).padStart(2, '0');
+                if (countEl) countEl.textContent = upDays > 0 ? `${upDays}d ${upHours}:${upMins}:${upSecs}` : `${upHours}:${upMins}:${upSecs}`;
+            } else if (now > due) {
+                card.className = 'month-total-timer-card expired';
+                if (pillEl) {
+                    pillEl.className = 'mtt-status-pill status-pill-expired';
+                    pillEl.textContent = 'Agotado';
+                }
+                if (countEl) countEl.textContent = 'Tiempo agotado';
+            } else {
+                const diff = due - now;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+                const mins = String(Math.floor((diff % (1000 * 60)) / (1000 * 60))).padStart(2, '0');
+                const secs = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+
+                if (days < 2) {
+                    card.className = 'month-total-timer-card warning';
+                    if (pillEl) {
+                        pillEl.className = 'mtt-status-pill status-pill-warning';
+                        pillEl.textContent = 'Por Vencer';
+                    }
+                } else {
+                    card.className = 'month-total-timer-card active';
+                    if (pillEl) {
+                        pillEl.className = 'mtt-status-pill status-pill-active';
+                        pillEl.textContent = 'En Curso';
+                    }
+                }
+                if (countEl) countEl.textContent = days > 0 ? `${days}d ${hours}:${mins}:${secs}` : `${hours}:${mins}:${secs}`;
+            }
+        }
     }
-    .btn-responsive-full {
-        flex: 1;
-        min-width: max-content;
-    }
-    .board-header { 
-        flex-direction: column; 
-        align-items: flex-start !important; 
-    }
+
+    // 2. Individual Post Timers (Calculated based on Fecha de Creación and Fecha de Entrega)
+    const now = new Date();
+    document.querySelectorAll('.post-live-timer').forEach(el => {
+        const dueStr = el.getAttribute('data-due');
+        const startStr = el.getAttribute('data-start');
+        const status = (el.getAttribute('data-status') || '').trim();
+        const textEl = el.querySelector('.timer-text');
+        const iconEl = el.querySelector('i');
+
+        if (status === 'Publicado') {
+            el.className = 'post-live-timer completed';
+            if (iconEl) iconEl.className = 'ph-fill ph-check-circle';
+            if (textEl) textEl.textContent = 'Publicado';
+            return;
+        }
+        if (status === 'Aprobado') {
+            el.className = 'post-live-timer completed';
+            if (iconEl) iconEl.className = 'ph-fill ph-check-circle';
+            if (textEl) textEl.textContent = 'Aprobado';
+            return;
+        }
+        if (status === 'Archivado') {
+            el.className = 'post-live-timer upcoming';
+            if (iconEl) iconEl.className = 'ph ph-archive';
+            if (textEl) textEl.textContent = 'Archivado';
+            return;
+        }
+
+        if (!dueStr || dueStr === '0000-00-00' || dueStr === '0000-00-00 00:00:00') {
+            el.className = 'post-live-timer upcoming';
+            if (iconEl) iconEl.className = 'ph ph-calendar-blank';
+            if (textEl) textEl.textContent = 'Sin entrega';
+            return;
+        }
+        el.style.display = 'flex';
+
+        let due;
+        if (dueStr.includes(' ')) {
+            due = new Date(dueStr.replace(' ', 'T'));
+        } else if (!dueStr.includes('T')) {
+            due = new Date(dueStr + 'T23:59:59');
+        } else {
+            due = new Date(dueStr);
+        }
+
+        let start = null;
+        if (startStr && startStr !== '0000-00-00' && startStr !== '0000-00-00 00:00:00') {
+            if (startStr.includes(' ')) {
+                start = new Date(startStr.replace(' ', 'T'));
+            } else if (!startStr.includes('T')) {
+                start = new Date(startStr + 'T00:00:00');
+            } else {
+                start = new Date(startStr);
+            }
+        }
+
+        if (isNaN(due.getTime())) {
+            el.style.display = 'none';
+            return;
+        }
+
+        // Check if creation date is in future
+        if (start && !isNaN(start.getTime()) && now < start) {
+            el.className = 'post-live-timer upcoming';
+            if (iconEl) iconEl.className = 'ph-bold ph-clock-countdown';
+            const diffUpcoming = start - now;
+            const upDays = Math.floor(diffUpcoming / (1000 * 60 * 60 * 24));
+            const upHours = String(Math.floor((diffUpcoming % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            const upMins = String(Math.floor((diffUpcoming % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            const upSecs = String(Math.floor((diffUpcoming % (1000 * 60)) / 1000)).padStart(2, '0');
+            if (upDays > 0) {
+                textEl.textContent = `Inicia en ${upDays}d ${upHours}:${upMins}:${upSecs}`;
+            } else {
+                textEl.textContent = `Inicia en ${upHours}:${upMins}:${upSecs}`;
+            }
+            return;
+        }
+
+        if (now > due) {
+            el.className = 'post-live-timer expired';
+            if (iconEl) iconEl.className = 'ph-fill ph-warning-circle';
+            if (textEl) textEl.textContent = 'Tiempo agotado';
+            return;
+        }
+
+        const diff = due - now;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+        const mins = String(Math.floor((diff % (1000 * 60)) / (1000 * 60))).padStart(2, '0');
+        const secs = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+
+        if (days < 1) {
+            el.className = 'post-live-timer warning';
+            if (iconEl) iconEl.className = 'ph-fill ph-hourglass-medium';
+        } else {
+            el.className = 'post-live-timer active';
+            if (iconEl) iconEl.className = 'ph-fill ph-hourglass-high';
+        }
+
+        if (days > 0) {
+            textEl.textContent = `${days}d ${hours}:${mins}:${secs}`;
+        } else {
+            textEl.textContent = `${hours}:${mins}:${secs}`;
+        }
+    });
 }
-</style>
+document.addEventListener('DOMContentLoaded', updateMonthBoardTimer);
+updateMonthBoardTimer();
+setInterval(updateMonthBoardTimer, 1000);
+</script>
+
+<!-- Content Pillars Month Balance Banner -->
+<?php if (!empty($posts)): ?>
+<div class="content-pillars-bar-card">
+    <div class="cpb-header">
+        <div class="cpb-title">
+            <i class="ph-bold ph-chart-pie-slice" style="color: var(--primary-color);"></i>
+            <span>Equilibrio de Contenido del Mes</span>
+        </div>
+        <div class="cpb-legend">
+            <?php foreach ($pillarDefinitions as $pKey => $pDef): 
+                $count = $pillarCounts[$pKey] ?? 0;
+                $pct = ($totalPostsCount > 0) ? round(($count / $totalPostsCount) * 100) : 0;
+                if ($count === 0 && $totalPostsCount > 0) continue;
+            ?>
+                <div class="cpb-legend-item">
+                    <span class="cpb-dot" style="background: <?php echo $pDef['color']; ?>;"></span>
+                    <span class="cpb-name"><?php echo $pDef['label']; ?>:</span>
+                    <span class="cpb-val" style="color: <?php echo $pDef['color']; ?>;"><?php echo $count; ?> (<?php echo $pct; ?>%)</span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <div class="cpb-progress-track">
+        <?php foreach ($pillarDefinitions as $pKey => $pDef): 
+            $count = $pillarCounts[$pKey] ?? 0;
+            $pct = ($totalPostsCount > 0) ? round(($count / $totalPostsCount) * 100, 1) : 0;
+            if ($pct <= 0) continue;
+        ?>
+            <div class="cpb-progress-segment" style="width: <?php echo $pct; ?>%; background: <?php echo $pDef['color']; ?>;" title="<?php echo $pDef['label'] . ': ' . $count . ' posts (' . $pct . '%)'; ?>"></div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="posts-grid">
     <?php if (empty($posts)): ?>
@@ -650,6 +1223,16 @@ require_once 'includes/header.php';
             $icon = $platformData['icon'];
             $iconColor = $platformData['color'];
             $platformLabel = count($platforms) > 1 ? $firstPlatform . ' +' . (count($platforms) - 1) : $firstPlatform;
+
+            // Compute Post Deadline for timer
+            $postDeadline = '';
+            if (!empty($p['end_date']) && $p['end_date'] !== '0000-00-00' && $p['end_date'] !== '0000-00-00 00:00:00') {
+                $postDeadline = $p['end_date'];
+            } elseif (!empty($p['post_date']) && $p['post_date'] !== '0000-00-00' && $p['post_date'] !== '0000-00-00 00:00:00') {
+                $postDeadline = $p['post_date'];
+            } elseif (!empty($monthData['due_date'])) {
+                $postDeadline = $monthData['due_date'];
+            }
             ?>
             <div class="post-card" style="background: <?php echo $sColor['bg']; ?>; border: 1px solid <?php echo $sColor['color']; ?>22;" onclick="editPost(<?php echo htmlspecialchars(json_encode($p) ?: '{}'); ?>)">
                 <!-- Header Section -->
@@ -681,6 +1264,20 @@ require_once 'includes/header.php';
 
                 <!-- Image Section -->
                 <div class="post-image<?php echo empty($mediaList) ? ' no-img' : ''; ?>">
+                    <!-- Cronómetro del Post en vivo (calculado con Fecha de Creación y Entrega) -->
+                    <?php 
+                        $pstStatus = trim($p['status'] ?? '');
+                        $isPub = ($pstStatus === 'Publicado');
+                        $isApr = ($pstStatus === 'Aprobado');
+                        $timerClass = ($isPub || $isApr) ? 'post-live-timer completed' : 'post-live-timer';
+                        $timerIcon = ($isPub || $isApr) ? 'ph-fill ph-check-circle' : 'ph-fill ph-hourglass-high';
+                        $timerText = $isPub ? 'Publicado' : ($isApr ? 'Aprobado' : 'Calculando...');
+                    ?>
+                    <div class="<?php echo $timerClass; ?>" data-start="<?php echo htmlspecialchars($p['post_date'] ?? ''); ?>" data-due="<?php echo htmlspecialchars($p['end_date'] ?? ''); ?>" data-status="<?php echo htmlspecialchars($p['status']); ?>" data-id="<?php echo $p['id']; ?>">
+                        <i class="<?php echo $timerIcon; ?>"></i>
+                        <span class="timer-text"><?php echo $timerText; ?></span>
+                    </div>
+
                     <?php 
                     $mediaStr = $p['post_type'] === 'Referencia Visual' ? $p['reference_image_link'] : $p['image_link'];
                     $mediaList = json_decode($mediaStr, true);
@@ -704,36 +1301,20 @@ require_once 'includes/header.php';
                         </div>
                     <?php elseif (count($mediaList) === 1 && !empty($mediaList[0])): ?>
                         <?php 
-                        $videoUrl = is_string($mediaList[0]) ? $mediaList[0] : '';
-                        $isDriveImage = preg_match('/drive\.google\.com\/(uc\?export=view&id=|thumbnail\?id=)([\w-]+)/i', $videoUrl);
-                        $isVideo = !$isDriveImage && preg_match('/(\.mp4|\.webm|\.mov|drive\.google\.com|youtu\.be|youtube\.com|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|pinterest\.com|pin\.it)/i', $videoUrl);
-                        if ($isVideo): 
-                            // Detect platform
-                            $platform = 'Video';
-                            $platformColor = '#3b82f6';
-                            $platformIcon = 'ph-video';
-                            if (preg_match('/tiktok/i', $videoUrl)) { $platform = 'TikTok'; $platformColor = '#000'; $platformIcon = 'ph-tiktok-logo'; }
-                            elseif (preg_match('/youtu/i', $videoUrl)) { $platform = 'YouTube'; $platformColor = '#ff0000'; $platformIcon = 'ph-youtube-logo'; }
-                            elseif (preg_match('/instagram/i', $videoUrl)) { $platform = 'Instagram'; $platformColor = '#E1306C'; $platformIcon = 'ph-instagram-logo'; }
-                            elseif (preg_match('/facebook|fb\.watch/i', $videoUrl)) { $platform = 'Facebook'; $platformColor = '#1877F2'; $platformIcon = 'ph-facebook-logo'; }
-                            elseif (preg_match('/pinterest|pin\.it/i', $videoUrl)) { $platform = 'Pinterest'; $platformColor = '#E60023'; $platformIcon = 'ph-pinterest-logo'; }
-                        ?>
-                            <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;background:linear-gradient(135deg,#f8f9fb,#eef1f6);">
-                                <div style="width:44px;height:44px;border-radius:50%;background:<?php echo $platformColor; ?>;display:flex;align-items:center;justify-content:center;opacity:0.9;">
-                                    <i class="ph <?php echo $platformIcon; ?>" style="font-size:1.3rem;color:white;"></i>
-                                </div>
-                                <span style="font-size:0.7rem;font-weight:700;color:<?php echo $platformColor; ?>;text-transform:uppercase;letter-spacing:0.5px;"><?php echo $platform; ?></span>
-                            </div>
+                        $singleMedia = $mediaList[0];
+                        if (preg_match('/^https?:\/\/.*(jpg|jpeg|png|webp|gif)$/i', $singleMedia)): ?>
+                            <img src="<?php echo htmlspecialchars($singleMedia); ?>" style="width: 100%; height: 100%; object-fit: contain;">
+                        <?php elseif (preg_match('/^https?:\/\/.*(mp4|webm|ogg)$/i', $singleMedia) || strpos($singleMedia, 'data:video/') === 0): ?>
+                            <video src="<?php echo htmlspecialchars($singleMedia); ?>" controls style="width: 100%; height: 100%; object-fit: contain;"></video>
                         <?php else: ?>
-                            <img src="<?php echo htmlspecialchars($mediaList[0]); ?>" alt="Visual">
+                            <img src="<?php echo htmlspecialchars($singleMedia); ?>" style="width: 100%; height: 100%; object-fit: contain;">
                         <?php endif; ?>
                     <?php else: ?>
-                        <i class="ph ph-image-square" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <i class="ph ph-image" style="font-size: 3rem; color: #94a3b8; opacity: 0.5;"></i>
                     <?php endif; ?>
                     
                     <?php if ($p['post_type'] === 'Referencia Visual'): ?>
-                    <!-- Reference Badge -->
-                    <div class="ref-badge" style="background: <?php echo $sColor['color']; ?>; color: white;">
+                    <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; backdrop-filter: blur(4px); z-index: 5;">
                         REFERENCIA GRÁFICA
                     </div>
                     <?php endif; ?>
@@ -742,9 +1323,42 @@ require_once 'includes/header.php';
                 <!-- Body Section -->
                 <div class="post-body">
                     <div class="post-badges">
-                        <div class="post-date-badge">
-                            <i class="ph ph-calendar-blank" style="color: #64748b;"></i> <?php echo $dateFmt; ?>
+                        <?php 
+                            $pillar = $p['content_pillar'] ?? 'Educación';
+                            $pDef = $pillarDefinitions[$pillar] ?? ['label' => $pillar, 'color' => '#3b82f6', 'bg' => 'rgba(59,130,246,0.15)', 'icon' => 'ph-graduation-cap'];
+                        ?>
+                        <div class="post-pillar-badge" style="background: <?php echo $pDef['bg']; ?>; color: <?php echo $pDef['color']; ?>; border: 1px solid <?php echo $pDef['color']; ?>33;" title="Pilar: <?php echo htmlspecialchars($pillar); ?>">
+                            <i class="ph <?php echo $pDef['icon']; ?>"></i> <?php echo htmlspecialchars($pDef['label']); ?>
                         </div>
+
+                        <?php
+                            $qaData = !empty($p['qa_checklist']) ? json_decode($p['qa_checklist'], true) : [];
+                            $qaTotal = 4;
+                            $qaDone = 0;
+                            if (is_array($qaData)) {
+                                if (!empty($qaData['spelling'])) $qaDone++;
+                                if (!empty($qaData['brand'])) $qaDone++;
+                                if (!empty($qaData['format'])) $qaDone++;
+                                if (!empty($qaData['cta'])) $qaDone++;
+                            }
+                            $qaClass = ($qaDone === $qaTotal) ? 'qa-complete' : (($qaDone > 0) ? 'qa-partial' : 'qa-pending');
+                        ?>
+                        <div class="post-qa-badge <?php echo $qaClass; ?>" title="Control de Calidad (QA): <?php echo $qaDone; ?>/<?php echo $qaTotal; ?> completados">
+                            <i class="ph-bold <?php echo ($qaDone === $qaTotal) ? 'ph-check-circle' : 'ph-list-checks'; ?>"></i> QA <?php echo $qaDone; ?>/<?php echo $qaTotal; ?>
+                        </div>
+
+                        <?php if (!empty($p['post_date']) && $p['post_date'] !== '0000-00-00' && $p['post_date'] !== '0000-00-00 00:00:00'): ?>
+                        <div class="post-date-badge" title="Fecha de Creación">
+                            <i class="ph ph-calendar-plus" style="color: #64748b;"></i> <?php echo date('d M', strtotime($p['post_date'])); ?>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($p['end_date']) && $p['end_date'] !== '0000-00-00' && $p['end_date'] !== '0000-00-00 00:00:00'): ?>
+                        <div class="post-date-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;" title="Fecha de Entrega">
+                            <i class="ph-bold ph-flag-checkered" style="color: #3b82f6;"></i> <?php echo date('d M', strtotime($p['end_date'])); ?>
+                        </div>
+                        <?php endif; ?>
+                        
                         <div class="platform-badge" style="background: <?php echo $sColor['color']; ?>; color: #ffffff;">
                             <i class="ph ph-tag" style="color: <?php echo $sColor['color']; ?>;"></i> <?php echo htmlspecialchars($p['status']); ?>
                         </div>
@@ -764,197 +1378,1120 @@ require_once 'includes/header.php';
 </div>
 
 <style>
-/* Estilos para el nuevo modal CRM */
-.modal-content.crm-layout { max-width: 1400px; width: 95vw; height: 90vh; display: flex; flex-direction: row; padding: 0; overflow: hidden; background: var(--bg-color); border-radius: var(--radius-lg); }
-.crm-sidebar { width: 340px; border-right: 1px solid var(--border-color); background: var(--bg-surface); padding: 1.5rem; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; z-index: 10; }
-.crm-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-color); position: relative; }
-.crm-tabs { padding: 0 1.5rem; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; gap: 1.5rem; overflow-x: auto; flex-shrink: 0; }
-.crm-tab { padding: 1rem 0; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 600; color: var(--text-muted); font-size: 0.95rem; white-space: nowrap; transition: all 0.2s; }
-.crm-tab:hover { color: var(--text-main); }
-.crm-tab.active { border-bottom-color: var(--primary-color); color: var(--primary-color); }
-[data-theme="dark"] .crm-tab.active { border-bottom-color: var(--primary-color); color: var(--primary-color); }
-.crm-tab-pane { display: none; animation: fadeIn 0.3s ease; }
-.crm-tab-pane.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Botón principal de guardado */
-.btn-action-main {
-    width: 100%; font-size: 1rem; padding: 0.8rem; border-radius: 8px; font-weight: 700; 
-    background: var(--primary-color); color: white; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* ===== REDISEÑO MODAL APP MODERNO ===== */
+.modal-overlay {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.8) !important;
+    padding: 1.25rem;
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1050;
+    align-items: center;
+    justify-content: center;
 }
-.btn-action-main:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
-[data-theme="dark"] .btn-action-main {
-    background: var(--primary-color);
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content.crm-layout {
+    max-width: 1540px;
+    width: 96vw;
+    height: 93vh;
+    max-height: 94vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 24px;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+[data-theme="dark"] .crm-modal-card {
+    background: #121212;
+    border-color: #27272a;
+    box-shadow: 0 30px 90px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* App Header (Full Width Top Bar) */
+.crm-app-header {
+    height: 64px;
+    padding: 0 1.5rem;
+    background: var(--bg-surface, #ffffff);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    flex-shrink: 0;
+    z-index: 20;
+}
+[data-theme="dark"] .crm-app-header {
+    background: #141416;
+    border-bottom-color: #27272a;
+}
+.crm-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex: 1;
+    min-width: 0;
+}
+.crm-header-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(79, 70, 229, 0.12);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    border: 1px solid rgba(79, 70, 229, 0.2);
+}
+.crm-header-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--color-title);
+    margin: 0;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+}
+.crm-header-subtitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Pipeline de estados (Segmented Control) */
+.pipeline-stages {
+    display: flex;
+    background: var(--bg-color, #f1f5f9);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 3px;
+    gap: 3px;
+}
+[data-theme="dark"] .pipeline-stages {
+    background: #181818;
+    border-color: #27272a;
+}
+.pipeline-stage {
+    padding: 0.35rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.pipeline-stage:hover {
+    color: var(--color-title, #0f172a);
+    background: rgba(125, 125, 125, 0.08);
+}
+[data-theme="dark"] .pipeline-stage:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+}
+.pipeline-stage.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+[data-theme="dark"] .pipeline-stage.active {
+    background: #27272a;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.pipeline-stage.active[data-status="Borrador"] { background: rgba(100, 116, 139, 0.18); color: #475569; border: 1px solid rgba(100, 116, 139, 0.3); }
+.pipeline-stage.active[data-status="En Revisión"] { background: rgba(245, 158, 11, 0.18); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); }
+.pipeline-stage.active[data-status="Aprobado"] { background: rgba(59, 130, 246, 0.18); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); }
+.pipeline-stage.active[data-status="Publicado"] { background: rgba(16, 185, 129, 0.18); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
+.pipeline-stage.active[data-status="Archivado"] { background: rgba(147, 51, 234, 0.18); color: #7e22ce; border: 1px solid rgba(147, 51, 234, 0.3); }
+
+[data-theme="dark"] .pipeline-stage.active[data-status="Borrador"] { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+[data-theme="dark"] .pipeline-stage.active[data-status="En Revisión"] { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+[data-theme="dark"] .pipeline-stage.active[data-status="Aprobado"] { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+[data-theme="dark"] .pipeline-stage.active[data-status="Publicado"] { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+[data-theme="dark"] .pipeline-stage.active[data-status="Archivado"] { background: rgba(147, 51, 234, 0.2); color: #c084fc; }
+
+/* Header Action Buttons */
+.crm-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+.btn-header-social {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.95rem;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #6366f1;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+[data-theme="dark"] .btn-header-social {
+    color: #818cf8;
+}
+.btn-header-social:hover {
+    background: #6366f1;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.btn-header-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 12px;
+    background: var(--color-btn-bg, var(--primary-color));
+    border: none;
+    color: var(--color-btn-text, #ffffff);
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 30%, transparent);
+    transition: all 0.2s ease;
+}
+.btn-header-save:hover {
+    background: var(--color-btn-hover, var(--primary-hover, var(--primary-color)));
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 45%, transparent);
+    color: var(--color-btn-text, #ffffff);
+}
+
+.btn-header-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--bg-color, #f1f5f9);
+    border: 1px solid var(--border-color, #e2e8f0);
+    color: var(--text-muted, #64748b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1.1rem;
+}
+.btn-header-close:hover {
+    background: var(--border-color, #e2e8f0);
+    color: var(--color-title, #0f172a);
+}
+[data-theme="dark"] .btn-header-close {
+    background: #181818;
+    border-color: #27272a;
+    color: #a1a1aa;
+}
+[data-theme="dark"] .btn-header-close:hover {
+    background: #27272a;
     color: #ffffff;
 }
-[data-theme="dark"] .btn-action-main:hover { opacity: 0.9; }
 
-/* Pipeline de estados */
-.pipeline-stages { display: flex; background: #f1f5f9; border-radius: 20px; padding: 4px; gap: 4px; }
-[data-theme="dark"] .pipeline-stages { background: #1e293b; }
-.pipeline-stage { padding: 0.3rem 1rem; border-radius: 16px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; user-select: none; }
-.pipeline-stage:hover { background: rgba(0,0,0,0.05); }
-[data-theme="dark"] .pipeline-stage:hover { background: rgba(255,255,255,0.05); }
-.pipeline-stage.active[data-status="Borrador"] { background: white; color: #64748b; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.pipeline-stage.active[data-status="En Revisión"] { background: white; color: #d97706; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.pipeline-stage.active[data-status="Aprobado"] { background: white; color: #2563eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.pipeline-stage.active[data-status="Publicado"] { background: white; color: #059669; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.pipeline-stage.active[data-status="Archivado"] { background: white; color: #9333ea; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-[data-theme="dark"] .pipeline-stage.active { background: var(--bg-surface); }
+/* Body Container */
+.crm-body-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
 
-/* Common styles */
-.card-section { border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem; background: var(--bg-surface); margin-bottom: 1rem; }
-.section-title { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 1rem; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.5rem; }
-.section-title.required::after { content: '*'; color: var(--danger-color); font-size: 0.9rem; }
-.form-control { border: 1px solid #e2e8f0; background-color: var(--bg-surface); transition: all 0.2s ease; }
-.form-control:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-.crm-main::-webkit-scrollbar, .crm-sidebar::-webkit-scrollbar, .modal-body::-webkit-scrollbar { width: 6px; }
-.crm-main::-webkit-scrollbar-track, .crm-sidebar::-webkit-scrollbar-track { background: transparent; }
-.crm-main::-webkit-scrollbar-thumb, .crm-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+/* Sidebar Column */
+.crm-sidebar {
+    width: 360px;
+    border-right: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-surface, #ffffff);
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+[data-theme="dark"] .crm-sidebar {
+    border-right-color: #27272a;
+    background: #141416;
+}
+.crm-sidebar-card {
+    background: var(--bg-color, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+[data-theme="dark"] .crm-sidebar-card {
+    background: #181818;
+    border-color: #27272a;
+}
+.crm-sidebar-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+[data-theme="dark"] .crm-sidebar-label {
+    color: #94a3b8;
+}
+.crm-sidebar-label.required::after {
+    content: '*';
+    color: var(--danger-color);
+    font-size: 0.85rem;
+}
+
+/* Main Studio Panel */
+.crm-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-color, #f8fafc);
+    position: relative;
+}
+[data-theme="dark"] .crm-main {
+    background: #0f0f11;
+}
+
+/* Tabs Bar */
+.crm-tabs {
+    padding: 0 1.5rem;
+    background: var(--bg-surface, #ffffff);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+[data-theme="dark"] .crm-tabs {
+    background: #141416;
+    border-bottom-color: #27272a;
+}
+.crm-tab {
+    padding: 0.85rem 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    font-size: 0.88rem;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.crm-tab:hover {
+    color: var(--color-title, #0f172a);
+}
+[data-theme="dark"] .crm-tab:hover {
+    color: #ffffff;
+}
+.crm-tab.active {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+}
+[data-theme="dark"] .crm-tab.active {
+    color: #ffffff;
+}
+.crm-tab-pane {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+.crm-tab-pane.active {
+    display: block;
+}
+
+/* Studio Cards */
+.studio-card {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    padding: 1.4rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+}
+[data-theme="dark"] .studio-card {
+    background: #181818;
+    border-color: #27272a;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* ===== PILARES DE CONTENIDO (MONTH BAR & MODAL) ===== */
+.content-pillars-bar-card {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 18px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+[data-theme="dark"] .content-pillars-bar-card {
+    background: #141416;
+    border-color: #27272a;
+    box-shadow: none;
+}
+.cpb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.cpb-title {
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: var(--color-title);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.cpb-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.cpb-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.cpb-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.cpb-progress-track {
+    width: 100%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+}
+[data-theme="dark"] .cpb-progress-track {
+    background: #1f1f23;
+}
+.cpb-progress-segment {
+    height: 100%;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pillar Pills in Modal */
+.pillar-pill-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.45rem;
+}
+.pillar-input { display: none; }
+.pillar-label {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 10px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--text-muted, #64748b);
+    background: var(--bg-surface, #ffffff);
+    transition: all 0.2s;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    justify-content: flex-start;
+}
+.pillar-label:hover { background: var(--bg-color, #f1f5f9); color: var(--color-title, #0f172a); }
+[data-theme="dark"] .pillar-label {
+    border-color: #27272a;
+    color: #a1a1aa;
+    background: #141416;
+}
+[data-theme="dark"] .pillar-label:hover { background: #27272a; color: #ffffff; }
+
+input[value="Educación"]:checked + .pillar-label.pil-edu { background: rgba(59,130,246,0.2); color: #3b82f6; border-color: rgba(59,130,246,0.4); box-shadow: 0 2px 8px rgba(59,130,246,0.25); }
+input[value="Ventas"]:checked + .pillar-label.pil-ventas { background: rgba(244,63,94,0.2); color: #e11d48; border-color: rgba(244,63,94,0.4); box-shadow: 0 2px 8px rgba(244,63,94,0.25); }
+input[value="Branding"]:checked + .pillar-label.pil-brand { background: rgba(139,92,246,0.2); color: #8b5cf6; border-color: rgba(139,92,246,0.4); box-shadow: 0 2px 8px rgba(139,92,246,0.25); }
+input[value="Entretenimiento"]:checked + .pillar-label.pil-ent { background: rgba(245,158,11,0.2); color: #d97706; border-color: rgba(245,158,11,0.4); box-shadow: 0 2px 8px rgba(245,158,11,0.25); }
+input[value="Comunidad"]:checked + .pillar-label.pil-com { background: rgba(16,185,129,0.2); color: #059669; border-color: rgba(16,185,129,0.4); box-shadow: 0 2px 8px rgba(16,185,129,0.25); }
+input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6,182,212,0.2); color: #0891b2; border-color: rgba(6,182,212,0.4); box-shadow: 0 2px 8px rgba(6,182,212,0.25); }
+
+[data-theme="dark"] input[value="Educación"]:checked + .pillar-label.pil-edu { color: #60a5fa; }
+[data-theme="dark"] input[value="Ventas"]:checked + .pillar-label.pil-ventas { color: #fb7185; }
+[data-theme="dark"] input[value="Branding"]:checked + .pillar-label.pil-brand { color: #c084fc; }
+[data-theme="dark"] input[value="Entretenimiento"]:checked + .pillar-label.pil-ent { color: #fbbf24; }
+[data-theme="dark"] input[value="Comunidad"]:checked + .pillar-label.pil-com { color: #34d399; }
+[data-theme="dark"] input[value="Testimonial"]:checked + .pillar-label.pil-test { color: #22d3ee; }
+
+/* Post Card Badges */
+.post-pillar-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.post-qa-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.post-qa-badge.qa-complete {
+    background: rgba(16,185,129,0.15);
+    color: #059669;
+    border: 1px solid rgba(16,185,129,0.3);
+}
+[data-theme="dark"] .post-qa-badge.qa-complete {
+    color: #34d399;
+}
+.post-qa-badge.qa-partial {
+    background: rgba(245,158,11,0.15);
+    color: #d97706;
+    border: 1px solid rgba(245,158,11,0.3);
+}
+[data-theme="dark"] .post-qa-badge.qa-partial {
+    color: #fbbf24;
+}
+.post-qa-badge.qa-pending {
+    background: rgba(100,116,139,0.15);
+    color: #64748b;
+    border: 1px solid rgba(100,116,139,0.3);
+}
+[data-theme="dark"] .post-qa-badge.qa-pending {
+    color: #94a3b8;
+}
+
+/* ===== QA CHECKLIST CARD IN MODAL ===== */
+.qa-checklist-card {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 1rem 1.15rem;
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+[data-theme="dark"] .qa-checklist-card {
+    background: #141416;
+    border-color: #27272a;
+}
+.qa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.qa-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--color-title);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.qa-counter-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.qa-badge-complete { background: rgba(16,185,129,0.18); color: #059669; border: 1px solid rgba(16,185,129,0.35); }
+.qa-badge-progress { background: rgba(245,158,11,0.18); color: #d97706; border: 1px solid rgba(245,158,11,0.35); }
+.qa-badge-pending { background: var(--bg-color, #f1f5f9); color: var(--text-muted, #64748b); }
+
+[data-theme="dark"] .qa-badge-complete { color: #34d399; background: rgba(16,185,129,0.2); }
+[data-theme="dark"] .qa-badge-progress { color: #fbbf24; background: rgba(245,158,11,0.2); }
+[data-theme="dark"] .qa-badge-pending { background: #27272a; color: #a1a1aa; }
+
+.qa-progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+}
+[data-theme="dark"] .qa-progress-bar-bg {
+    background: #27272a;
+}
+.qa-progress-bar-fill {
+    height: 100%;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+}
+
+.qa-items-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+@media (max-width: 768px) {
+    .qa-items-grid { grid-template-columns: 1fr; }
+}
+.qa-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: var(--bg-color, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.qa-item:hover {
+    background: #f1f5f9;
+    border-color: var(--primary-color);
+}
+[data-theme="dark"] .qa-item {
+    background: #18181a;
+    border-color: #27272a;
+}
+[data-theme="dark"] .qa-item:hover {
+    background: #222226;
+    border-color: #3f3f46;
+}
+.qa-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #10b981;
+    margin-top: 2px;
+    cursor: pointer;
+}
+.qa-item-content {
+    flex: 1;
+}
+.qa-item-title {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--color-title, #0f172a);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+[data-theme="dark"] .qa-item-title {
+    color: #f1f5f9;
+}
+.qa-item-desc {
+    font-size: 0.68rem;
+    color: var(--text-muted, #64748b);
+    line-height: 1.3;
+    margin-top: 2px;
+}
+[data-theme="dark"] .qa-item-desc {
+    color: #a1a1aa;
+}
 
 /* Radio/Checkboxes estilizados como botones (Pills) */
-.pill-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.pill-group { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .pill-input { display: none; }
-.pill-label { padding: 0.4rem 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; cursor: pointer; color: var(--text-color); background: var(--bg-surface); transition: all 0.2s; user-select: none; display: flex; align-items: center; gap: 0.25rem; }
-input[value="Facebook"]:checked + .pill-label { background: #1877F2; color: white; border-color: #1877F2; }
-input[value="Instagram"]:checked + .pill-label { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); color: white; border-color: transparent; }
-input[value="TikTok"]:checked + .pill-label { background: #000000; color: white; border-color: #000000; }
-input[value="LinkedIn"]:checked + .pill-label { background: #0A66C2; color: white; border-color: #0A66C2; }
-input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: white; border-color: #0F1419; }
+.pill-label { padding: 0.4rem 0.75rem; border: 1px solid var(--border-color, #e2e8f0); border-radius: 10px; font-size: 0.8rem; font-weight: 700; cursor: pointer; color: var(--text-muted, #64748b); background: var(--bg-surface, #ffffff); transition: all 0.2s; user-select: none; display: flex; align-items: center; gap: 0.35rem; }
+.pill-label:hover { background: var(--bg-color, #f1f5f9); color: var(--color-title, #0f172a); }
+[data-theme="dark"] .pill-label { border-color: #27272a; color: #a1a1aa; background: #141416; }
+[data-theme="dark"] .pill-label:hover { background: #27272a; color: #ffffff; }
+
+input[value="Facebook"]:checked + .pill-label { background: #1877F2; color: white; border-color: #1877F2; box-shadow: 0 4px 12px rgba(24,119,242,0.3); }
+input[value="Instagram"]:checked + .pill-label { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(220,39,67,0.3); }
+input[value="TikTok"]:checked + .pill-label { background: #000000; color: white; border-color: #333333; box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
+input[value="LinkedIn"]:checked + .pill-label { background: #0A66C2; color: white; border-color: #0A66C2; box-shadow: 0 4px 12px rgba(10,102,194,0.3); }
+input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: white; border-color: #333333; }
 .pill-input:checked + .pill-label i.ph-plus { display: none; }
-.pill-input:checked + .pill-label::before { content: '\e964'; font-family: "Phosphor"; font-size: 1rem; }
+.pill-input:checked + .pill-label::before { content: '\e964'; font-family: "Phosphor"; font-size: 0.95rem; }
 
 /* Toggle Group */
-.toggle-group { display: flex; background: #f1f5f9; padding: 0.25rem; border-radius: var(--radius-md); gap: 0.25rem; margin-bottom: 1.5rem; }
-[data-theme="dark"] .toggle-group { background: #1e293b; }
+.toggle-group { display: flex; background: var(--bg-color, #f1f5f9); padding: 4px; border-radius: 12px; border: 1px solid var(--border-color, #e2e8f0); gap: 4px; margin-bottom: 1.25rem; }
+[data-theme="dark"] .toggle-group { background: #141416; border-color: #27272a; }
 .toggle-input { display: none; }
-.toggle-label { flex: 1; text-align: center; padding: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); border-radius: calc(var(--radius-md) - 0.25rem); cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-.toggle-input:checked + .toggle-label { background: white; color: #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-[data-theme="dark"] .toggle-input:checked + .toggle-label { background: var(--bg-surface); color: #60a5fa; }
+.toggle-label { flex: 1; text-align: center; padding: 0.45rem 0.6rem; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.toggle-input:checked + .toggle-label { background: #ffffff; color: var(--color-title, #0f172a); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+[data-theme="dark"] .toggle-input:checked + .toggle-label { background: #27272a; color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 
 /* Vista previa adaptativa */
 .preview-container { display: flex; justify-content: center; margin-bottom: 0.5rem; }
-.preview-box { background: var(--bg-color); border: 2px dashed var(--border-color); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.preview-box.ratio-9-16 { width: 140px; height: 250px; }
-.preview-box.ratio-1-1 { width: 250px; height: 250px; }
-.preview-box.ratio-4-5 { width: 200px; height: 250px; }
-.preview-box.ratio-16-9 { width: 280px; height: 157px; } 
-.preview-box.ratio-auto { width: 100%; height: auto; min-height: 200px; }
-.preview-actions { display: flex; justify-content: center; gap: 0.25rem; margin-top: 1rem; flex-wrap: nowrap; }
-.preview-actions button { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.25rem; padding: 0.5rem 0.4rem; flex: 1; font-size: 0.7rem; font-weight: 600; color: var(--text-color); background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 20px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; }
+.preview-box { background: var(--bg-color, #f8fafc); border: 2px dashed var(--border-color, #e2e8f0); border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+[data-theme="dark"] .preview-box { background: #141416; border-color: #27272a; }
+.preview-box.ratio-9-16 { width: 150px; height: 260px; }
+.preview-box.ratio-1-1 { width: 260px; height: 260px; }
+.preview-box.ratio-4-5 { width: 210px; height: 260px; }
+.preview-box.ratio-16-9 { width: 290px; height: 165px; } 
+.preview-box.ratio-auto { width: 100%; height: auto; min-height: 220px; }
+.preview-actions { display: flex; justify-content: center; gap: 0.4rem; margin-top: 1rem; flex-wrap: nowrap; }
+.preview-actions button { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.5rem 0.6rem; flex: 1; font-size: 0.74rem; font-weight: 700; color: var(--color-title, #0f172a); background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; }
+[data-theme="dark"] .preview-actions button { color: #e4e4e7; background: #141416; border-color: #27272a; }
 .preview-actions button i { font-size: 1.15rem; color: var(--primary-color); transition: transform 0.2s; }
-.preview-actions button:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.06); border-color: var(--primary-color); color: var(--primary-color); }
+.preview-actions button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: var(--primary-color); color: var(--primary-color); background: var(--bg-surface, #ffffff); }
+[data-theme="dark"] .preview-actions button:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.4); color: #ffffff; background: #27272a; }
 .preview-actions button:hover i { transform: scale(1.1); }
 
+/* Post Image Viewer Lightbox Styles */
+.preview-interactive-img {
+    cursor: zoom-in;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s ease;
+}
+.preview-interactive-img:hover {
+    filter: brightness(1.05);
+}
+.preview-zoom-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    opacity: 0.85;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+.preview-box:hover .preview-zoom-badge {
+    opacity: 1;
+    background: var(--primary-color, #3b82f6);
+    border-color: transparent;
+    transform: scale(1.04);
+}
+
+.post-img-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100050;
+    background: rgba(8, 11, 18, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, backdrop-filter 0.25s ease;
+    user-select: none;
+}
+.post-img-viewer-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+.piv-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1.5rem;
+    background: rgba(15, 23, 42, 0.65);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    z-index: 10;
+}
+.piv-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.piv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.piv-counter {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+.piv-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.piv-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.piv-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+.piv-btn.piv-btn-close {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    margin-left: 0.4rem;
+}
+.piv-btn.piv-btn-close:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+.piv-zoom-level {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.85);
+    min-width: 46px;
+    text-align: center;
+    font-family: monospace;
+}
+.piv-divider {
+    width: 1px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 0 4px;
+}
+.piv-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+}
+.piv-stage.dragging {
+    cursor: grabbing;
+}
+.piv-image {
+    max-width: 90vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    transition: transform 0.12s ease-out;
+    transform-origin: center center;
+    pointer-events: auto;
+}
+.piv-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 20;
+}
+.piv-nav-btn:hover {
+    background: var(--primary-color, #3b82f6);
+    border-color: transparent;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+.piv-nav-prev { left: 24px; }
+.piv-nav-next { right: 24px; }
+
+.piv-thumbnails {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.75rem 1.5rem;
+    background: rgba(15, 23, 42, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    overflow-x: auto;
+    max-width: 100%;
+    z-index: 10;
+}
+.piv-thumb-item {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    background: #0f172a;
+}
+.piv-thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.piv-thumb-item:hover {
+    opacity: 0.85;
+    transform: translateY(-2px);
+}
+.piv-thumb-item.active {
+    opacity: 1;
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+    transform: scale(1.05);
+}
+
 /* Native WYSIWYG */
-.custom-wysiwyg-wrapper { border: 1px solid var(--border-color); border-radius: 12px; overflow: visible; background: var(--bg-surface); transition: all 0.2s; position: relative; }
-.custom-wysiwyg-wrapper:focus-within { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-.wysiwyg-toolbar { display: flex; align-items: center; gap: 4px; padding: 6px; border-bottom: 1px solid var(--border-color); background: var(--surface-hover); border-radius: 12px 12px 0 0; flex-wrap: wrap; }
-.wys-btn { background: transparent; border: none; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: var(--text-color); display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 1.1rem; }
-.wys-btn:hover { background: rgba(0,0,0,0.05); color: var(--primary-color); }
-[data-theme="dark"] .wys-btn:hover { background: rgba(255,255,255,0.1); }
-.wys-divider { width: 1px; height: 20px; background: var(--border-color); margin: 0 4px; }
-.wysiwyg-content { min-height: 250px; padding: 16px; outline: none; font-size: 0.95rem; line-height: 1.6; color: var(--text-color); max-height: 450px; overflow-y: auto; }
-.wysiwyg-content:empty:before { content: attr(placeholder); color: var(--text-muted); pointer-events: none; display: block; }
+.custom-wysiwyg-wrapper { border: 1px solid var(--border-color, #e2e8f0); border-radius: 16px; overflow: visible; background: var(--bg-surface, #ffffff); transition: all 0.2s; position: relative; }
+.custom-wysiwyg-wrapper:focus-within { border-color: var(--primary-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent); }
+[data-theme="dark"] .custom-wysiwyg-wrapper { border-color: #27272a; background: #141416; }
+.wysiwyg-toolbar { display: flex; align-items: center; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--border-color, #e2e8f0); background: var(--bg-color, #f8fafc); border-radius: 16px 16px 0 0; flex-wrap: wrap; }
+[data-theme="dark"] .wysiwyg-toolbar { border-bottom-color: #27272a; background: #18181a; }
+.wys-btn { background: transparent; border: none; padding: 6px 8px; border-radius: 8px; cursor: pointer; color: var(--text-muted, #64748b); display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 1.1rem; }
+.wys-btn:hover { background: rgba(125, 125, 125, 0.1); color: var(--color-title, #0f172a); }
+[data-theme="dark"] .wys-btn:hover { background: #27272a; color: #ffffff; }
+.wys-divider { width: 1px; height: 20px; background: var(--border-color, #e2e8f0); margin: 0 4px; }
+[data-theme="dark"] .wys-divider { background: #27272a; }
+.wysiwyg-content { min-height: 380px; padding: 18px; outline: none; font-size: 0.95rem; line-height: 1.7; color: var(--color-title, #0f172a); max-height: 520px; overflow-y: auto; }
+[data-theme="dark"] .wysiwyg-content { color: #f1f5f9; }
+.wysiwyg-content:empty:before { content: attr(placeholder); color: var(--text-muted, #94a3b8); pointer-events: none; display: block; }
 .wysiwyg-content ul { padding-left: 20px; list-style-type: disc; }
 .wysiwyg-content ol { padding-left: 20px; list-style-type: decimal; }
 
-.form-control-sm { padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+.form-control { border: 1px solid var(--border-color, #e2e8f0); background-color: var(--bg-surface, #ffffff); color: var(--color-title, #0f172a); border-radius: 12px; padding: 0.6rem 0.85rem; font-size: 0.88rem; transition: all 0.2s ease; }
+.form-control:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent); background: var(--bg-surface, #ffffff); }
+[data-theme="dark"] .form-control { border-color: #27272a; background-color: #141416; color: #f1f5f9; }
+[data-theme="dark"] .form-control:focus { background: #181818; }
+.form-control-sm { padding: 0.45rem 0.75rem; font-size: 0.82rem; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 
-/* Filas dinámicas */
-.dyn-row { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem; background: var(--bg-color); padding: 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
-.dyn-row-content { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-.btn-remove-row { color: var(--danger-color); background: none; border: none; cursor: pointer; padding: 0.25rem; }
+.comment-subtab.active {
+    color: var(--accent-primary) !important;
+    border-bottom-color: var(--accent-primary) !important;
+}
 
-.btn-canva { background: transparent; color: #7D2AE8; border: 1px solid #7D2AE8; font-weight: 600; width: 100%; padding: 0.75rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; transition: all 0.2s; }
-.btn-canva:hover { background: rgba(125, 42, 232, 0.05); }
+/* Dynamic rows (Referencias & Variaciones) */
+.dyn-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: var(--bg-color, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+}
+[data-theme="dark"] .dyn-row {
+    background: #18181a;
+    border-color: #27272a;
+}
+    padding: 0.75rem;
+}
+.dyn-row-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.btn-remove-row {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    font-size: 1.15rem;
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-remove-row:hover {
+    background: rgba(239, 68, 68, 0.15);
+}
 
-.drive-box { border: 1px dashed var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; text-align: center; color: var(--text-muted); background: var(--bg-color); }
+.crm-header-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
 
 @media (max-width: 992px) {
-    .modal-overlay { 
-        padding: 0 !important; 
-        align-items: flex-start !important;
-        overflow: hidden !important; 
+    .modal-overlay {
+        padding: 0 !important;
     }
-    .modal-content.crm-layout,
-    #slideEditorModal .modal { 
-        flex-direction: column; 
-        height: 100vh !important; 
-        max-height: 100vh !important; 
-        width: 100% !important; 
-        max-width: 100% !important; 
-        border-radius: 0 !important; 
-        overflow-y: auto; 
-        overflow-x: hidden;
-        margin: 0 !important;
-        transform: none !important;
+    .modal-content.crm-layout {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
     }
-    .crm-sidebar { 
-        width: 100%; 
-        border-right: none; 
-        border-bottom: 4px solid #e2e8f0; 
-        padding: 1rem 0.75rem; 
-        overflow: visible; 
+    .crm-app-header {
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        flex-wrap: wrap !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.65rem !important;
     }
-    /* Make sidebar header sticky */
-    .crm-sidebar > div:first-child {
-        position: sticky;
-        top: -1rem;
-        background: var(--bg-surface);
-        padding-top: 1rem;
-        padding-bottom: 0.75rem;
-        z-index: 50;
-        margin-top: -1rem;
-        border-bottom: 1px solid var(--border-color);
-        margin-left: -0.75rem;
-        margin-right: -0.75rem;
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
+    .crm-header-left {
+        flex: 1 !important;
+        min-width: 0 !important;
+        gap: 0.5rem !important;
+        order: 1 !important;
     }
-    .crm-main { 
-        overflow: visible !important; 
-        padding-bottom: 2rem; 
-        width: 100%; 
-        flex: none !important; 
-        height: auto !important; 
+    .crm-header-title {
+        font-size: 0.98rem !important;
     }
-    
-    /* Wrap tabs on mobile so they don't get cut off */
-    .crm-tabs { 
-        padding: 0.5rem 0.75rem; 
-        flex-wrap: wrap; 
-        justify-content: flex-start;
-        gap: 0.5rem 1rem;
+    .crm-header-subtitle {
+        font-size: 0.68rem !important;
     }
-    
-    /* Reduce side margins for the panes */
-    .crm-tab-pane {
-        padding: 0.75rem 0;
+    .crm-header-actions {
+        flex: 0 0 auto !important;
+        order: 2 !important;
+        display: flex !important;
+        align-items: center !important;
     }
-    
-    /* Full width cards on mobile */
-    .card-section {
-        padding: 1rem 1.25rem;
-        margin-bottom: 0.5rem;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
+    .pipeline-stages {
+        order: 3 !important;
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 3px !important;
+        justify-content: center !important;
     }
-    
-    .grid-2 { grid-template-columns: 1fr !important; }
-    
-    /* Make the X button in sidebar always visible and better positioned on mobile */
-    .crm-sidebar .d-md-none { display: flex !important; }
-    
-    /* Hide the main header on mobile since the sidebar has the title and X button */
-    .crm-main > div:first-child { display: none !important; }
+    .pipeline-stages::-webkit-scrollbar {
+        display: none !important;
+    }
+    .pipeline-stage {
+        padding: 0.35rem 0.75rem !important;
+        font-size: 0.76rem !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+    .btn-header-save {
+        padding: 0.4rem 0.85rem !important;
+        font-size: 0.78rem !important;
+    }
+
+    /* Unificar scroll vertical limpio sin trampas de scroll anidadas */
+    .crm-body-container {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        height: auto !important;
+    }
+    .crm-sidebar {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid #27272a !important;
+        overflow: visible !important;
+        height: auto !important;
+        flex-shrink: 0 !important;
+        padding: 1rem !important;
+        gap: 0.85rem !important;
+    }
+    .crm-main {
+        width: 100% !important;
+        overflow: visible !important;
+        height: auto !important;
+        flex: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .crm-studio-scroll {
+        padding: 1rem !important;
+        overflow: visible !important;
+        height: auto !important;
+        flex: none !important;
+    }
+    .crm-tabs {
+        padding: 0 1rem !important;
+        gap: 1rem !important;
+        scrollbar-width: none !important;
+    }
+    .crm-tab {
+        padding: 0.75rem 0 !important;
+        font-size: 0.82rem !important;
+    }
+    .grid-2 {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    .studio-card {
+        padding: 1.1rem !important;
+        border-radius: 16px !important;
+    }
+    .wysiwyg-content {
+        min-height: 220px !important;
+        max-height: 380px !important;
+        padding: 12px !important;
+    }
+    .preview-box.ratio-1-1, 
+    .preview-box.ratio-9-16, 
+    .preview-box.ratio-4-5, 
+    .preview-box.ratio-16-9,
+    .preview-box.ratio-auto {
+        max-width: 100% !important;
+    }
+    .qa-items-grid {
+        grid-template-columns: 1fr !important;
+    }
 }
 </style>
 
-<!-- Modal Publicación (CRM Layout) -->
+<!-- Modal Publicación (Modern App Layout) -->
 <div class="modal-overlay" id="post-modal">
     <div class="modal-content crm-layout">
         
@@ -963,64 +2500,126 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
             <input type="hidden" name="month_id" value="<?php echo $monthId; ?>">
             <input type="hidden" name="status" id="post-status" value="Borrador">
 
-            <!-- SIDEBAR -->
-            <div class="crm-sidebar">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h2 id="post-modal-title" style="display: none; margin: 0; font-size: 1.25rem; font-weight: 700;">Añadir Publicación</h2>
-                    <button type="button" class="btn-icon d-md-none" onclick="attemptCloseModal()" style="display: none;">
+            <!-- Top App Bar -->
+            <div class="crm-app-header">
+                <!-- Left: Title & Status -->
+                <div class="crm-header-left">
+                    <div class="crm-header-icon">
+                        <i class="ph-bold ph-newspaper"></i>
+                    </div>
+                    <div>
+                        <h2 class="crm-header-title" id="post-modal-title">Añadir Publicación</h2>
+                        <div class="crm-header-subtitle">Editor de Contenido & Visuales</div>
+                    </div>
+                    <span id="auto-save-indicator" style="font-size: 0.72rem; color: #10b981; font-weight: 600; opacity: 0; transition: opacity 0.3s; margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="ph ph-check"></i> Guardado
+                    </span>
+                </div>
+
+                <!-- Center: Pipeline Control -->
+                <div class="pipeline-stages">
+                    <div class="pipeline-stage active" data-status="Borrador" onclick="setPostStatus('Borrador')">Borrador</div>
+                    <div class="pipeline-stage" data-status="En Revisión" onclick="setPostStatus('En Revisión')">En Revisión</div>
+                    <div class="pipeline-stage" data-status="Aprobado" onclick="setPostStatus('Aprobado')">Aprobado</div>
+                    <div class="pipeline-stage" data-status="Publicado" onclick="setPostStatus('Publicado')">Publicado</div>
+                    <div class="pipeline-stage" data-status="Archivado" onclick="setPostStatus('Archivado')">Archivado</div>
+                </div>
+
+                <!-- Right: Save & Close Buttons -->
+                <div class="crm-header-actions">
+                    <button type="button" class="btn-header-save" id="btn-save-post" onclick="savePost()" title="Guardar Publicación">
+                        <i class="ph-bold ph-floppy-disk"></i> <span id="btn-save-post-text">Guardar Publicación</span>
+                    </button>
+                    <button type="button" class="btn-header-close" onclick="attemptCloseModal()" title="Cerrar (Esc)">
                         <i class="ph ph-x"></i>
                     </button>
                 </div>
+            </div>
 
-                <button type="button" class="btn-action-main" id="btn-save-post" onclick="savePost()" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                    <i class="ph ph-floppy-disk"></i> <span id="btn-save-post-text">Guardar Publicación</span>
-                </button>
-                <button type="button" class="btn-action-main" id="btn-publish-social" onclick="openSocialPreviewModal()" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #6366f1; border-color: #6366f1; color: white;">
-                    <i class="ph ph-rocket-launch"></i> <span>Publicar / Programar en Redes</span>
-                </button>
-                <div style="text-align: center; margin-top: -1rem; margin-bottom: 1.5rem;">
-                    <span id="auto-save-indicator" style="font-size: 0.75rem; color: var(--text-muted); opacity: 0; transition: opacity 0.3s;">Guardado automático...</span>
-                </div>
-
-                <div class="form-group">
-                    <label class="section-title required">Concepto / Título</label>
-                    <textarea name="concept" id="post-concept" class="form-control" required placeholder="Ej. Promoción de Verano" style="font-size: 1rem; font-weight: 600; resize: none; overflow: hidden; min-height: 42px; line-height: 1.5; padding: 0.5rem 0.75rem;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label class="section-title required">Red Social</label>
-                    <div class="pill-group">
-                        <input type="checkbox" name="platform[]" id="plat1" value="Facebook" class="pill-input">
-                        <label for="plat1" class="pill-label" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"><i class="ph ph-facebook-logo"></i> FB</label>
-                        
-                        <input type="checkbox" name="platform[]" id="plat2" value="Instagram" class="pill-input">
-                        <label for="plat2" class="pill-label" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"><i class="ph ph-instagram-logo"></i> IG</label>
-                        
-                        <input type="checkbox" name="platform[]" id="plat3" value="TikTok" class="pill-input">
-                        <label for="plat3" class="pill-label" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"><i class="ph ph-tiktok-logo"></i> TT</label>
-                        
-                        <input type="checkbox" name="platform[]" id="plat4" value="LinkedIn" class="pill-input">
-                        <label for="plat4" class="pill-label" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"><i class="ph ph-linkedin-logo"></i> IN</label>
-                        
-                        <input type="checkbox" name="platform[]" id="plat5" value="Twitter / X" class="pill-input">
-                        <label for="plat5" class="pill-label" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"><i class="ph ph-twitter-logo"></i> X</label>
+            <!-- Body Area -->
+            <div class="crm-body-container">
+                <!-- SIDEBAR: Settings & Metadata -->
+                <div class="crm-sidebar">
+                    <!-- Concepto / Título -->
+                    <div class="crm-sidebar-card">
+                        <label class="crm-sidebar-label required"><i class="ph ph-textbox" style="color: var(--primary-color);"></i> Concepto / Título</label>
+                        <textarea name="concept" id="post-concept" class="form-control" required placeholder="Ej. Promoción Especial de Verano" style="font-size: 0.92rem; font-weight: 700; resize: none; overflow: hidden; min-height: 48px; line-height: 1.4;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label class="section-title">Fechas y Programación</label>
-                    <div style="background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                        <div style="margin-bottom: 0.75rem;">
-                            <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Fecha de Creación</label>
-                            <input type="datetime-local" name="post_date" id="post-date" class="form-control form-control-sm" required readonly style="background-color: var(--bg-color); color: var(--text-muted); cursor: not-allowed; border: 1px dashed var(--border-color);" onchange="updateSaveButtonState()">
+                    <!-- Descripción para Referencia Gráfica -->
+                    <div class="crm-sidebar-card">
+                        <label class="crm-sidebar-label"><i class="ph-bold ph-notepad" style="color: var(--primary-color);"></i> Descripción / Idea Referencial</label>
+                        <textarea name="design_brief" id="post-brief" class="form-control" placeholder="Describe la idea visual o instrucciones para la Referencia Gráfica..." style="font-size: 0.84rem; resize: vertical; min-height: 72px; line-height: 1.45;" oninput="markDirty(); updateSaveButtonState();"></textarea>
+                        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.25rem;">Instrucciones para la fase de Referencia Visual (el copy final se coloca en el editor de la derecha).</div>
+                    </div>
+
+                    <!-- Pilar de Contenido -->
+                    <div class="crm-sidebar-card">
+                        <label class="crm-sidebar-label required"><i class="ph-bold ph-chart-pie-slice" style="color: var(--primary-color);"></i> Pilar de Contenido</label>
+                        <div class="pillar-pill-group">
+                            <input type="radio" name="content_pillar" id="pil_edu" value="Educación" class="pillar-input" checked onchange="markDirty(); updateSaveButtonState();">
+                            <label for="pil_edu" class="pillar-label pil-edu"><i class="ph ph-graduation-cap"></i> Educación</label>
+
+                            <input type="radio" name="content_pillar" id="pil_ventas" value="Ventas" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <label for="pil_ventas" class="pillar-label pil-ventas"><i class="ph ph-tag"></i> Ventas</label>
+
+                            <input type="radio" name="content_pillar" id="pil_brand" value="Branding" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <label for="pil_brand" class="pillar-label pil-brand"><i class="ph ph-sparkle"></i> Branding</label>
+
+                            <input type="radio" name="content_pillar" id="pil_ent" value="Entretenimiento" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <label for="pil_ent" class="pillar-label pil-ent"><i class="ph ph-mask-happy"></i> Entretenimiento</label>
+
+                            <input type="radio" name="content_pillar" id="pil_com" value="Comunidad" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <label for="pil_com" class="pillar-label pil-com"><i class="ph ph-users-three"></i> Comunidad</label>
+
+                            <input type="radio" name="content_pillar" id="pil_test" value="Testimonial" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <label for="pil_test" class="pillar-label pil-test"><i class="ph ph-star"></i> Testimonial</label>
                         </div>
-                        <div style="margin-bottom: 0.75rem;">
-                            <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Entrega / Fin</label>
-                            <input type="date" name="end_date" id="post-end-date" class="form-control form-control-sm">
+                    </div>
+
+                    <!-- Red Social -->
+                    <div class="crm-sidebar-card">
+                        <label class="crm-sidebar-label required"><i class="ph ph-share-network" style="color: var(--primary-color);"></i> Plataformas</label>
+                        <div class="pill-group">
+                            <input type="checkbox" name="platform[]" id="plat1" value="Facebook" class="pill-input">
+                            <label for="plat1" class="pill-label"><i class="ph ph-facebook-logo"></i> FB</label>
+                            
+                            <input type="checkbox" name="platform[]" id="plat2" value="Instagram" class="pill-input">
+                            <label for="plat2" class="pill-label"><i class="ph ph-instagram-logo"></i> IG</label>
+                            
+                            <input type="checkbox" name="platform[]" id="plat3" value="TikTok" class="pill-input">
+                            <label for="plat3" class="pill-label"><i class="ph ph-tiktok-logo"></i> TT</label>
+                            
+                            <input type="checkbox" name="platform[]" id="plat4" value="LinkedIn" class="pill-input">
+                            <label for="plat4" class="pill-label"><i class="ph ph-linkedin-logo"></i> IN</label>
+                            
+                            <input type="checkbox" name="platform[]" id="plat5" value="Twitter / X" class="pill-input">
+                            <label for="plat5" class="pill-label"><i class="ph ph-twitter-logo"></i> X</label>
                         </div>
-                        <div class="grid-2">
+                    </div>
+
+                    <!-- Fechas y Programación -->
+                    <div class="crm-sidebar-card">
+                        <label class="crm-sidebar-label"><i class="ph ph-calendar" style="color: var(--primary-color);"></i> Fechas y Cronómetro</label>
+                        
+                        <div>
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Fecha Creación (Inicio)</label>
+                            <input type="datetime-local" name="post_date" id="post-date" class="form-control form-control-sm" required readonly style="cursor: not-allowed; opacity: 0.85;" onchange="updateSaveButtonState()">
+                        </div>
+
+                        <div>
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                                <span>Fecha Entrega (Cronómetro)</span>
+                                <?php if (!$isAdmin): ?>
+                                    <span style="font-size: 0.62rem; background: rgba(239,68,68,0.15); color: #ef4444; padding: 1px 6px; border-radius: 4px; font-weight: 800;"><i class="ph ph-lock"></i> Solo Admin</span>
+                                <?php endif; ?>
+                            </label>
+                            <input type="date" name="end_date" id="post-end-date" class="form-control form-control-sm" <?php echo !$isAdmin ? 'readonly style="cursor: not-allowed; opacity: 0.85;" title="Solo el administrador puede modificar la fecha de entrega"' : ''; ?> onchange="updateSaveButtonState()">
+                        </div>
+
+                        <div class="grid-2" style="margin-top: 0.25rem;">
                             <div>
-                                <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Periodicidad</label>
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Periodicidad</label>
                                 <select name="periodicity" id="post-periodicity" class="form-control form-control-sm">
                                     <option value="">Única vez</option>
                                     <option value="Diario">Diario</option>
@@ -1028,7 +2627,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Recordatorio</label>
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Recordatorio</label>
                                 <select name="reminder" id="post-reminder" class="form-control form-control-sm">
                                     <option value="">Ninguno</option>
                                     <option value="1 dia antes">1 día</option>
@@ -1038,83 +2637,124 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- MAIN AREA -->
-            <div class="crm-main">
-                <!-- Header with Pipeline -->
-                <div style="padding: 1rem 1.5rem; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="display: none; font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Pipeline: <span style="color: var(--color-title);">Flujo de Publicación</span></div>
-                    </div>
-                    
-                    <div class="pipeline-stages">
-                        <div class="pipeline-stage active" data-status="Borrador" onclick="setPostStatus('Borrador')">Borrador</div>
-                        <div class="pipeline-stage" data-status="En Revisión" onclick="setPostStatus('En Revisión')">En Revisión</div>
-                        <div class="pipeline-stage" data-status="Aprobado" onclick="setPostStatus('Aprobado')">Aprobado</div>
-                        <div class="pipeline-stage" data-status="Publicado" onclick="setPostStatus('Publicado')">Publicado</div>
-                        <div class="pipeline-stage" data-status="Archivado" onclick="setPostStatus('Archivado')">Archivado</div>
+                <!-- MAIN AREA: Studio Canvas -->
+                <div class="crm-main">
+                    <!-- Tabs Navigation -->
+                    <div class="crm-tabs">
+                        <div class="crm-tab active" onclick="switchCrmTab(this, 'tab-contenido')">
+                            <i class="ph-bold ph-pen-nib"></i> Contenido & QA
+                        </div>
+                        <div class="crm-tab" onclick="switchCrmTab(this, 'tab-comentarios')">
+                            <i class="ph-bold ph-chat-circle-dots"></i> Comentarios
+                            <span id="comments-badge" style="display: none; background: #ef4444; color: white; border-radius: 12px; padding: 2px 6px; font-size: 0.6rem; font-weight: bold; line-height: 1;">Nuevo</span>
+                        </div>
                     </div>
 
-                    <button type="button" class="btn-icon" onclick="attemptCloseModal()">
-                        <i class="ph ph-x"></i>
-                    </button>
-                </div>
-
-                <!-- Tabs Navigation -->
-                <div class="crm-tabs">
-                    <div class="crm-tab active" onclick="switchCrmTab(this, 'tab-contenido')">Contenido</div>
-
-                    <div class="crm-tab" onclick="switchCrmTab(this, 'tab-comentarios')" style="display: flex; align-items: center; gap: 0.5rem;">
-                        Comentarios del Cliente
-                        <span id="comments-badge" style="display: none; background: #ef4444; color: white; border-radius: 12px; padding: 2px 6px; font-size: 0.6rem; font-weight: bold; line-height: 1;">Nuevo</span>
-                    </div>
-                </div>
-
-                <!-- Tabs Content Area -->
-                <div style="flex: 1; overflow-y: auto; padding: 1.5rem;">
-                    
-                    <!-- TAB CONTENIDO -->
-                    <div id="tab-contenido" class="crm-tab-pane active">
-                        <div class="grid-2" style="grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: flex-start;">
-                            <div>
-                                <div class="card-section" style="background: var(--bg-surface); border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 100%;">
-                                    <div class="section-title required"><i class="ph ph-text-align-left"></i> Copy del Post</div>
-                                    <div class="custom-wysiwyg-wrapper">
-                                        <div class="wysiwyg-toolbar">
-                                            <button type="button" class="wys-btn" onclick="document.execCommand('undo', false, null)"><i class="ph ph-arrow-u-up-left"></i></button>
-                                            <button type="button" class="wys-btn" onclick="document.execCommand('redo', false, null)"><i class="ph ph-arrow-u-up-right"></i></button>
-                                            <div class="wys-divider"></div>
-                                            <button type="button" class="wys-btn" onclick="document.execCommand('bold', false, null)"><i class="ph ph-text-b"></i></button>
-                                            <button type="button" class="wys-btn" onclick="document.execCommand('italic', false, null)"><i class="ph ph-text-italic"></i></button>
-                                            <button type="button" class="wys-btn" onclick="document.execCommand('underline', false, null)"><i class="ph ph-text-underline"></i></button>
-                                            <div class="wys-divider"></div>
-                                            <button type="button" class="wys-btn" onclick="document.execCommand('insertUnorderedList', false, null)"><i class="ph ph-list-bullets"></i></button>
-                                            <button type="button" class="wys-btn" onclick="document.execCommand('insertOrderedList', false, null)"><i class="ph ph-list-numbers"></i></button>
-                                            <div class="wys-divider"></div>
-                                            <div style="position: relative; display: inline-block;">
-                                                <button type="button" class="wys-btn" onclick="toggleEmojiPicker()"><i class="ph ph-smiley"></i></button>
-                                                <div id="emoji-picker-container" style="display:none; position:absolute; top:40px; left:0; z-index:9999; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px;">
-                                                    <emoji-picker class="light"></emoji-picker>
-                                                </div>
-                                            </div>
-                                            <div class="wys-divider"></div>
-                                            <button type="button" class="wys-btn ai-btn" onclick="callGemini('corregir')" title="✨ Mejorar y Corregir Ortografía" style="color: #8b5cf6; background: rgba(139, 92, 246, 0.1); border-radius: 4px;"><i class="ph ph-magic-wand"></i></button>
-                                            <button type="button" class="wys-btn ai-btn" onclick="callGemini('hashtags')" title="✨ Generar Hashtags" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); border-radius: 4px;"><i class="ph ph-hash"></i></button>
-                                            <button type="button" class="wys-btn ai-btn" onclick="callGemini('generar')" title="✨ Escribir Post con IA" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1); border-radius: 4px;"><i class="ph ph-sparkle"></i></button>
+                    <!-- Content Scrollable Area -->
+                    <div class="crm-studio-scroll" style="flex: 1; overflow-y: auto; padding: 1.5rem;">
+                        
+                        <!-- TAB 1: CONTENIDO & QA -->
+                        <div id="tab-contenido" class="crm-tab-pane active">
+                            <div class="grid-2" style="grid-template-columns: 1fr 380px; gap: 1.5rem; align-items: stretch;">
+                                
+                                <!-- Left: Copy Studio & QA Checklist -->
+                                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                    <div class="studio-card" style="display: flex; flex-direction: column;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                                            <label class="crm-sidebar-label required" style="margin: 0;"><i class="ph-bold ph-text-align-left" style="color: var(--primary-color);"></i> Copy del Post</label>
                                         </div>
-                                        <div id="post-copy-editable" class="wysiwyg-content" contenteditable="true" placeholder="Escribe el texto de la publicación..."></div>
-                                        <textarea name="copy_text" id="post-copy" style="display:none;"></textarea>
+                                        <div class="custom-wysiwyg-wrapper" style="flex: 1; display: flex; flex-direction: column;">
+                                            <div class="wysiwyg-toolbar">
+                                                <button type="button" class="wys-btn" onclick="document.execCommand('undo', false, null)" title="Deshacer"><i class="ph ph-arrow-u-up-left"></i></button>
+                                                <button type="button" class="wys-btn" onclick="document.execCommand('redo', false, null)" title="Rehacer"><i class="ph ph-arrow-u-up-right"></i></button>
+                                                <div class="wys-divider"></div>
+                                                <button type="button" class="wys-btn" onclick="document.execCommand('bold', false, null)" title="Negrita"><i class="ph ph-text-b"></i></button>
+                                                <button type="button" class="wys-btn" onclick="document.execCommand('italic', false, null)" title="Cursiva"><i class="ph ph-text-italic"></i></button>
+                                                <button type="button" class="wys-btn" onclick="document.execCommand('underline', false, null)" title="Subrayado"><i class="ph ph-text-underline"></i></button>
+                                                <div class="wys-divider"></div>
+                                                <button type="button" class="wys-btn" onclick="document.execCommand('insertUnorderedList', false, null)" title="Viñetas"><i class="ph ph-list-bullets"></i></button>
+                                                <button type="button" class="wys-btn" onclick="document.execCommand('insertOrderedList', false, null)" title="Lista numerada"><i class="ph ph-list-numbers"></i></button>
+                                                <div class="wys-divider"></div>
+                                                <div style="position: relative; display: inline-block;">
+                                                    <button type="button" class="wys-btn" onclick="toggleEmojiPicker()" title="Insertar Emoji"><i class="ph ph-smiley"></i></button>
+                                                    <div id="emoji-picker-container" style="display:none; position:absolute; top:40px; left:0; z-index:9999; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-radius: 12px;">
+                                                        <emoji-picker class="dark"></emoji-picker>
+                                                    </div>
+                                                </div>
+                                                <div class="wys-divider"></div>
+                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('corregir')" title="✨ Corregir Ortografía y Estilo" style="color: #a78bfa; background: rgba(167, 139, 250, 0.15); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
+                                                    <i class="ph ph-magic-wand"></i> Corregir
+                                                </button>
+                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('hashtags')" title="✨ Generar Hashtags" style="color: #60a5fa; background: rgba(96, 165, 250, 0.15); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
+                                                    <i class="ph ph-hash"></i> Hashtags
+                                                </button>
+                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('generar_desde_imagen')" title="✨ Generar Copy + Emojis + Hashtags analizando la imagen de Post Terminado" style="color: #10b981; background: rgba(16, 185, 129, 0.18); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
+                                                    <i class="ph ph-sparkle"></i> Copy con Imagen
+                                                </button>
+                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('generar')" title="✨ Escribir Post con IA desde texto" style="color: #fbbf24; background: rgba(251, 191, 36, 0.15); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
+                                                    <i class="ph ph-pencil-simple-line"></i> IA Texto
+                                                </button>
+                                            </div>
+                                            <div id="post-copy-editable" class="wysiwyg-content" contenteditable="true" placeholder="Escribe el texto de la publicación..."></div>
+                                            <textarea name="copy_text" id="post-copy" style="display:none;"></textarea>
+                                        </div>
+                                        <div style="text-align: right; margin-top: 0.65rem; font-size: 0.74rem; font-weight: 600; color: var(--text-muted);">
+                                            <span id="char-count" style="color: #f1f5f9; font-weight: 800;">0</span> caracteres
+                                        </div>
                                     </div>
-                                    <div style="text-align: right; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
-                                        <span id="char-count">0</span> caracteres
+
+                                    <!-- Control de Calidad QA Checklist -->
+                                    <div class="qa-checklist-card">
+                                        <div class="qa-header">
+                                            <div class="qa-title">
+                                                <i class="ph-bold ph-shield-check" style="color: #10b981;"></i>
+                                                <span>Control de Calidad (QA Pre-Publicación)</span>
+                                            </div>
+                                            <div class="qa-counter-badge qa-badge-pending" id="qa-counter-badge">0/4 Pendiente</div>
+                                        </div>
+                                        <div class="qa-progress-bar-bg">
+                                            <div class="qa-progress-bar-fill" id="qa-progress-bar-fill" style="width: 0%; background: #6366f1;"></div>
+                                        </div>
+                                        <div class="qa-items-grid">
+                                            <label class="qa-item">
+                                                <input type="checkbox" name="qa_checklist[spelling]" id="qa_spelling" class="qa-checkbox" onchange="updateQAUi(); markDirty();">
+                                                <div class="qa-item-content">
+                                                    <div class="qa-item-title"><i class="ph-bold ph-spell-check" style="color: #60a5fa;"></i> Ortografía & Hashtags</div>
+                                                    <div class="qa-item-desc">Texto revisado, sin faltas ortográficas y hashtags optimizados.</div>
+                                                </div>
+                                            </label>
+
+                                            <label class="qa-item">
+                                                <input type="checkbox" name="qa_checklist[brand]" id="qa_brand" class="qa-checkbox" onchange="updateQAUi(); markDirty();">
+                                                <div class="qa-item-content">
+                                                    <div class="qa-item-title"><i class="ph-bold ph-palette" style="color: #c084fc;"></i> Logo & Identidad</div>
+                                                    <div class="qa-item-desc">Paleta corporativa y logotipo oficial bien integrado.</div>
+                                                </div>
+                                            </label>
+
+                                            <label class="qa-item">
+                                                <input type="checkbox" name="qa_checklist[format]" id="qa_format" class="qa-checkbox" onchange="updateQAUi(); markDirty();">
+                                                <div class="qa-item-content">
+                                                    <div class="qa-item-title"><i class="ph-bold ph-aspect-ratio" style="color: #fbbf24;"></i> Formato & Resolución</div>
+                                                    <div class="qa-item-desc">Dimensiones adecuadas (1:1, 4:5, 9:16) y visuales nítidos.</div>
+                                                </div>
+                                            </label>
+
+                                            <label class="qa-item">
+                                                <input type="checkbox" name="qa_checklist[cta]" id="qa_cta" class="qa-checkbox" onchange="updateQAUi(); markDirty();">
+                                                <div class="qa-item-content">
+                                                    <div class="qa-item-title"><i class="ph-bold ph-link-simple" style="color: #34d399;"></i> Call to Action & Links</div>
+                                                    <div class="qa-item-desc">Llamado a la acción claro y enlaces verificados.</div>
+                                                </div>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div>
-                                <div class="card-section" style="background: var(--bg-surface); border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
-                                    <div class="section-title" style="display: none; justify-content: center;"><i class="ph ph-devices"></i> Visual del Post</div>
-                                    <div class="toggle-group" style="margin-bottom: 1.5rem;">
+
+                                <!-- Right: Visual Asset Studio -->
+                                <div class="studio-card" style="display: flex; flex-direction: column;">
+                                    <div class="toggle-group">
                                         <input type="radio" name="post_type" id="pt_ref" value="Referencia Visual" class="toggle-input" checked onchange="updateVideoPreview()">
                                         <label for="pt_ref" class="toggle-label">Ref. Visual</label>
                                         
@@ -1128,6 +2768,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                         </div>
                                     </div>
                                     <div class="preview-actions">
+                                        <button type="button" id="btn-ver-recurso" onclick="openPostImageViewer()" title="Ver imagen en tamaño completo"><i class="ph ph-eye"></i> Ver</button>
                                         <button type="button" onclick="document.getElementById('post-main-image-upload').click()"><i class="ph ph-image-square"></i> Subir</button>
                                         <button type="button" id="btn-dibujar" onclick="openPaintEditor()"><i class="ph ph-paint-brush"></i> Dibujar</button>
                                         <button type="button" id="btn-eliminar-recurso" onclick="clearActiveTabImage();"><i class="ph ph-trash"></i> Eliminar</button>
@@ -1136,61 +2777,47 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                     <input type="hidden" name="image_link" id="post-image-link">
                                     <input type="hidden" name="reference_image_link" id="post-reference-link">
                                     <input type="hidden" name="paint_data" id="post-paint-data">
+                                    <input type="hidden" name="drive_images" id="post-drive">
 
-                                    <div id="video-url-container" style="border-top: 1px dashed var(--border-color); padding-top: 1.5rem; margin-top: 1rem; text-align: left;">
+                                    <div id="video-url-container" style="border-top: 1px dashed #27272a; padding-top: 1.25rem; margin-top: 1.25rem; text-align: left;">
                                         <div id="video-url-input-group">
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.5rem;"><i class="ph ph-link"></i> Enlace Externo</label>
+                                            <label style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.4rem;"><i class="ph ph-link"></i> Enlace Externo</label>
                                             <div style="display: flex; gap: 0.5rem;">
                                                 <input type="text" id="video-url-input" class="form-control form-control-sm" placeholder="Pegar URL aquí..." oninput="handleVideoUrlInput()">
-                                                <button type="button" class="btn btn-outline" style="padding: 0 0.5rem;" onclick="document.getElementById('video-url-input').value=''; handleVideoUrlInput();">
+                                                <button type="button" class="btn btn-outline" style="padding: 0 0.6rem; border-radius: 10px; border-color: #27272a;" onclick="document.getElementById('video-url-input').value=''; handleVideoUrlInput();">
                                                     <i class="ph ph-trash"></i>
                                                 </button>
                                             </div>
                                         </div>
-                                        <div id="download-btn-group" style="display: none;">
-                                            <button type="button" class="btn btn-primary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; font-weight: 600;" onclick="downloadActiveResource()"><i class="ph ph-download-simple" style="font-size: 1.2rem;"></i> Descargar Archivo</button>
+                                        <div id="download-btn-group" style="display: none; margin-top: 0.75rem;">
+                                            <button type="button" class="btn btn-primary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 12px; font-weight: 700; background: var(--color-btn-bg, var(--primary-color)); border: none; box-shadow: 0 4px 14px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 30%, transparent); color: var(--color-btn-text, #ffffff);" onclick="downloadActiveResource()"><i class="ph ph-download-simple" style="font-size: 1.2rem;"></i> Descargar Archivo</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-           </div>
-                    <!-- TAB COMENTARIOS -->
-                    <div id="tab-comentarios" class="crm-tab-pane">
-                        <div class="card-section" style="background: var(--bg-surface); border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); min-height: 400px;">
-                            <!-- Sub-tabs -->
-                            <div style="display:flex; gap:0; border-bottom: 2px solid var(--border-color); margin-bottom:1rem;">
-                                <button type="button" class="comment-subtab active" id="subtab-contenido" onclick="switchCommentSubtab('contenido')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.85rem; font-weight:700; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px;">
-                                    <i class="ph ph-text-aa"></i> Contenido <span id="count-contenido" style="background:var(--accent-primary); color:white; border-radius:10px; padding:0.1rem 0.5rem; font-size:0.7rem; min-width:18px; text-align:center;"></span>
-                                </button>
-                                <button type="button" class="comment-subtab" id="subtab-diseno" onclick="switchCommentSubtab('diseno')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.85rem; font-weight:700; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px;">
-                                    <i class="ph ph-paint-brush"></i> Fase de Diseño <span id="count-diseno" style="background:var(--accent-primary); color:white; border-radius:10px; padding:0.1rem 0.5rem; font-size:0.7rem; min-width:18px; text-align:center;"></span>
-                                </button>
-                            </div>
-                            <div id="comments-container-contenido">
-                                <!-- Comentarios de Contenido -->
-                            </div>
-                            <div id="comments-container-diseno" style="display:none;">
-                                <!-- Comentarios de Fase de Diseño -->
+
+                        <!-- TAB 2: COMENTARIOS -->
+                        <div id="tab-comentarios" class="crm-tab-pane">
+                            <div class="studio-card" style="min-height: 440px;">
+                                <!-- Sub-tabs -->
+                                <div style="display:flex; gap:0; border-bottom: 1px solid #27272a; margin-bottom:1.25rem;">
+                                    <button type="button" class="comment-subtab active" id="subtab-contenido" onclick="switchCommentSubtab('contenido')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.85rem; font-weight:700; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-1px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px;">
+                                        <i class="ph ph-text-aa"></i> Contenido <span id="count-contenido" style="background:var(--accent-primary); color:white; border-radius:10px; padding:0.1rem 0.5rem; font-size:0.7rem; min-width:18px; text-align:center;"></span>
+                                    </button>
+                                    <button type="button" class="comment-subtab" id="subtab-diseno" onclick="switchCommentSubtab('diseno')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.85rem; font-weight:700; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-1px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px;">
+                                        <i class="ph ph-paint-brush"></i> Fase de Diseño <span id="count-diseno" style="background:var(--accent-primary); color:white; border-radius:10px; padding:0.1rem 0.5rem; font-size:0.7rem; min-width:18px; text-align:center;"></span>
+                                    </button>
+                                </div>
+                                <div id="comments-container-contenido">
+                                    <!-- Comentarios de Contenido -->
+                                </div>
+                                <div id="comments-container-diseno" style="display:none;">
+                                    <!-- Comentarios de Fase de Diseño -->
+                                </div>
                             </div>
                         </div>
                     </div>
-
-<style>
-.comment-subtab.active {
-    color: var(--accent-primary) !important;
-    border-bottom-color: var(--accent-primary) !important;
-}
-</style>
-<script>
-function switchCommentSubtab(tab) {
-    document.querySelectorAll('.comment-subtab').forEach(t => t.classList.remove('active'));
-    document.getElementById('subtab-' + tab).classList.add('active');
-    document.getElementById('comments-container-contenido').style.display = tab === 'contenido' ? 'block' : 'none';
-    document.getElementById('comments-container-diseno').style.display = tab === 'diseno' ? 'block' : 'none';
-}
-</script>
-
                 </div>
             </div>
         </form>
@@ -1207,6 +2834,27 @@ function switchCrmTab(tabElement, paneId) {
     // Activar el seleccionado
     tabElement.classList.add('active');
     document.getElementById(paneId).classList.add('active');
+}
+
+function switchCommentSubtab(subtab) {
+    const btnContenido = document.getElementById('subtab-contenido');
+    const btnDiseno = document.getElementById('subtab-diseno');
+    const containerContenido = document.getElementById('comments-container-contenido');
+    const containerDiseno = document.getElementById('comments-container-diseno');
+
+    if (btnContenido && btnDiseno && containerContenido && containerDiseno) {
+        if (subtab === 'contenido') {
+            btnContenido.classList.add('active');
+            btnDiseno.classList.remove('active');
+            containerContenido.style.display = 'block';
+            containerDiseno.style.display = 'none';
+        } else {
+            btnDiseno.classList.add('active');
+            btnContenido.classList.remove('active');
+            containerDiseno.style.display = 'block';
+            containerContenido.style.display = 'none';
+        }
+    }
 }
 
 function setPostStatus(status) {
@@ -1247,6 +2895,37 @@ function updatePipelineUI() {
             </button>
         </div>
     </div>
+</div>
+
+<!-- Modal Visor de Imagen (Lightbox para Post) -->
+<div class="post-img-viewer-overlay" id="post-image-viewer-modal" onclick="pivHandleOverlayClick(event)">
+    <div class="piv-topbar" onclick="event.stopPropagation()">
+        <div class="piv-info">
+            <div class="piv-badge" id="piv-type-badge"><i class="ph ph-image"></i> Referencia Visual</div>
+            <span class="piv-counter" id="piv-counter" style="display: none;">1 / 1</span>
+        </div>
+        <div class="piv-controls">
+            <button type="button" class="piv-btn" onclick="pivZoomOut()" title="Alejar (-)"><i class="ph ph-magnifying-glass-minus"></i></button>
+            <span class="piv-zoom-level" id="piv-zoom-val">100%</span>
+            <button type="button" class="piv-btn" onclick="pivZoomIn()" title="Acercar (+)"><i class="ph ph-magnifying-glass-plus"></i></button>
+            <button type="button" class="piv-btn" onclick="pivResetTransform()" title="Restablecer vista"><i class="ph ph-arrows-counter-clockwise"></i></button>
+            <div class="piv-divider"></div>
+            <button type="button" class="piv-btn" onclick="pivRotate()" title="Girar 90°"><i class="ph ph-arrow-clockwise"></i></button>
+            <button type="button" class="piv-btn" onclick="pivDownload()" title="Descargar"><i class="ph ph-download-simple"></i></button>
+            <button type="button" class="piv-btn" onclick="pivOpenInNewTab()" title="Abrir en pestaña nueva"><i class="ph ph-arrow-square-out"></i></button>
+            <div class="piv-divider"></div>
+            <button type="button" class="piv-btn piv-btn-close" onclick="closePostImageViewer()" title="Cerrar (Esc)"><i class="ph ph-x"></i></button>
+        </div>
+    </div>
+
+    <div class="piv-stage" id="piv-stage" onwheel="pivHandleWheel(event)" onmousedown="pivStartDrag(event)">
+        <img src="" id="piv-main-image" class="piv-image" draggable="false" alt="Visualización" ondblclick="pivToggleZoom(event)">
+    </div>
+
+    <button type="button" class="piv-nav-btn piv-nav-prev" id="piv-prev-btn" onclick="event.stopPropagation(); pivPrevImage();" title="Anterior (←)"><i class="ph ph-caret-left"></i></button>
+    <button type="button" class="piv-nav-btn piv-nav-next" id="piv-next-btn" onclick="event.stopPropagation(); pivNextImage();" title="Siguiente (→)"><i class="ph ph-caret-right"></i></button>
+
+    <div class="piv-thumbnails" id="piv-thumbnails" style="display: none;" onclick="event.stopPropagation()"></div>
 </div>
 
 <!-- Modal Genérico de Confirmación -->
@@ -1363,6 +3042,47 @@ function attemptCloseModal() {
     }
 }
 
+function updateQAUi() {
+    const chkSpelling = document.getElementById('qa_spelling');
+    const chkBrand = document.getElementById('qa_brand');
+    const chkFormat = document.getElementById('qa_format');
+    const chkCta = document.getElementById('qa_cta');
+    
+    let count = 0;
+    if (chkSpelling && chkSpelling.checked) count++;
+    if (chkBrand && chkBrand.checked) count++;
+    if (chkFormat && chkFormat.checked) count++;
+    if (chkCta && chkCta.checked) count++;
+    
+    const pct = (count / 4) * 100;
+    const barEl = document.getElementById('qa-progress-bar-fill');
+    const badgeEl = document.getElementById('qa-counter-badge');
+    
+    if (barEl) {
+        barEl.style.width = pct + '%';
+        if (count === 4) {
+            barEl.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+        } else if (count >= 2) {
+            barEl.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
+        } else {
+            barEl.style.background = 'linear-gradient(90deg, #6366f1, #4f46e5)';
+        }
+    }
+    
+    if (badgeEl) {
+        if (count === 4) {
+            badgeEl.className = 'qa-counter-badge qa-badge-complete';
+            badgeEl.innerHTML = '<i class="ph-bold ph-check-circle"></i> 4/4 Verificado';
+        } else if (count > 0) {
+            badgeEl.className = 'qa-counter-badge qa-badge-progress';
+            badgeEl.innerHTML = `<i class="ph-bold ph-hourglass-high"></i> ${count}/4 En Progreso`;
+        } else {
+            badgeEl.className = 'qa-counter-badge qa-badge-pending';
+            badgeEl.innerHTML = '0/4 Pendiente';
+        }
+    }
+}
+
 function openPostModal() {
     // 1. Stop any running auto-save from a previous session
     clearInterval(autoSaveTimer);
@@ -1377,11 +3097,18 @@ function openPostModal() {
     document.getElementById('post-reference-link').value = '';
     document.getElementById('post-paint-data').value = '';
     
-    // 4. Clear WYSIWYG editor
+    // Auto-set creation datetime to now
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const nowIso = now.toISOString().slice(0, 16);
+    if(document.getElementById('post-date')) document.getElementById('post-date').value = nowIso;
+    
+    // 4. Clear WYSIWYG editor & brief
     const wysiwygEditable = document.getElementById('post-copy-editable');
     const hiddenTextarea = document.getElementById('post-copy');
     if (wysiwygEditable) wysiwygEditable.innerHTML = '';
     if (hiddenTextarea) hiddenTextarea.value = '';
+    if (document.getElementById('post-brief')) document.getElementById('post-brief').value = '';
     
     // 5. Clear dynamic containers
     if(document.getElementById('refs-container')) document.getElementById('refs-container').innerHTML = '';
@@ -1390,6 +3117,7 @@ function openPostModal() {
     // 6. Clear video/URL inputs
     document.getElementById('video-url-input').value = '';
     if(document.getElementById('post-drive')) document.getElementById('post-drive').value = '';
+    if(document.getElementById('post-end-date')) document.getElementById('post-end-date').value = '<?php echo htmlspecialchars($monthData['due_date'] ?? date('Y-m-t')); ?>';
     
     // 7. Clear comments
     const commentsContainer = document.getElementById('comments-container');
@@ -1406,6 +3134,12 @@ function openPostModal() {
     // 10. Reset post type to default
     const refRadio = document.getElementById('pt_ref');
     if (refRadio) refRadio.checked = true;
+    
+    // 11. Reset Content Pillar & QA
+    const defPillar = document.getElementById('pil_edu');
+    if (defPillar) defPillar.checked = true;
+    document.querySelectorAll('.qa-checkbox').forEach(chk => chk.checked = false);
+    updateQAUi();
     
     document.getElementById('post-modal-title').innerText = 'Añadir Publicación';
     
@@ -1429,6 +3163,11 @@ function handleVideoUrlInput() {
         document.getElementById('post-reference-link').value = url;
     } else {
         document.getElementById('post-image-link').value = url;
+        if (url.trim() !== '') {
+            document.getElementById('post-status').value = 'Publicado';
+            if (typeof updatePipelineUI === 'function') updatePipelineUI();
+            if (typeof updateSaveButtonState === 'function') updateSaveButtonState();
+        }
     }
     updateVideoPreview();
 }
@@ -1544,8 +3283,9 @@ function updateVideoPreview() {
         
         mediaList.forEach((url, i) => {
             html += `<div class="sortable-item" style="flex: 0 0 100%; scroll-snap-align: center; position:relative; width: 100%; height: 100%; overflow: hidden; background: #0f172a; cursor: grab;">
-                        <img src="${url}" style="width:100%; height:100%; object-fit:contain;">
-                        <button type="button" onclick="event.stopPropagation(); clearActiveTabImage(${i});" style="position:absolute; top:10px; right:10px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; z-index: 20;"><i class="ph ph-x"></i></button>
+                        <img src="${url}" class="preview-interactive-img" onclick="openPostImageViewer(${i})" style="width:100%; height:100%; object-fit:contain;" title="Click para ver en el visor de imágenes">
+                        <button type="button" onclick="event.stopPropagation(); clearActiveTabImage(${i});" style="position:absolute; top:10px; right:10px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; z-index: 20;" title="Eliminar"><i class="ph ph-x"></i></button>
+                        <button type="button" onclick="event.stopPropagation(); openPostImageViewer(${i});" style="position:absolute; top:10px; left:10px; background:rgba(15,23,42,0.8); color:white; border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; z-index: 20;" title="Ver imagen en tamaño completo"><i class="ph ph-eye"></i></button>
                         <div style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.6); color:white; font-size:0.7rem; padding:3px 8px; border-radius:12px; pointer-events:none;">${i + 1} / ${mediaList.length}</div>
                      </div>`;
         });
@@ -1674,13 +3414,293 @@ function updateVideoPreview() {
             box.style.maxWidth = 'none';
             box.style.overflow = 'hidden';
             box.style.position = 'relative';
-            box.innerHTML = `${refBadge}<img src="${url}" style="width: 100%; height: 100%; display: block; border-radius: 12px; object-fit: contain;">${overlayHtml}`;
+            box.innerHTML = `${refBadge}<div style="position:relative; width:100%; height:100%; cursor:pointer;" onclick="openPostImageViewer(0)" title="Click para ver en el visor de imágenes"><img src="${url}" class="preview-interactive-img" style="width: 100%; height: 100%; display: block; border-radius: 12px; object-fit: contain;"><div class="preview-zoom-badge"><i class="ph ph-arrows-out"></i> Ver</div></div>${overlayHtml}`;
         } else {
             box.style.width = 'auto';
             box.style.height = 'auto';
             box.style.maxWidth = '280px';
-            box.innerHTML = `${refBadge}<img src="${url}" style="width: 100%; height: auto; max-height: 400px; display: block; border-radius: 12px; object-fit: contain;">${overlayHtml}`;
+            box.innerHTML = `${refBadge}<div style="position:relative; width:100%; cursor:pointer;" onclick="openPostImageViewer(0)" title="Click para ver en el visor de imágenes"><img src="${url}" class="preview-interactive-img" style="width: 100%; height: auto; max-height: 400px; display: block; border-radius: 12px; object-fit: contain;"><div class="preview-zoom-badge"><i class="ph ph-arrows-out"></i> Ver</div></div>${overlayHtml}`;
         }
+    }
+}
+
+// ==========================================
+// POST IMAGE VIEWER LIGHTBOX LOGIC
+// ==========================================
+let pivCurrentImages = [];
+let pivCurrentIndex = 0;
+let pivZoom = 1;
+let pivRotateDeg = 0;
+let pivTranslateX = 0;
+let pivTranslateY = 0;
+let pivIsDragging = false;
+let pivStartX = 0;
+let pivStartY = 0;
+
+function openPostImageViewer(targetIndex = 0) {
+    const isRef = document.querySelector('input[name="post_type"]:checked') ? (document.querySelector('input[name="post_type"]:checked').value === 'Referencia Visual') : true;
+    const inputEl = isRef ? document.getElementById('post-reference-link') : document.getElementById('post-image-link');
+    
+    let rawVal = inputEl ? inputEl.value : '';
+    let list = [];
+    try {
+        list = JSON.parse(rawVal);
+        if (!Array.isArray(list)) list = rawVal ? [rawVal] : [];
+    } catch(e) {
+        list = rawVal ? [rawVal] : [];
+    }
+    
+    // Filter valid non-empty URLs
+    list = list.filter(u => typeof u === 'string' && u.trim() !== '');
+    
+    if (list.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('No hay ninguna imagen cargada para visualizar.');
+        } else {
+            alert('No hay ninguna imagen cargada para visualizar.');
+        }
+        return;
+    }
+    
+    pivCurrentImages = list;
+    pivCurrentIndex = Math.max(0, Math.min(targetIndex, list.length - 1));
+    
+    // Set Badge Info
+    const badgeEl = document.getElementById('piv-type-badge');
+    if (badgeEl) {
+        badgeEl.innerHTML = isRef 
+            ? '<i class="ph ph-lightbulb"></i> Referencia Visual' 
+            : '<i class="ph ph-check-circle"></i> Post Terminado';
+        badgeEl.style.background = isRef ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+        badgeEl.style.color = isRef ? '#fbbf24' : '#34d399';
+        badgeEl.style.borderColor = isRef ? 'rgba(245, 158, 11, 0.35)' : 'rgba(16, 185, 129, 0.35)';
+    }
+    
+    // Show/Hide navigation buttons
+    const prevBtn = document.getElementById('piv-prev-btn');
+    const nextBtn = document.getElementById('piv-next-btn');
+    const counterEl = document.getElementById('piv-counter');
+    const thumbContainer = document.getElementById('piv-thumbnails');
+    
+    if (list.length > 1) {
+        if (prevBtn) prevBtn.style.display = 'flex';
+        if (nextBtn) nextBtn.style.display = 'flex';
+        if (counterEl) counterEl.style.display = 'inline-block';
+        if (thumbContainer) {
+            thumbContainer.style.display = 'flex';
+            let thumbHtml = '';
+            list.forEach((url, idx) => {
+                thumbHtml += `<div class="piv-thumb-item ${idx === pivCurrentIndex ? 'active' : ''}" onclick="pivSetImage(${idx})"><img src="${url}" alt="Miniatura ${idx + 1}"></div>`;
+            });
+            thumbContainer.innerHTML = thumbHtml;
+        }
+    } else {
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (counterEl) counterEl.style.display = 'none';
+        if (thumbContainer) thumbContainer.style.display = 'none';
+    }
+    
+    pivSetImage(pivCurrentIndex);
+    
+    const modal = document.getElementById('post-image-viewer-modal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    }
+    
+    // Add event listeners
+    window.addEventListener('keydown', pivHandleKeydown);
+    window.addEventListener('mousemove', pivDoDrag);
+    window.addEventListener('mouseup', pivEndDrag);
+}
+
+function closePostImageViewer() {
+    const modal = document.getElementById('post-image-viewer-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            if (!modal.classList.contains('active')) {
+                modal.style.display = 'none';
+            }
+        }, 250);
+    }
+    window.removeEventListener('keydown', pivHandleKeydown);
+    window.removeEventListener('mousemove', pivDoDrag);
+    window.removeEventListener('mouseup', pivEndDrag);
+}
+
+function pivHandleOverlayClick(e) {
+    if (e.target.id === 'post-image-viewer-modal' || e.target.id === 'piv-stage') {
+        closePostImageViewer();
+    }
+}
+
+function pivSetImage(index) {
+    if (index < 0 || index >= pivCurrentImages.length) return;
+    pivCurrentIndex = index;
+    
+    const imgEl = document.getElementById('piv-main-image');
+    if (imgEl) {
+        imgEl.src = pivCurrentImages[pivCurrentIndex];
+    }
+    
+    // Update counter
+    const counterEl = document.getElementById('piv-counter');
+    if (counterEl && pivCurrentImages.length > 1) {
+        counterEl.innerText = `${pivCurrentIndex + 1} / ${pivCurrentImages.length}`;
+    }
+    
+    // Update active thumbnail
+    document.querySelectorAll('.piv-thumb-item').forEach((th, idx) => {
+        if (idx === pivCurrentIndex) {
+            th.classList.add('active');
+            th.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+            th.classList.remove('active');
+        }
+    });
+    
+    pivResetTransform();
+}
+
+function pivPrevImage() {
+    if (pivCurrentImages.length <= 1) return;
+    const newIdx = (pivCurrentIndex - 1 + pivCurrentImages.length) % pivCurrentImages.length;
+    pivSetImage(newIdx);
+}
+
+function pivNextImage() {
+    if (pivCurrentImages.length <= 1) return;
+    const newIdx = (pivCurrentIndex + 1) % pivCurrentImages.length;
+    pivSetImage(newIdx);
+}
+
+function pivUpdateTransform() {
+    const imgEl = document.getElementById('piv-main-image');
+    const zoomValEl = document.getElementById('piv-zoom-val');
+    if (imgEl) {
+        imgEl.style.transform = `translate(${pivTranslateX}px, ${pivTranslateY}px) scale(${pivZoom}) rotate(${pivRotateDeg}deg)`;
+    }
+    if (zoomValEl) {
+        zoomValEl.innerText = Math.round(pivZoom * 100) + '%';
+    }
+}
+
+function pivZoomIn() {
+    pivZoom = Math.min(5, Number((pivZoom + 0.25).toFixed(2)));
+    pivUpdateTransform();
+}
+
+function pivZoomOut() {
+    pivZoom = Math.max(0.25, Number((pivZoom - 0.25).toFixed(2)));
+    if (pivZoom <= 1) {
+        pivTranslateX = 0;
+        pivTranslateY = 0;
+    }
+    pivUpdateTransform();
+}
+
+function pivResetTransform() {
+    pivZoom = 1;
+    pivRotateDeg = 0;
+    pivTranslateX = 0;
+    pivTranslateY = 0;
+    pivUpdateTransform();
+}
+
+function pivRotate() {
+    pivRotateDeg = (pivRotateDeg + 90) % 360;
+    pivUpdateTransform();
+}
+
+function pivToggleZoom(e) {
+    if (pivZoom > 1.05) {
+        pivResetTransform();
+    } else {
+        pivZoom = 2;
+        pivUpdateTransform();
+    }
+}
+
+function pivHandleWheel(e) {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+        pivZoomIn();
+    } else {
+        pivZoomOut();
+    }
+}
+
+function pivStartDrag(e) {
+    if (e.button !== 0) return; // Only primary button
+    pivIsDragging = true;
+    pivStartX = e.clientX - pivTranslateX;
+    pivStartY = e.clientY - pivTranslateY;
+    const stage = document.getElementById('piv-stage');
+    if (stage) stage.classList.add('dragging');
+}
+
+function pivDoDrag(e) {
+    if (!pivIsDragging) return;
+    e.preventDefault();
+    pivTranslateX = e.clientX - pivStartX;
+    pivTranslateY = e.clientY - pivStartY;
+    pivUpdateTransform();
+}
+
+function pivEndDrag() {
+    if (!pivIsDragging) return;
+    pivIsDragging = false;
+    const stage = document.getElementById('piv-stage');
+    if (stage) stage.classList.remove('dragging');
+}
+
+function pivDownload() {
+    if (!pivCurrentImages[pivCurrentIndex]) return;
+    const url = pivCurrentImages[pivCurrentIndex];
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = url.substring(url.lastIndexOf('/') + 1) || 'imagen_post.jpg';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function pivOpenInNewTab() {
+    if (!pivCurrentImages[pivCurrentIndex]) return;
+    window.open(pivCurrentImages[pivCurrentIndex], '_blank');
+}
+
+function pivHandleKeydown(e) {
+    const modal = document.getElementById('post-image-viewer-modal');
+    if (!modal || !modal.classList.contains('active')) return;
+    
+    if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.preventDefault();
+        closePostImageViewer();
+    } else if (e.key === 'ArrowLeft') {
+        e.stopPropagation();
+        e.preventDefault();
+        pivPrevImage();
+    } else if (e.key === 'ArrowRight') {
+        e.stopPropagation();
+        e.preventDefault();
+        pivNextImage();
+    } else if (e.key === '+' || e.key === '=') {
+        e.stopPropagation();
+        e.preventDefault();
+        pivZoomIn();
+    } else if (e.key === '-' || e.key === '_') {
+        e.stopPropagation();
+        e.preventDefault();
+        pivZoomOut();
+    } else if (e.key === '0' || e.key === 'r' || e.key === 'R') {
+        e.stopPropagation();
+        e.preventDefault();
+        pivResetTransform();
     }
 }
 
@@ -1781,6 +3801,26 @@ function editPost(postData) {
     document.querySelectorAll('input[name="formats[]"]').forEach(chk => {
         chk.checked = formats.includes(chk.value);
     });
+
+    // Content Pillar
+    const pillar = post.content_pillar || 'Educación';
+    const pilRadio = document.querySelector(`input[name="content_pillar"][value="${pillar}"]`);
+    if (pilRadio) {
+        pilRadio.checked = true;
+    } else if (document.getElementById('pil_edu')) {
+        document.getElementById('pil_edu').checked = true;
+    }
+
+    // QA Checklist
+    let qaObj = {};
+    try {
+        qaObj = typeof post.qa_checklist === 'string' ? JSON.parse(post.qa_checklist || '{}') : (post.qa_checklist || {});
+    } catch(e) {}
+    if (document.getElementById('qa_spelling')) document.getElementById('qa_spelling').checked = !!(qaObj && qaObj.spelling);
+    if (document.getElementById('qa_brand')) document.getElementById('qa_brand').checked = !!(qaObj && qaObj.brand);
+    if (document.getElementById('qa_format')) document.getElementById('qa_format').checked = !!(qaObj && qaObj.format);
+    if (document.getElementById('qa_cta')) document.getElementById('qa_cta').checked = !!(qaObj && qaObj.cta);
+    updateQAUi();
 
     // Referencias
     let refs = [];
@@ -2082,6 +4122,13 @@ async function uploadMainImage(input) {
         currentList = currentList.concat(uploadedUrls);
         inputEl.value = JSON.stringify(currentList);
         
+        // Auto-change status to Publicado if image uploaded in Terminado
+        if (!isRef) {
+            document.getElementById('post-status').value = 'Publicado';
+            if (typeof updatePipelineUI === 'function') updatePipelineUI();
+            if (typeof updateSaveButtonState === 'function') updateSaveButtonState();
+        }
+        
         updateVideoPreview();
         markDirty();
     } else {
@@ -2109,6 +4156,15 @@ async function savePost(isAutoSave = false) {
 
     // Force the correct id value (defense against stale form state)
     formData.set('id', postIdValue);
+
+    // QA Checklist Object to JSON
+    const qaObj = {
+        spelling: !!document.getElementById('qa_spelling')?.checked,
+        brand: !!document.getElementById('qa_brand')?.checked,
+        format: !!document.getElementById('qa_format')?.checked,
+        cta: !!document.getElementById('qa_cta')?.checked
+    };
+    formData.set('qa_checklist', JSON.stringify(qaObj));
 
     let variationsArr = [];
     let titles = formData.getAll('variations[title][]');
@@ -2490,11 +4546,11 @@ function onApiLoad() {
 <!-- Modal Editor de Slides -->
 <div class="modal-overlay" id="slideEditorModal">
     <div class="modal" style="width: 95vw; max-width: 1400px; height: 95vh; padding: 0; display: flex; flex-direction: column;">
-        <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fff;">
-            <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-file-slides" style="color: #eab308;"></i> Editor de Referencias</h3>
+        <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); color: var(--text-main);">
+            <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);"><i class="ph ph-file-slides" style="color: #eab308;"></i> Editor de Referencias</h3>
             <button type="button" class="btn-icon" onclick="document.getElementById('slideEditorModal').classList.remove('active')"><i class="ph ph-x"></i></button>
         </div>
-        <div style="flex: 1; position: relative; background: #f8fafc;">
+        <div style="flex: 1; position: relative; background: var(--bg-color);">
             <iframe id="slideEditorIframe" src="" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
     </div>
@@ -2502,22 +4558,24 @@ function onApiLoad() {
 
 <!-- Modal Compartir Vista Pública -->
 <div class="modal-overlay" id="shareModal">
-    <div class="modal-content" style="max-width: 480px; padding: 0; overflow: hidden; border-radius: 20px;">
-        <div class="modal-header" style="background: #f8fafc; padding: 1.5rem 2rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 1.3rem; display: flex; align-items: center; gap: 0.6rem; color: #1e293b;">
-                <i class="ph ph-share-network" style="color: #0d945a;"></i> Compartir con el Cliente
+    <div class="modal-content share-modal-content">
+        <div class="modal-header share-modal-header">
+            <h3 class="share-modal-title">
+                <i class="ph-bold ph-share-network"></i> Compartir con el Cliente
             </h3>
-            <button type="button" class="btn-icon" onclick="document.getElementById('shareModal').classList.remove('active')" style="background: white; border: 1px solid #e2e8f0; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer;"><i class="ph ph-x" style="color: #64748b;"></i></button>
+            <button type="button" class="share-modal-close" onclick="document.getElementById('shareModal').classList.remove('active')" aria-label="Cerrar modal">
+                <i class="ph-bold ph-x"></i>
+            </button>
         </div>
-        <div class="modal-body" style="padding: 2rem;">
-            <p style="font-size: 0.95rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.5;">
-                Envía este enlace a tu cliente para que revise el tablero de: <br>
-                <strong style="color: #0f172a; font-size: 1.05rem; display: inline-block; margin-top: 0.3rem;"><?php echo htmlspecialchars($monthData['brand_name']); ?> - <?php echo $monthNames[$monthData['month']] . ' ' . $monthData['year']; ?></strong>
+        <div class="modal-body share-modal-body">
+            <p class="share-modal-description">
+                Envía este enlace a tu cliente para que revise el tablero de:
+                <strong class="share-modal-board-name"><?php echo htmlspecialchars($monthData['brand_name']); ?> - <?php echo $monthNames[$monthData['month']] . ' ' . $monthData['year']; ?></strong>
             </p>
 
-            <div style="background: #ffffff; padding: 1.25rem; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
-                <div style="font-size: 0.95rem; font-weight: 600; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="ph ph-lock-key" style="font-size: 1.2rem; color: #64748b;"></i> Proteger con PIN
+            <div class="share-pin-card">
+                <div class="share-pin-label">
+                    <i class="ph-bold ph-lock-key"></i> Proteger con PIN
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="pin-toggle" onchange="togglePinProtection()" <?php echo !empty($monthData['pin']) ? 'checked' : ''; ?>>
@@ -2525,32 +4583,286 @@ function onApiLoad() {
                 </label>
             </div>
 
-            <div id="pin-container" style="display: <?php echo !empty($monthData['pin']) ? 'block' : 'none'; ?>; margin-bottom: 2rem; text-align: center; background: #f8fafc; padding: 1.5rem; border-radius: 14px; border: 1px dashed #cbd5e1;">
-                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem; font-weight: 600;">El PIN actual es:</div>
-                <div style="font-size: 2.5rem; font-weight: 800; letter-spacing: 8px; color: #0f172a;" id="current-pin">
+            <div id="pin-container" class="share-pin-box" style="display: <?php echo !empty($monthData['pin']) ? 'block' : 'none'; ?>;">
+                <div class="share-pin-box-label">El PIN actual es:</div>
+                <div class="share-pin-number" id="current-pin">
                     <?php echo htmlspecialchars($monthData['pin'] ?? '------'); ?>
                 </div>
-                <button type="button" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; margin-top: 1rem; border-radius: 10px; background: white; border-color: #cbd5e1; color: #475569;" onclick="generateNewPin()">
-                    <i class="ph ph-arrows-clockwise"></i> Generar Nuevo PIN
+                <button type="button" class="share-pin-btn-refresh" onclick="generateNewPin()">
+                    <i class="ph-bold ph-arrows-clockwise"></i> Generar Nuevo PIN
                 </button>
             </div>
 
-            <button type="button" class="btn btn-publish" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.05rem;" onclick="copyClientLink()">
-                <i class="ph ph-copy"></i> Copiar Enlace Mágico
+            <button type="button" class="btn btn-publish share-modal-copy-btn" onclick="copyClientLink()">
+                <i class="ph-bold ph-copy"></i> Copiar Enlace Mágico
             </button>
         </div>
     </div>
 </div>
 <style>
+/* === SHARE MODAL STYLES (Light & Dark Mode Compatible) === */
+.share-modal-content {
+    max-width: 480px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 20px;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    box-shadow: var(--shadow-lg, 0 20px 40px rgba(0,0,0,0.25));
+    color: var(--text-main, #1e293b);
+    transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.share-modal-header {
+    background: var(--bg-color, #f8fafc);
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+[data-theme="dark"] .share-modal-header {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.share-modal-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--text-main, #1e293b);
+}
+
+.share-modal-title i {
+    color: #10b981;
+    font-size: 1.35rem;
+}
+
+.share-modal-close {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted, #64748b);
+    transition: all 0.2s ease;
+}
+
+.share-modal-close:hover {
+    color: var(--text-main, #0f172a);
+    background: var(--bg-color, #f1f5f9);
+    transform: scale(1.05);
+}
+
+[data-theme="dark"] .share-modal-close {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .share-modal-close:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.share-modal-body {
+    padding: 1.75rem;
+    background: var(--bg-surface, #ffffff);
+}
+
+.share-modal-description {
+    font-size: 0.92rem;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 1.35rem;
+    line-height: 1.6;
+}
+
+[data-theme="dark"] .share-modal-description {
+    color: #94a3b8;
+}
+
+.share-modal-board-name {
+    color: var(--text-main, #0f172a);
+    font-size: 1.05rem;
+    font-weight: 700;
+    display: block;
+    margin-top: 0.4rem;
+    letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .share-modal-board-name {
+    color: #f1f5f9;
+}
+
+.share-pin-card {
+    background: var(--bg-color, #f8fafc);
+    padding: 1.1rem 1.35rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    margin-bottom: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .share-pin-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.share-pin-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main, #334155);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.share-pin-label i {
+    font-size: 1.2rem;
+    color: #10b981;
+}
+
+[data-theme="dark"] .share-pin-label {
+    color: #e2e8f0;
+}
+
+/* Switch Toggle */
 .switch { position: relative; display: inline-block; width: 48px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; }
-.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-input:checked + .slider { background-color: #0d945a; }
-input:focus + .slider { box-shadow: 0 0 1px #0d945a; }
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #cbd5e1;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-theme="dark"] .slider {
+    background-color: #334155;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+input:checked + .slider { background-color: #10b981; }
+input:focus + .slider { box-shadow: 0 0 1px #10b981; }
 input:checked + .slider:before { transform: translateX(22px); }
 .slider.round { border-radius: 26px; }
 .slider.round:before { border-radius: 50%; }
+
+/* PIN Box */
+.share-pin-box {
+    margin-bottom: 1.75rem;
+    text-align: center;
+    background: var(--bg-color, #f8fafc);
+    padding: 1.35rem;
+    border-radius: 14px;
+    border: 1px dashed var(--border-color, #cbd5e1);
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .share-pin-box {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.share-pin-box-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 0.4rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+[data-theme="dark"] .share-pin-box-label {
+    color: #94a3b8;
+}
+
+.share-pin-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: 8px;
+    color: var(--text-main, #0f172a);
+    font-family: monospace, 'Courier New', Courier;
+}
+
+[data-theme="dark"] .share-pin-number {
+    color: #f8fafc;
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+}
+
+.share-pin-btn-refresh {
+    padding: 0.55rem 1.1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.85rem;
+    border-radius: 10px;
+    background: var(--bg-surface, white);
+    border: 1px solid var(--border-color, #cbd5e1);
+    color: var(--text-main, #475569);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s ease;
+}
+
+.share-pin-btn-refresh:hover {
+    background: var(--bg-color, #f1f5f9);
+    border-color: #10b981;
+    color: #10b981;
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .share-pin-btn-refresh {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .share-pin-btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #10b981;
+    color: #34d399;
+}
+
+.share-modal-copy-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.95rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    gap: 0.5rem;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    transition: all 0.2s ease;
+}
+
+.share-modal-copy-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+}
 </style>
 
 <script>
@@ -7591,8 +9903,50 @@ async function callGemini(action) {
     const editor = document.getElementById('post-copy-editable');
     let text = editor.innerText.trim();
     let promptStr = '';
+    let imgUrl = '';
+    let concept = document.getElementById('post-concept') ? document.getElementById('post-concept').value.trim() : '';
+    let pillar = document.querySelector('input[name="content_pillar"]:checked') ? document.querySelector('input[name="content_pillar"]:checked').value : '';
+    let platforms = Array.from(document.querySelectorAll('input[name="platform[]"]:checked')).map(cb => cb.value);
 
-    if (action === 'generar') {
+    if (action === 'generar_desde_imagen') {
+        // Buscar la imagen en la pestaña "Post Terminado"
+        const postImgVal = document.getElementById('post-image-link') ? document.getElementById('post-image-link').value : '';
+        let list = [];
+        try {
+            list = JSON.parse(postImgVal);
+            if (!Array.isArray(list)) list = postImgVal ? [postImgVal] : [];
+        } catch(e) {
+            list = postImgVal ? [postImgVal] : [];
+        }
+        
+        list = list.filter(u => typeof u === 'string' && u.trim() !== '');
+
+        if (list.length === 0) {
+            // Verificar si hay en referencia visual como alternativa
+            const refVal = document.getElementById('post-reference-link') ? document.getElementById('post-reference-link').value : '';
+            let refList = [];
+            try {
+                refList = JSON.parse(refVal);
+                if (!Array.isArray(refList)) refList = refVal ? [refVal] : [];
+            } catch(e) {
+                refList = refVal ? [refVal] : [];
+            }
+            refList = refList.filter(u => typeof u === 'string' && u.trim() !== '');
+
+            if (refList.length > 0) {
+                if (confirm('No hay imagen subida en "Terminado", pero se encontró una en "Ref. Visual". ¿Deseas usar la imagen de referencia para generar el copy?')) {
+                    imgUrl = refList[0];
+                } else {
+                    return;
+                }
+            } else {
+                showToast('Sube primero la imagen en la pestaña "Terminado" para generar el copy.', 'warning');
+                return;
+            }
+        } else {
+            imgUrl = list[0];
+        }
+    } else if (action === 'generar') {
         promptStr = prompt('¿De qué trata la publicación? (Ej: Sorteo de fin de mes, Promoción 2x1...)');
         if (!promptStr) return;
     }
@@ -7602,34 +9956,48 @@ async function callGemini(action) {
     let range = null;
     let placeholderNode = null;
 
-    if (selText.length > 0 && window.getSelection().rangeCount > 0 && editor.contains(window.getSelection().anchorNode)) {
-        isPartialSelection = true;
-        text = selText; // Only send the selected text to AI
-        range = window.getSelection().getRangeAt(0);
-        
-        placeholderNode = document.createElement('span');
-        placeholderNode.style.cssText = 'color:#8b5cf6; background:rgba(139,92,246,0.15); border-radius:4px; padding:2px 6px; font-weight: 500; font-style: italic; display:inline-flex; align-items:center; gap:4px;';
-        placeholderNode.innerHTML = '<i class="ph ph-spinner ph-spin"></i> IA pensando...';
-        
-        range.deleteContents();
-        range.insertNode(placeholderNode);
-    } else {
-        if (!text || text === 'Escribe el texto de la publicación...') {
-            showToast('El campo de texto está vacío. Selecciona un texto o escribe algo primero.', 'warning');
-            return;
+    if (action !== 'generar_desde_imagen' && action !== 'generar') {
+        if (selText.length > 0 && window.getSelection().rangeCount > 0 && editor.contains(window.getSelection().anchorNode)) {
+            isPartialSelection = true;
+            text = selText; // Only send the selected text to AI
+            range = window.getSelection().getRangeAt(0);
+            
+            placeholderNode = document.createElement('span');
+            placeholderNode.style.cssText = 'color:#10b981; background:rgba(16,185,129,0.15); border-radius:4px; padding:2px 6px; font-weight: 500; font-style: italic; display:inline-flex; align-items:center; gap:4px;';
+            placeholderNode.innerHTML = '<i class="ph ph-spinner ph-spin"></i> IA pensando...';
+            
+            range.deleteContents();
+            range.insertNode(placeholderNode);
+        } else {
+            if (!text || text === 'Escribe el texto de la publicación...') {
+                showToast('El campo de texto está vacío. Selecciona un texto o escribe algo primero.', 'warning');
+                return;
+            }
         }
     }
 
     const originalHtml = isPartialSelection ? '' : editor.innerHTML;
     if (!isPartialSelection) {
-        editor.innerHTML = '<span style="color:#8b5cf6; font-weight: 500; font-style: italic;"><i class="ph ph-spinner ph-spin"></i> La IA de Gemini está pensando...</span>';
+        if (action === 'generar_desde_imagen') {
+            editor.innerHTML = '<span style="color:#10b981; font-weight: 600; font-style: italic;"><i class="ph ph-spinner ph-spin"></i> Analizando la imagen terminada y redactando copy con emojis y hashtags...</span>';
+        } else {
+            editor.innerHTML = '<span style="color:#8b5cf6; font-weight: 500; font-style: italic;"><i class="ph ph-spinner ph-spin"></i> La IA de Gemini está pensando...</span>';
+        }
     }
 
     try {
         const res = await fetch('ajax/gemini_generate.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ action: action, text: text, prompt: promptStr })
+            body: JSON.stringify({
+                action: action,
+                text: text,
+                prompt: promptStr,
+                image: imgUrl,
+                concept: concept,
+                pillar: pillar,
+                platforms: platforms
+            })
         });
         const data = await res.json();
         
@@ -7637,7 +10005,6 @@ async function callGemini(action) {
             const formatted = data.text.replace(/\n/g, '<br>');
             if (isPartialSelection && placeholderNode) {
                 if (action === 'hashtags') {
-                    // Si son hashtags en una selección, los añadimos después de la selección
                     placeholderNode.outerHTML = selText + ' <span style="color:#3b82f6; font-weight: 500;">' + formatted + '</span>';
                 } else {
                     placeholderNode.outerHTML = formatted;
@@ -7650,7 +10017,8 @@ async function callGemini(action) {
                 }
             }
             updateCopyPreview();
-            showToast('✨ Texto mejorado con IA', 'success');
+            markDirty();
+            showToast('✨ Copy generado con IA exitosamente', 'success');
         } else {
             if (isPartialSelection && placeholderNode) {
                 placeholderNode.outerHTML = selText;

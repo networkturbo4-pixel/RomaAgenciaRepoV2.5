@@ -24,20 +24,24 @@ try {
     $stmt->execute([$status, $id]);
     
     // Notify team members
-    $stmtProj = $db->prepare("SELECT p.team_members, mp.concept FROM month_posts mp JOIN project_months pm ON mp.month_id = pm.id JOIN projects p ON pm.project_id = p.id WHERE mp.id = ?");
-    $stmtProj->execute([$id]);
-    $proj = $stmtProj->fetch();
-    if ($proj && !empty($proj['team_members'])) {
-        $assignedIds = json_decode($proj['team_members'], true) ?: [];
-        $userId = $_SESSION['user_id'] ?? 0;
-        $assignedIds = array_values(array_diff($assignedIds, [$userId]));
-        if (!empty($assignedIds)) {
-            PushHelper::sendPushNotification($db, $assignedIds, "Estado de Post Actualizado", "El post '{$proj['concept']}' cambió a: {$status}", "index.php?module=calendar", "calendar", ['module' => 'calendar']);
+    try {
+        $stmtProj = $db->prepare("SELECT p.team_members, mp.concept FROM month_posts mp JOIN project_months pm ON mp.month_id = pm.id JOIN projects p ON pm.project_id = p.id WHERE mp.id = ?");
+        $stmtProj->execute([$id]);
+        $proj = $stmtProj->fetch();
+        if ($proj && !empty($proj['team_members'])) {
+            $assignedIds = json_decode($proj['team_members'], true) ?: [];
+            $userId = $_SESSION['user_id'] ?? 0;
+            $assignedIds = array_values(array_diff($assignedIds, [$userId]));
+            if (!empty($assignedIds)) {
+                PushHelper::sendPushNotification($db, $assignedIds, "Estado de Post Actualizado", "El post '{$proj['concept']}' cambió a: {$status}", "index.php?module=calendar", "calendar", ['module' => 'calendar']);
+            }
         }
+    } catch (Throwable $ePush) {
+        error_log("Push Helper error in ajax_update_post_status: " . $ePush->getMessage());
     }
     
     echo json_encode(['success' => true]);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 ?>

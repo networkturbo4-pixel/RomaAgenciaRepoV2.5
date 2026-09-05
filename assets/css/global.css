@@ -273,7 +273,9 @@ html:not([data-theme="dark"]) .brand-logo-dark { display: none !important; }
     }
 
     .content-wrapper {
-        padding-top: calc(52px + var(--space-4));
+        padding: 1rem !important;
+        padding-top: calc(52px + 1rem) !important;
+        box-sizing: border-box;
     }
 
     .sidebar {

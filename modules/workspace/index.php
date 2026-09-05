@@ -129,7 +129,7 @@ require_once 'includes/header.php';
     line-height: 1.5;
 }
 
-/* Specific Card Colors */
+.icon-tasks { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
 .icon-app { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
 .icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
 .icon-web { background: linear-gradient(135deg, #43e97b, #38f9d7); }
@@ -162,6 +162,15 @@ require_once 'includes/header.php';
 
     <div class="workspace-grid">
         
+        <!-- Tareas y Objetivos Diarios -->
+        <a href="index.php?module=task_manager&action=index" class="workspace-card" style="animation-delay: 0.05s;">
+            <div class="workspace-card-icon icon-tasks">
+                <i class="ph ph-check-square-offset"></i>
+            </div>
+            <h3 class="workspace-card-title">Tareas & Objetivos</h3>
+            <p class="workspace-card-desc">Control de tareas diarias, semanales, evaluación de objetivos y proyectos activos.</p>
+        </a>
+
         <!-- App -->
         <a href="index.php?module=app&action=index" class="workspace-card" style="animation-delay: 0.1s;">
             <div class="workspace-card-icon icon-app">

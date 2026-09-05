@@ -9,10 +9,30 @@ $stmt_admin->execute([$_SESSION['user_id']]);
 $is_admin = ($stmt_admin->fetchColumn() == 1);
 
 // ── Filter Parameters ──────────────────────────────────────────────
-$filter_user   = $_GET['user_id']  ?? '';
-$filter_period = $_GET['period']   ?? 'semanal';
-$filter_from   = $_GET['from']     ?? '';
-$filter_to     = $_GET['to']       ?? '';
+$filter_user   = $_GET['user_id']       ?? '';
+$filter_period = $_GET['period']        ?? 'semanal';
+$filter_from   = $_GET['from']          ?? '';
+$filter_to     = $_GET['to']            ?? '';
+$filter_status = $_GET['status_filter'] ?? ''; // 'tardanzas', 'puntuales', ''
+
+// Load attendance settings
+$st_sets = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN (
+    'asistencia_hora_entrada_default', 'asistencia_tolerancia_minutos', 'asistencia_bloqueo_minutos', 
+    'asistencia_bloqueo_activo', 'asistencia_totp_secret', 'asistencia_hora_salida_default', 
+    'asistencia_salida_bloqueo_activo', 'asistencia_salida_gracia_minutos', 'asistencia_salida_bloqueo_minutos', 
+    'asistencia_bloqueo_fuera_horario'
+)");
+$asist_settings = $st_sets ? $st_sets->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+$cfg_hora_entrada         = $asist_settings['asistencia_hora_entrada_default'] ?? '09:00:00';
+$cfg_tolerancia           = $asist_settings['asistencia_tolerancia_minutos'] ?? '5';
+$cfg_bloqueo_minutos      = $asist_settings['asistencia_bloqueo_minutos'] ?? '20';
+$cfg_bloqueo_activo       = $asist_settings['asistencia_bloqueo_activo'] ?? '1';
+$cfg_totp_secret          = $asist_settings['asistencia_totp_secret'] ?? '';
+$cfg_hora_salida          = $asist_settings['asistencia_hora_salida_default'] ?? '18:00:00';
+$cfg_salida_bloqueo_activo= $asist_settings['asistencia_salida_bloqueo_activo'] ?? '1';
+$cfg_salida_gracia        = $asist_settings['asistencia_salida_gracia_minutos'] ?? '15';
+$cfg_salida_bloqueo       = $asist_settings['asistencia_salida_bloqueo_minutos'] ?? '30';
+$cfg_fuera_horario_activo = $asist_settings['asistencia_bloqueo_fuera_horario'] ?? '1';
 
 // Calculate date range based on period
 $today = new DateTime();
@@ -46,13 +66,19 @@ if ($filter_user) {
     $params[] = $filter_user;
 }
 
+if ($filter_status === 'tardanzas') {
+    $where_clauses[] = "(a.es_tardanza = 1 OR a.minutos_tarde > 0)";
+} elseif ($filter_status === 'puntuales') {
+    $where_clauses[] = "(a.entrada IS NOT NULL AND a.es_tardanza = 0 AND a.minutos_tarde = 0)";
+}
+
 $where_sql = "WHERE " . implode(" AND ", $where_clauses);
 
 $query = "
     SELECT a.*, u.name as user_name, u.email as user_email, e.work_start, e.work_end
     FROM asistencias a
     JOIN users u ON a.user_id = u.id
-    LEFT JOIN employees e ON u.email = e.email
+    LEFT JOIN employees e ON LOWER(TRIM(u.email)) = LOWER(TRIM(e.email))
     $where_sql
     ORDER BY a.fecha DESC, u.name ASC
 ";
@@ -107,11 +133,15 @@ foreach ($asistencias as $row) {
     }
 
     // Late?
-    if ($row['entrada'] && !empty($row['work_start'])) {
-        $scheduled = strtotime($row['fecha'] . ' ' . $row['work_start']);
-        $actual = strtotime($row['entrada']);
-        if ($actual > $scheduled + 300) { // 5 min grace
+    if ($row['entrada']) {
+        if (isset($row['es_tardanza']) && $row['es_tardanza'] == 1) {
             $person_summaries[$uid]['days_late']++;
+        } elseif (!empty($row['work_start'])) {
+            $scheduled = strtotime($row['fecha'] . ' ' . $row['work_start']);
+            $actual = strtotime($row['entrada']);
+            if ($actual > $scheduled + 300) { // 5 min grace
+                $person_summaries[$uid]['days_late']++;
+            }
         }
     }
 
@@ -465,13 +495,18 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
         <div>
             <h1 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--color-title);">Historial de Asistencias</h1>
             <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">
-                Monitorea los horarios de entrada, refrigerio y salida del personal &mdash; <?php echo htmlspecialchars($period_display); ?>
+                Monitorea los horarios de entrada, refrigerio, salida y tardanzas del personal &mdash; <?php echo htmlspecialchars($period_display); ?>
             </p>
         </div>
     </div>
-    <div class="date-range-display">
-        <i class="ph ph-calendar-blank"></i>
-        <?php echo date('d/m/Y', strtotime($date_from)); ?> &mdash; <?php echo date('d/m/Y', strtotime($date_to)); ?>
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <button type="button" onclick="openConfigModal()" class="btn btn-outline" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; height: 40px; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 600; cursor: pointer;">
+            <i class="ph ph-gear" style="font-size: 1.1rem; color: var(--primary-color);"></i> Configurar Horario
+        </button>
+        <div class="date-range-display">
+            <i class="ph ph-calendar-blank"></i>
+            <?php echo date('d/m/Y', strtotime($date_from)); ?> &mdash; <?php echo date('d/m/Y', strtotime($date_to)); ?>
+        </div>
     </div>
 </div>
 
@@ -503,7 +538,7 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
             </div>
 
             <!-- Employee Select -->
-            <div class="form-group" style="margin-bottom: 0; min-width: 220px;">
+            <div class="form-group" style="margin-bottom: 0; min-width: 200px;">
                 <label class="form-label" style="margin-bottom: 0.4rem; font-size: 0.8rem;">Empleado</label>
                 <select name="user_id" class="form-control" style="width: 100%;">
                     <option value="">Todos los empleados</option>
@@ -512,6 +547,16 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                             <?php echo htmlspecialchars($u['name']); ?>
                         </option>
                     <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Tardanza Filter Select -->
+            <div class="form-group" style="margin-bottom: 0; min-width: 190px;">
+                <label class="form-label" style="margin-bottom: 0.4rem; font-size: 0.8rem;">Puntualidad</label>
+                <select name="status_filter" id="statusFilterSelect" class="form-control" style="width: 100%;" onchange="document.getElementById('filterForm').submit();">
+                    <option value="">Todos los registros</option>
+                    <option value="tardanzas" <?php echo $filter_status === 'tardanzas' ? 'selected' : ''; ?>>⚠️ Solo Tardanzas</option>
+                    <option value="puntuales" <?php echo $filter_status === 'puntuales' ? 'selected' : ''; ?>>✅ Solo Puntuales</option>
                 </select>
             </div>
 
@@ -569,12 +614,15 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
             <div class="summary-label">Cumplimiento</div>
         </div>
     </div>
-    <div class="summary-card">
+    <div class="summary-card" style="cursor: pointer;" onclick="filterByTardanza()" title="Haz clic para filtrar solo tardanzas">
         <div class="summary-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
             <i class="ph ph-warning-circle"></i>
         </div>
         <div>
-            <div class="summary-value"><?php echo $global_late; ?></div>
+            <div class="summary-value" style="color: #f59e0b; display: flex; align-items: baseline; gap: 0.4rem;">
+                <?php echo $global_late; ?>
+                <span style="font-size: 0.7rem; font-weight: 600; color: #f59e0b; background: rgba(245, 158, 11, 0.15); padding: 2px 6px; border-radius: 4px;">Ver</span>
+            </div>
             <div class="summary-label">Llegadas Tarde</div>
         </div>
     </div>
@@ -759,11 +807,15 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                         $prev_date = $row['fecha'];
 
                         // Calculate status
-                        $is_late = false;
-                        if ($row['entrada'] && !empty($row['work_start'])) {
+                        $is_late = ($row['es_tardanza'] == 1 || (!empty($row['minutos_tarde']) && $row['minutos_tarde'] > 0));
+                        $minutos_tarde = $row['minutos_tarde'] ?? 0;
+                        if (!$is_late && $row['entrada'] && !empty($row['work_start'])) {
                             $scheduled = strtotime($row['fecha'] . ' ' . $row['work_start']);
                             $actual = strtotime($row['entrada']);
-                            $is_late = ($actual > $scheduled + 300);
+                            if ($actual > $scheduled + 300) {
+                                $is_late = true;
+                                $minutos_tarde = max(1, (int)ceil(($actual - $scheduled) / 60));
+                            }
                         }
                     ?>
                     <?php if ($is_new_date): ?>
@@ -788,9 +840,20 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                             <?php if ($row['entrada']): ?>
                                 <span class="time-badge">
                                     <i class="ph ph-sign-in" style="color: <?php echo $is_late ? '#f59e0b' : '#10b981'; ?>;"></i>
-                                    <?php echo date('H:i', strtotime($row['entrada'])); ?>
+                                    <span style="font-weight: 600;"><?php echo date('H:i', strtotime($row['entrada'])); ?></span>
                                     <?php if ($is_late): ?>
-                                        <span style="font-size: 0.7rem; color: #f59e0b; font-weight: 600;">(tarde)</span>
+                                        <span style="font-size: 0.72rem; color: #b45309; font-weight: 700; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">
+                                            Tarde <?php echo $minutos_tarde > 0 ? "({$minutos_tarde}m)" : ''; ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="font-size: 0.72rem; color: #047857; font-weight: 600; background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">
+                                            Puntual
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($row['bloqueado_por_tardanza']) && $row['bloqueado_por_tardanza'] == 1): ?>
+                                        <span style="font-size: 0.68rem; color: #dc2626; font-weight: 800; background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.3); padding: 1px 5px; border-radius: 4px; margin-left: 3px;" title="Desbloqueado con Google Authenticator">
+                                            <i class="ph ph-shield-check"></i> OTP
+                                        </span>
                                     <?php endif; ?>
                                 </span>
                             <?php else: ?>
@@ -814,17 +877,29 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                         <td>
                             <?php if ($row['salida']): ?>
                                 <span class="time-badge"><i class="ph ph-sign-out" style="color: var(--danger-color, #ef4444);"></i> <?php echo date('H:i', strtotime($row['salida'])); ?></span>
+                                <?php if (!empty($row['salida_previa'])): ?>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;" title="Salida regular previa al inicio de horas extras">
+                                        Prev: <?php echo date('H:i', strtotime($row['salida_previa'])); ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php elseif (!empty($row['salida_previa'])): ?>
+                                <span class="time-badge"><i class="ph ph-clock-countdown" style="color: #8b5cf6;"></i> En H.E.</span>
+                                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">
+                                    Prev: <?php echo date('H:i', strtotime($row['salida_previa'])); ?>
+                                </div>
                             <?php else: ?>
                                 <span style="color: var(--text-muted);">–</span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <?php
-                                if ($row['work_start'] && $row['work_end']) {
-                                    $hs = substr($row['work_start'],0,5);
-                                    $he = substr($row['work_end'],0,5);
-                                    echo "<div style='font-size:0.72rem; color:var(--text-muted); margin-bottom:0.2rem;'>Horario: {$hs} - {$he}</div>";
+                                $prog_h = !empty($row['hora_programada']) ? substr($row['hora_programada'],0,5) : (!empty($row['work_start']) ? substr($row['work_start'],0,5) : '');
+                                $end_h = !empty($row['work_end']) ? substr($row['work_end'],0,5) : '';
+                                if ($prog_h) {
+                                    $label_h = $end_h ? "Horario: {$prog_h} - {$end_h}" : "Entrada prog.: {$prog_h}";
+                                    echo "<div style='font-size:0.72rem; color:var(--text-muted); margin-bottom:0.25rem;'><i class='ph ph-clock' style='font-size:0.75rem;'></i> {$label_h}</div>";
                                 }
+
                                 if ($row['salida'] && $row['entrada']) {
                                     $ent = strtotime($row['entrada']);
                                     $sal = strtotime($row['salida']);
@@ -833,19 +908,32 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                                     if ($row['inicio_refrigerio'] && $row['fin_refrigerio']) {
                                         $ref_diff = strtotime($row['fin_refrigerio']) - strtotime($row['inicio_refrigerio']);
                                     }
-                                    $worked_seconds = $diff_total - $ref_diff;
+                                    $worked_seconds = max(0, $diff_total - $ref_diff);
                                     $hours = floor($worked_seconds / 3600);
                                     $minutes = floor(($worked_seconds % 3600) / 60);
 
                                     if ($is_late) {
-                                        echo "<span class='status-pill status-late'><i class='ph ph-warning-circle'></i> {$hours}h {$minutes}m</span>";
+                                        echo "<span class='status-pill status-late'><i class='ph ph-warning-circle'></i> {$hours}h {$minutes}m · Tardanza</span>";
                                     } else {
-                                        echo "<span class='status-pill status-complete'><i class='ph ph-check-circle'></i> {$hours}h {$minutes}m</span>";
+                                        echo "<span class='status-pill status-complete'><i class='ph ph-check-circle'></i> {$hours}h {$minutes}m · Puntual</span>";
                                     }
                                 } elseif ($row['entrada']) {
-                                    echo "<span class='status-pill status-active'><i class='ph ph-circle-notch'></i> En curso</span>";
+                                    if ($is_late) {
+                                        echo "<span class='status-pill status-late'><i class='ph ph-warning-circle'></i> En curso (Tardanza {$minutos_tarde}m)</span>";
+                                    } else {
+                                        echo "<span class='status-pill status-active'><i class='ph ph-circle-notch'></i> En curso</span>";
+                                    }
                                 } else {
                                     echo "–";
+                                }
+
+                                if (!empty($row['realiza_horas_extras']) && $row['realiza_horas_extras'] == 1) {
+                                    $motive_he = htmlspecialchars($row['motivo_horas_extras'] ?? 'Confirmado');
+                                    echo "<div style='font-size:0.72rem; color:#8b5cf6; font-weight:600; margin-top:0.25rem;' title='{$motive_he}'><i class='ph ph-clock-countdown'></i> Horas extras: {$motive_he}</div>";
+                                }
+
+                                if (!empty($row['desbloqueado_fin_jornada']) && $row['desbloqueado_fin_jornada'] == 1) {
+                                    echo "<div style='font-size:0.68rem; color:#7c3aed; font-weight:700; margin-top:0.2rem;'><i class='ph ph-shield-check'></i> Desbloqueado con OTP</div>";
                                 }
                             ?>
                         </td>
@@ -854,6 +942,173 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Modal Configuración de Horario General y Tardanzas -->
+<div id="modalConfigAsistencia" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+    <div style="background:var(--bg-surface, #ffffff); border:1px solid var(--border-color); border-radius:14px; max-width:460px; width:90%; padding:1.5rem; box-shadow:0 15px 35px rgba(0,0,0,0.25);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <div style="width:38px; height:38px; border-radius:8px; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                    <i class="ph ph-sliders-horizontal"></i>
+                </div>
+                <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--color-title);">Configuración de Horario</h3>
+            </div>
+            <button type="button" onclick="closeConfigModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:1.4rem; cursor:pointer; padding:4px;">&times;</button>
+        </div>
+
+        <form id="formConfigAsistencia" onsubmit="saveAttendanceConfig(event)">
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.25rem; line-height:1.5;">
+                Define el horario general de entrada, la tolerancia y las políticas de bloqueo por tardanza para los colaboradores.
+            </p>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom:1rem;">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+                        <i class="ph ph-clock"></i> Entrada Predeterminada
+                    </label>
+                    <input type="time" name="hora_entrada" id="cfg_hora_entrada" class="form-control" value="<?php echo htmlspecialchars($cfg_hora_entrada); ?>" required style="width:100%;">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+                        <i class="ph ph-clock-afternoon"></i> Salida Predeterminada
+                    </label>
+                    <input type="time" name="hora_salida" id="cfg_hora_salida" class="form-control" value="<?php echo htmlspecialchars($cfg_hora_salida); ?>" required style="width:100%;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label class="form-label" style="font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+                    <i class="ph ph-hourglass-medium"></i> Tolerancia de Gracia al Ingreso (Minutos)
+                </label>
+                <input type="number" min="0" max="120" name="tolerancia" id="cfg_tolerancia" class="form-control" value="<?php echo htmlspecialchars($cfg_tolerancia); ?>" required style="width:100%;">
+                <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:0.3rem;">
+                    Pasados estos minutos después de la hora de entrada, se marcará automáticamente como tardanza.
+                </small>
+            </div>
+
+            <!-- Bloqueo por Exceso de Tardanza Matutina -->
+            <div style="background:var(--bg-body); border:1px solid var(--border-color); border-radius:10px; padding:1rem; margin-bottom:1rem;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.88rem; color:var(--color-title); display:flex; align-items:center; gap:0.4rem; margin:0;">
+                        <i class="ph ph-lock" style="color:#ef4444;"></i> Bloqueo por Tardanza Extrema
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.82rem;">
+                        <input type="checkbox" name="bloqueo_activo" id="cfg_bloqueo_activo" value="1" <?php echo $cfg_bloqueo_activo ? 'checked' : ''; ?>>
+                        <b>Activo</b>
+                    </label>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label class="form-label" style="font-size:0.8rem; font-weight:600; margin-bottom:0.3rem;">
+                        Minutos de Tardanza para Bloquear Ingreso
+                    </label>
+                    <select name="bloqueo_minutos" id="cfg_bloqueo_minutos" class="form-control" style="width:100%;">
+                        <option value="15" <?php echo $cfg_bloqueo_minutos == '15' ? 'selected' : ''; ?>>15 minutos</option>
+                        <option value="20" <?php echo $cfg_bloqueo_minutos == '20' ? 'selected' : ''; ?>>20 minutos (Recomendado)</option>
+                        <option value="25" <?php echo $cfg_bloqueo_minutos == '25' ? 'selected' : ''; ?>>25 minutos</option>
+                        <option value="30" <?php echo $cfg_bloqueo_minutos == '30' ? 'selected' : ''; ?>>30 minutos</option>
+                        <option value="45" <?php echo $cfg_bloqueo_minutos == '45' ? 'selected' : ''; ?>>45 minutos</option>
+                        <option value="60" <?php echo $cfg_bloqueo_minutos == '60' ? 'selected' : ''; ?>>60 minutos</option>
+                    </select>
+                </div>
+
+                <!-- Botón Google Authenticator del Supervisor -->
+                <div style="border-top:1px solid var(--border-color); padding-top:0.75rem; display:flex; align-items:center; justify-content:space-between;">
+                    <div>
+                        <div style="font-size:0.82rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:0.3rem;">
+                            <i class="ph ph-shield-check" style="color:#10b981;"></i> Google Authenticator
+                        </div>
+                        <small style="font-size:0.72rem; color:var(--text-muted);">Genera los códigos de desbloqueo</small>
+                    </div>
+                    <button type="button" class="btn btn-outline" onclick="openTotpModal()" style="font-size:0.78rem; padding:0.4rem 0.8rem; border-radius:6px;">
+                        <i class="ph ph-qr-code"></i> Vincular App
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bloqueo de Fin de Jornada y Fuera de Horario -->
+            <div style="background:rgba(139, 92, 246, 0.05); border:1px solid rgba(139, 92, 246, 0.25); border-radius:10px; padding:1rem; margin-bottom:1.25rem;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.88rem; color:#8b5cf6; display:flex; align-items:center; gap:0.4rem; margin:0;">
+                        <i class="ph ph-moon-stars"></i> Fin de Jornada y Bloqueo hasta Mañana
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.82rem;">
+                        <input type="checkbox" name="salida_bloqueo_activo" id="cfg_salida_bloqueo_activo" value="1" <?php echo $cfg_salida_bloqueo_activo ? 'checked' : ''; ?>>
+                        <b>Activo</b>
+                    </label>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label class="form-label" style="font-size:0.8rem; font-weight:600; margin-bottom:0.3rem;">
+                        Tiempo Extremo tras Salida para Bloquear (Minutos)
+                    </label>
+                    <select name="salida_bloqueo_minutos" id="cfg_salida_bloqueo_minutos" class="form-control" style="width:100%;">
+                        <option value="15" <?php echo $cfg_salida_bloqueo == '15' ? 'selected' : ''; ?>>15 minutos</option>
+                        <option value="30" <?php echo $cfg_salida_bloqueo == '30' ? 'selected' : ''; ?>>30 minutos (Recomendado)</option>
+                        <option value="45" <?php echo $cfg_salida_bloqueo == '45' ? 'selected' : ''; ?>>45 minutos</option>
+                        <option value="60" <?php echo $cfg_salida_bloqueo == '60' ? 'selected' : ''; ?>>60 minutos</option>
+                    </select>
+                    <small style="color:var(--text-muted); font-size:0.72rem; display:block; margin-top:0.25rem;">
+                        Al marcar salida o superar este tiempo, la pantalla se bloqueará con el mensaje motivador hasta mañana.
+                    </small>
+                </div>
+
+                <div style="border-top:1px solid rgba(139, 92, 246, 0.15); padding-top:0.6rem;">
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.82rem; margin:0;">
+                        <input type="checkbox" name="bloqueo_fuera_horario" id="cfg_bloqueo_fuera_horario" value="1" <?php echo $cfg_fuera_horario_activo ? 'checked' : ''; ?>>
+                        <span>Restringir acceso a la plataforma antes de la hora de entrada</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+                <button type="button" onclick="closeConfigModal()" class="btn btn-outline" style="padding:0.6rem 1.2rem; border-radius:8px;">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="btnSaveConfig" style="padding:0.6rem 1.4rem; border-radius:8px; font-weight:600;">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Vincular Google Authenticator -->
+<div id="modalTotpQr" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div style="background:var(--bg-surface, #ffffff); border:1px solid var(--border-color); border-radius:14px; max-width:420px; width:90%; padding:1.5rem; text-align:center; box-shadow:0 15px 35px rgba(0,0,0,0.3);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:1.1rem; color:var(--color-title);">
+                <i class="ph ph-shield-check" style="color:#10b981; font-size:1.3rem;"></i> Google Authenticator
+            </div>
+            <button type="button" onclick="closeTotpModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:1.4rem; cursor:pointer;">&times;</button>
+        </div>
+
+        <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 1rem 0; line-height:1.4;">
+            Abre la app <b>Google Authenticator</b> en tu celular y escanea este código QR para obtener los códigos de autorización.
+        </p>
+
+        <div style="display:flex; justify-content:center; margin-bottom:1rem;">
+            <div style="padding:10px; background:white; border-radius:12px; border:1px solid var(--border-color); display:inline-block;">
+                <img id="totp-qr-image" src="" alt="QR Google Authenticator" style="width:190px; height:190px; display:block;">
+            </div>
+        </div>
+
+        <div style="background:var(--bg-body); border:1px solid var(--border-color); border-radius:8px; padding:0.6rem; margin-bottom:1rem;">
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.2rem;">Clave secreta manual:</div>
+            <code id="totp-secret-key" style="font-size:1.05rem; font-weight:800; letter-spacing:0.15em; color:var(--primary-color);">--------</code>
+        </div>
+
+        <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:0.5rem; margin-bottom:1.25rem;">
+            <span style="font-size:0.8rem; color:#065f46; font-weight:600;">Código actual en vivo: </span>
+            <b id="totp-test-code" style="font-size:1.1rem; color:#047857; letter-spacing:0.1em;">------</b>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; justify-content:center;">
+            <button type="button" class="btn btn-outline" onclick="generateNewTotpSecret()" style="font-size:0.82rem; padding:0.5rem 0.9rem;">
+                <i class="ph ph-arrows-clockwise"></i> Regenerar Clave
+            </button>
+            <button type="button" class="btn btn-primary" onclick="closeTotpModal()" style="font-size:0.82rem; padding:0.5rem 1.2rem;">
+                Listo, Cerrar
+            </button>
+        </div>
     </div>
 </div>
 
@@ -868,9 +1123,124 @@ function selectPeriod(period) {
         customRange.classList.add('show');
     } else {
         customRange.classList.remove('show');
-        // Auto-submit on non-custom period selection
         document.getElementById('filterForm').submit();
     }
+}
+
+function filterByTardanza() {
+    const sel = document.getElementById('statusFilterSelect');
+    if (sel) {
+        sel.value = 'tardanzas';
+        document.getElementById('filterForm').submit();
+    }
+}
+
+function openConfigModal() {
+    const m = document.getElementById('modalConfigAsistencia');
+    if (m) m.style.display = 'flex';
+}
+
+function closeConfigModal() {
+    const m = document.getElementById('modalConfigAsistencia');
+    if (m) m.style.display = 'none';
+}
+
+function openTotpModal() {
+    fetch('ajax/ajax_asistencia.php?action=get_totp_qr')
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            document.getElementById('totp-qr-image').src = res.qr_url;
+            document.getElementById('totp-secret-key').innerText = res.secret;
+            document.getElementById('totp-test-code').innerText = res.current_code;
+            document.getElementById('modalTotpQr').style.display = 'flex';
+        } else {
+            alert(res.message || 'Error al cargar código QR');
+        }
+    })
+    .catch(e => alert('Error de conexión'));
+}
+
+function closeTotpModal() {
+    document.getElementById('modalTotpQr').style.display = 'none';
+}
+
+function generateNewTotpSecret() {
+    if (!confirm('¿Seguro que deseas regenerar la clave de Google Authenticator? Deberás volver a escanear el QR en tu teléfono.')) return;
+    fetch('ajax/ajax_asistencia.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=generate_new_totp_secret'
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            document.getElementById('totp-qr-image').src = res.qr_url;
+            document.getElementById('totp-secret-key').innerText = res.secret;
+            document.getElementById('totp-test-code').innerText = res.current_code;
+            alert(res.message);
+        } else {
+            alert(res.message || 'Error');
+        }
+    });
+}
+
+function saveAttendanceConfig(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSaveConfig');
+    btn.disabled = true;
+    btn.innerText = 'Guardando...';
+
+    const hora = document.getElementById('cfg_hora_entrada').value;
+    const horaSalida = document.getElementById('cfg_hora_salida').value;
+    const tol = document.getElementById('cfg_tolerancia').value;
+    const bloqueoMin = document.getElementById('cfg_bloqueo_minutos').value;
+    const bloqueoActivo = document.getElementById('cfg_bloqueo_activo').checked ? '1' : '0';
+    const salidaBloqueoActivo = document.getElementById('cfg_salida_bloqueo_activo').checked ? '1' : '0';
+    const salidaBloqueoMinutos = document.getElementById('cfg_salida_bloqueo_minutos').value;
+    const bloqueoFueraHorario = document.getElementById('cfg_bloqueo_fuera_horario').checked ? '1' : '0';
+
+    const fd = new FormData();
+    fd.append('action', 'save_settings');
+    fd.append('hora_entrada', hora);
+    fd.append('hora_salida', horaSalida);
+    fd.append('tolerancia', tol);
+    fd.append('bloqueo_minutos', bloqueoMin);
+    fd.append('bloqueo_activo', bloqueoActivo);
+    fd.append('salida_bloqueo_activo', salidaBloqueoActivo);
+    fd.append('salida_bloqueo_minutos', salidaBloqueoMinutos);
+    fd.append('bloqueo_fuera_horario', bloqueoFueraHorario);
+
+    fetch('ajax/ajax_asistencia.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        btn.disabled = false;
+        btn.innerText = 'Guardar Cambios';
+        if (res.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Configuración Guardada',
+                    text: res.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            } else {
+                alert(res.message);
+                location.reload();
+            }
+        } else {
+            alert(res.message || 'Error al guardar');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = 'Guardar Cambios';
+        alert('Error de conexión con el servidor');
+    });
 }
 </script>
 

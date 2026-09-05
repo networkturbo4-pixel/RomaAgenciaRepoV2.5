@@ -75,280 +75,939 @@ try {
 ?>
 
 <style>
-    .calendar-body-padding {
-        padding: 1.5rem;
-    }
-    .calendar-actions-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    .calendar-tabs {
-        display: flex;
-        gap: 1rem;
-    }
-    @media (max-width: 768px) {
-        .calendar-main-card {
-            border-radius: 0; /* optional: edge-to-edge on mobile */
-            border-left: none;
-            border-right: none;
-        }
-        .calendar-body-padding {
-            padding: 0.5rem;
-        }
-        .calendar-actions-header {
-            padding: 1rem 0.5rem;
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .calendar-tabs {
-            width: 100%;
-        }
-        .calendar-tabs .btn {
-            flex: 1;
-            justify-content: center;
-        }
-        #btn-new-project {
-            width: 100%;
-            justify-content: center;
-        }
-    }
+/* ═══════════════════════════════════════════════
+   APP-STYLE MODERN SAAS DASHBOARD (LIGHT & DARK DYNAMIC)
+   ═══════════════════════════════════════════════ */
+:root {
+    --cal-bg-card: #ffffff;
+    --cal-bg-surface: #ffffff;
+    --cal-bg-subtle: #f8fafc;
+    --cal-border: #e2e8f0;
+    --cal-border-hover: color-mix(in srgb, var(--primary-color) 40%, transparent);
+    --cal-text-title: var(--color-title, #0f172a);
+    --cal-text-muted: var(--color-text, #64748b);
+    --cal-btn-bg: var(--color-btn-bg, var(--primary-color));
+    --cal-btn-hover: var(--color-btn-hover, var(--primary-hover, var(--primary-color)));
+    --cal-btn-text: var(--color-btn-text, #ffffff);
+    --cal-shadow-card: 0 2px 10px rgba(0, 0, 0, 0.04);
+    --cal-shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
 
-    /* Cards Grid Styles (Imported from project_board for consistency) */
-    .mc-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-    }
-    .mc-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.08);
-    }
-    .mc-title {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--color-title);
-        margin: 0;
-    }
-    .mc-stats {
-        display: flex;
-        gap: 0.75rem;
-    }
-    .mc-stat-box {
-        flex: 1;
-        background: var(--bg-color);
-        border-radius: 8px;
-        padding: 1rem;
-        text-align: center;
-        border: 1px solid var(--border-color);
-    }
-    [data-theme="dark"] .mc-stat-box {
-        background: var(--bg-color);
-    }
-    .mc-stat-label {
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .mc-divider {
-        border: 0;
-        border-top: 1px solid var(--border-color);
-        margin: 0;
-    }
-    .mc-footer-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .mc-status {
-        font-size: 0.7rem;
-        font-weight: 700;
-        padding: 0.3rem 0.6rem;
-        border-radius: 4px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .status-pendiente { background: rgba(245, 158, 11, 0.15); color: #d97706; }
-    .status-en_progreso { background: rgba(79, 70, 229, 0.15); color: var(--primary-color); }
-    .status-finalizado { background: rgba(16, 185, 129, 0.15); color: var(--secondary-color); }
+[data-theme="dark"] {
+    --cal-bg-card: #161618;
+    --cal-bg-surface: #141416;
+    --cal-bg-subtle: #18181a;
+    --cal-border: #27272a;
+    --cal-border-hover: color-mix(in srgb, var(--primary-color) 40%, transparent);
+    --cal-text-title: var(--color-title, #f8fafc);
+    --cal-text-muted: var(--color-text, #94a3b8);
+    --cal-shadow-card: 0 4px 20px rgba(0, 0, 0, 0.25);
+    --cal-shadow-hover: 0 16px 36px rgba(0, 0, 0, 0.45);
+}
 
-    .mc-actions {
-        display: flex;
-        gap: 1rem;
-    }
-    .mc-btn-text {
-        background: none;
-        border: none;
-        font-size: 0.75rem;
-        font-weight: 700;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0;
-        text-transform: uppercase;
-    }
-    .mc-btn-text.text-blue { color: var(--primary-color); }
-    .mc-btn-text.text-red { color: var(--danger-color); }
-    
-    .mc-footer-bottom {
-        display: flex;
-        gap: 0.5rem;
-    }
-    .mc-btn-enter {
-        flex: 1;
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.6rem;
-        cursor: pointer;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-    .mc-btn-enter:hover {
-        background: var(--primary-hover);
-        color: white;
-    }
+.cal-app-container {
+    padding: 1.5rem 2rem;
+    font-family: var(--font-main, 'Inter'), sans-serif;
+    font-size: 13px;
+    max-width: 1680px;
+    margin: 0 auto;
+}
 
-    /* Segmented Switcher Premium */
-    .segmented-control {
-        display: inline-flex;
-        background: #f1f5f9;
-        padding: 4px;
-        border-radius: 30px;
-        border: none;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .segmented-btn {
-        background: transparent;
-        border: none;
-        padding: 0.5rem 1.5rem;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #64748b;
-        border-radius: 26px;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .segmented-btn:hover:not(.active) {
-        color: var(--primary-color);
-    }
-    .segmented-btn.active {
-        background: #ffffff;
-        color: var(--primary-color);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    [data-theme="dark"] .segmented-control {
-        background: #1e293b;
-    }
-    [data-theme="dark"] .segmented-btn.active {
-        background: var(--primary-color);
-        color: white;
+/* ── App Header Bar ── */
+.cal-header-card {
+    background: var(--cal-bg-surface);
+    border: 1px solid var(--cal-border);
+    border-radius: 20px;
+    padding: 1.25rem 1.75rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    box-shadow: var(--cal-shadow-card);
+}
+
+.cal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.cal-header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 28%, transparent);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.cal-header-titles h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--cal-text-title);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.cal-header-titles p {
+    color: var(--cal-text-muted);
+    margin: 0.2rem 0 0 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* ── Header Actions ── */
+.cal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+/* Search Bar */
+.cal-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.cal-search-box i {
+    position: absolute;
+    left: 12px;
+    color: var(--cal-text-muted);
+    font-size: 1.1rem;
+    pointer-events: none;
+}
+.cal-search-input {
+    background: var(--cal-bg-subtle);
+    border: 1px solid var(--cal-border);
+    border-radius: 12px;
+    padding: 0.55rem 0.85rem 0.55rem 2.2rem;
+    color: var(--cal-text-title);
+    font-size: 0.85rem;
+    font-family: inherit;
+    width: 240px;
+    transition: all 0.2s ease;
+}
+.cal-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: var(--cal-bg-surface);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
+    width: 280px;
+}
+
+/* App Segmented Pill Control */
+.cal-segmented-control {
+    display: flex;
+    background: var(--cal-bg-subtle);
+    border-radius: 12px;
+    padding: 4px;
+    border: 1px solid var(--cal-border);
+    gap: 4px;
+}
+
+.cal-segmented-btn {
+    padding: 6px 16px;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--cal-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+}
+
+.cal-segmented-btn:hover {
+    color: var(--cal-text-title);
+    background: rgba(125, 125, 125, 0.08);
+}
+
+.cal-segmented-btn.active {
+    background: var(--cal-bg-card);
+    color: var(--cal-text-title);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.cal-segmented-btn .tab-count {
+    background: rgba(125, 125, 125, 0.15);
+    color: var(--cal-text-muted);
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 800;
+}
+
+.cal-segmented-btn.active .tab-count {
+    background: var(--primary-color);
+    color: #ffffff;
+}
+
+/* CTA Button */
+.cal-btn-primary {
+    background: var(--cal-btn-bg);
+    color: var(--cal-btn-text);
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--cal-btn-bg) 35%, transparent);
+}
+
+.cal-btn-primary:hover {
+    background: var(--cal-btn-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--cal-btn-bg) 50%, transparent);
+    color: var(--cal-btn-text);
+}
+
+/* ── App Grid ── */
+.cal-projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+/* ── App Project Card (Modern App Style) ── */
+.app-project-card {
+    background: var(--cal-bg-card);
+    border-radius: 20px;
+    border: 1px solid var(--cal-border);
+    box-shadow: var(--cal-shadow-card);
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.app-project-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--cal-border-hover);
+    box-shadow: var(--cal-shadow-hover);
+}
+
+/* Card Header */
+.apc-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.apc-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--cal-bg-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--cal-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.apc-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2px;
+}
+
+.apc-logo-letter {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.apc-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.apc-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 3px;
+}
+
+.apc-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--cal-text-title);
+    margin: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+}
+
+.apc-service {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cal-text-muted);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.apc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.apc-badge.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+[data-theme="dark"] .apc-badge.active {
+    color: #34d399;
+}
+
+.apc-badge.active::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+}
+
+.apc-badge.archived {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+[data-theme="dark"] .apc-badge.archived {
+    color: #fbbf24;
+}
+
+.apc-badge.archived::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #f59e0b;
+}
+
+/* Meta Row */
+.apc-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.apc-os-badge {
+    background: var(--cal-bg-subtle);
+    border: 1px solid var(--cal-border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--cal-text-title);
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.apc-os-badge:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 50%, transparent);
+    background: var(--cal-bg-card);
+}
+
+.apc-os-badge i {
+    color: var(--primary-color);
+    font-size: 0.95rem;
+}
+
+.apc-social-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+}
+
+/* Team Section */
+.apc-team-section {
+    background: var(--cal-bg-subtle);
+    border: 1px solid var(--cal-border);
+    border-radius: 12px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.apc-team-label {
+    font-size: 0.68rem;
+    color: var(--cal-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 800;
+}
+
+.apc-team-avatars {
+    display: flex;
+    align-items: center;
+}
+
+.apc-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border: 2px solid var(--cal-bg-card);
+    margin-left: -5px;
+    position: relative;
+    transition: transform 0.2s;
+    cursor: default;
+}
+
+.apc-avatar:first-child { margin-left: 0; }
+.apc-avatar:hover { transform: scale(1.15) translateY(-2px); z-index: 5; }
+
+.apc-avatar-more {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--cal-border);
+    color: var(--cal-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 800;
+    border: 2px solid var(--cal-bg-card);
+    margin-left: -5px;
+}
+
+.apc-no-team {
+    font-size: 0.75rem;
+    color: var(--cal-text-muted);
+    font-style: italic;
+}
+
+/* Action Buttons Bar */
+.apc-actions-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--cal-bg-subtle);
+    border: 1px solid var(--cal-border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 0.85rem;
+    gap: 4px;
+}
+
+.apc-action-btn {
+    flex: 1;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: var(--cal-text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.apc-action-btn:hover {
+    background: var(--cal-border);
+    color: var(--cal-text-title);
+    transform: translateY(-1px);
+}
+
+.apc-action-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.apc-action-btn.archive:hover {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+/* Enter Button (App Style) */
+.apc-enter-btn {
+    width: 100%;
+    background: var(--cal-btn-bg);
+    color: var(--cal-btn-text);
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.86rem;
+    font-family: inherit;
+    text-decoration: none;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--cal-btn-bg) 30%, transparent);
+    box-sizing: border-box;
+}
+
+.apc-enter-btn i {
+    transition: transform 0.2s ease;
+}
+
+.apc-enter-btn:hover {
+    background: var(--cal-btn-hover);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--cal-btn-bg) 45%, transparent);
+    transform: translateY(-2px);
+    color: var(--cal-btn-text);
+}
+
+.apc-enter-btn:hover i {
+    transform: translateX(4px);
+}
+
+.apc-enter-btn.disabled {
+    background: var(--cal-border);
+    color: var(--cal-text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Empty State */
+.cal-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--cal-bg-card);
+    border-radius: 20px;
+    border: 2px dashed var(--cal-border);
+}
+
+.cal-empty-state i {
+    font-size: 3.5rem;
+    color: var(--cal-text-muted);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.cal-empty-state h3 {
+    margin: 0 0 0.5rem;
+    color: var(--cal-text-title);
+    font-weight: 700;
+}
+
+.cal-empty-state p {
+    color: var(--cal-text-muted);
+    margin: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   APP MODALS (ADAPTIVE LIGHT & DARK)
+   ═══════════════════════════════════════════════ */
+.cal-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(12px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+.cal-modal-overlay.active { display: flex; }
+
+.cal-modal-content {
+    background: var(--cal-bg-surface);
+    border: 1px solid var(--cal-border);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    overflow: hidden;
+}
+[data-theme="dark"] .cal-modal-content {
+    box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+}
+
+.cal-modal-header {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--cal-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--cal-bg-subtle);
+}
+
+.cal-modal-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--cal-text-title);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cal-modal-close {
+    background: var(--cal-bg-surface);
+    border: 1px solid var(--cal-border);
+    font-size: 1.1rem;
+    color: var(--cal-text-muted);
+    cursor: pointer;
+    border-radius: 10px;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+}
+
+.cal-modal-close:hover {
+    background: var(--cal-border);
+    color: var(--cal-text-title);
+}
+
+.cal-modal-body {
+    padding: 1.5rem 1.75rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.cal-modal-footer {
+    padding: 1.1rem 1.75rem;
+    border-top: 1px solid var(--cal-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    background: var(--cal-bg-subtle);
+}
+
+.cal-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.cal-form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--cal-text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cal-form-group select,
+.cal-form-group input[type="text"],
+.cal-form-group input[type="url"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--cal-border);
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    background: var(--cal-bg-subtle);
+    color: var(--cal-text-title);
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.cal-form-group select:focus,
+.cal-form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: var(--cal-bg-surface);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+.cal-team-scroll {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--cal-bg-subtle);
+    border-radius: 12px;
+    border: 1px solid var(--cal-border);
+}
+
+.cal-team-scroll label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: none;
+    color: var(--cal-text-title);
+    margin: 0;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+
+.cal-team-scroll label:hover {
+    background: var(--cal-border);
+}
+
+.cal-btn-cancel {
+    background: var(--cal-bg-subtle);
+    color: var(--cal-text-muted);
+    border: 1px solid var(--cal-border);
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    font-size: 0.82rem;
+}
+
+.cal-btn-cancel:hover {
+    background: var(--cal-border);
+    color: var(--cal-text-title);
+}
+
+.cal-btn-submit {
+    background: var(--cal-btn-bg);
+    color: var(--cal-btn-text);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    font-family: inherit;
+    font-size: 0.82rem;
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--cal-btn-bg) 30%, transparent);
+}
+
+.cal-btn-submit:hover {
+    background: var(--cal-btn-hover);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--cal-btn-bg) 45%, transparent);
+    transform: translateY(-1px);
+    color: var(--cal-btn-text);
+}
+
+@media (max-width: 992px) {
+    .cal-app-container { padding: 1rem; }
+    .cal-header-card { flex-direction: column; align-items: stretch; gap: 1rem; padding: 1rem; }
+    .cal-header-actions { justify-content: space-between; }
+    .cal-search-box { width: 100%; }
+    .cal-search-input { width: 100% !important; }
+    .cal-projects-grid { grid-template-columns: 1fr; }
+}
+
+    /* ===== MOBILE APP OPTIMIZATIONS ===== */
+    @media (max-width: 576px) {
+        .cal-app-container {
+            padding: 0.5rem !important;
+        }
+        .cal-projects-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.85rem !important;
+        }
+        .cal-header-card {
+            padding: 1.25rem 1rem !important;
+            border-radius: 16px !important;
+        }
+        .app-project-card {
+            padding: 1.25rem !important;
+            border-radius: 16px !important;
+        }
+        .apc-metrics {
+            gap: 0.75rem !important;
+        }
+        .apc-team {
+            gap: 0.5rem !important;
+        }
+        .tab-count {
+            margin-left: 4px !important;
+        }
     }
 </style>
 
-<!-- Title and Header removed as requested -->
-
 <?php if (isset($error)): ?>
-    <div class="alert alert-danger" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: var(--radius-md); background: #fee2e2; color: #991b1b;">
-        <?php echo htmlspecialchars($error); ?>
+    <div style="margin: 1.5rem 2rem; padding: 1rem; border-radius: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5;">
+        <i class="ph-bold ph-warning-circle"></i> <?php echo htmlspecialchars($error); ?>
     </div>
 <?php endif; ?>
 
-<div class="card calendar-main-card" style="margin-bottom: 2rem; padding: 0; overflow: hidden;">
-    <!-- Switcher and Actions -->
-    <div class="calendar-actions-header">
-        <div class="segmented-control">
-            <button class="segmented-btn active" id="btn-active-projects" onclick="switchView('active')">Activos</button>
-            <button class="segmented-btn" id="btn-archived-projects" onclick="switchView('archived')">Archivados</button>
-        </div>
-        <button class="btn btn-primary" id="btn-new-project" onclick="openNewProjectModal()">
-            <i class="ph ph-plus"></i> Nuevo Proyecto
-        </button>
-    </div>
+<div class="cal-app-container">
 
-    <div class="calendar-body-padding">
-        <!-- Active Projects Grid -->
-        <div id="active-projects-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
-            <?php if (empty($activeProjects)): ?>
-                <p class="text-muted col-span-full">No hay proyectos activos.</p>
-            <?php else: ?>
-                <?php foreach ($activeProjects as $project): ?>
-                    <?php renderProjectCard($project); ?>
-                <?php endforeach; ?>
-            <?php endif; ?>
+    <!-- ── Header Bar ── -->
+    <div class="cal-header-card">
+        <div class="cal-header-left">
+            <div class="cal-header-icon">
+                <i class="ph-bold ph-kanban"></i>
+            </div>
+            <div class="cal-header-titles">
+                <h1>Tableros de Trabajo</h1>
+                <p>Gestión integral, monitoreo y acceso directo a tableros por marca.</p>
+            </div>
         </div>
 
-        <!-- Archived Projects Grid -->
-        <div id="archived-projects-container" style="display: none; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
-            <?php if (empty($archivedProjects)): ?>
-                <p class="text-muted col-span-full">No hay proyectos archivados.</p>
-            <?php else: ?>
-                <?php foreach ($archivedProjects as $project): ?>
-                    <?php renderProjectCard($project); ?>
-                <?php endforeach; ?>
-            <?php endif; ?>
+        <div class="cal-header-actions">
+            <!-- Search Input -->
+            <div class="cal-search-box">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="calendarSearchInput" class="cal-search-input" placeholder="Buscar tablero, marca u OT..." onkeyup="filterCalendarProjects()">
+            </div>
+
+            <!-- Segmented Pill Switcher -->
+            <div class="cal-segmented-control">
+                <button class="cal-segmented-btn active" id="btn-active-projects" onclick="switchView('active')">
+                    Activos
+                    <span class="tab-count" id="countActive"><?php echo count($activeProjects); ?></span>
+                </button>
+                <button class="cal-segmented-btn" id="btn-archived-projects" onclick="switchView('archived')">
+                    Archivados
+                    <span class="tab-count" id="countArchived"><?php echo count($archivedProjects); ?></span>
+                </button>
+            </div>
+
+            <!-- CTA Button -->
+            <button class="cal-btn-primary" id="btn-new-project" onclick="openNewProjectModal()">
+                <i class="ph-bold ph-plus"></i> Nuevo Proyecto
+            </button>
         </div>
     </div>
+
+    <!-- ── Active Projects Grid ── -->
+    <div class="cal-projects-grid" id="active-projects-container">
+        <?php if (empty($activeProjects)): ?>
+            <div class="cal-empty-state">
+                <i class="ph ph-folder-open"></i>
+                <h3>No hay proyectos activos</h3>
+                <p>Haz clic en "+ Nuevo Proyecto" para asignar una Orden de Servicio al equipo.</p>
+            </div>
+        <?php else: ?>
+            <?php foreach ($activeProjects as $project): ?>
+                <?php renderProjectCard($project); ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <!-- ── Archived Projects Grid ── -->
+    <div class="cal-projects-grid" id="archived-projects-container" style="display: none;">
+        <?php if (empty($archivedProjects)): ?>
+            <div class="cal-empty-state">
+                <i class="ph ph-archive"></i>
+                <h3>No hay proyectos archivados</h3>
+                <p>Los proyectos que archives aparecerán aquí para consulta histórica.</p>
+            </div>
+        <?php else: ?>
+            <?php foreach ($archivedProjects as $project): ?>
+                <?php renderProjectCard($project); ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
 </div>
 
-<!-- New Project Modal -->
-<div class="modal-overlay" id="new-project-modal">
-    <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-            <h2>Nuevo Proyecto</h2>
-            <button class="btn-icon" onclick="closeModal('new-project-modal')">
+<!-- ═══════════════════════════════════════════════ -->
+<!-- MODAL: Nuevo Proyecto -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="cal-modal-overlay" id="new-project-modal">
+    <div class="cal-modal-content">
+        <div class="cal-modal-header">
+            <h2><i class="ph-bold ph-folder-plus" style="color: var(--primary-color);"></i> Nuevo Proyecto</h2>
+            <button class="cal-modal-close" onclick="closeModal('new-project-modal')">
                 <i class="ph ph-x"></i>
             </button>
         </div>
-        <div class="modal-body">
+        <div class="cal-modal-body">
             <form id="new-project-form">
-                <div class="form-group">
-                    <label class="form-label">Orden de Servicio</label>
-                    <select class="form-control" name="work_order_id" id="work_order_select" required onchange="fetchWorkOrderData()">
-                        <option value="">Seleccione una orden de servicio...</option>
+                <div class="cal-form-group">
+                    <label>Orden de Servicio *</label>
+                    <select name="work_order_id" id="work_order_select" required onchange="fetchWorkOrderData()">
+                        <option value="">— Seleccionar Orden de Servicio —</option>
                         <?php foreach ($workOrders as $wo): ?>
                             <option value="<?php echo $wo['id']; ?>"><?php echo htmlspecialchars($wo['correlativo'] . ' - ' . $wo['brand_name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <div id="wo-details-preview" style="display: none; background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                        <img id="preview-logo" src="" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: var(--radius-full); background: white; border: 1px solid var(--border-color);">
+                <div id="wo-details-preview" style="display: none; background: var(--cal-bg-subtle); padding: 1.15rem; border-radius: 14px; border: 1px solid var(--cal-border); margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+                        <img id="preview-logo" src="" alt="Logo" style="width: 44px; height: 44px; object-fit: contain; border-radius: 10px; background: var(--cal-bg-surface); border: 1px solid var(--cal-border); padding: 2px;">
                         <div>
-                            <div style="font-weight: 600;" id="preview-brand"></div>
-                            <div style="font-size: 0.875rem; color: var(--text-muted);" id="preview-networks"></div>
+                            <div style="font-weight: 800; color: var(--cal-text-title); font-size: 0.95rem;" id="preview-brand"></div>
+                            <div style="font-size: 0.8rem; color: var(--cal-text-muted);" id="preview-networks"></div>
                         </div>
                     </div>
-                    <div>
-                        <div style="font-size: 0.875rem; color: var(--text-muted);">Fecha de Inicio: <span id="preview-date" style="font-weight: 500; color: var(--text-main);"></span></div>
+                    <div style="font-size: 0.8rem; color: var(--cal-text-muted);">
+                        Fecha de Inicio: <span id="preview-date" style="font-weight: 700; color: var(--primary-color);"></span>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Asignar Equipo</label>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md);">
+                <div class="cal-form-group">
+                    <label>Equipo Asignado</label>
+                    <div class="cal-team-scroll">
                         <?php foreach ($users as $user): ?>
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <label>
                                 <input type="checkbox" name="team_members[]" value="<?php echo $user['id']; ?>">
                                 <span><?php echo htmlspecialchars($user['name']); ?></span>
                             </label>
@@ -356,103 +1015,107 @@ try {
                     </div>
                 </div>
 
-                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
-                <div class="form-group">
-                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; color: #3b82f6;">
-                        <i class="ph ph-google-drive-logo" style="font-size: 1.2rem;"></i> Carpeta Global del Proyecto (Opcional)
+                <div class="cal-form-group" style="background: var(--cal-bg-subtle); padding: 14px; border-radius: 12px; border: 1px dashed var(--cal-border);">
+                    <label style="display: flex; align-items: center; gap: 6px; color: var(--primary-color); text-transform: none; font-size: 0.85rem; margin-bottom: 4px;">
+                        <i class="ph-bold ph-google-drive-logo" style="font-size: 1.1rem;"></i> Carpeta Global en Google Drive (Opcional)
                     </label>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 0.5rem;">
-                        Si la dejas vacía, el sistema creará una carpeta nueva automáticamente.
+                    <p style="font-size: 0.75rem; color: var(--cal-text-muted); margin: 0 0 10px 0;">
+                        Si se deja vacía, el sistema creará una carpeta dedicada automáticamente.
                     </p>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="url" name="global_folder_link" id="inp-global-folder" class="form-control" placeholder="Enlace de la carpeta global...">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="url" name="global_folder_link" id="inp-global-folder" placeholder="Enlace de la carpeta global...">
                         <input type="hidden" name="global_folder_id" id="inp-global-folder-id">
-                        <button type="button" class="btn btn-outline" style="color: #3b82f6; border-color: #bfdbfe; font-weight: 600; white-space: nowrap;" onclick="promptGlobalFolder()">Elegir</button>
+                        <button type="button" class="cal-btn-cancel" onclick="promptGlobalFolder()" style="white-space: nowrap; color: var(--primary-color); border-color: color-mix(in srgb, var(--primary-color) 40%, transparent);">Elegir</button>
                     </div>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-outline" onclick="closeModal('new-project-modal')">Cancelar</button>
-            <button class="btn btn-primary" onclick="saveProject()">Guardar Proyecto</button>
+        <div class="cal-modal-footer">
+            <button class="cal-btn-cancel" onclick="closeModal('new-project-modal')">Cancelar</button>
+            <button class="cal-btn-submit" onclick="saveProject()">
+                <i class="ph-bold ph-check"></i> Guardar Proyecto
+            </button>
         </div>
     </div>
 </div>
 
 <?php require_once 'includes/custom_drive_picker.php'; ?>
 <script>
-    function promptGlobalFolder() {
-        cdOpenPicker(null, function(folder) {
-            if (!folder.url) {
-                // If they picked a Shared Drive directly, it doesn't have a webViewLink in the listDrives API natively without an extra call
-                // But generally they should pick a folder INSIDE the drive.
-                // We'll construct a generic drive url if url is null
-                folder.url = "https://drive.google.com/drive/folders/" + folder.id;
-            }
-            document.getElementById('inp-global-folder').value = folder.url;
-            document.getElementById('inp-global-folder-id').value = folder.id;
-        });
-    }
+function promptGlobalFolder() {
+    cdOpenPicker(null, function(folder) {
+        if (!folder.url) {
+            folder.url = "https://drive.google.com/drive/folders/" + folder.id;
+        }
+        document.getElementById('inp-global-folder').value = folder.url;
+        document.getElementById('inp-global-folder-id').value = folder.id;
+    });
+}
 </script>
 
-<!-- Edit Project Modal -->
-<div class="modal-overlay" id="edit-project-modal">
-    <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-            <h2>Editar Proyecto</h2>
-            <button class="btn-icon" onclick="closeModal('edit-project-modal')">
+<!-- ═══════════════════════════════════════════════ -->
+<!-- MODAL: Editar Proyecto (Equipo) -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="cal-modal-overlay" id="edit-project-modal">
+    <div class="cal-modal-content">
+        <div class="cal-modal-header">
+            <h2><i class="ph-bold ph-pencil-simple" style="color: var(--primary-color);"></i> Asignar Equipo</h2>
+            <button class="cal-modal-close" onclick="closeModal('edit-project-modal')">
                 <i class="ph ph-x"></i>
             </button>
         </div>
-        <div class="modal-body">
+        <div class="cal-modal-body">
             <form id="edit-project-form">
                 <input type="hidden" name="id" id="edit-project-id">
-                <div class="form-group">
-                    <label class="form-label">Asignar Equipo</label>
-                    <div id="edit-team-members-container" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md);">
+                <div class="cal-form-group">
+                    <label>Miembros del Equipo</label>
+                    <div class="cal-team-scroll" id="edit-team-members-container">
                         <!-- Populated by JS -->
                     </div>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-outline" onclick="closeModal('edit-project-modal')">Cancelar</button>
-            <button class="btn btn-primary" onclick="updateProject()">Actualizar Proyecto</button>
+        <div class="cal-modal-footer">
+            <button class="cal-btn-cancel" onclick="closeModal('edit-project-modal')">Cancelar</button>
+            <button class="cal-btn-submit" onclick="updateProject()">
+                <i class="ph-bold ph-check"></i> Actualizar Equipo
+            </button>
         </div>
     </div>
 </div>
 
-<!-- Public Work Order Iframe Modal -->
-<div class="modal-overlay" id="public-wo-modal">
-    <div class="modal-content" style="max-width: 1000px; height: 85vh; display: flex; flex-direction: column;">
-        <div class="modal-header">
-            <h2>Vista Pública - Orden de Servicio</h2>
-            <button class="btn-icon" onclick="closeModal('public-wo-modal')">
+<!-- ═══════════════════════════════════════════════ -->
+<!-- MODAL: Vista Pública - Orden de Servicio -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="cal-modal-overlay" id="public-wo-modal">
+    <div class="cal-modal-content" style="max-width: 1000px; height: 85vh;">
+        <div class="cal-modal-header">
+            <h2><i class="ph-bold ph-file-text" style="color: var(--primary-color);"></i> Orden de Servicio</h2>
+            <button class="cal-modal-close" onclick="closeModal('public-wo-modal')">
                 <i class="ph ph-x"></i>
             </button>
         </div>
-        <div class="modal-body" style="flex: 1; padding: 0;">
-            <iframe id="public-wo-iframe" src="" style="width: 100%; height: 100%; border: none; border-radius: 0 0 var(--radius-md) var(--radius-md);"></iframe>
+        <div class="cal-modal-body" style="flex: 1; padding: 0; background: #0e0e10;">
+            <iframe id="public-wo-iframe" src="" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
     </div>
 </div>
 
-<!-- Modal Confirmar Eliminación -->
-<div class="modal-overlay" id="deleteConfirmModal" style="z-index: 1070;">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0; margin-top: 1rem;">
-            <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); color: var(--danger-color); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto;">
-                <i class="ph ph-warning"></i>
+<!-- ═══════════════════════════════════════════════ -->
+<!-- MODAL: Confirmar Eliminación -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="cal-modal-overlay" id="deleteConfirmModal" style="z-index: 10070;">
+    <div class="cal-modal-content" style="max-width: 380px; text-align: center;">
+        <div class="cal-modal-body" style="padding: 2rem 1.5rem 1rem;">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 1rem;">
+                <i class="ph-bold ph-trash"></i>
             </div>
+            <h3 style="margin: 0 0 0.5rem; color: var(--cal-text-title); font-size: 1.15rem; font-weight: 800;">¿Eliminar proyecto?</h3>
+            <p style="color: var(--cal-text-muted); margin: 0; font-size: 0.85rem; line-height: 1.4;">Esta acción quitará el tablero del proyecto y no se puede deshacer.</p>
         </div>
-        <div class="modal-body" style="text-align: center; padding-top: 1rem;">
-            <h3 style="margin-bottom: 0.5rem; color: var(--color-title); font-size: 1.25rem; font-weight: 600;">¿Estás seguro?</h3>
-            <p style="margin-bottom: 0;">Esta acción no se puede deshacer.</p>
-        </div>
-        <div class="modal-footer" style="justify-content: center; border-top: none; padding-top: 0.5rem; gap: 1rem;">
-            <button type="button" class="btn btn-outline" onclick="closeModal('deleteConfirmModal')">Cancelar</button>
-            <button type="button" class="btn btn-primary" id="btnConfirmDelete" style="background-color: var(--danger-color); border-color: var(--danger-color);">
-                Sí, eliminar
+        <div class="cal-modal-footer" style="justify-content: center; border-top: none; padding-top: 0.5rem;">
+            <button type="button" class="cal-btn-cancel" onclick="closeModal('deleteConfirmModal')">Cancelar</button>
+            <button type="button" class="cal-btn-submit" id="btnConfirmDelete" style="background: #ef4444; box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3); color: #fff;">
+                Sí, Eliminar
             </button>
         </div>
     </div>
@@ -462,6 +1125,21 @@ try {
 // Available users for JS to render in edit form
 const systemUsers = <?php echo json_encode($users); ?>;
 let projectToDeleteId = null;
+
+// Live Search Filter for Cards
+function filterCalendarProjects() {
+    const query = (document.getElementById('calendarSearchInput').value || '').trim().toLowerCase();
+    const cards = document.querySelectorAll('.cal-projects-grid .app-project-card');
+
+    cards.forEach(card => {
+        const searchText = card.getAttribute('data-search') || '';
+        if (!query || searchText.includes(query)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
 
 function switchView(view) {
     const activeContainer = document.getElementById('active-projects-container');
@@ -480,6 +1158,7 @@ function switchView(view) {
         btnArchived.classList.add('active');
         btnActive.classList.remove('active');
     }
+    filterCalendarProjects();
 }
 
 function openNewProjectModal() {
@@ -511,7 +1190,7 @@ async function openEditProjectModal(projectId) {
             systemUsers.forEach(user => {
                 const isChecked = data.team_members.includes(user.id.toString()) || data.team_members.includes(user.id) ? 'checked' : '';
                 container.innerHTML += `
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <label>
                         <input type="checkbox" name="team_members[]" value="${user.id}" ${isChecked}>
                         <span>${user.name}</span>
                     </label>
@@ -571,9 +1250,9 @@ async function fetchWorkOrderData() {
             if (data.networks) {
                 const nets = data.networks.split(',').map(n => n.trim().toLowerCase());
                 nets.forEach(n => {
-                    if (n.includes('facebook')) networksHtml += '<i class="ph ph-facebook-logo" style="font-size:1.2rem; color: #1877F2; margin-right:4px;"></i>';
-                    else if (n.includes('instagram')) networksHtml += '<i class="ph ph-instagram-logo" style="font-size:1.2rem; color: #E4405F; margin-right:4px;"></i>';
-                    else if (n.includes('tiktok')) networksHtml += '<i class="ph ph-tiktok-logo" style="font-size:1.2rem; color: #000000; margin-right:4px;"></i>';
+                    if (n.includes('facebook')) networksHtml += '<i class="ph ph-facebook-logo" style="font-size:1.1rem; color: #1877F2; margin-right:4px;"></i>';
+                    else if (n.includes('instagram')) networksHtml += '<i class="ph ph-instagram-logo" style="font-size:1.1rem; color: #E4405F; margin-right:4px;"></i>';
+                    else if (n.includes('tiktok')) networksHtml += '<i class="ph ph-tiktok-logo" style="font-size:1.1rem; color: #ffffff; margin-right:4px;"></i>';
                     else networksHtml += n + ' ';
                 });
             }
@@ -674,115 +1353,167 @@ function deleteProject(projectId) {
     
     document.getElementById('deleteConfirmModal').classList.add('active');
 }
+
+// Close modals on overlay click or Escape key
+document.querySelectorAll('.cal-modal-overlay').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) closeModal(this.id);
+    });
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.cal-modal-overlay.active').forEach(m => closeModal(m.id));
+    }
+});
 </script>
 
 <?php
 function renderProjectCard($project) {
-    $statusText = $project['status'] === 'active' ? 'Activo' : 'Archivado';
-    $statusBg = $project['status'] === 'active' ? 'color-mix(in srgb, var(--primary-color) 15%, transparent)' : 'rgba(100, 116, 139, 0.15)';
-    $statusColor = $project['status'] === 'active' ? 'var(--primary-color)' : 'var(--text-muted)';
+    $statusText = $project['status'] === 'active' ? 'ACTIVO' : 'ARCHIVADO';
+    $statusClass = $project['status'] === 'active' ? 'active' : 'archived';
 
     // Team members as overlapping avatars
     $teamMembers = json_decode($project['team_members'], true) ?: [];
     global $users;
     
-    $teamHtml = '<div style="display: flex; padding-left: 0.25rem;">';
+    $teamAvatars = [];
+    $avatarColors = ['#10b981', '#0ea5e9', '#ef4444', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#6366f1'];
     if (!empty($teamMembers)) {
-        $index = 0;
-        foreach ($teamMembers as $userId) {
-            $userName = 'User';
+        foreach ($teamMembers as $idx => $userId) {
+            $userName = 'Colaborador';
             if (is_array($users)) {
                 foreach ($users as $u) {
                     if ($u['id'] == $userId) {
-                        $userName = explode(' ', trim($u['name']))[0];
+                        $userName = trim($u['name']);
                         break;
                     }
                 }
             }
             $initial = strtoupper(substr($userName, 0, 1));
-            // Deterministic color based on userId
-            $colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-            $bgColor = $colors[$userId % count($colors)];
-            
-            $marginLeft = $index === 0 ? '0' : '-10px';
-            $zIndex = 10 - $index;
-            
-            $teamHtml .= "
-            <div style='width: 30px; height: 30px; border-radius: 50%; background: {$bgColor}; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; border: 2px solid var(--bg-surface); margin-left: {$marginLeft}; z-index: {$zIndex}; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' title='" . htmlspecialchars($userName) . "'>
-                {$initial}
-            </div>";
-            $index++;
+            $color = $avatarColors[$userId % count($avatarColors)];
+            $teamAvatars[] = ['initial' => $initial, 'color' => $color, 'name' => $userName];
         }
-    } else {
-        $teamHtml .= "<span style='color: var(--text-muted); font-size: 0.75rem; font-weight: 500;'>Sin equipo</span>";
     }
-    $teamHtml .= '</div>';
     
-    $logoUrl = $project['logo'] ? htmlspecialchars($project['logo']) : 'assets/img/default-logo.png';
+    $logoUrl = $project['logo'] ? htmlspecialchars($project['logo']) : '';
+    $hasImage = !empty($logoUrl) && file_exists($logoUrl);
+    $firstLetter = strtoupper(substr(trim($project['brand_name']), 0, 1));
+    $letterBg = $avatarColors[ord($firstLetter) % count($avatarColors)];
+    
     $otCorrelativo = isset($project['correlativo']) ? htmlspecialchars($project['correlativo']) : 'No asignada';
     $publicToken = isset($project['public_token']) ? htmlspecialchars($project['public_token']) : '';
     $isArchived = isset($project['is_archived']) && $project['is_archived'] == 1;
 
-    $enterButtonHtml = "";
-    if ($isArchived) {
-        $enterButtonHtml = "<button type='button' disabled title='La orden de servicio está archivada' style='display: flex; align-items: center; justify-content: center; width: 100%; background: #e2e8f0; color: #94a3b8; padding: 0.85rem; border-radius: 12px; font-weight: 600; border: none; cursor: not-allowed;'>Entrar al Tablero</button>";
-    } else {
-        $enterButtonHtml = "<a href='index.php?module=project_board&id={$project['id']}' style='display: flex; align-items: center; justify-content: center; width: 100%; background: var(--primary-color); color: white; padding: 0.85rem; border-radius: 12px; font-weight: 600; text-decoration: none; transition: background 0.2s, box-shadow 0.2s;' onmouseover='this.style.background=\"var(--primary-hover)\"; this.style.boxShadow=\"0 4px 12px rgba(79, 70, 229, 0.2)\"' onmouseout='this.style.background=\"var(--primary-color)\"; this.style.boxShadow=\"none\"'>Entrar al Tablero</a>";
+    $searchMeta = htmlspecialchars(strtolower($project['brand_name'] . ' ' . $project['servicio'] . ' ' . $otCorrelativo));
+
+    // Social icons
+    $socialsHtml = '';
+    if (!empty($project['redes'])) {
+        $nets = explode(',', strtolower($project['redes']));
+        foreach ($nets as $n) {
+            $n = trim($n);
+            if (strpos($n, 'facebook') !== false) $socialsHtml .= '<i class="ph ph-facebook-logo" style="color:#1877f2;font-size:1.05rem;" title="Facebook"></i>';
+            elseif (strpos($n, 'instagram') !== false) $socialsHtml .= '<i class="ph ph-instagram-logo" style="color:#e4405f;font-size:1.05rem;" title="Instagram"></i>';
+            elseif (strpos($n, 'tiktok') !== false) $socialsHtml .= '<i class="ph ph-tiktok-logo" style="color:#ffffff;font-size:1.05rem;" title="TikTok"></i>';
+        }
     }
-
-    echo "
-    <div style='background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s;' onmouseover='this.style.transform=\"translateY(-2px)\"; this.style.boxShadow=\"0 8px 24px rgba(0,0,0,0.08)\"' onmouseout='this.style.transform=\"none\"; this.style.boxShadow=\"0 4px 20px rgba(0,0,0,0.04)\"'>
+    ?>
+    <div class="app-project-card" data-id="<?php echo $project['id']; ?>" data-search="<?php echo $searchMeta; ?>">
         
-        <!-- Top Row: Avatar & Identity -->
-        <div style='display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1.25rem;'>
-            <img src='{$logoUrl}' style='width: 64px; height: 64px; border-radius: 50%; object-fit: contain; border: 2px solid var(--bg-color); padding: 4px; background: white;'>
-            <div style='display: flex; flex-direction: column; gap: 0.15rem; flex: 1;'>
-                <div style='font-weight: 700; font-size: 1.15rem; color: var(--color-title); line-height: 1.2;'>" . htmlspecialchars($project['brand_name']) . "</div>
-                <div style='font-size: 0.85rem; color: var(--text-muted); line-height: 1.2;'>" . htmlspecialchars($project['servicio']) . "</div>
-                <div style='margin-top: 0.4rem;'>
-                    <button type='button' onclick='toggleArchive({$project['id']}, \"{$project['status']}\")' style='background: {$statusBg}; color: {$statusColor}; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; border: none; cursor: pointer; transition: opacity 0.2s;' onmouseover='this.style.opacity=\"0.8\"' onmouseout='this.style.opacity=\"1\"'>
-                        {$statusText}
-                    </button>
+        <!-- Card Header -->
+        <div class="apc-header">
+            <div class="apc-logo">
+                <?php if ($hasImage): ?>
+                    <img src="<?php echo $logoUrl; ?>" alt="Logo">
+                <?php else: ?>
+                    <div class="apc-logo-letter" style="background:<?php echo $letterBg; ?>">
+                        <?php echo $firstLetter; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="apc-info">
+                <div class="apc-title-row">
+                    <h3 class="apc-title" title="<?php echo htmlspecialchars($project['brand_name']); ?>">
+                        <?php echo htmlspecialchars($project['brand_name']); ?>
+                    </h3>
+                    <span class="apc-badge <?php echo $statusClass; ?>">
+                        <?php echo $statusText; ?>
+                    </span>
                 </div>
+                <p class="apc-service"><?php echo htmlspecialchars($project['servicio']); ?></p>
             </div>
         </div>
 
-        <!-- Middle to Bottom Section (Aligned via margin-top: auto) -->
-        <div style='margin-top: auto; display: flex; flex-direction: column;'>
-            <!-- DESCRIPTION -->
-            <div style='margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; background: var(--bg-color); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color);'>
-                <i class='ph ph-clipboard-text' style='color: var(--primary-color); font-size: 1.1rem;'></i>
-                <span style='font-size: 0.8rem; color: var(--text-muted);'>OS:</span>
-                <strong style='font-size: 0.85rem; color: var(--color-title);'>{$otCorrelativo}</strong>
+        <!-- Meta Row (OS & Socials) -->
+        <div class="apc-meta-row">
+            <div class="apc-os-badge" title="Ver Orden de Servicio" onclick="openPublicWoModal('<?php echo $publicToken; ?>')">
+                <i class="ph-bold ph-clipboard-text"></i>
+                <span>OS: <strong><?php echo $otCorrelativo; ?></strong></span>
             </div>
-
-            <!-- FOCUS AREA (Team Members) -->
-            <div style='margin-bottom: 1.25rem;'>
-                <div style='font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;'>Equipo Asignado</div>
-                {$teamHtml}
-            </div>
-
-            <!-- Stats/Actions Box -->
-            <div style='display: flex; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden;'>
-                <button type='button' onclick='openPublicWoModal(\"{$publicToken}\")' title='Ver OS' style='flex: 1; text-align: center; padding: 0.65rem; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s;' onmouseover='this.style.background=\"rgba(0,0,0,0.03)\"; this.style.color=\"var(--color-title)\"' onmouseout='this.style.background=\"transparent\"; this.style.color=\"var(--text-muted)\"'>
-                    <i class='ph ph-file-text' style='font-size: 1.3rem;'></i>
-                </button>
-                <button type='button' onclick='openEditProjectModal({$project['id']})' title='Editar' style='flex: 1; text-align: center; padding: 0.65rem; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s;' onmouseover='this.style.background=\"rgba(79,70,229,0.05)\"; this.style.color=\"var(--primary-color)\"' onmouseout='this.style.background=\"transparent\"; this.style.color=\"var(--text-muted)\"'>
-                    <i class='ph ph-pencil' style='font-size: 1.3rem;'></i>
-                </button>
-                <button type='button' onclick='deleteProject({$project['id']})' title='Eliminar' style='flex: 1; text-align: center; padding: 0.65rem; border: none; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;' onmouseover='this.style.background=\"rgba(239,68,68,0.05)\"; this.style.color=\"var(--danger-color)\"' onmouseout='this.style.background=\"transparent\"; this.style.color=\"var(--text-muted)\"'>
-                    <i class='ph ph-trash' style='font-size: 1.3rem;'></i>
-                </button>
-            </div>
-
-            <!-- Bottom Action -->
-            <div>
-                {$enterButtonHtml}
-            </div>
+            <?php if (!empty($socialsHtml)): ?>
+                <div class="apc-social-icons">
+                    <?php echo $socialsHtml; ?>
+                </div>
+            <?php endif; ?>
         </div>
+
+        <!-- Team Section -->
+        <div class="apc-team-section">
+            <div class="apc-team-label">Equipo Asignado</div>
+            <?php if (!empty($teamAvatars)): ?>
+                <div class="apc-team-avatars">
+                    <?php 
+                    $visibleAvatars = array_slice($teamAvatars, 0, 4);
+                    $extraCount = count($teamAvatars) - 4;
+                    foreach($visibleAvatars as $av): 
+                    ?>
+                        <div class="apc-avatar" style="background:<?php echo $av['color']; ?>" title="<?php echo htmlspecialchars($av['name']); ?>">
+                            <?php echo $av['initial']; ?>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if ($extraCount > 0): ?>
+                        <div class="apc-avatar-more" title="+<?php echo $extraCount; ?> más">+<?php echo $extraCount; ?></div>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <span class="apc-no-team">Sin equipo asignado</span>
+            <?php endif; ?>
+        </div>
+
+        <!-- Micro Actions Capsule Bar -->
+        <div class="apc-actions-bar">
+            <button class="apc-action-btn" title="Ver Orden de Servicio" onclick="openPublicWoModal('<?php echo $publicToken; ?>')">
+                <i class="ph ph-file-text"></i>
+            </button>
+            <button class="apc-action-btn" title="Asignar / Editar Equipo" onclick="openEditProjectModal(<?php echo $project['id']; ?>)">
+                <i class="ph ph-pencil-simple"></i>
+            </button>
+            <button class="apc-action-btn archive" title="<?php echo $project['status'] === 'active' ? 'Archivar Proyecto' : 'Restaurar Proyecto'; ?>" onclick="toggleArchive(<?php echo $project['id']; ?>, '<?php echo $project['status']; ?>')">
+                <i class="ph ph-archive"></i>
+            </button>
+            <button class="apc-action-btn danger" title="Eliminar Proyecto" onclick="deleteProject(<?php echo $project['id']; ?>)">
+                <i class="ph ph-trash"></i>
+            </button>
+        </div>
+
+        <!-- Enter / Action Button -->
+        <?php if ($isArchived): ?>
+            <button class="apc-enter-btn disabled" disabled title="La orden de servicio está archivada">
+                <span>Orden Archivada</span>
+                <i class="ph-bold ph-lock"></i>
+            </button>
+        <?php else: ?>
+            <a href="index.php?module=project_board&id=<?php echo $project['id']; ?>" class="apc-enter-btn">
+                <span>Entrar al Tablero</span>
+                <i class="ph-bold ph-arrow-right"></i>
+            </a>
+        <?php endif; ?>
+
     </div>
-    ";
+    <?php
 }
 
 require_once 'includes/footer.php';
 ?>
+
+
