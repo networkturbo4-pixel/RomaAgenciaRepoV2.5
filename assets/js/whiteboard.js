@@ -1661,8 +1661,8 @@
             isPanning = true;
             canvas.defaultCursor = 'grabbing';
             var e = o.e;
-            lastPanX = e.clientX;
-            lastPanY = e.clientY;
+            lastPanX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            lastPanY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
             return;
         }
         if (currentTool === 'eraser') {
@@ -1788,19 +1788,20 @@
     canvas.on('mouse:move', function(o) {
         if (isPanning) {
             var e = o.e;
-            var deltaX = e.clientX - lastPanX;
-            var deltaY = e.clientY - lastPanY;
+            var currentX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : lastPanX);
+            var currentY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : lastPanY);
+            var deltaX = currentX - lastPanX;
+            var deltaY = currentY - lastPanY;
             var vpt = canvas.viewportTransform;
-            vpt[4] += deltaX;
-            vpt[5] += deltaY;
-            canvas.requestRenderAll();
-            
-            // Actualizar posiciones de elementos HTML sobre el canvas
-            updateAnchorsPosition();
-            updateContextMenuPosition();
-            
-            lastPanX = e.clientX;
-            lastPanY = e.clientY;
+            if (!isNaN(deltaX) && !isNaN(deltaY)) {
+                vpt[4] += deltaX;
+                vpt[5] += deltaY;
+                canvas.requestRenderAll();
+                updateAnchorsPosition();
+                updateContextMenuPosition();
+            }
+            lastPanX = currentX;
+            lastPanY = currentY;
             return;
         }
         
@@ -5419,75 +5420,146 @@
         }
     });
 
-    // Soporte Táctil Avanzado (Pinch to Zoom & Touch Pan)
-    let touchStartDistance = 0;
-    let touchStartZoom = 1;
-    let touchStartPanX = 0;
-    let touchStartPanY = 0;
+    // =========================================================
+    // Soporte Táctil Avanzado (Móvil & Tablet: Pinch & Touch Pan)
+    // =========================================================
+    let isTouchPanning = false;
+    let isPinching = false;
+    let touchLastDist = 0;
+    let touchLastCenterX = 0;
+    let touchLastCenterY = 0;
     let touchLastX = 0;
     let touchLastY = 0;
-    
+
+    function syncZoomIndicator() {
+        const zoomText = document.getElementById('zoom-level-text');
+        if (zoomText) {
+            zoomText.innerText = Math.round(canvas.getZoom() * 100) + '%';
+        }
+    }
+
     canvasContainer.addEventListener('touchstart', function(e) {
         if (e.touches.length === 2) {
+            // Gesto de 2 dedos: Pinch-to-zoom y Paneo simultáneo
             e.preventDefault();
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            touchStartDistance = Math.sqrt(dx * dx + dy * dy);
-            touchStartZoom = canvas.getZoom();
+            isPinching = true;
+            isTouchPanning = false;
             
-            touchStartPanX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            touchStartPanY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        } else if (e.touches.length === 1 && currentTool === 'pan') {
-            touchLastX = e.touches[0].clientX;
-            touchLastY = e.touches[0].clientY;
+            const x1 = e.touches[0].clientX;
+            const y1 = e.touches[0].clientY;
+            const x2 = e.touches[1].clientX;
+            const y2 = e.touches[1].clientY;
+            
+            touchLastDist = Math.hypot(x1 - x2, y1 - y2);
+            touchLastCenterX = (x1 + x2) / 2;
+            touchLastCenterY = (y1 + y2) / 2;
+        } else if (e.touches.length === 1) {
+            isPinching = false;
+            const touch = e.touches[0];
+            touchLastX = touch.clientX;
+            touchLastY = touch.clientY;
+
+            // Determinar si iniciamos panning con 1 dedo
+            if (isViewer || currentTool === 'pan') {
+                isTouchPanning = true;
+            } else if (currentTool === 'select') {
+                // Si el usuario toca el fondo vacío del lienzo
+                const target = canvas.findTarget(e);
+                if (!target) {
+                    isTouchPanning = true;
+                    canvas.selection = false; // Evitar caja de selección múltiple al navegar con el dedo
+                } else {
+                    isTouchPanning = false;
+                    canvas.selection = true;
+                }
+            } else {
+                isTouchPanning = false;
+            }
         }
-    }, {passive: false});
+    }, { passive: false });
 
     canvasContainer.addEventListener('touchmove', function(e) {
         if (e.touches.length === 2) {
+            // Pinch-to-zoom + 2-finger pan
             e.preventDefault();
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const x1 = e.touches[0].clientX;
+            const y1 = e.touches[0].clientY;
+            const x2 = e.touches[1].clientX;
+            const y2 = e.touches[1].clientY;
             
-            const scale = dist / touchStartDistance;
-            let newZoom = touchStartZoom * scale;
-            if (newZoom > 20) newZoom = 20;
-            if (newZoom < 0.1) newZoom = 0.1;
-            
-            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            
-            canvas.zoomToPoint({ x: centerX, y: centerY }, newZoom);
-            
-            const panX = centerX - touchStartPanX;
-            const panY = centerY - touchStartPanY;
-            
-            const vpt = canvas.viewportTransform;
-            vpt[4] += panX;
-            vpt[5] += panY;
-            canvas.requestRenderAll();
-            
-            touchStartPanX = centerX;
-            touchStartPanY = centerY;
-            
-            updateAnchorsPosition();
-            updateContextMenuPosition();
-        } else if (e.touches.length === 1 && currentTool === 'pan') {
+            const currentDist = Math.hypot(x1 - x2, y1 - y2);
+            const currentCenterX = (x1 + x2) / 2;
+            const currentCenterY = (y1 + y2) / 2;
+
+            if (touchLastDist > 0 && currentDist > 0) {
+                const zoomFactor = currentDist / touchLastDist;
+                let newZoom = canvas.getZoom() * zoomFactor;
+                if (newZoom > 20) newZoom = 20;
+                if (newZoom < 0.05) newZoom = 0.05;
+
+                // Zoom centrado en el punto medio de los dedos
+                canvas.zoomToPoint(new fabric.Point(currentCenterX, currentCenterY), newZoom);
+
+                // Pan incremental
+                const deltaX = currentCenterX - touchLastCenterX;
+                const deltaY = currentCenterY - touchLastCenterY;
+                canvas.relativePan(new fabric.Point(deltaX, deltaY));
+
+                touchLastDist = currentDist;
+                touchLastCenterX = currentCenterX;
+                touchLastCenterY = currentCenterY;
+
+                syncZoomIndicator();
+                updateAnchorsPosition();
+                updateContextMenuPosition();
+            }
+        } else if (e.touches.length === 1 && isTouchPanning) {
+            // Paneo fluido con 1 dedo
             e.preventDefault();
-            const deltaX = e.touches[0].clientX - touchLastX;
-            const deltaY = e.touches[0].clientY - touchLastY;
-            const vpt = canvas.viewportTransform;
-            vpt[4] += deltaX;
-            vpt[5] += deltaY;
-            canvas.requestRenderAll();
-            touchLastX = e.touches[0].clientX;
-            touchLastY = e.touches[0].clientY;
-            
-            updateAnchorsPosition();
-            updateContextMenuPosition();
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchLastX;
+            const deltaY = touch.clientY - touchLastY;
+
+            if (Math.abs(deltaX) > 0.3 || Math.abs(deltaY) > 0.3) {
+                canvas.relativePan(new fabric.Point(deltaX, deltaY));
+                touchLastX = touch.clientX;
+                touchLastY = touch.clientY;
+
+                updateAnchorsPosition();
+                updateContextMenuPosition();
+            }
         }
-    }, {passive: false});
+    }, { passive: false });
+
+    canvasContainer.addEventListener('touchend', function(e) {
+        if (isTouchPanning && currentTool === 'select') {
+            canvas.selection = !isViewer;
+        }
+        if (e.touches.length === 0) {
+            isTouchPanning = false;
+            isPinching = false;
+            touchLastDist = 0;
+        } else if (e.touches.length === 1) {
+            isPinching = false;
+            const touch = e.touches[0];
+            touchLastX = touch.clientX;
+            touchLastY = touch.clientY;
+            if (isViewer || currentTool === 'pan') {
+                isTouchPanning = true;
+            } else {
+                isTouchPanning = false;
+            }
+        }
+    });
+
+    canvasContainer.addEventListener('touchcancel', function(e) {
+        if (isTouchPanning && currentTool === 'select') {
+            canvas.selection = !isViewer;
+        }
+        isTouchPanning = false;
+        isPinching = false;
+        touchLastDist = 0;
+    });
 
 
 
