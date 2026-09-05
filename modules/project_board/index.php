@@ -94,6 +94,8 @@ try {
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
         flex-wrap: wrap;
         position: relative;
+        width: 100%;
+        box-sizing: border-box;
     }
     [data-theme="dark"] .project-header {
         background: #121212;
@@ -105,7 +107,7 @@ try {
         display: flex;
         align-items: center;
         gap: 1rem;
-        flex-shrink: 0;
+        min-width: 0;
     }
     .btn-back-compact {
         display: flex;
@@ -139,6 +141,7 @@ try {
         display: flex;
         align-items: center;
         gap: 0.85rem;
+        min-width: 0;
     }
     .project-header-info img {
         width: 52px;
@@ -293,8 +296,11 @@ try {
     /* ===== MONTH CARDS GRID ===== */
     .months-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1.5rem;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
     .mc-card {
         background: #ffffff;
@@ -307,6 +313,10 @@ try {
         gap: 1.15rem;
         transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
         position: relative;
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
     }
     .mc-card:hover {
         transform: translateY(-4px);
@@ -635,23 +645,6 @@ try {
         .project-header-actions {
             width: 100%;
             justify-content: space-between;
-        }
-    }
-    @media (max-width: 576px) {
-        .project-header-actions {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .filter-pill-container {
-            width: 100%;
-            justify-content: space-between;
-        }
-        .filter-select {
-            flex: 1;
-        }
-        .btn-project-info, .btn-create-month {
-            width: 100%;
-            justify-content: center;
         }
     }
 
@@ -985,27 +978,186 @@ try {
     }
 
     /* ===== MOBILE APP OPTIMIZATIONS ===== */
-    @media (max-width: 576px) {
+    @media (max-width: 768px) {
         .months-grid {
-            grid-template-columns: 1fr !important;
-            gap: 1rem !important;
+            grid-template-columns: minmax(0, 1fr) !important;
+            width: 100% !important;
+            gap: 1.15rem !important;
+            box-sizing: border-box !important;
         }
+    }
+    @media (max-width: 576px) {
         .project-header {
-            padding: 1.1rem !important;
+            padding: 1rem !important;
             border-radius: 16px !important;
+            gap: 0.85rem !important;
+            margin-bottom: 1.25rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .project-header-left {
+            width: 100% !important;
+            gap: 0.75rem !important;
+            min-width: 0 !important;
+        }
+        .btn-back-compact {
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 10px !important;
+            flex-shrink: 0 !important;
+        }
+        .project-header-info {
+            gap: 0.75rem !important;
+            min-width: 0 !important;
+            flex: 1 !important;
+        }
+        .project-header-info img {
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 12px !important;
+            flex-shrink: 0 !important;
+        }
+        .project-header-info h1 {
+            font-size: 1.25rem !important;
+            line-height: 1.2 !important;
+            word-break: break-word !important;
+        }
+        .project-meta-row {
+            gap: 0.35rem !important;
+            margin-top: 0.2rem !important;
+        }
+        .board-brand-name {
+            font-size: 0.78rem !important;
+        }
+        .project-header-actions {
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.65rem !important;
+        }
+        .filter-pill-container {
+            width: 100% !important;
+            display: flex !important;
+            box-sizing: border-box !important;
+            padding: 3px 6px !important;
+        }
+        .filter-select {
+            flex: 1 !important;
+            min-width: 0 !important;
+            padding: 0.45rem 0.35rem !important;
+            font-size: 0.78rem !important;
+        }
+        .btn-project-info, .btn-create-month {
+            width: 100% !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+            padding: 0.7rem 1rem !important;
+        }
+
+        .months-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
             gap: 1rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
         .mc-card {
+            padding: 1.15rem 1rem !important;
             border-radius: 16px !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            gap: 0.95rem !important;
+        }
+        .mc-header {
+            gap: 0.5rem !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+        .mc-title {
+            font-size: 1.2rem !important;
+            min-width: 0 !important;
+            letter-spacing: -0.3px !important;
+        }
+        .modern-month-timer {
+            font-size: 0.68rem !important;
+            padding: 0.25rem 0.55rem !important;
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
         }
         .mc-stats-grid {
+            grid-template-columns: 1fr 1fr !important;
             gap: 0.5rem !important;
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+        .mc-stat-tile {
+            padding: 0.65rem 0.75rem !important;
+            gap: 0.5rem !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+            border-radius: 12px !important;
+        }
+        .mc-stat-icon {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 1rem !important;
+            flex-shrink: 0 !important;
+        }
+        .mc-stat-info {
+            min-width: 0 !important;
+            flex: 1 !important;
+            overflow: hidden !important;
+        }
+        .mc-stat-num {
+            font-size: 1.15rem !important;
+        }
+        .mc-stat-label {
+            font-size: 0.6rem !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            letter-spacing: 0.3px !important;
+        }
+        .mc-progress-section {
+            padding: 0.75rem 0.8rem !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            border-radius: 12px !important;
         }
         .mc-pipeline-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
             gap: 0.35rem !important;
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+        .mc-pipeline-pill {
+            padding: 0.35rem 0.15rem !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+        }
+        .mc-pipeline-num {
+            font-size: 0.85rem !important;
         }
         .mc-pipeline-lbl {
-            font-size: 0.62rem !important;
+            font-size: 0.58rem !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            letter-spacing: 0 !important;
+        }
+        .mc-dates-row {
+            font-size: 0.72rem !important;
+            gap: 0.35rem !important;
+        }
+        .mc-card-footer {
+            padding-top: 0.75rem !important;
+            gap: 0.65rem !important;
+        }
+        .mc-btn-enter {
+            padding: 0.7rem 1rem !important;
+            font-size: 0.85rem !important;
         }
     }
 </style>

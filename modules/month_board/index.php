@@ -871,16 +871,38 @@ require_once 'includes/header.php';
             justify-content: space-around;
         }
     }
-    @media (max-width: 576px) {
+    @media (max-width: 768px) {
+        .header-actions-group {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.65rem;
+        }
         .header-action-buttons {
             width: 100%;
-            overflow-x: auto;
+            flex: none;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            padding: 4px;
+            gap: 4px;
+            box-sizing: border-box;
+            overflow: visible;
+        }
+        .btn-top-action {
+            justify-content: center;
+            padding: 0.65rem 0.25rem;
+            width: 100%;
+            box-sizing: border-box;
         }
         .action-btn-label {
             display: none;
         }
         .btn-publish {
             width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            box-sizing: border-box;
         }
     }
 </style>

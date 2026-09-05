@@ -111,6 +111,8 @@ try {
     font-size: 13px;
     max-width: 1680px;
     margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* ── App Header Bar ── */
@@ -285,8 +287,11 @@ try {
 /* ── App Grid ── */
 .cal-projects-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 /* ── App Project Card (Modern App Style) ── */
@@ -300,6 +305,10 @@ try {
     flex-direction: column;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .app-project-card:hover {
@@ -314,6 +323,8 @@ try {
     align-items: flex-start;
     gap: 0.85rem;
     margin-bottom: 1rem;
+    min-width: 0;
+    width: 100%;
 }
 
 .apc-logo {
@@ -352,6 +363,7 @@ try {
 .apc-info {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
 .apc-title-row {
@@ -360,6 +372,8 @@ try {
     justify-content: space-between;
     gap: 0.5rem;
     margin-bottom: 3px;
+    min-width: 0;
+    width: 100%;
 }
 
 .apc-title {
@@ -372,6 +386,8 @@ try {
     overflow: hidden;
     text-overflow: ellipsis;
     letter-spacing: -0.01em;
+    min-width: 0;
+    flex: 1;
 }
 
 .apc-service {
@@ -852,30 +868,66 @@ try {
 }
 
 @media (max-width: 992px) {
-    .cal-app-container { padding: 1rem; }
-    .cal-header-card { flex-direction: column; align-items: stretch; gap: 1rem; padding: 1rem; }
+    .cal-app-container { padding: 1rem; width: 100%; box-sizing: border-box; }
+    .cal-header-card { flex-direction: column; align-items: stretch; gap: 1rem; padding: 1rem; width: 100%; box-sizing: border-box; }
     .cal-header-actions { justify-content: space-between; }
     .cal-search-box { width: 100%; }
-    .cal-search-input { width: 100% !important; }
-    .cal-projects-grid { grid-template-columns: 1fr; }
+    .cal-search-input { width: 100% !important; box-sizing: border-box; }
+    .cal-projects-grid { grid-template-columns: minmax(0, 1fr); width: 100%; }
 }
 
     /* ===== MOBILE APP OPTIMIZATIONS ===== */
     @media (max-width: 576px) {
         .cal-app-container {
-            padding: 0.5rem !important;
+            padding: 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
         .cal-projects-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.85rem !important;
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 1rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
         .cal-header-card {
             padding: 1.25rem 1rem !important;
             border-radius: 16px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .cal-header-actions {
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+        }
+        .cal-search-box {
+            width: 100% !important;
+        }
+        .cal-search-input {
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .cal-segmented-control {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+        }
+        .cal-segmented-btn {
+            flex: 1 !important;
+            justify-content: center !important;
+            text-align: center !important;
+        }
+        .cal-btn-primary {
+            width: 100% !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
         }
         .app-project-card {
-            padding: 1.25rem !important;
+            padding: 1.15rem 1rem !important;
             border-radius: 16px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
         .apc-metrics {
             gap: 0.75rem !important;
