@@ -276,7 +276,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = res.data;
                 statusBox.style.display = 'block';
 
+                if (data.current_commit && document.getElementById('disp-commit')) {
+                    document.getElementById('disp-commit').textContent = data.current_commit;
+                }
+
                 if (data.has_updates) {
+                    logConsole('🚀 ' + data.message + ' Listo para actualizar a 1 clic.', '#10b981');
                     let commitsHtml = '';
                     if (data.new_commits && data.new_commits.length > 0) {
                         commitsHtml = `
@@ -311,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('btn-run-update-now').addEventListener('click', executeOneClickUpdate);
 
                 } else {
+                    logConsole('✅ ' + data.message, '#10b981');
                     statusBox.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <div style="background: color-mix(in srgb, #10b981 15%, transparent); color: #10b981; width: 42px; height: 42px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
