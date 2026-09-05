@@ -361,7 +361,12 @@ class SystemUpdater {
             }
 
             if (!$updateViaGitSuccess) {
-                // Modo Universal Web (cPanel / Servidores sin Git)
+                // Modo 2: Actualización Incremental Inteligente (Descarga SOLO los archivos modificados)
+                $updateViaGitSuccess = $this->applyIncrementalUpdate($targetRepo, $targetBranch, $info['current_commit']);
+            }
+
+            if (!$updateViaGitSuccess) {
+                // Modo 3: Si no fue posible incremental, fallback al paquete ZIP completo
                 $this->downloadAndApplyZipUpdate($targetRepo, $targetBranch);
             }
 
@@ -404,6 +409,138 @@ class SystemUpdater {
                 'log' => $this->log
             ];
         }
+    }
+
+    /**
+     * Descarga y aplica EXCLUSIVAMENTE los archivos modificados entre el commit actual y el remoto.
+     * Pesa apenas kilobytes en lugar de cientos de megabytes y se ejecuta en cuestión de segundos.
+     */
+    private function applyIncrementalUpdate($repoUrl, $branch, $currentCommit) {
+        $repoData = $this->parseGitHubRepo($repoUrl);
+        if (!$repoData) return false;
+
+        $owner = $repoData['owner'];
+        $repo = $repoData['repo'];
+
+        // Si no hay commit base conocido válido, usar fallback a ZIP
+        if (empty($currentCommit) || $currentCommit === 'N/A' || strlen($currentCommit) < 4) {
+            return false;
+        }
+
+        // Obtener el último commit remoto de la rama
+        $apiUrl = "https://api.github.com/repos/$owner/$repo/commits/$branch";
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_USERAGENT => 'RomaAgencia-Updater',
+            CURLOPT_HTTPHEADER => ['Accept: application/vnd.github.v3+json'],
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
+        $resp = curl_exec($ch);
+        curl_close($ch);
+        $remoteData = json_decode($resp, true);
+        if (empty($remoteData['sha'])) return false;
+
+        $headSha = $remoteData['sha'];
+        $headShort = substr($headSha, 0, 7);
+        $headMsg = $remoteData['commit']['message'] ?? 'Actualización incremental';
+        $headDate = isset($remoteData['commit']['author']['date']) ? date('d/m/Y H:i', strtotime($remoteData['commit']['author']['date'])) : date('d/m/Y H:i');
+
+        if ($currentCommit === $headShort || $currentCommit === $headSha) {
+            $this->log("El sistema ya cuenta con el último commit ($headShort).");
+            return true;
+        }
+
+        // Consultar diferencias con GitHub Compare API
+        $compareUrl = "https://api.github.com/repos/$owner/$repo/compare/$currentCommit...$headSha";
+        $chComp = curl_init($compareUrl);
+        curl_setopt_array($chComp, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_USERAGENT => 'RomaAgencia-Updater',
+            CURLOPT_HTTPHEADER => ['Accept: application/vnd.github.v3+json'],
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
+        $compResp = curl_exec($chComp);
+        $compHttp = curl_getinfo($chComp, CURLINFO_HTTP_CODE);
+        curl_close($chComp);
+
+        if ($compHttp !== 200 || empty($compResp)) {
+            $this->log("Aviso: No se pudo comparar diff incremental (HTTP $compHttp). Pasando a paquete ZIP...");
+            return false;
+        }
+
+        $compData = json_decode($compResp, true);
+        $files = $compData['files'] ?? [];
+
+        // Si son demasiados archivos (ej. más de 80), es preferible el paquete ZIP completo
+        if (empty($files) || count($files) > 80) {
+            $this->log("Se detectaron " . count($files) . " archivos modificados. Optimizando vía paquete ZIP...");
+            return false;
+        }
+
+        $this->log("⚡ Modo Incremental Inteligente: Descargando únicamente " . count($files) . " archivo(s) modificado(s) (¡Súper ligero!)...");
+
+        $updatedCount = 0;
+        foreach ($files as $f) {
+            $filename = $f['filename'];
+            $status = $f['status'] ?? 'modified';
+
+            // Exclusiones críticas de seguridad
+            if (strpos($filename, 'uploads/') === 0 || strpos($filename, 'backups/') === 0 || strpos($filename, '.git') === 0) {
+                continue;
+            }
+            if ($filename === 'config/database.php') {
+                continue; // Jamás tocar credenciales de la BD
+            }
+
+            $targetPath = $this->basePath . '/' . $filename;
+
+            if ($status === 'removed') {
+                if (file_exists($targetPath) && is_file($targetPath)) {
+                    @unlink($targetPath);
+                    $this->log(" - Eliminado archivo obsoleto: $filename");
+                }
+                $updatedCount++;
+                continue;
+            }
+
+            // Descargar contenido directo del archivo individual desde raw
+            $rawUrl = "https://raw.githubusercontent.com/$owner/$repo/$headSha/$filename";
+            $rawCh = curl_init($rawUrl);
+            curl_setopt_array($rawCh, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_USERAGENT => 'RomaAgencia-Updater',
+                CURLOPT_TIMEOUT => 20,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+            $fileContent = curl_exec($rawCh);
+            $rawHttp = curl_getinfo($rawCh, CURLINFO_HTTP_CODE);
+            curl_close($rawCh);
+
+            if ($rawHttp === 200 && $fileContent !== false) {
+                @mkdir(dirname($targetPath), 0755, true);
+                if (file_put_contents($targetPath, $fileContent) !== false) {
+                    $this->log(" ✅ Actualizado: $filename (" . round(strlen($fileContent) / 1024, 1) . " KB)");
+                    $updatedCount++;
+                } else {
+                    $this->log(" ⚠️ Error de permisos al escribir: $filename");
+                }
+            } else {
+                $this->log(" ⚠️ Error al descargar archivo: $filename (HTTP $rawHttp)");
+            }
+        }
+
+        $this->log("✅ Sincronización incremental finalizada: $updatedCount archivo(s) actualizados.");
+
+        // Revalidar DB y registrar commit
+        $this->reconnectDb();
+        $this->setSetting('system_current_commit', $headShort);
+        $this->setSetting('system_current_commit_date', $headDate);
+        $this->setSetting('system_current_commit_msg', $headMsg);
+
+        return true;
     }
 
     /**
