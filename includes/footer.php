@@ -2,50 +2,85 @@
     </main>
 </div>
 
-<!-- Profile Modal (Modern Startup Style) -->
+<!-- Profile Modal (Modern Native App Style - Matching Reference) -->
 <div class="modal-overlay" id="profile-modal">
-    <div class="modal-content">
-        <div class="profile-hero">
-            <button class="profile-hero-close btn-close-modal"><i class="ph ph-x"></i></button>
-
-            <!-- Avatar -->
-            <div class="profile-avatar-wrap">
-                <div class="profile-avatar-circle" id="profile-avatar-preview" onclick="document.getElementById('profile-avatar-input').click()">
-                    <span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>
+    <div class="modal-content profile-app-modal">
+        <!-- Top Inset Cover Banner (Cobalt Blue with Geometric Glyphs) -->
+        <div class="profile-banner-wrap">
+            <div class="profile-cover-banner">
+                <div class="profile-banner-symbols" aria-hidden="true">
+                    <span>↗</span>
+                    <span>↘</span>
+                    <span>↖</span>
+                    <span>↙</span>
                 </div>
-                <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;">
-            </div>
-            <div class="profile-avatar-actions">
-                <button class="pma-btn pma-btn-upload" onclick="document.getElementById('profile-avatar-input').click()">
-                    <i class="ph ph-upload-simple"></i> Cambiar
-                </button>
-                <button class="pma-btn pma-btn-remove" id="btn-remove-avatar">
-                    <i class="ph ph-trash-simple"></i> Quitar
+                <div class="profile-banner-grid" aria-hidden="true"></div>
+                <button type="button" class="profile-hero-close btn-close-modal" aria-label="Cerrar modal">
+                    <i class="ph ph-x"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Tabs Navigation -->
-        <div class="profile-tabs-nav">
-            <button class="profile-tab-btn active" data-tab="profile-info-tab">
-                <i class="ph ph-user-circle"></i> Información
-            </button>
-            <button class="profile-tab-btn" data-tab="profile-security-tab">
-                <i class="ph ph-shield-check"></i> Seguridad
-            </button>
+        <!-- Overlapping Profile Avatar Row & Identity -->
+        <div class="profile-header-content">
+            <div class="profile-avatar-row">
+                <!-- Circular Avatar with Verified Badge -->
+                <div class="profile-avatar-wrap">
+                    <div class="profile-avatar-circle" id="profile-avatar-preview" onclick="document.getElementById('profile-avatar-input').click()" title="Haz clic para cambiar foto">
+                        <span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>
+                    </div>
+                    <span class="profile-verified-badge" title="Cuenta verificada">
+                        <i class="ph-bold ph-check"></i>
+                    </span>
+                    <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;">
+                </div>
+
+                <!-- Avatar Actions (Right aligned next to avatar) -->
+                <div class="profile-avatar-actions">
+                    <button type="button" class="pma-btn pma-btn-upload" onclick="document.getElementById('profile-avatar-input').click()">
+                        <i class="ph ph-camera"></i> Cambiar
+                    </button>
+                    <button type="button" class="pma-btn pma-btn-remove" id="btn-remove-avatar">
+                        <i class="ph ph-trash"></i> Quitar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Identity: Name + Star + Subtitle -->
+            <div class="profile-identity">
+                <div class="profile-name-row">
+                    <h3 class="profile-display-name" id="profile-display-name">Cesar Mendoza</h3>
+                    <span class="profile-star-badge" title="Miembro Verificado">★</span>
+                </div>
+                <p class="profile-display-subtitle" id="profile-display-subtitle">Administrador | Roma Agencia</p>
+            </div>
+        </div>
+
+        <!-- Segmented Tab Switcher (Modern Native App Control) -->
+        <div class="profile-tabs-wrapper">
+            <div class="profile-tabs-nav">
+                <button type="button" class="profile-tab-btn active" data-tab="profile-info-tab">
+                    <i class="ph ph-user"></i>
+                    <span>Información</span>
+                </button>
+                <button type="button" class="profile-tab-btn" data-tab="profile-security-tab">
+                    <i class="ph ph-shield-check"></i>
+                    <span>Seguridad</span>
+                </button>
+            </div>
         </div>
 
         <!-- Tab: Info -->
         <div class="profile-tab-pane active" id="profile-info-tab">
             <div class="pm-field">
-                <label>Nombre completo</label>
+                <label for="profile-name">Nombre completo</label>
                 <div class="pm-field-icon">
                     <i class="ph ph-user"></i>
                     <input type="text" id="profile-name" placeholder="Tu nombre completo">
                 </div>
             </div>
             <div class="pm-field">
-                <label>Nombre de usuario</label>
+                <label for="profile-username">Nombre de usuario</label>
                 <div class="pm-field-icon">
                     <i class="ph ph-at"></i>
                     <input type="text" id="profile-username" placeholder="nombre_de_usuario">
@@ -53,22 +88,23 @@
             </div>
             <div class="pm-field-row">
                 <div class="pm-field">
-                    <label>Correo electrónico</label>
+                    <label for="profile-email">Correo electrónico</label>
                     <div class="pm-field-icon">
                         <i class="ph ph-envelope-simple"></i>
                         <input type="email" id="profile-email" placeholder="correo@ejemplo.com">
                     </div>
                 </div>
                 <div class="pm-field">
-                    <label>Teléfono</label>
+                    <label for="profile-phone">Teléfono</label>
                     <div class="pm-field-icon">
                         <i class="ph ph-phone"></i>
                         <input type="text" id="profile-phone" placeholder="+51 999 999 999">
                     </div>
                 </div>
             </div>
-            <button class="pm-save-btn" id="btn-save-profile">
-                <i class="ph ph-check-circle"></i> Guardar cambios
+            <button type="button" class="pm-save-btn" id="btn-save-profile">
+                <i class="ph ph-check-circle"></i>
+                <span>Guardar cambios</span>
             </button>
         </div>
 
@@ -77,34 +113,35 @@
             <div class="pm-pw-header">
                 <div class="pm-pw-header-icon"><i class="ph ph-lock-key"></i></div>
                 <div class="pm-pw-header-text">
-                    <h4>Cambiar contraseña</h4>
-                    <p>Asegúrate de usar una contraseña segura</p>
+                    <h4>Seguridad de la cuenta</h4>
+                    <p>Asegúrate de usar una contraseña robusta</p>
                 </div>
             </div>
             <div class="pm-field">
-                <label>Contraseña actual</label>
+                <label for="profile-current-pw">Contraseña actual</label>
                 <div class="pm-field-pw">
                     <input type="password" id="profile-current-pw" placeholder="••••••••">
-                    <button type="button" class="pm-pw-toggle" tabindex="-1"><i class="ph ph-eye"></i></button>
+                    <button type="button" class="pm-pw-toggle" tabindex="-1" aria-label="Mostrar contraseña"><i class="ph ph-eye"></i></button>
                 </div>
             </div>
             <div class="pm-field">
-                <label>Nueva contraseña</label>
+                <label for="profile-new-pw">Nueva contraseña</label>
                 <div class="pm-field-pw">
                     <input type="password" id="profile-new-pw" placeholder="Mínimo 8 caracteres">
-                    <button type="button" class="pm-pw-toggle" tabindex="-1"><i class="ph ph-eye"></i></button>
+                    <button type="button" class="pm-pw-toggle" tabindex="-1" aria-label="Mostrar contraseña"><i class="ph ph-eye"></i></button>
                 </div>
                 <div class="pm-pw-strength"><div class="pm-pw-strength-bar" id="pm-pw-strength-bar"></div></div>
             </div>
             <div class="pm-field">
-                <label>Confirmar contraseña</label>
+                <label for="profile-confirm-pw">Confirmar contraseña</label>
                 <div class="pm-field-pw">
                     <input type="password" id="profile-confirm-pw" placeholder="Repite la contraseña">
-                    <button type="button" class="pm-pw-toggle" tabindex="-1"><i class="ph ph-eye"></i></button>
+                    <button type="button" class="pm-pw-toggle" tabindex="-1" aria-label="Mostrar contraseña"><i class="ph ph-eye"></i></button>
                 </div>
             </div>
-            <button class="pm-pw-btn" id="btn-change-pw">
-                <i class="ph ph-key"></i> Actualizar contraseña
+            <button type="button" class="pm-pw-btn" id="btn-change-pw">
+                <i class="ph ph-key"></i>
+                <span>Actualizar contraseña</span>
             </button>
         </div>
     </div>
@@ -133,28 +170,47 @@
 // Profile Modal Logic
 async function openProfileModal() {
     const modal = document.getElementById('profile-modal');
+    if (!modal) return;
     modal.classList.add('active');
     // Reset to first tab
     document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.profile-tab-pane').forEach(p => p.classList.remove('active'));
-    document.querySelector('.profile-tab-btn[data-tab="profile-info-tab"]').classList.add('active');
-    document.getElementById('profile-info-tab').classList.add('active');
+    const firstTabBtn = document.querySelector('.profile-tab-btn[data-tab="profile-info-tab"]');
+    if (firstTabBtn) firstTabBtn.classList.add('active');
+    const firstTabPane = document.getElementById('profile-info-tab');
+    if (firstTabPane) firstTabPane.classList.add('active');
 
-    const res = await fetch('modules/config/ajax_update_profile.php', {
-        method: 'POST', body: new URLSearchParams({ action: 'get_profile' })
-    });
-    const data = await res.json();
-    if (!data.success) return;
-    const u = data.user;
-    document.getElementById('profile-name').value = u.name || '';
-    document.getElementById('profile-username').value = u.username || '';
-    document.getElementById('profile-email').value = u.email || '';
-    document.getElementById('profile-phone').value = u.phone || '';
-    const preview = document.getElementById('profile-avatar-preview');
-    if (u.avatar) {
-        preview.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;"><span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
-    } else {
-        preview.innerHTML = `${(u.name || 'U').charAt(0).toUpperCase()}<span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
+    try {
+        const res = await fetch('modules/config/ajax_update_profile.php', {
+            method: 'POST', body: new URLSearchParams({ action: 'get_profile' })
+        });
+        const data = await res.json();
+        if (!data.success) return;
+        const u = data.user;
+        document.getElementById('profile-name').value = u.name || '';
+        document.getElementById('profile-username').value = u.username || '';
+        document.getElementById('profile-email').value = u.email || '';
+        document.getElementById('profile-phone').value = u.phone || '';
+
+        // Update header display name & subtitle
+        const dispName = document.getElementById('profile-display-name');
+        if (dispName) dispName.textContent = u.name || 'Mi Perfil';
+        const dispSub = document.getElementById('profile-display-subtitle');
+        if (dispSub) {
+            const role = u.role_display || 'Administrador';
+            dispSub.textContent = `${role} | Roma Agencia`;
+        }
+
+        const preview = document.getElementById('profile-avatar-preview');
+        if (preview) {
+            if (u.avatar) {
+                preview.innerHTML = `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;" alt="Avatar"><span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
+            } else {
+                preview.innerHTML = `${(u.name || 'U').charAt(0).toUpperCase()}<span class="profile-avatar-cam"><i class="ph ph-camera"></i></span>`;
+            }
+        }
+    } catch (err) {
+        console.error('Error al cargar perfil:', err);
     }
 }
 
@@ -245,11 +301,14 @@ document.getElementById('btn-save-profile').addEventListener('click', async () =
     btn.classList.remove('loading');
     if (data.success) {
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Perfil actualizado', showConfirmButton:false, timer:2000 });
-        // Update topbar/sidebar name
+        // Update header & topbar/sidebar name
+        const newName = document.getElementById('profile-name').value;
+        const dispName = document.getElementById('profile-display-name');
+        if (dispName) dispName.textContent = newName;
         const nameSpan = document.querySelector('.user-details span:first-child');
-        if (nameSpan) nameSpan.textContent = document.getElementById('profile-name').value;
+        if (nameSpan) nameSpan.textContent = newName;
         const sidebarName = document.querySelector('.sidebar-profile-info span:first-child');
-        if (sidebarName) sidebarName.textContent = document.getElementById('profile-name').value;
+        if (sidebarName) sidebarName.textContent = newName;
     } else {
         Swal.fire({ icon:'error', title:'Error', text: data.error });
     }

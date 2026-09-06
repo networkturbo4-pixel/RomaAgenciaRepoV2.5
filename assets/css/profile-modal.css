@@ -1,86 +1,174 @@
 /* ================================================================
-   Profile Modal — Modern Startup Style
+   Profile Modal — Modern SaaS Native App Style
+   Matching Reference: Inset Cover Banner, Overlapping Avatar with Verified Badge,
+   Segmented Native Switcher, and OLED Pure Black Dark Mode (#000000)
    ================================================================ */
 
-/* Override modal-content for profile specifically */
-#profile-modal .modal-content {
-    max-width: 520px;
-    border-radius: 24px;
+/* ── Modal Overlay & Dialog Frame ────────────────────────────── */
+#profile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s;
+}
+
+#profile-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+#profile-modal .modal-content.profile-app-modal {
+    width: 100%;
+    max-width: 470px;
+    background: #ffffff;
+    border-radius: 28px;
     overflow: hidden;
     padding: 0;
-    border: 1px solid rgba(255,255,255,0.08);
+    margin: 0;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    transform: scale(0.96) translateY(12px);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
 }
 
-/* ── Hero Banner ─────────────────────────────────────────────── */
-.profile-hero {
+#profile-modal.active .modal-content.profile-app-modal {
+    transform: scale(1) translateY(0);
+}
+
+/* ── Inset Top Cover Banner ──────────────────────────────────── */
+.profile-banner-wrap {
+    padding: 12px 12px 0 12px;
+}
+
+.profile-cover-banner {
+    height: 125px;
+    border-radius: 20px;
     position: relative;
-    background: var(--bg-surface);
-    padding: 2rem 2rem 3rem;
-    text-align: center;
     overflow: hidden;
-    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #1841e6 0%, #2563eb 50%, #1d4ed8 100%);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.profile-hero::after {
-    content: '';
+/* Decorative Geometric Branding Symbols (Matching Reference Image 2: ↗ ↘ ↖ ↙) */
+.profile-banner-symbols {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.6rem;
+    font-size: 2.1rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.08em;
+    user-select: none;
+    pointer-events: none;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.profile-banner-symbols span {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.profile-cover-banner:hover .profile-banner-symbols span {
+    transform: scale(1.06);
+}
+
+/* Subtle dot/grid sheen */
+.profile-banner-grid {
     position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 0;
-    background: transparent;
-    border-radius: 0;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+    background-size: 14px 14px;
+    pointer-events: none;
 }
 
+/* Glassmorphic Close Button */
 .profile-hero-close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    width: 36px;
-    height: 36px;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    border: none;
-    background: var(--bg-color);
-    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.22s ease;
     font-size: 1.1rem;
-    z-index: 2;
+    z-index: 10;
 }
 
 .profile-hero-close:hover {
-    background: var(--border-color);
-    color: var(--text-main);
-    transform: rotate(90deg);
+    background: rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    transform: rotate(90deg) scale(1.05);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
-/* ── Avatar Container ────────────────────────────────────────── */
+/* ── Header Profile Row: Avatar & Identity ───────────────────── */
+.profile-header-content {
+    padding: 0 22px 8px 22px;
+}
+
+.profile-avatar-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-top: -46px;
+    position: relative;
+    z-index: 5;
+}
+
+/* Avatar Container with Cutout Ring */
 .profile-avatar-wrap {
     position: relative;
-    z-index: 2;
-    display: inline-block;
+    width: 86px;
+    height: 86px;
+    flex-shrink: 0;
 }
 
 .profile-avatar-circle {
-    width: 96px;
-    height: 96px;
+    width: 86px;
+    height: 86px;
     border-radius: 50%;
-    border: 3px solid var(--border-color);
-    background: var(--primary-color);
-    color: white;
+    border: 4px solid #ffffff;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.25rem;
+    font-size: 2rem;
     font-weight: 700;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
     position: relative;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+
+.profile-avatar-circle:hover {
+    transform: scale(1.04);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
 }
 
 .profile-avatar-circle img {
@@ -89,166 +177,203 @@
     object-fit: cover;
 }
 
-.profile-avatar-circle:hover {
-    transform: scale(1.05);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
-}
-
-/* Camera overlay on hover */
-.profile-avatar-circle::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.4);
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    pointer-events: none;
-}
-
-.profile-avatar-circle:hover::after {
-    opacity: 1;
-}
-
+/* Hover Camera Icon Overlay */
 .profile-avatar-cam {
     position: absolute;
     inset: 0;
+    background: rgba(0, 0, 0, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 1.5rem;
+    color: #ffffff;
+    font-size: 1.4rem;
     opacity: 0;
-    transition: opacity 0.25s ease;
-    z-index: 1;
+    transition: opacity 0.2s ease;
     pointer-events: none;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
 }
 
 .profile-avatar-circle:hover .profile-avatar-cam {
     opacity: 1;
 }
 
-/* Avatar action buttons */
+/* Verified Badge Checkmark (Matching Image 2) */
+.profile-verified-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    border: 3px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    pointer-events: none;
+    z-index: 6;
+}
+
+/* Avatar Actions (Right aligned pill buttons) */
 .profile-avatar-actions {
     display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-    margin-top: 0.75rem;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
 }
 
 .profile-avatar-actions .pma-btn {
-    padding: 0.35rem 0.85rem;
-    font-size: 0.72rem;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: 9999px;
+    font-size: 0.78rem;
     font-weight: 600;
-    border-radius: 20px;
-    border: none;
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 6px;
+    cursor: pointer;
     transition: all 0.2s ease;
-    font-family: var(--font-family);
-    letter-spacing: 0.01em;
+    font-family: var(--font-family, 'Inter', sans-serif);
+    outline: none;
+}
+
+.profile-avatar-actions .pma-btn i {
+    font-size: 0.95rem;
 }
 
 .profile-avatar-actions .pma-btn-upload {
-    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-    color: var(--primary-color);
-    border: 1px solid color-mix(in srgb, var(--primary-color) 25%, transparent);
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
 }
 
 .profile-avatar-actions .pma-btn-upload:hover {
-    background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    background: #dbeafe;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
 }
 
 .profile-avatar-actions .pma-btn-remove {
-    background: color-mix(in srgb, var(--danger-color) 10%, transparent);
-    color: var(--danger-color);
-    border: 1px solid color-mix(in srgb, var(--danger-color) 20%, transparent);
+    background: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fecaca;
 }
 
 .profile-avatar-actions .pma-btn-remove:hover {
-    background: color-mix(in srgb, var(--danger-color) 20%, transparent);
+    background: #fee2e2;
+    border-color: #fca5a5;
+    transform: translateY(-1px);
 }
 
-/* ── Tabs Navigation ─────────────────────────────────────────── */
+/* ── User Identity (Name + Star + Subtitle) ──────────────────── */
+.profile-identity {
+    margin-top: 10px;
+}
+
+.profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.profile-display-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-family: var(--font-family, 'Inter', sans-serif);
+}
+
+.profile-star-badge {
+    color: #eab308;
+    font-size: 1.05rem;
+    line-height: 1;
+    user-select: none;
+    filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.4));
+}
+
+.profile-display-subtitle {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #64748b;
+    margin: 3px 0 0 0;
+    font-family: var(--font-family, 'Inter', sans-serif);
+}
+
+/* ── Segmented Tab Switcher (Native App Style) ───────────────── */
+.profile-tabs-wrapper {
+    padding: 10px 22px 4px 22px;
+}
+
 .profile-tabs-nav {
     display: flex;
-    gap: 0;
-    padding: 0 2rem;
-    margin-top: -0.5rem;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     position: relative;
-    z-index: 2;
 }
 
 .profile-tab-btn {
     flex: 1;
-    padding: 0.85rem 0.5rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    background: none;
+    height: 38px;
+    border-radius: 10px;
     border: none;
-    border-bottom: 2.5px solid transparent;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    background: transparent;
     cursor: pointer;
-    transition: all 0.25s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
-    font-family: var(--font-family);
-    letter-spacing: 0.02em;
-    position: relative;
+    gap: 7px;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: var(--font-family, 'Inter', sans-serif);
+    outline: none;
 }
 
 .profile-tab-btn i {
     font-size: 1rem;
+    transition: color 0.2s ease;
 }
 
 .profile-tab-btn:hover {
-    color: var(--primary-color);
+    color: #0f172a;
 }
 
 .profile-tab-btn.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-[data-theme="dark"] .profile-tab-btn:hover {
-    color: var(--warning-color);
-}
-
-[data-theme="dark"] .profile-tab-btn.active {
-    color: var(--warning-color);
-    border-bottom-color: var(--warning-color);
-}
-
-/* Divider under tabs */
-.profile-tabs-nav::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 2rem;
-    right: 2rem;
-    height: 1px;
-    background: var(--border-color);
+.profile-tab-btn.active i {
+    color: #2563eb;
 }
 
 /* ── Tab Panes ───────────────────────────────────────────────── */
 .profile-tab-pane {
     display: none;
-    padding: 1.5rem 2rem 2rem;
-    animation: profileFadeUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 14px 22px 24px 22px;
+    animation: profileSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .profile-tab-pane.active {
     display: block;
 }
 
-@keyframes profileFadeUp {
+@keyframes profileSlideIn {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(6px);
     }
     to {
         opacity: 1;
@@ -256,237 +381,215 @@
     }
 }
 
-/* ── Form Fields (Modern Floating) ───────────────────────────── */
+/* ── Form Fields (Sleek App Inputs) ──────────────────────────── */
 .pm-field {
-    position: relative;
-    margin-bottom: 1.25rem;
+    margin-bottom: 14px;
 }
 
 .pm-field label {
     display: block;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--text-muted);
-    margin-bottom: 0.4rem;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-family: var(--font-family, 'Inter', sans-serif);
 }
 
 .pm-field input {
     width: 100%;
-    padding: 0.7rem 0.9rem;
+    height: 44px;
+    padding: 0 14px;
     font-size: 0.875rem;
-    font-family: var(--font-family);
-    color: var(--text-main);
-    background: var(--bg-color);
-    border: 1.5px solid var(--border-color);
-    border-radius: 12px;
-    transition: all 0.25s ease;
+    font-family: var(--font-family, 'Inter', sans-serif);
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    transition: all 0.2s ease;
     outline: none;
+    box-sizing: border-box;
 }
 
 .pm-field input:focus {
-    border-color: var(--primary-color);
-    background: var(--bg-surface);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color) 10%, transparent);
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .pm-field input::placeholder {
-    color: color-mix(in srgb, var(--text-muted) 60%, transparent);
+    color: #94a3b8;
 }
 
-.pm-field-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.85rem;
-}
-
-.pm-field-row .pm-field {
-    margin-bottom: 0;
-}
-
-/* Field with icon */
+/* Field with left icon */
 .pm-field-icon {
     position: relative;
 }
 
 .pm-field-icon i {
     position: absolute;
-    left: 0.85rem;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: 1rem;
+    color: #94a3b8;
+    font-size: 1.1rem;
     pointer-events: none;
-    transition: color 0.25s ease;
+    transition: color 0.2s ease;
 }
 
 .pm-field-icon input {
-    padding-left: 2.5rem;
+    padding-left: 42px;
 }
 
 .pm-field-icon:focus-within i {
-    color: var(--primary-color);
+    color: #2563eb;
 }
 
-/* ── Save Button ─────────────────────────────────────────────── */
+/* Dual Column Row */
+.pm-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.pm-field-row .pm-field {
+    margin-bottom: 0;
+}
+
+/* ── Primary Save Button ─────────────────────────────────────── */
 .pm-save-btn {
     width: 100%;
-    padding: 0.8rem;
-    font-size: 0.875rem;
+    height: 46px;
+    padding: 0 18px;
+    font-size: 0.9rem;
     font-weight: 600;
-    font-family: var(--font-family);
-    color: var(--color-btn-text, white);
-    background: var(--color-btn-bg, var(--primary-color));
+    font-family: var(--font-family, 'Inter', sans-serif);
+    color: #ffffff;
+    background: #1841e6;
     border: none;
     border-radius: 14px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-top: 1.5rem;
-    position: relative;
-    overflow: hidden;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-top: 18px;
+    box-shadow: 0 4px 14px rgba(24, 65, 230, 0.3);
 }
 
 .pm-save-btn:hover {
-    background: var(--color-btn-hover, var(--primary-hover));
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px color-mix(in srgb, var(--primary-color) 30%, transparent);
+    background: #1536c4;
+    transform: translateY(-1.5px);
+    box-shadow: 0 8px 24px rgba(24, 65, 230, 0.4);
 }
 
 .pm-save-btn:active {
     transform: translateY(0);
 }
 
-/* Loading state */
 .pm-save-btn.loading {
     pointer-events: none;
-    opacity: 0.8;
+    opacity: 0.85;
 }
 
 .pm-save-btn.loading::after {
     content: '';
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
     border-radius: 50%;
     animation: pmSpin 0.6s linear infinite;
+    margin-left: 4px;
 }
 
 @keyframes pmSpin {
     to { transform: rotate(360deg); }
 }
 
-/* ── Password Section ────────────────────────────────────────── */
+/* ── Security / Password Tab ─────────────────────────────────── */
 .pm-pw-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1.25rem;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .pm-pw-header-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
-    color: var(--primary-color);
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: #eff6ff;
+    color: #2563eb;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
-}
-
-[data-theme="dark"] .pm-pw-header-icon {
-    background: color-mix(in srgb, var(--warning-color) 12%, transparent);
-    color: var(--warning-color);
+    font-size: 1.15rem;
+    flex-shrink: 0;
 }
 
 .pm-pw-header-text h4 {
     font-size: 0.9rem;
-    font-weight: 650;
+    font-weight: 700;
     margin: 0;
-    color: var(--text-main);
+    color: #0f172a;
+    font-family: var(--font-family, 'Inter', sans-serif);
 }
 
 .pm-pw-header-text p {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    margin: 0.15rem 0 0 0;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin: 2px 0 0 0;
+    font-family: var(--font-family, 'Inter', sans-serif);
 }
 
-.pm-pw-btn {
-    width: 100%;
-    padding: 0.75rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    font-family: var(--font-family);
-    color: var(--text-main);
-    background: var(--bg-color);
-    border: 1.5px solid var(--border-color);
-    border-radius: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.25s ease;
-    margin-top: 1.25rem;
-}
-
-.pm-pw-btn:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    background: color-mix(in srgb, var(--primary-color) 5%, transparent);
-}
-
-/* ── Password Visibility Toggle ──────────────────────────────── */
 .pm-field-pw {
     position: relative;
 }
 
 .pm-field-pw input {
-    padding-right: 2.75rem;
+    padding-right: 42px;
 }
 
 .pm-pw-toggle {
     position: absolute;
-    right: 0.75rem;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: var(--text-muted);
+    color: #94a3b8;
     cursor: pointer;
-    padding: 0.25rem;
+    padding: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     transition: color 0.2s ease;
+    outline: none;
 }
 
 .pm-pw-toggle:hover {
-    color: var(--text-main);
+    color: #0f172a;
 }
 
-/* ── Password Strength Indicator ─────────────────────────────── */
+/* Password Strength Indicator */
 .pm-pw-strength {
-    height: 3px;
-    background: var(--border-color);
-    border-radius: 3px;
-    margin-top: 0.5rem;
+    height: 3.5px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin-top: 6px;
     overflow: hidden;
 }
 
 .pm-pw-strength-bar {
     height: 100%;
     width: 0%;
-    border-radius: 3px;
+    border-radius: 4px;
     transition: all 0.3s ease;
 }
 
@@ -494,39 +597,245 @@
 .pm-pw-strength-bar.medium { width: 66%; background: #f59e0b; }
 .pm-pw-strength-bar.strong { width: 100%; background: #10b981; }
 
-/* ── Success Checkmark Animation ─────────────────────────────── */
-@keyframes pmCheck {
-    0% { transform: scale(0) rotate(-45deg); opacity: 0; }
-    50% { transform: scale(1.2) rotate(0deg); }
-    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+.pm-pw-btn {
+    width: 100%;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: var(--font-family, 'Inter', sans-serif);
+    color: #ffffff;
+    background: #0f172a;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.22s ease;
+    margin-top: 18px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
 }
 
-.pm-success-pulse {
-    animation: pmCheck 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.pm-pw-btn:hover {
+    background: #1e293b;
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
 }
 
-/* ── Responsive ──────────────────────────────────────────────── */
-@media (max-width: 768px) {
-    #profile-modal .modal-content {
+/* ================================================================
+   PURE BLACK OLED DARK MODE STYLES (#000000)
+   ================================================================ */
+
+[data-theme="dark"] #profile-modal {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* Pure Black Modal Card Surface */
+[data-theme="dark"] #profile-modal .modal-content.profile-app-modal {
+    background: #000000 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 30px 80px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Dark Mode Inset Cover Banner */
+[data-theme="dark"] .profile-cover-banner {
+    background: linear-gradient(135deg, #1536c4 0%, #1d4ed8 50%, #2563eb 100%);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Cutout Avatar Ring in Pitch Black */
+[data-theme="dark"] .profile-avatar-circle {
+    border-color: #000000;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+}
+
+/* Verified Badge Cutout Ring in Pitch Black */
+[data-theme="dark"] .profile-verified-badge {
+    border-color: #000000;
+    background: #2563eb;
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.6);
+}
+
+/* Dark Mode Action Buttons */
+[data-theme="dark"] .profile-avatar-actions .pma-btn-upload {
+    background: rgba(37, 99, 235, 0.16);
+    color: #60a5fa;
+    border-color: rgba(96, 165, 250, 0.28);
+}
+
+[data-theme="dark"] .profile-avatar-actions .pma-btn-upload:hover {
+    background: rgba(37, 99, 235, 0.26);
+    border-color: rgba(96, 165, 250, 0.45);
+}
+
+[data-theme="dark"] .profile-avatar-actions .pma-btn-remove {
+    background: rgba(239, 68, 68, 0.14);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.25);
+}
+
+[data-theme="dark"] .profile-avatar-actions .pma-btn-remove:hover {
+    background: rgba(239, 68, 68, 0.24);
+    border-color: rgba(248, 113, 113, 0.4);
+}
+
+/* Dark Mode Typography */
+[data-theme="dark"] .profile-display-name {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .profile-display-subtitle {
+    color: #94a3b8;
+}
+
+/* Dark Mode Segmented Tabs */
+[data-theme="dark"] .profile-tabs-nav {
+    background: #0d0d12;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .profile-tab-btn {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .profile-tab-btn:hover {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .profile-tab-btn.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .profile-tab-btn.active i {
+    color: #60a5fa;
+}
+
+/* Dark Mode Form Inputs */
+[data-theme="dark"] .pm-field label {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .pm-field input {
+    background: #0c0c10;
+    border-color: rgba(255, 255, 255, 0.09);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .pm-field input:focus {
+    border-color: #3b82f6;
+    background: #121218;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+}
+
+[data-theme="dark"] .pm-field input::placeholder {
+    color: #52525b;
+}
+
+[data-theme="dark"] .pm-field-icon i {
+    color: #71717a;
+}
+
+[data-theme="dark"] .pm-field-icon:focus-within i {
+    color: #60a5fa;
+}
+
+/* Dark Mode Save Button */
+[data-theme="dark"] .pm-save-btn {
+    background: #1841e6;
+    color: #ffffff;
+    box-shadow: 0 4px 18px rgba(24, 65, 230, 0.45);
+}
+
+[data-theme="dark"] .pm-save-btn:hover {
+    background: #1536c4;
+    box-shadow: 0 8px 26px rgba(24, 65, 230, 0.6);
+}
+
+/* Dark Mode Security Tab Header */
+[data-theme="dark"] .pm-pw-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .pm-pw-header-icon {
+    background: rgba(37, 99, 235, 0.18);
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .pm-pw-header-text h4 {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .pm-pw-header-text p {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .pm-pw-toggle {
+    color: #71717a;
+}
+
+[data-theme="dark"] .pm-pw-toggle:hover {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .pm-pw-strength {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .pm-pw-btn {
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .pm-pw-btn:hover {
+    background: #f1f5f9;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.25);
+}
+
+/* ── Mobile Responsive Refinements ───────────────────────────── */
+@media (max-width: 640px) {
+    #profile-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    #profile-modal .modal-content.profile-app-modal {
         max-width: 100%;
-        border-radius: 24px 24px 0 0;
+        border-radius: 28px 28px 0 0;
+        max-height: 90vh;
+        overflow-y: auto;
     }
 
-    .profile-hero {
-        padding: 2rem 1.5rem 3rem;
+    .profile-cover-banner {
+        height: 110px;
     }
 
-    .profile-tab-pane {
-        padding: 1.25rem 1.5rem 1.5rem;
+    .profile-banner-symbols {
+        font-size: 1.75rem;
+        gap: 1.2rem;
     }
 
-    .profile-tabs-nav {
-        padding: 0 1.5rem;
+    .profile-avatar-row {
+        margin-top: -40px;
     }
 
-    .profile-tabs-nav::after {
-        left: 1.5rem;
-        right: 1.5rem;
+    .profile-avatar-wrap,
+    .profile-avatar-circle {
+        width: 76px;
+        height: 76px;
+        font-size: 1.75rem;
+    }
+
+    .profile-verified-badge {
+        width: 23px;
+        height: 23px;
+        font-size: 11px;
     }
 
     .pm-field-row {
@@ -535,51 +844,18 @@
     }
 
     .pm-field-row .pm-field {
-        margin-bottom: 1.25rem;
+        margin-bottom: 14px;
     }
 
-    .profile-avatar-circle {
-        width: 80px;
-        height: 80px;
-        font-size: 1.85rem;
+    .profile-tab-pane {
+        padding: 12px 18px 20px 18px;
     }
-}
 
-/* ── Dark Mode Refinements ───────────────────────────────────── */
-[data-theme="dark"] .profile-hero {
-    background: var(--bg-surface);
-    border-bottom-color: var(--border-color);
-}
+    .profile-header-content {
+        padding: 0 18px 6px 18px;
+    }
 
-[data-theme="dark"] #profile-modal .modal-content {
-    border-color: rgba(255,255,255,0.06);
-}
-
-[data-theme="dark"] .pm-field input {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .pm-field input:focus {
-    background: rgba(255,255,255,0.06);
-    border-color: var(--warning-color);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--warning-color) 10%, transparent);
-}
-
-[data-theme="dark"] .pm-save-btn {
-    background: var(--color-btn-bg, var(--primary-color));
-}
-
-[data-theme="dark"] .pm-save-btn:hover {
-    background: var(--color-btn-hover, var(--primary-hover));
-}
-
-[data-theme="dark"] .pm-pw-btn:hover {
-    border-color: var(--warning-color);
-    color: var(--warning-color);
-    background: color-mix(in srgb, var(--warning-color) 6%, transparent);
-}
-
-[data-theme="dark"] .profile-avatar-circle {
-    border-color: var(--border-color);
+    .profile-tabs-wrapper {
+        padding: 8px 18px 4px 18px;
+    }
 }

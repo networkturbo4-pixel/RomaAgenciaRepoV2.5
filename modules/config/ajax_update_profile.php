@@ -18,9 +18,26 @@ $action = $_POST['action'] ?? '';
 try {
     switch ($action) {
         case 'get_profile':
-            $stmt = $db->prepare("SELECT id, name, username, email, phone, avatar FROM users WHERE id = ?");
-            $stmt->execute([$userId]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            try {
+                $stmt = $db->prepare("SELECT u.id, u.name, u.username, u.email, u.phone, u.avatar, r.name as role_name 
+                                      FROM users u 
+                                      LEFT JOIN roles r ON u.role_id = r.id 
+                                      WHERE u.id = ?");
+                $stmt->execute([$userId]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                $user = null;
+            }
+            if (!$user) {
+                $stmt = $db->prepare("SELECT id, name, username, email, phone, avatar FROM users WHERE id = ?");
+                $stmt->execute([$userId]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            $roleName = !empty($user['role_name']) ? $user['role_name'] : ($_SESSION['user_role'] ?? 'Usuario');
+            if ($roleName === '1' || strtolower($roleName) === 'admin') {
+                $roleName = 'Administrador';
+            }
+            $user['role_display'] = $roleName;
             echo json_encode(['success' => true, 'user' => $user]);
             break;
 
