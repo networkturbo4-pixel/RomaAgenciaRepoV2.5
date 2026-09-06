@@ -86,17 +86,23 @@ if ($action === 'get_projects_and_months') {
         // Active Projects (From projects + work_orders)
         $projects = [];
         $stmtP = $db->query("
-            SELECT p.id, w.brand_name as name, 'marketing' as type 
+            SELECT p.id, w.brand_name as name, p.team_members, 'marketing' as type 
             FROM projects p 
             JOIN work_orders w ON p.work_order_id = w.id 
             WHERE p.status = 'active' 
             ORDER BY w.brand_name ASC
         ");
         while ($r = $stmtP->fetch(PDO::FETCH_ASSOC)) {
+            $tmRaw = json_decode($r['team_members'] ?: '[]', true) ?: [];
+            $tmInts = [];
+            foreach ((array)$tmRaw as $uid) {
+                if (is_numeric($uid) && (int)$uid > 0) $tmInts[] = (int)$uid;
+            }
             $projects[] = [
                 'id' => (int)$r['id'],
                 'name' => $r['name'] ?: 'Proyecto #' . $r['id'],
-                'type' => 'marketing'
+                'type' => 'marketing',
+                'team_members' => $tmInts
             ];
         }
 
@@ -107,7 +113,8 @@ if ($action === 'get_projects_and_months') {
                 'id' => (int)$r['id'] + 10000, // Namespace separation
                 'real_id' => (int)$r['id'],
                 'name' => $r['name'],
-                'type' => 'module_project'
+                'type' => 'module_project',
+                'team_members' => []
             ];
         }
 
@@ -141,16 +148,26 @@ if ($action === 'get_projects_and_months') {
 
         // Brand Projects (brand_projects for Desarrollo de Marca)
         $brandProjects = [];
+        $bpuMap = [];
+        try {
+            $stBPU = $db->query("SELECT project_id, user_id FROM brand_project_users");
+            while ($b = $stBPU->fetch(PDO::FETCH_ASSOC)) {
+                $bpuMap[(int)$b['project_id']][] = (int)$b['user_id'];
+            }
+        } catch(Throwable $e) {}
+
         try {
             $stmtBP = $db->query("SELECT id, title, client_name, status, start_date, due_date FROM brand_projects WHERE status = 'Active' OR status IS NULL OR status = '' ORDER BY id DESC");
             while ($r = $stmtBP->fetch(PDO::FETCH_ASSOC)) {
+                $bpId = (int)$r['id'];
                 $brandProjects[] = [
-                    'id' => (int)$r['id'],
+                    'id' => $bpId,
                     'title' => $r['title'],
                     'client_name' => $r['client_name'] ?? '',
                     'status' => $r['status'] ?? 'Active',
                     'start_date' => $r['start_date'] ?: '',
-                    'due_date' => $r['due_date'] ?: ''
+                    'due_date' => $r['due_date'] ?: '',
+                    'team_members' => $bpuMap[$bpId] ?? []
                 ];
             }
         } catch(Throwable $e) {}
@@ -174,21 +191,41 @@ if ($action === 'get_projects_and_months') {
                 $srvName = mb_strtolower($r['service_name'] ?? '');
                 if (strpos($catName, 'web') !== false || strpos($srvName, 'web') !== false) {
                     $areaType = 'desarrollo_web';
-                } else if (strpos($catName, 'audio') !== false || strpos($catName, 'video') !== false || strpos($srvName, 'audio') !== false || strpos($srvName, 'video') !== false) {
+                } else if (strpos($catName, 'audio') !== false || strpos($srvName, 'video') !== false || strpos($srvName, 'audio') !== false || strpos($srvName, 'video') !== false) {
                     $areaType = 'audiovisual';
                 }
                 $projectServices[] = [
                     'id' => (int)$r['id'],
                     'project_id' => (int)$r['project_id'],
-                    'project_name' => $r['project_name'] ?: 'Proyecto #' . $r['project_id'],
-                    'service_name' => $r['service_name'] ?: $r['title'],
-                    'category_name' => $r['category_name'] ?: '',
                     'title' => $r['title'] ?: ($r['service_name'] ?: 'Servicio #' . $r['id']),
-                    'status' => $r['status'] ?: 'pending',
+                    'service_name' => $r['service_name'] ?? '',
+                    'category_name' => $r['category_name'] ?? '',
+                    'project_name' => $r['project_name'] ?? '',
+                    'status' => $r['status'] ?: 'Pendiente',
                     'start_date' => $r['start_date'] ?: '',
                     'due_date' => $r['due_date'] ?: '',
                     'area' => $areaType
                 ];
+            }
+        } catch(Throwable $e) {}
+
+        // Available suggested tags
+        $availableTags = ['Diseño', 'Revisión', 'Web', 'Video', 'Urgente', 'Contenido', 'Campaña', 'Copywriting', 'Estrategia', 'Logotipo'];
+        try {
+            $stBT = $db->query("SELECT name FROM brand_tags LIMIT 30");
+            while ($bt = $stBT->fetch(PDO::FETCH_ASSOC)) {
+                if (!empty($bt['name']) && !in_array($bt['name'], $availableTags)) {
+                    $availableTags[] = $bt['name'];
+                }
+            }
+            $stTT = $db->query("SELECT tags FROM tm_tasks WHERE tags IS NOT NULL AND tags != '' AND tags != '[]' LIMIT 50");
+            while ($tt = $stTT->fetch(PDO::FETCH_ASSOC)) {
+                $dec = json_decode($tt['tags'], true) ?: [];
+                foreach ((array)$dec as $tg) {
+                    if (is_string($tg) && trim($tg) && !in_array(trim($tg), $availableTags)) {
+                        $availableTags[] = trim($tg);
+                    }
+                }
             }
         } catch(Throwable $e) {}
 
@@ -198,6 +235,7 @@ if ($action === 'get_projects_and_months') {
             'project_months' => $projectMonths,
             'brand_projects' => $brandProjects,
             'project_services' => $projectServices,
+            'available_tags' => $availableTags,
             'users' => array_values($userMap)
         ]);
     } catch(Throwable $e) {

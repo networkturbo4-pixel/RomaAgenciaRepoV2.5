@@ -620,19 +620,70 @@ try {
                     </div>
 
                     <!-- Asignados -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-users-three"></i> Asignados</div>
-                        <div class="lumio-meta-value">
-                            <input type="text" id="tm-assigned-users" class="lumio-users-select" placeholder="Buscar y asignar personas...">
+                    <div class="lumio-meta-row tm-assigned-meta-row">
+                        <div class="lumio-meta-label">
+                            <i class="ph ph-users-three"></i> Asignados
+                            <span class="tm-meta-counter-badge" id="tm-assigned-count">0</span>
                         </div>
+                        <div class="tm-assigned-card" id="tm-assigned-container">
+                            <!-- Chips de personas asignadas -->
+                            <div class="tm-assigned-chips" id="tm-assigned-chips"></div>
+
+                            <!-- Selector desplegable de personas para asignar -->
+                            <div class="tm-assigned-select-row">
+                                <div class="tm-assigned-select-wrap">
+                                    <i class="ph ph-user-plus tm-assigned-select-icon"></i>
+                                    <select id="tm-user-select-add" class="tm-assigned-select" onchange="TM.onUserSelectChange(this.value)">
+                                        <option value="">+ Asignar a un miembro del equipo...</option>
+                                        <?php foreach ($users as $u): ?>
+                                            <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['name']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Barra de Asignados al Proyecto vinculado -->
+                            <div class="tm-project-members-bar" id="tm-project-members-bar" style="display:none;">
+                                <div class="tm-pm-header">
+                                    <span class="tm-pm-title"><i class="ph-bold ph-buildings"></i> Asignados al proyecto:</span>
+                                    <button type="button" class="tm-btn-assign-all-pm" onclick="TM.assignAllProjectMembers()" title="Asignar todos los miembros del proyecto a la tarea">
+                                        <i class="ph-bold ph-check-all"></i> Asignar todos
+                                    </button>
+                                </div>
+                                <div class="tm-pm-chips" id="tm-project-members-chips"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="tm-assigned-users">
                     </div>
 
                     <!-- Etiquetas -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-tag"></i> Etiquetas</div>
-                        <div class="lumio-meta-value">
-                            <input type="text" id="tm-tags" class="lumio-tags-input" placeholder="Diseño, Revisión, Web, Video...">
+                    <div class="lumio-meta-row tm-tags-meta-row">
+                        <div class="lumio-meta-label">
+                            <i class="ph ph-tag"></i> Etiquetas
+                            <span class="tm-meta-counter-badge" id="tm-tags-count">0</span>
                         </div>
+                        <div class="tm-tags-card" id="tm-tags-container">
+                            <!-- Chips de etiquetas activas (con editar y borrar) -->
+                            <div class="tm-tags-chips-wrap" id="tm-tags-chips-wrap"></div>
+
+                            <!-- Input para crear nueva etiqueta -->
+                            <div class="tm-tags-create-row">
+                                <div class="tm-tags-input-box">
+                                    <i class="ph ph-tag tm-tags-input-icon"></i>
+                                    <input type="text" id="tm-tag-new-input" placeholder="Escribe una etiqueta y presiona Enter..." onkeydown="TM.onTagInputKeydown(event)">
+                                </div>
+                                <button type="button" class="tm-btn-add-tag" onclick="TM.addTagFromInput()" title="Agregar etiqueta">
+                                    <i class="ph-bold ph-plus"></i> Agregar
+                                </button>
+                            </div>
+
+                            <!-- Sugerencias rápidas con 1 clic -->
+                            <div class="tm-tags-suggestions-row">
+                                <span class="tm-tags-sug-label"><i class="ph ph-sparkle"></i> Frecuentes:</span>
+                                <div class="tm-tags-sug-pills" id="tm-tags-sug-pills"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="tm-tags">
                     </div>
                 </div>
 
@@ -797,8 +848,10 @@ try {
 window.TM_USER_ID = <?php echo $userId; ?>;
 window.TM_IS_ADMIN = <?php echo $isAdmin ? 'true' : 'false'; ?>;
 window.TM_USERS = [
-<?php foreach($users as $u): ?>
-    { "value": <?php echo json_encode($u['name']); ?>, "id": <?php echo $u['id']; ?> },
+<?php foreach($users as $u): 
+    $initial = mb_strtoupper(mb_substr(trim($u['name'] ?? 'U'), 0, 1));
+?>
+    { "id": <?php echo (int)$u['id']; ?>, "name": <?php echo json_encode($u['name']); ?>, "value": <?php echo json_encode($u['name']); ?>, "avatar": <?php echo json_encode($u['avatar'] ?? ''); ?>, "initial": <?php echo json_encode($initial); ?> },
 <?php endforeach; ?>
 ];
 </script>

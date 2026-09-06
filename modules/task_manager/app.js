@@ -23,6 +23,9 @@ const TM = {
     dpDailyDate: null,
     dpObjectiveDate: null,
     dailyObjectivesData: null,
+    currentAssignedUserIds: [],
+    currentTags: [],
+    availableTags: ['Diseño', 'Revisión', 'Web', 'Video', 'Urgente', 'Contenido', 'Campaña', 'Copywriting'],
     quillDesc: null,
     tagifyUsers: null,
     draggedElement: null,
@@ -107,22 +110,335 @@ const TM = {
         }
     },
 
-    initTagify: function() {
-        if (typeof Tagify === 'undefined' || this.tagifyUsers) return;
-        const input = document.getElementById('tm-assigned-users');
-        if (input) {
-            this.tagifyUsers = new Tagify(input, {
-                whitelist: window.TM_USERS || [],
-                enforceWhitelist: true,
-                dropdown: {
-                    enabled: 0,
-                    maxItems: 20,
-                    classname: "tags-look",
-                    searchKeys: ["value"],
-                    appendTarget: input.closest('.tm-modal-overlay') || document.body
-                }
+    escapeHtml: function(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    // ══════════════════════════════════════════════════════
+    // GESTIÓN DE ASIGNADOS Y ASIGNADOS AL PROYECTO
+    // ══════════════════════════════════════════════════════
+    getUserById: function(uid) {
+        uid = parseInt(uid, 10);
+        const list = window.TM_USERS || [];
+        const found = list.find(u => parseInt(u.id, 10) === uid);
+        if (found) return found;
+        return { id: uid, name: 'Usuario #' + uid, initial: 'U', avatar: '' };
+    },
+
+    renderAssignedUsers: function() {
+        const container = document.getElementById('tm-assigned-chips');
+        const countBadge = document.getElementById('tm-assigned-count');
+        const hiddenInput = document.getElementById('tm-assigned-users');
+        const select = document.getElementById('tm-user-select-add');
+
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (countBadge) countBadge.textContent = this.currentAssignedUserIds.length;
+        if (hiddenInput) hiddenInput.value = JSON.stringify(this.currentAssignedUserIds);
+
+        if (this.currentAssignedUserIds.length === 0) {
+            container.innerHTML = '<span class="tm-assigned-empty"><i class="ph ph-user-dashed"></i> Sin miembros asignados</span>';
+        } else {
+            this.currentAssignedUserIds.forEach(uid => {
+                const u = this.getUserById(uid);
+                const chip = document.createElement('div');
+                chip.className = 'tm-user-chip';
+                chip.dataset.uid = u.id;
+                chip.innerHTML = `
+                    ${u.avatar ? `<img src="${u.avatar}" class="tm-user-chip-avatar" alt="${this.escapeHtml(u.name)}">` : `<span class="tm-user-chip-initial">${u.initial || u.name.charAt(0).toUpperCase()}</span>`}
+                    <span class="tm-user-chip-name">${this.escapeHtml(u.name)}</span>
+                    <button type="button" class="tm-user-chip-remove" onclick="TM.unassignUser(${u.id})" title="Desasignar a ${this.escapeHtml(u.name)}">
+                        <i class="ph ph-x"></i>
+                    </button>
+                `;
+                container.appendChild(chip);
             });
         }
+
+        // Update select dropdown: mark already assigned
+        if (select) {
+            Array.from(select.options).forEach((opt, idx) => {
+                if (idx === 0) return;
+                const optUid = parseInt(opt.value, 10);
+                const isAssigned = this.currentAssignedUserIds.includes(optUid);
+                opt.disabled = isAssigned;
+                const uObj = this.getUserById(optUid);
+                opt.textContent = isAssigned ? `✓ ${uObj.name} (Asignado)` : uObj.name;
+            });
+            select.value = '';
+        }
+
+        // Refresh project members bar states
+        this.updateProjectMembersBar();
+    },
+
+    assignUser: function(uid) {
+        uid = parseInt(uid, 10);
+        if (!uid || isNaN(uid)) return;
+        if (!this.currentAssignedUserIds.includes(uid)) {
+            this.currentAssignedUserIds.push(uid);
+            this.renderAssignedUsers();
+        }
+    },
+
+    unassignUser: function(uid) {
+        uid = parseInt(uid, 10);
+        this.currentAssignedUserIds = this.currentAssignedUserIds.filter(id => id !== uid);
+        this.renderAssignedUsers();
+    },
+
+    onUserSelectChange: function(val) {
+        if (!val) return;
+        this.assignUser(val);
+    },
+
+    getProjectTeamMembers: function() {
+        const projSelect = document.getElementById('tm-project-id');
+        const brandProjSelect = document.getElementById('tm-brand-project-id');
+        const areaSelect = document.getElementById('tm-area');
+        const area = areaSelect ? areaSelect.value : 'general';
+
+        if (area === 'desarrollo_marca' && brandProjSelect && brandProjSelect.value) {
+            const bp = this.brandProjects.find(b => String(b.id) === String(brandProjSelect.value));
+            return (bp && Array.isArray(bp.team_members)) ? bp.team_members : [];
+        }
+
+        if (projSelect && projSelect.value) {
+            const p = this.projects.find(x => String(x.id) === String(projSelect.value));
+            return (p && Array.isArray(p.team_members)) ? p.team_members : [];
+        }
+
+        return [];
+    },
+
+    updateProjectMembersBar: function() {
+        const bar = document.getElementById('tm-project-members-bar');
+        const chipsWrap = document.getElementById('tm-project-members-chips');
+        if (!bar || !chipsWrap) return;
+
+        const pMembers = this.getProjectTeamMembers();
+        if (!pMembers || pMembers.length === 0) {
+            bar.style.display = 'none';
+            chipsWrap.innerHTML = '';
+            return;
+        }
+
+        bar.style.display = 'flex';
+        chipsWrap.innerHTML = '';
+
+        pMembers.forEach(uid => {
+            const u = this.getUserById(uid);
+            const isAssigned = this.currentAssignedUserIds.includes(parseInt(u.id, 10));
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = `tm-pm-chip ${isAssigned ? 'is-assigned' : ''}`;
+            chip.title = isAssigned ? `Quitar a ${u.name}` : `Asignar a ${u.name}`;
+            chip.onclick = () => this.toggleProjectMemberAssign(u.id);
+            chip.innerHTML = `
+                ${u.avatar ? `<img src="${u.avatar}" class="tm-pm-avatar" alt="${this.escapeHtml(u.name)}">` : `<span class="tm-pm-initial">${u.initial || u.name.charAt(0).toUpperCase()}</span>`}
+                <span class="tm-pm-name">${this.escapeHtml(u.name)}</span>
+                <i class="ph-bold ${isAssigned ? 'ph-check' : 'ph-plus'} tm-pm-icon"></i>
+            `;
+            chipsWrap.appendChild(chip);
+        });
+    },
+
+    toggleProjectMemberAssign: function(uid) {
+        uid = parseInt(uid, 10);
+        if (this.currentAssignedUserIds.includes(uid)) {
+            this.unassignUser(uid);
+        } else {
+            this.assignUser(uid);
+        }
+    },
+
+    assignAllProjectMembers: function() {
+        const pMembers = this.getProjectTeamMembers();
+        if (!pMembers || pMembers.length === 0) return;
+        pMembers.forEach(uid => {
+            const id = parseInt(uid, 10);
+            if (id && !this.currentAssignedUserIds.includes(id)) {
+                this.currentAssignedUserIds.push(id);
+            }
+        });
+        this.renderAssignedUsers();
+    },
+
+    // ══════════════════════════════════════════════════════
+    // GESTIÓN DE ETIQUETAS (CREAR, EDITAR, BORRAR)
+    // ══════════════════════════════════════════════════════
+    renderTags: function() {
+        const wrap = document.getElementById('tm-tags-chips-wrap');
+        const countBadge = document.getElementById('tm-tags-count');
+        const hiddenInput = document.getElementById('tm-tags');
+        const sugWrap = document.getElementById('tm-tags-sug-pills');
+
+        if (!wrap) return;
+        wrap.innerHTML = '';
+
+        if (countBadge) countBadge.textContent = this.currentTags.length;
+        if (hiddenInput) hiddenInput.value = JSON.stringify(this.currentTags);
+
+        if (this.currentTags.length === 0) {
+            wrap.innerHTML = '<span class="tm-tags-empty"><i class="ph ph-tag-chevron"></i> Sin etiquetas asignadas</span>';
+        } else {
+            this.currentTags.forEach((tag, index) => {
+                const chip = document.createElement('div');
+                chip.className = 'tm-tag-chip';
+                chip.dataset.tag = tag;
+                chip.dataset.index = index;
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'tm-tag-chip-text';
+                textSpan.textContent = tag;
+                textSpan.title = 'Clic o doble clic para editar';
+                textSpan.onclick = () => this.startEditTag(index, chip);
+
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'tm-tag-edit-btn';
+                editBtn.title = 'Editar nombre';
+                editBtn.innerHTML = '<i class="ph ph-pencil-simple"></i>';
+                editBtn.onclick = () => this.startEditTag(index, chip);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'tm-tag-chip-remove';
+                removeBtn.title = 'Eliminar etiqueta';
+                removeBtn.innerHTML = '<i class="ph ph-x"></i>';
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.removeTag(tag);
+                };
+
+                chip.appendChild(textSpan);
+                chip.appendChild(editBtn);
+                chip.appendChild(removeBtn);
+                wrap.appendChild(chip);
+            });
+        }
+
+        // Render suggested tags pills
+        if (sugWrap) {
+            sugWrap.innerHTML = '';
+            const allSugs = Array.from(new Set([...this.availableTags]));
+            allSugs.slice(0, 10).forEach(st => {
+                const isActive = this.currentTags.some(t => t.toLowerCase() === st.toLowerCase());
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `tm-tag-sug-pill ${isActive ? 'active' : ''}`;
+                btn.title = isActive ? `Quitar etiqueta ${st}` : `Agregar etiqueta ${st}`;
+                btn.onclick = () => this.toggleSuggestedTag(st);
+                btn.innerHTML = `<i class="ph-bold ${isActive ? 'ph-check' : 'ph-plus'}"></i> ${this.escapeHtml(st)}`;
+                sugWrap.appendChild(btn);
+            });
+        }
+    },
+
+    addTag: function(tag) {
+        tag = (tag || '').trim();
+        if (!tag) return;
+        const exists = this.currentTags.some(t => t.toLowerCase() === tag.toLowerCase());
+        if (!exists) {
+            this.currentTags.push(tag);
+            if (!this.availableTags.some(t => t.toLowerCase() === tag.toLowerCase())) {
+                this.availableTags.push(tag);
+            }
+            this.renderTags();
+        }
+    },
+
+    removeTag: function(tag) {
+        this.currentTags = this.currentTags.filter(t => t.toLowerCase() !== tag.toLowerCase());
+        this.renderTags();
+    },
+
+    addTagFromInput: function() {
+        const input = document.getElementById('tm-tag-new-input');
+        if (!input) return;
+        const val = input.value.trim();
+        if (!val) return;
+
+        const parts = val.split(',').map(s => s.trim()).filter(Boolean);
+        parts.forEach(p => this.addTag(p));
+        input.value = '';
+    },
+
+    onTagInputKeydown: function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            this.addTagFromInput();
+        } else if (e.key === 'Backspace' && e.target.value === '' && this.currentTags.length > 0) {
+            this.removeTag(this.currentTags[this.currentTags.length - 1]);
+        }
+    },
+
+    startEditTag: function(index, chipEl) {
+        const oldTag = this.currentTags[index];
+        if (!oldTag || !chipEl) return;
+
+        chipEl.classList.add('is-editing');
+        chipEl.innerHTML = `
+            <input type="text" class="tm-tag-inline-input" value="${this.escapeHtml(oldTag)}">
+            <button type="button" class="tm-tag-inline-save" title="Guardar cambios"><i class="ph-bold ph-check"></i></button>
+            <button type="button" class="tm-tag-inline-cancel" title="Cancelar"><i class="ph-bold ph-x"></i></button>
+        `;
+
+        const input = chipEl.querySelector('.tm-tag-inline-input');
+        const saveBtn = chipEl.querySelector('.tm-tag-inline-save');
+        const cancelBtn = chipEl.querySelector('.tm-tag-inline-cancel');
+
+        if (input) {
+            input.focus();
+            input.select();
+
+            const finishEdit = (save) => {
+                if (save) {
+                    const newTag = input.value.trim();
+                    if (!newTag) {
+                        this.removeTag(oldTag);
+                        return;
+                    }
+                    if (newTag.toLowerCase() !== oldTag.toLowerCase()) {
+                        this.currentTags[index] = newTag;
+                        if (!this.availableTags.some(t => t.toLowerCase() === newTag.toLowerCase())) {
+                            this.availableTags.push(newTag);
+                        }
+                    }
+                }
+                this.renderTags();
+            };
+
+            input.onkeydown = (ev) => {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    finishEdit(true);
+                } else if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    finishEdit(false);
+                }
+            };
+
+            if (saveBtn) saveBtn.onclick = () => finishEdit(true);
+            if (cancelBtn) cancelBtn.onclick = () => finishEdit(false);
+        }
+    },
+
+    toggleSuggestedTag: function(tag) {
+        const idx = this.currentTags.findIndex(t => t.toLowerCase() === tag.toLowerCase());
+        if (idx >= 0) {
+            this.currentTags.splice(idx, 1);
+        } else {
+            this.currentTags.push(tag);
+        }
+        this.renderTags();
     },
 
     // ══════════════════════════════════════════════════════
@@ -141,7 +457,18 @@ const TM = {
                 this.projectMonths = data.project_months || [];
                 this.brandProjects = data.brand_projects || [];
                 this.projectServices = data.project_services || [];
+                if (data.available_tags && Array.isArray(data.available_tags)) {
+                    data.available_tags.forEach(t => {
+                        if (t && !this.availableTags.some(ex => ex.toLowerCase() === t.toLowerCase())) {
+                            this.availableTags.push(t);
+                        }
+                    });
+                }
+                if (data.users && Array.isArray(data.users) && (!window.TM_USERS || window.TM_USERS.length === 0)) {
+                    window.TM_USERS = data.users;
+                }
                 this.populateProjectSelects();
+                this.renderTags();
             }
         })
         .catch(err => console.error('Error loading context data:', err));
@@ -221,6 +548,7 @@ const TM = {
         });
 
         this.refreshSyncPanelFromSelections();
+        this.updateProjectMembersBar();
     },
 
     onProjectMonthChange: function(monthId) {
@@ -229,6 +557,7 @@ const TM = {
 
     onBrandProjectChange: function(bpId) {
         this.refreshSyncPanelFromSelections();
+        this.updateProjectMembersBar();
     },
 
     onProjectServiceChange: function(psId) {
@@ -259,6 +588,8 @@ const TM = {
                 }
             }
         }
+
+        this.updateProjectMembersBar();
 
         if (accentBar) {
             if (area === 'desarrollo_marca') {
@@ -1857,8 +2188,11 @@ const TM = {
         document.getElementById('tm-edit-actions').style.display = 'none';
 
         if (this.quillDesc) this.quillDesc.root.innerHTML = '';
-        this.initTagify();
-        if (this.tagifyUsers) this.tagifyUsers.removeAllTags();
+        this.currentAssignedUserIds = [];
+        this.renderAssignedUsers();
+        this.currentTags = [];
+        this.renderTags();
+        this.updateProjectMembersBar();
 
         document.getElementById('tm-subtasks-list').innerHTML = '';
 
@@ -1973,19 +2307,36 @@ const TM = {
         } else if (this.dpDueDate) {
             this.dpDueDate.clear();
         }
-        document.getElementById('tm-tags').value = (task.tags || []).join(', ');
+        // Setup current assigned users
+        let uids = [];
+        if (Array.isArray(task.assigned_users)) {
+            uids = task.assigned_users.map(u => {
+                if (typeof u === 'object' && u !== null) return parseInt(u.id, 10);
+                return parseInt(u, 10);
+            }).filter(id => !isNaN(id) && id > 0);
+        }
+        this.currentAssignedUserIds = uids;
+        this.renderAssignedUsers();
+
+        // Setup current tags
+        let tagsArr = [];
+        if (Array.isArray(task.tags)) {
+            tagsArr = [...task.tags];
+        } else if (typeof task.tags === 'string' && task.tags.trim()) {
+            try {
+                const parsed = JSON.parse(task.tags);
+                if (Array.isArray(parsed)) tagsArr = parsed;
+                else tagsArr = task.tags.split(',').map(s => s.trim()).filter(Boolean);
+            } catch(e) {
+                tagsArr = task.tags.split(',').map(s => s.trim()).filter(Boolean);
+            }
+        }
+        this.currentTags = tagsArr;
+        this.renderTags();
+        this.updateProjectMembersBar();
 
         if (this.quillDesc) {
             this.quillDesc.root.innerHTML = task.description || '';
-        }
-
-        this.initTagify();
-        if (this.tagifyUsers) {
-            this.tagifyUsers.removeAllTags();
-            if (task.assigned_users && task.assigned_users.length > 0) {
-                const tagsToAdd = task.assigned_users.map(u => ({ id: u.id, value: u.name }));
-                this.tagifyUsers.addTags(tagsToAdd);
-            }
         }
 
         // Load subtasks list
@@ -1999,16 +2350,30 @@ const TM = {
         })
         .then(r => r.json())
         .then(data => {
-            if (data.success && data.task && data.task.subtasks_list) {
-                data.task.subtasks_list.forEach(st => {
-                    const row = document.createElement('div');
-                    row.className = 'lumio-subtask-row';
-                    row.innerHTML = `
-                        <input type="checkbox" class="lumio-subtask-check" ${st.is_completed ? 'checked' : ''} onchange="TM.toggleSubtask(${st.id}, this)">
-                        <input type="text" class="lumio-subtask-input" value="${TM.escapeHtml(st.title)}" readonly>
-                    `;
-                    subtasksContainer.appendChild(row);
-                });
+            if (data.success && data.task) {
+                if (data.task.assigned_users && Array.isArray(data.task.assigned_users)) {
+                    this.currentAssignedUserIds = data.task.assigned_users.map(u => {
+                        if (typeof u === 'object' && u !== null) return parseInt(u.id, 10);
+                        return parseInt(u, 10);
+                    }).filter(id => !isNaN(id) && id > 0);
+                    this.renderAssignedUsers();
+                    this.updateProjectMembersBar();
+                }
+                if (data.task.tags && Array.isArray(data.task.tags)) {
+                    this.currentTags = [...data.task.tags];
+                    this.renderTags();
+                }
+                if (data.task.subtasks_list) {
+                    data.task.subtasks_list.forEach(st => {
+                        const row = document.createElement('div');
+                        row.className = 'lumio-subtask-row';
+                        row.innerHTML = `
+                            <input type="checkbox" class="lumio-subtask-check" ${st.is_completed ? 'checked' : ''} onchange="TM.toggleSubtask(${st.id}, this)">
+                            <input type="text" class="lumio-subtask-input" value="${TM.escapeHtml(st.title)}" readonly>
+                        `;
+                        subtasksContainer.appendChild(row);
+                    });
+                }
             }
         });
 
@@ -2040,15 +2405,18 @@ const TM = {
         const title = document.getElementById('tm-title').value.trim();
         if (!title) return;
 
-        // Assigned users from Tagify
-        let selUsers = [];
-        const usersInput = document.getElementById('tm-assigned-users').value;
-        if (usersInput) {
-            try { selUsers = JSON.parse(usersInput).map(u => u.id); } catch(err){}
+        // Collect any pending tag typed in input
+        const tagNewInput = document.getElementById('tm-tag-new-input');
+        if (tagNewInput && tagNewInput.value.trim()) {
+            const extra = tagNewInput.value.split(',').map(s => s.trim()).filter(Boolean);
+            extra.forEach(t => {
+                if (!this.currentTags.some(x => x.toLowerCase() === t.toLowerCase())) {
+                    this.currentTags.push(t);
+                }
+            });
+            tagNewInput.value = '';
         }
 
-        const tagsInput = document.getElementById('tm-tags').value;
-        const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(Boolean) : [];
         const descriptionHTML = this.quillDesc ? this.quillDesc.root.innerHTML : '';
 
         // Subtasks
@@ -2077,8 +2445,8 @@ const TM = {
 
         formData.append('start_date', document.getElementById('tm-start-date').value);
         formData.append('due_date', document.getElementById('tm-due-date').value);
-        formData.append('assigned_users', JSON.stringify(selUsers));
-        formData.append('tags', JSON.stringify(tags));
+        formData.append('assigned_users', JSON.stringify(this.currentAssignedUserIds));
+        formData.append('tags', JSON.stringify(this.currentTags));
 
         if (isEdit) {
             formData.append('new_subtasks', JSON.stringify(subtaskInputs));
