@@ -1,11 +1,14 @@
 <?php
 // modules/task_manager/ajax.php — Gestor de Tareas, Objetivos Diarios y Conexiones API
 if (session_status() === PHP_SESSION_NONE) session_start();
+ini_set('display_errors', '0');
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING & ~E_DEPRECATED);
+header('Content-Type: application/json; charset=utf-8');
 if (!isset($_SESSION['user_id'])) { echo json_encode(['success'=>false,'error'=>'No autorizado']); exit; }
 
-require_once '../../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 try {
-    require_once '../../includes/PushHelper.php';
+    require_once __DIR__ . '/../../includes/PushHelper.php';
 } catch (Throwable $e) {}
 
 $db = (new Database())->getConnection();
@@ -427,6 +430,8 @@ if ($action === 'get_all_tasks') {
         ];
 
         foreach ($tasks as $t) {
+            $areaKey = !empty($t['area']) ? $t['area'] : 'general';
+            $freqKey = !empty($t['frequency']) ? $t['frequency'] : 'one_time';
             $pId = (int)($t['project_id'] ?? 0);
             $pmId = (int)($t['project_month_id'] ?? 0);
             $bpId = (int)($t['brand_project_id'] ?? 0);
@@ -602,8 +607,8 @@ if ($action === 'create_task') {
 // 4. GET SINGLE TASK DETAILS
 // ══════════════════════════════════════════════════════════
 if ($action === 'get_task') {
-    $taskId = (int)($_POST['task_id'] ?? 0);
-    if (!$taskId) { echo json_encode(['success'=>false]); exit; }
+    $taskId = (int)($_POST['task_id'] ?? $_GET['task_id'] ?? 0);
+    if (!$taskId) { echo json_encode(['success'=>false, 'error'=>'Falta task_id']); exit; }
     
     try {
         $stmt = $db->prepare("SELECT * FROM tm_tasks WHERE id = ?");
