@@ -17,6 +17,13 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <?php
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+        $sys_base_url = (!empty($global_settings['site_url'])) ? rtrim($global_settings['site_url'], '/') : ($protocol . '://' . $host . ($scriptDir ? $scriptDir : ''));
+    ?>
+    <base href="<?php echo htmlspecialchars(rtrim($sys_base_url, '/') . '/'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($global_settings['site_name'] ?? 'ROMA SaaS'); ?></title>
     <!-- Anti-FOUC Script for Dark Mode -->

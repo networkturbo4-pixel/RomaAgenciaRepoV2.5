@@ -2,12 +2,20 @@
 // modules/admin/payment_note_webview.php
 $is_public = isset($_GET['view']) && $_GET['view'] === 'public';
 $public_note_data = null;
+$note = null;
+
+// Determine base URL for all relative assets and AJAX requests
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+$baseUrl = (!empty($global_settings['site_url'])) ? rtrim($global_settings['site_url'], '/') : ($protocol . '://' . $host . ($scriptDir ? $scriptDir : ''));
 
 if ($is_public) {
     // If it's public, check for the token in payment_notes
     if (isset($_GET['token'])) {
-        $stmtNote = $db->prepare("SELECT * FROM payment_notes WHERE public_token = ?");
-        $stmtNote->execute([$_GET['token']]);
+        $t = trim($_GET['token']);
+        $stmtNote = $db->prepare("SELECT * FROM payment_notes WHERE public_token = ? OR LEFT(public_token, 8) = ? LIMIT 1");
+        $stmtNote->execute([$t, $t]);
         $note = $stmtNote->fetch(PDO::FETCH_ASSOC);
         
         if ($note) {
@@ -35,8 +43,8 @@ if ($is_public) {
             $public_note_data = base64_encode(json_encode($data));
         } else {
             // Fallback for old shared links if needed
-            $stmtToken = $db->prepare("SELECT data FROM shared_links WHERE token = ?");
-            $stmtToken->execute([$_GET['token']]);
+            $stmtToken = $db->prepare("SELECT data FROM shared_links WHERE token = ? OR LEFT(token, 8) = ? LIMIT 1");
+            $stmtToken->execute([$t, $t]);
             $tokenData = $stmtToken->fetchColumn();
             if ($tokenData) {
                 $public_note_data = $tokenData; // Base64 string
@@ -45,23 +53,28 @@ if ($is_public) {
     }
 }
 
-require_once 'includes/header.php';
+if (!$is_public) {
+    require_once 'includes/header.php';
 
-$stmt = $db->query("
-    SELECT c.id, c.name, 
-           GROUP_CONCAT(b.name SEPARATOR '||') as brands,
-           GROUP_CONCAT(b.has_membership SEPARATOR '||') as memberships,
-           GROUP_CONCAT(COALESCE(b.services_ids, '[]') SEPARATOR '||') as services_ids
-    FROM clients c
-    LEFT JOIN client_brands b ON c.id = b.client_id
-    GROUP BY c.id
-    ORDER BY c.name ASC
-");
-$clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $db->query("
+        SELECT c.id, c.name, 
+               GROUP_CONCAT(b.name SEPARATOR '||') as brands,
+               GROUP_CONCAT(b.has_membership SEPARATOR '||') as memberships,
+               GROUP_CONCAT(COALESCE(b.services_ids, '[]') SEPARATOR '||') as services_ids
+        FROM clients c
+        LEFT JOIN client_brands b ON c.id = b.client_id
+        GROUP BY c.id
+        ORDER BY c.name ASC
+    ");
+    $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all services
-$stmtServices = $db->query("SELECT id, name, description, price FROM services WHERE deleted_at IS NULL ORDER BY name ASC");
-$all_services = $stmtServices->fetchAll(PDO::FETCH_ASSOC);
+    // Fetch all services
+    $stmtServices = $db->query("SELECT id, name, description, price FROM services WHERE deleted_at IS NULL ORDER BY name ASC");
+    $all_services = $stmtServices->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $clients = [];
+    $all_services = [];
+}
 
 // Fetch MP Enabled setting
 $stmtMp = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'mp_enabled'");
@@ -70,16 +83,105 @@ $mp_enabled = ($mp_enabled_setting === false || $mp_enabled_setting === '1');
 ?>
 
 <?php if ($is_public): ?>
-<script>document.body.classList.add('public-mode');</script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <base href="<?php echo htmlspecialchars(rtrim($baseUrl, '/') . '/'); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nota de Pago <?php echo htmlspecialchars($note['note_code'] ?? ''); ?> | <?php echo htmlspecialchars($global_settings['site_name'] ?? 'Roma Agencia'); ?></title>
+    
+    <?php if(!empty($global_settings['favicon'])): ?>
+    <link rel="icon" href="<?php echo htmlspecialchars($global_settings['favicon']); ?>">
+    <?php endif; ?>
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Nota de Pago <?php echo htmlspecialchars($note['note_code'] ?? ''); ?> - <?php echo htmlspecialchars($note['client_name'] ?? ''); ?>">
+    <meta property="og:description" content="Consulta el estado de tu nota de pago, servicios y abonos.">
+    <meta property="og:type" content="website">
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tesseract.js para OCR de Vouchers -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <!-- Anti-FOUC Script for Dark Mode -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+<?php else: ?>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <?php endif; ?>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
     const SYSTEM_SERVICES = <?php echo json_encode($all_services); ?>;
     const MP_ENABLED = <?php echo $mp_enabled ? 'true' : 'false'; ?>;
 </script>
 
 <style>
+/* Base Tokens for Both Public and Admin Webview */
+:root {
+    --primary-color: <?php echo htmlspecialchars($global_settings['primary_color'] ?? '#4f46e5'); ?>;
+    --primary-contrast: var(--primary-color);
+    --secondary-color: <?php echo htmlspecialchars($global_settings['secondary_color'] ?? '#10b981'); ?>;
+    --warning-color: <?php echo htmlspecialchars($global_settings['accent_color'] ?? '#f59e0b'); ?>;
+    --border-color: #e2e8f0;
+    --bg-surface: #ffffff;
+    --bg-body: #f8f9fc;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --font-family: 'Inter', sans-serif;
+}
+
+[data-theme="dark"] {
+    --primary-contrast: color-mix(in srgb, var(--primary-color), white 40%);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --bg-surface: #0b0b0e;
+    --bg-body: #000000;
+    --text-main: #ffffff;
+    --text-muted: #9ca3af;
+}
+
+body.public-mode {
+    font-family: var(--font-family) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: var(--bg-body) !important;
+    color: var(--text-main) !important;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Toast styling for public mode */
+.toast-msg {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    background: #09090b;
+    color: #ffffff;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    animation: toastSlideUp 0.25s ease;
+}
+@keyframes toastSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 /* Specific Styles for Nota de Pago Webview */
 .payment-notes-container {
     --card-elevation: 0 12px 30px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.02);
@@ -1398,6 +1500,11 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
 }
 </style>
 
+<?php if ($is_public): ?>
+</head>
+<body class="public-mode">
+<?php endif; ?>
+
 <div class="payment-notes-container">
   <!-- PUBLIC HEADER BANNER -->
   <div id="public-header-banner" style="display: none; padding: 14px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-surface); backdrop-filter: blur(12px);">
@@ -1407,7 +1514,7 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
                   <i class="ph ph-receipt"></i>
               </div>
               <div>
-                  <h1 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--text-main); letter-spacing: 0.2px;">THE ROMA AGENCY</h1>
+                  <h1 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--text-main); letter-spacing: 0.2px;"><?php echo htmlspecialchars($global_settings['site_name'] ?? 'THE ROMA AGENCY'); ?></h1>
                   <div id="public-banner-id" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; font-weight: 600;"></div>
               </div>
           </div>
@@ -1752,10 +1859,13 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
 </div>
 
 <script>
+const APP_BASE_URL = <?php echo json_encode(rtrim($baseUrl, '/') . '/'); ?>;
+const IS_PUBLIC_PAGE = <?php echo $is_public ? 'true' : 'false'; ?>;
+
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const noteId = urlParams.get('id') || 'NEW';
-  const isPublic = urlParams.get('view') === 'public';
+  const isPublic = IS_PUBLIC_PAGE || (urlParams.get('view') === 'public');
 
   if (isPublic) {
       document.body.classList.add('public-mode');
@@ -1971,7 +2081,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fd.append('note_code', currentCode);
 
       try {
-          const res = await fetch('index.php?module=admin&action=ajax_upload_note_voucher', {
+          const res = await fetch(APP_BASE_URL + 'index.php?module=admin&action=ajax_upload_note_voucher', {
               method: 'POST',
               body: fd
           });
@@ -2035,7 +2145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load payment methods from DB
   async function loadPaymentMethodsFromDB() {
       try {
-          const res = await fetch('modules/admin/ajax_get_payment_methods_public.php');
+          const res = await fetch(APP_BASE_URL + 'modules/admin/ajax_get_payment_methods_public.php');
           const data = await res.json();
           if (data.success && data.methods.length > 0) {
               paymentMethodsData = data.methods;
@@ -2099,7 +2209,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadPaymentMethodsFromDB().then(() => initWebview());
   } else {
       if (noteId !== 'NEW') {
-          fetch('modules/admin/ajax_get_payment_notes.php')
+          fetch(APP_BASE_URL + 'modules/admin/ajax_get_payment_notes.php')
               .then(res => res.json())
               .then(data => {
                   if (data.success) {
@@ -2739,7 +2849,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // === TRACKING DE APERTURA ===
   function trackNoteView(token) {
       if (!token) return;
-      fetch('modules/admin/ajax_track_note_view.php', {
+      fetch(APP_BASE_URL + 'modules/admin/ajax_track_note_view.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: token })
@@ -2767,7 +2877,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       try {
           // Create preference
-          const res = await fetch('modules/admin/ajax_create_mp_preference.php', {
+          const res = await fetch(APP_BASE_URL + 'modules/admin/ajax_create_mp_preference.php', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: noteToken })
@@ -2841,7 +2951,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           if (mpStatus === 'approved' && isPublic) {
               const noteToken = params.get('token');
-              fetch('modules/admin/ajax_mp_process_payment.php', {
+              fetch(APP_BASE_URL + 'modules/admin/ajax_mp_process_payment.php', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ token: noteToken, payment_id: paymentId, status: 'approved' })
@@ -2915,7 +3025,7 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.textContent = 'Verificando...';
           
           try {
-              const res = await fetch('modules/admin/ajax_verify_note_pin.php', {
+              const res = await fetch(APP_BASE_URL + 'modules/admin/ajax_verify_note_pin.php', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ token: token, pin: pin })
@@ -3734,7 +3844,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.style.opacity = '0.8';
       btn.disabled = true;
 
-      fetch('modules/admin/ajax_save_payment_note.php', {
+      fetch(APP_BASE_URL + 'modules/admin/ajax_save_payment_note.php', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json'
@@ -3771,4 +3881,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<?php if ($is_public): ?>
+</body>
+</html>
+<?php else: ?>
 <?php require_once 'includes/footer.php'; ?>
+<?php endif; ?>
