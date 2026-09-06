@@ -761,6 +761,43 @@ if ($action === 'update_status') {
 }
 
 // ══════════════════════════════════════════════════════════
+// 6c. UPDATE TASK DATES (Gantt Drag & Drop or Resizing)
+// ══════════════════════════════════════════════════════════
+if ($action === 'update_task_dates') {
+    $taskId = (int)($_POST['task_id'] ?? 0);
+    $startDate = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
+    $dueDate = !empty($_POST['due_date']) ? $_POST['due_date'] : null;
+    
+    if (!$taskId) {
+        echo json_encode(['success' => false, 'error' => 'ID de tarea inválido']);
+        exit;
+    }
+    
+    if ($startDate) $startDate = str_replace('T', ' ', substr($startDate, 0, 19));
+    if ($dueDate) $dueDate = str_replace('T', ' ', substr($dueDate, 0, 19));
+
+    if ($startDate && $dueDate && strtotime($startDate) > strtotime($dueDate)) {
+        $temp = $startDate;
+        $startDate = $dueDate;
+        $dueDate = $temp;
+    }
+
+    try {
+        $stmt = $db->prepare("UPDATE tm_tasks SET start_date = ?, due_date = ? WHERE id = ?");
+        $stmt->execute([$startDate, $dueDate, $taskId]);
+        echo json_encode([
+            'success' => true,
+            'task_id' => $taskId,
+            'start_date' => $startDate,
+            'due_date' => $dueDate
+        ]);
+    } catch (Throwable $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ══════════════════════════════════════════════════════════
 // 6b. UPDATE ENTITY PROCESS PHASE / STATUS (Calendar, Brand, Web, Audio)
 // ══════════════════════════════════════════════════════════
 if ($action === 'update_entity_process_phase') {

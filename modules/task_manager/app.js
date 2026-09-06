@@ -6,13 +6,19 @@ const TM = {
     brandProjects: [],
     projectServices: [],
     currentSyncEntity: null,
-    currentView: 'kanban', // 'kanban', 'daily', 'weekly'
+    currentView: 'kanban', // 'kanban', 'daily', 'weekly', 'gantt'
     filterUser: 'me',
     filterArea: 'all',
     filterFrequency: 'all',
     filterProject: 'all',
     currentDailyDate: new Date().toISOString().substring(0, 10),
     currentDailyUser: window.TM_USER_ID || 1,
+    ganttScale: 'day', // 'day', 'week'
+    ganttGroupBy: 'project', // 'project', 'area', 'user', 'status', 'none'
+    ganttMobileMode: 'split', // 'split', 'timeline', 'list'
+    isGanttFullscreen: false,
+    ganttAnchorDate: new Date(),
+    dpStartDate: null,
     dailyObjectivesData: null,
     quillDesc: null,
     tagifyUsers: null,
@@ -66,6 +72,9 @@ const TM = {
                 }
             };
             try {
+                if (document.getElementById('tm-start-date')) {
+                    this.dpStartDate = new AirDatepicker('#tm-start-date', dpConfig);
+                }
                 if (document.getElementById('tm-due-date')) {
                     this.dpDueDate = new AirDatepicker('#tm-due-date', dpConfig);
                 }
@@ -636,8 +645,25 @@ const TM = {
         document.getElementById('tm-view-kanban').style.display = (viewName === 'kanban') ? 'grid' : 'none';
         document.getElementById('tm-view-daily').style.display = (viewName === 'daily') ? 'block' : 'none';
         document.getElementById('tm-view-weekly').style.display = (viewName === 'weekly') ? 'block' : 'none';
+        if (document.getElementById('tm-view-gantt')) {
+            document.getElementById('tm-view-gantt').style.display = (viewName === 'gantt') ? 'block' : 'none';
+        }
 
         this.renderCurrentView();
+
+        if (viewName === 'gantt') {
+            if (window.innerWidth <= 768) {
+                this.setGanttMobileMode(this.ganttMobileMode || 'split');
+            }
+            setTimeout(() => {
+                const todayLine = document.querySelector('.tm-gantt-today-line');
+                const timelineWrapper = document.getElementById('tm-gantt-timeline-wrapper');
+                if (todayLine && timelineWrapper) {
+                    const offset = todayLine.offsetLeft - (timelineWrapper.clientWidth / 2.5);
+                    timelineWrapper.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+                }
+            }, 120);
+        }
     },
 
     renderCurrentView: function() {
@@ -647,6 +673,8 @@ const TM = {
             this.renderDailyView();
         } else if (this.currentView === 'weekly') {
             this.renderWeeklyView();
+        } else if (this.currentView === 'gantt') {
+            this.renderGanttView();
         }
     },
 
@@ -1085,6 +1113,620 @@ const TM = {
     },
 
     // ══════════════════════════════════════════════════════
+    // VIEW 4: DIAGRAMA DE GANTT (DIARIO Y SEMANAL)
+    // ══════════════════════════════════════════════════════
+    setGanttScale: function(scale) {
+        this.ganttScale = scale;
+        document.querySelectorAll('.tm-gantt-scale-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.scale === scale);
+        });
+        this.renderGanttView();
+    },
+
+    setGanttGroupBy: function(groupBy) {
+        this.ganttGroupBy = groupBy;
+        this.renderGanttView();
+    },
+
+    setGanttMobileMode: function(mode) {
+        this.ganttMobileMode = mode;
+        const container = document.getElementById('tm-gantt-container');
+        if (container) {
+            container.classList.remove('mode-split', 'mode-timeline', 'mode-list');
+            container.classList.add(`mode-${mode}`);
+        }
+        document.querySelectorAll('.tm-gantt-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        if (mode === 'timeline' || mode === 'split') {
+            setTimeout(() => {
+                const todayLine = document.querySelector('.tm-gantt-today-line');
+                const timelineWrapper = document.getElementById('tm-gantt-timeline-wrapper');
+                if (todayLine && timelineWrapper) {
+                    const offset = todayLine.offsetLeft - (timelineWrapper.clientWidth / 3);
+                    timelineWrapper.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+                }
+            }, 100);
+        }
+    },
+
+    toggleGanttFullscreen: function() {
+        this.isGanttFullscreen = !this.isGanttFullscreen;
+        const ganttView = document.getElementById('tm-view-gantt');
+        const btn = document.querySelector('.tm-gantt-fullscreen-btn');
+        if (ganttView) {
+            ganttView.classList.toggle('is-fullscreen', this.isGanttFullscreen);
+        }
+        if (btn) {
+            btn.innerHTML = this.isGanttFullscreen 
+                ? '<i class="ph ph-arrows-in-simple"></i>' 
+                : '<i class="ph ph-arrows-out-simple"></i>';
+        }
+        setTimeout(() => {
+            const todayLine = document.querySelector('.tm-gantt-today-line');
+            const timelineWrapper = document.getElementById('tm-gantt-timeline-wrapper');
+            if (todayLine && timelineWrapper) {
+                const offset = todayLine.offsetLeft - (timelineWrapper.clientWidth / 2);
+                timelineWrapper.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+            }
+        }, 150);
+    },
+
+    setGanttToday: function() {
+        this.ganttAnchorDate = new Date();
+        this.renderGanttView();
+        setTimeout(() => {
+            const todayLine = document.querySelector('.tm-gantt-today-line');
+            const timelineWrapper = document.getElementById('tm-gantt-timeline-wrapper');
+            if (todayLine && timelineWrapper) {
+                const offset = todayLine.offsetLeft - (timelineWrapper.clientWidth / 2);
+                timelineWrapper.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+            }
+        }, 100);
+    },
+
+    navGanttRange: function(direction) {
+        const anchor = new Date(this.ganttAnchorDate);
+        if (this.ganttScale === 'day') {
+            anchor.setMonth(anchor.getMonth() + direction);
+        } else {
+            anchor.setDate(anchor.getDate() + (direction * 28)); // 4 semanas
+        }
+        this.ganttAnchorDate = anchor;
+        this.renderGanttView();
+    },
+
+    renderGanttView: function() {
+        const sidebarBody = document.getElementById('tm-gantt-sidebar-body');
+        const timelineHeader = document.getElementById('tm-gantt-timeline-header');
+        const timelineBody = document.getElementById('tm-gantt-timeline-body');
+        const rangeLabel = document.getElementById('tm-gantt-range-label');
+        if (!sidebarBody || !timelineHeader || !timelineBody) return;
+
+        sidebarBody.innerHTML = '';
+        timelineHeader.innerHTML = '';
+        timelineBody.innerHTML = '';
+
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+        // 1. Filtrar tareas activas según filtros superiores
+        const filteredTasks = this.tasks.filter(t => {
+            if (this.filterProject !== 'all' && String(t.project_id) !== String(this.filterProject)) return false;
+            return true;
+        });
+
+        // 2. Calcular límites del rango temporal
+        let rangeStart, rangeEnd;
+        const anchor = new Date(this.ganttAnchorDate);
+
+        if (this.ganttScale === 'day') {
+            const year = anchor.getFullYear();
+            const month = anchor.getMonth();
+            rangeStart = new Date(year, month, 1, 0, 0, 0);
+            rangeEnd = new Date(year, month + 1, 0, 23, 59, 59);
+            if (rangeLabel) {
+                rangeLabel.textContent = `${monthNames[month]} ${year}`;
+            }
+        } else {
+            // Escala Semanal: 8 semanas centradas en el ancla
+            const dayOfWeek = anchor.getDay() === 0 ? 6 : anchor.getDay() - 1; // Lunes = 0
+            const monday = new Date(anchor);
+            monday.setDate(anchor.getDate() - dayOfWeek);
+            monday.setHours(0, 0, 0, 0);
+
+            rangeStart = new Date(monday);
+            rangeStart.setDate(monday.getDate() - 14); // 2 semanas antes
+            rangeEnd = new Date(rangeStart);
+            rangeEnd.setDate(rangeStart.getDate() + (8 * 7) - 1); // 8 semanas en total
+            rangeEnd.setHours(23, 59, 59);
+
+            if (rangeLabel) {
+                const sMonth = monthNames[rangeStart.getMonth()].substring(0, 3);
+                const eMonth = monthNames[rangeEnd.getMonth()].substring(0, 3);
+                rangeLabel.textContent = `${sMonth} ${rangeStart.getFullYear()} - ${eMonth} ${rangeEnd.getFullYear()} (8 Semanas)`;
+            }
+        }
+
+        const totalMs = rangeEnd.getTime() - rangeStart.getTime();
+
+        // 3. Renderizar Header de la Línea de Tiempo (Días o Semanas)
+        const headerTopRow = document.createElement('div');
+        headerTopRow.className = 'tm-gantt-header-top';
+        const headerBottomRow = document.createElement('div');
+        headerBottomRow.className = 'tm-gantt-header-bottom';
+
+        const today = new Date();
+        const todayStr = today.toISOString().substring(0, 10);
+
+        if (this.ganttScale === 'day') {
+            const numDays = Math.round((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)) + 1;
+            headerTopRow.innerHTML = `<div class="tm-gantt-month-banner">${monthNames[rangeStart.getMonth()]} ${rangeStart.getFullYear()}</div>`;
+
+            for (let d = 0; d < numDays; d++) {
+                const dayDate = new Date(rangeStart);
+                dayDate.setDate(rangeStart.getDate() + d);
+                const dStr = dayDate.toISOString().substring(0, 10);
+                const dayOfWeek = dayDate.getDay();
+                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                const isToday = (dStr === todayStr);
+
+                const dayCol = document.createElement('div');
+                dayCol.className = `tm-gantt-header-cell ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}`;
+                dayCol.style.flex = '1';
+                dayCol.innerHTML = `
+                    <span class="tm-gantt-day-name">${dayNamesShort[dayOfWeek]}</span>
+                    <span class="tm-gantt-day-num">${String(dayDate.getDate()).padStart(2, '0')}</span>
+                `;
+                headerBottomRow.appendChild(dayCol);
+            }
+        } else {
+            // Semanal
+            const numWeeks = 8;
+            headerTopRow.innerHTML = `<div class="tm-gantt-month-banner">Cronograma de Semanas</div>`;
+
+            for (let w = 0; w < numWeeks; w++) {
+                const wStart = new Date(rangeStart);
+                wStart.setDate(rangeStart.getDate() + (w * 7));
+                const wEnd = new Date(wStart);
+                wEnd.setDate(wStart.getDate() + 6);
+
+                const isCurrentWeek = (today >= wStart && today <= wEnd);
+                const wCol = document.createElement('div');
+                wCol.className = `tm-gantt-header-cell is-week ${isCurrentWeek ? 'is-today' : ''}`;
+                wCol.style.flex = '1';
+                wCol.innerHTML = `
+                    <span class="tm-gantt-day-name">Semana ${this.getWeekNumber(wStart)}</span>
+                    <span class="tm-gantt-day-num">${wStart.getDate()}/${wStart.getMonth()+1} - ${wEnd.getDate()}/${wEnd.getMonth()+1}</span>
+                `;
+                headerBottomRow.appendChild(wCol);
+            }
+        }
+
+        timelineHeader.appendChild(headerTopRow);
+        timelineHeader.appendChild(headerBottomRow);
+
+        // 4. Agrupar Tareas según 'ganttGroupBy'
+        const groups = this.groupTasksForGantt(filteredTasks, this.ganttGroupBy);
+
+        if (Object.keys(groups).length === 0) {
+            sidebarBody.innerHTML = `
+                <div class="tm-gantt-empty">
+                    <i class="ph ph-calendar-blank"></i>
+                    <p>No hay tareas disponibles con los filtros actuales.</p>
+                </div>
+            `;
+            timelineBody.innerHTML = `
+                <div class="tm-gantt-empty">
+                    <p>Crea una nueva tarea o ajusta los filtros superiores.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // 5. Renderizar Filas de Grupos y Tareas
+        Object.entries(groups).forEach(([groupName, groupTasks]) => {
+            // A. Fila de Encabezado de Grupo en Sidebar
+            const groupSidebarRow = document.createElement('div');
+            groupSidebarRow.className = 'tm-gantt-group-row-sidebar';
+            groupSidebarRow.innerHTML = `
+                <div class="tm-gantt-group-title">
+                    <i class="ph-bold ph-folder"></i>
+                    <span>${this.escapeHtml(groupName)}</span>
+                    <span class="tm-gantt-group-badge">${groupTasks.length}</span>
+                </div>
+            `;
+            sidebarBody.appendChild(groupSidebarRow);
+
+            // B. Fila de Encabezado de Grupo en Timeline
+            const groupTimelineRow = document.createElement('div');
+            groupTimelineRow.className = 'tm-gantt-group-row-timeline';
+            timelineBody.appendChild(groupTimelineRow);
+
+            // C. Tareas del Grupo
+            groupTasks.forEach(t => {
+                // Fechas de la tarea
+                let tStart = t.start_date ? new Date(t.start_date.replace(' ', 'T')) : null;
+                let tDue = t.due_date ? new Date(t.due_date.replace(' ', 'T')) : null;
+
+                const hasExplicitDates = Boolean(tStart || tDue);
+
+                if (!tStart && !tDue) {
+                    tStart = new Date();
+                    tStart.setHours(0, 0, 0, 0);
+                    tDue = new Date(tStart);
+                    tDue.setDate(tStart.getDate() + 1);
+                    tDue.setHours(23, 59, 59);
+                } else if (!tStart) {
+                    tStart = new Date(tDue);
+                    tStart.setDate(tStart.getDate() - 1);
+                    tStart.setHours(0, 0, 0, 0);
+                } else if (!tDue) {
+                    tDue = new Date(tStart);
+                    tDue.setDate(tDue.getDate() + 1);
+                    tDue.setHours(23, 59, 59);
+                }
+
+                const durationDays = Math.max(1, Math.round((tDue - tStart) / (1000 * 60 * 60 * 24)));
+
+                // -- Sidebar Row --
+                const taskSidebarRow = document.createElement('div');
+                taskSidebarRow.className = `tm-gantt-task-row-sidebar priority-${t.priority}`;
+                taskSidebarRow.title = `Editar: ${t.title}`;
+                taskSidebarRow.onclick = () => this.openEditModal(t);
+
+                // Avatar(s)
+                let userHtml = '';
+                if (t.assigned_users && t.assigned_users.length > 0) {
+                    const u = t.assigned_users[0];
+                    userHtml = `<div class="tm-gantt-user-avatar" title="${this.escapeHtml(u.name)}">${u.initial || u.name.charAt(0)}</div>`;
+                } else {
+                    userHtml = `<div class="tm-gantt-user-avatar is-unassigned" title="Sin Asignar"><i class="ph ph-user"></i></div>`;
+                }
+
+                // Subtask completion
+                let progressPct = 0;
+                if (t.status === 'completed' || t.status === 'approved') {
+                    progressPct = 100;
+                } else if (t.subtasks && t.subtasks.total > 0) {
+                    progressPct = Math.round((t.subtasks.completed / t.subtasks.total) * 100);
+                }
+
+                const sDateFormatted = tStart ? `${tStart.getDate()}/${tStart.getMonth()+1}` : '--';
+                const dDateFormatted = tDue ? `${tDue.getDate()}/${tDue.getMonth()+1}` : '--';
+
+                taskSidebarRow.innerHTML = `
+                    <div class="tm-gantt-cell-info">
+                        <span class="tm-status-dot status-${t.status}"></span>
+                        <span class="tm-gantt-task-title" title="${this.escapeHtml(t.title)}">${this.escapeHtml(t.title)}</span>
+                    </div>
+                    <div class="tm-gantt-cell-meta">
+                        ${userHtml}
+                        <span class="tm-gantt-dates-chip" title="Inicio: ${sDateFormatted} | Fin: ${dDateFormatted}">${durationDays}d</span>
+                        <span class="tm-gantt-pct-badge ${progressPct === 100 ? 'is-done' : ''}">${progressPct}%</span>
+                    </div>
+                `;
+                sidebarBody.appendChild(taskSidebarRow);
+
+                // -- Timeline Row & Grid Background --
+                const taskTimelineRow = document.createElement('div');
+                taskTimelineRow.className = 'tm-gantt-task-row-timeline';
+
+                // Grid background columns
+                if (this.ganttScale === 'day') {
+                    const numDays = Math.round((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)) + 1;
+                    for (let d = 0; d < numDays; d++) {
+                        const dayDate = new Date(rangeStart);
+                        dayDate.setDate(rangeStart.getDate() + d);
+                        const dayOfWeek = dayDate.getDay();
+                        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                        const isToday = (dayDate.toISOString().substring(0, 10) === todayStr);
+
+                        const cell = document.createElement('div');
+                        cell.className = `tm-gantt-bg-cell ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}`;
+                        taskTimelineRow.appendChild(cell);
+                    }
+                } else {
+                    for (let w = 0; w < 8; w++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'tm-gantt-bg-cell is-week';
+                        taskTimelineRow.appendChild(cell);
+                    }
+                }
+
+                // Cálculo de posición proporcional de la barra
+                const taskStartMs = tStart.getTime();
+                const taskDueMs = tDue.getTime();
+
+                // Verificar si cae dentro o fuera del rango visible
+                const isBeforeRange = taskDueMs < rangeStart.getTime();
+                const isAfterRange = taskStartMs > rangeEnd.getTime();
+
+                if (!isBeforeRange && !isAfterRange) {
+                    const clampedStartMs = Math.max(taskStartMs, rangeStart.getTime());
+                    const clampedDueMs = Math.min(taskDueMs, rangeEnd.getTime());
+
+                    const leftPct = ((clampedStartMs - rangeStart.getTime()) / totalMs) * 100;
+                    const widthPct = Math.max(((clampedDueMs - clampedStartMs) / totalMs) * 100, 1.2);
+
+                    const isOverdue = (t.status !== 'completed' && t.status !== 'approved' && tDue < today);
+
+                    // Barra de Gantt
+                    const bar = document.createElement('div');
+                    bar.className = `tm-gantt-bar area-${t.area} status-${t.status} ${isOverdue ? 'is-overdue' : ''} ${!hasExplicitDates ? 'is-inferred' : ''}`;
+                    bar.style.left = `${leftPct}%`;
+                    bar.style.width = `${widthPct}%`;
+                    bar.dataset.taskId = t.id;
+
+                    bar.innerHTML = `
+                        <div class="tm-gantt-handle handle-left" data-handle="left" title="Arrastrar para cambiar fecha de inicio"></div>
+                        <div class="tm-gantt-bar-progress" style="width: ${progressPct}%;"></div>
+                        <div class="tm-gantt-bar-content">
+                            <span class="tm-gantt-bar-label">${this.escapeHtml(t.title)}</span>
+                            <span class="tm-gantt-bar-days">${durationDays}d</span>
+                        </div>
+                        <div class="tm-gantt-handle handle-right" data-handle="right" title="Arrastrar para cambiar fecha límite"></div>
+                    `;
+
+                    // Click para editar
+                    bar.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('tm-gantt-handle')) return;
+                        if (bar.dataset.justDragged === 'true') {
+                            bar.dataset.justDragged = 'false';
+                            return;
+                        }
+                        this.openEditModal(t);
+                    });
+
+                    // Eventos de Drag & Resize
+                    this.attachGanttBarDrag(bar, t, rangeStart, totalMs);
+
+                    // Tooltip en hover
+                    this.attachGanttTooltip(bar, t, tStart, tDue, durationDays, progressPct);
+
+                    taskTimelineRow.appendChild(bar);
+                }
+
+                timelineBody.appendChild(taskTimelineRow);
+            });
+        });
+
+        // 6. Línea vertical de 'Hoy'
+        if (today >= rangeStart && today <= rangeEnd) {
+            const todayMs = today.getTime();
+            const todayLeftPct = ((todayMs - rangeStart.getTime()) / totalMs) * 100;
+
+            const todayLine = document.createElement('div');
+            todayLine.className = 'tm-gantt-today-line';
+            todayLine.style.left = `${todayLeftPct}%`;
+            todayLine.innerHTML = `<span class="tm-gantt-today-badge">Hoy</span>`;
+            timelineBody.appendChild(todayLine);
+        }
+
+        // 7. Sincronización de Scroll Vertical
+        sidebarBody.onscroll = () => {
+            timelineBody.scrollTop = sidebarBody.scrollTop;
+        };
+        timelineBody.onscroll = () => {
+            sidebarBody.scrollTop = timelineBody.scrollTop;
+        };
+    },
+
+    groupTasksForGantt: function(tasks, groupBy) {
+        const groups = {};
+        tasks.forEach(t => {
+            let key = 'General';
+            if (groupBy === 'project') {
+                key = t.project_name || t.brand_project_title || 'Sin Proyecto';
+            } else if (groupBy === 'area') {
+                key = t.area_label || 'General';
+            } else if (groupBy === 'user') {
+                if (t.assigned_users && t.assigned_users.length > 0) {
+                    key = t.assigned_users.map(u => u.name).join(', ');
+                } else {
+                    key = 'Sin Asignar';
+                }
+            } else if (groupBy === 'status') {
+                const statusMap = {
+                    'new': 'Nuevo',
+                    'pending': 'Pendiente / En Curso',
+                    'completed': 'Terminado',
+                    'approved': 'Aprobado',
+                    'overdue': 'Retrasado'
+                };
+                key = statusMap[t.status] || t.status;
+            } else {
+                key = 'Todas las Tareas';
+            }
+
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(t);
+        });
+        return groups;
+    },
+
+    getWeekNumber: function(d) {
+        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    },
+
+    attachGanttBarDrag: function(bar, task, rangeStart, totalMs) {
+        let isDragging = false;
+        let dragMode = null; // 'move', 'resize-left', 'resize-right'
+        let startX = 0;
+        let origStartMs = task.start_date ? new Date(task.start_date.replace(' ', 'T')).getTime() : new Date().getTime();
+        let origDueMs = task.due_date ? new Date(task.due_date.replace(' ', 'T')).getTime() : (origStartMs + 86400000);
+        let timelineWidth = 0;
+
+        const onMouseDown = (e) => {
+            if (e.button !== 0) return; // solo click izquierdo
+            const handle = e.target.closest('.tm-gantt-handle');
+            if (handle) {
+                dragMode = handle.dataset.handle === 'left' ? 'resize-left' : 'resize-right';
+            } else {
+                dragMode = 'move';
+            }
+
+            isDragging = true;
+            startX = e.clientX;
+            const timeline = document.getElementById('tm-gantt-timeline-body');
+            timelineWidth = timeline ? timeline.clientWidth : 1000;
+            bar.classList.add('is-dragging');
+            document.body.style.cursor = dragMode === 'move' ? 'grabbing' : 'ew-resize';
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            e.preventDefault();
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - startX;
+            const deltaMs = (deltaX / timelineWidth) * totalMs;
+
+            let newStartMs = origStartMs;
+            let newDueMs = origDueMs;
+
+            if (dragMode === 'move') {
+                newStartMs = origStartMs + deltaMs;
+                newDueMs = origDueMs + deltaMs;
+            } else if (dragMode === 'resize-left') {
+                newStartMs = Math.min(origStartMs + deltaMs, origDueMs - (1000 * 60 * 60 * 4)); // al menos 4h
+            } else if (dragMode === 'resize-right') {
+                newDueMs = Math.max(origDueMs + deltaMs, origStartMs + (1000 * 60 * 60 * 4));
+            }
+
+            // Actualizar posición visual temporal
+            const newLeftPct = ((newStartMs - rangeStart.getTime()) / totalMs) * 100;
+            const newWidthPct = Math.max(((newDueMs - newStartMs) / totalMs) * 100, 1.2);
+            bar.style.left = `${newLeftPct}%`;
+            bar.style.width = `${newWidthPct}%`;
+        };
+
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            bar.classList.remove('is-dragging');
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+
+            const deltaX = e.clientX - startX;
+            if (Math.abs(deltaX) > 4) {
+                bar.dataset.justDragged = 'true';
+                const deltaMs = (deltaX / timelineWidth) * totalMs;
+
+                let finalStartMs = origStartMs;
+                let finalDueMs = origDueMs;
+
+                if (dragMode === 'move') {
+                    finalStartMs = origStartMs + deltaMs;
+                    finalDueMs = origDueMs + deltaMs;
+                } else if (dragMode === 'resize-left') {
+                    finalStartMs = Math.min(origStartMs + deltaMs, origDueMs - (1000 * 60 * 60 * 4));
+                } else if (dragMode === 'resize-right') {
+                    finalDueMs = Math.max(origDueMs + deltaMs, origStartMs + (1000 * 60 * 60 * 4));
+                }
+
+                // Convertir a formato MySQL datetime YYYY-MM-DD HH:mm:ss
+                const newStartStr = new Date(finalStartMs).toISOString().substring(0, 19).replace('T', ' ');
+                const newDueStr = new Date(finalDueMs).toISOString().substring(0, 19).replace('T', ' ');
+
+                TM.updateTaskDates(task.id, newStartStr, newDueStr);
+            }
+        };
+
+        bar.addEventListener('mousedown', onMouseDown);
+    },
+
+    updateTaskDates: function(taskId, startDate, dueDate) {
+        const formData = new URLSearchParams();
+        formData.append('action_type', 'update_task_dates');
+        formData.append('task_id', taskId);
+        formData.append('start_date', startDate);
+        formData.append('due_date', dueDate);
+
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: formData.toString()
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                // Actualizar en memoria local y re-renderizar suavemente
+                const t = this.tasks.find(x => x.id === parseInt(taskId, 10));
+                if (t) {
+                    t.start_date = res.start_date;
+                    t.due_date = res.due_date;
+                }
+                this.renderGanttView();
+            } else {
+                alert(res.error || 'Error al actualizar fechas en el cronograma');
+                this.renderGanttView();
+            }
+        })
+        .catch(err => {
+            console.error('Error al actualizar fechas del Gantt:', err);
+            this.renderGanttView();
+        });
+    },
+
+    attachGanttTooltip: function(bar, task, tStart, tDue, durationDays, progressPct) {
+        let tooltip = document.getElementById('tm-gantt-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'tm-gantt-tooltip';
+            tooltip.className = 'tm-gantt-tooltip';
+            document.body.appendChild(tooltip);
+        }
+
+        bar.addEventListener('mouseenter', (e) => {
+            const sStr = tStart ? `${tStart.getDate()}/${tStart.getMonth()+1}/${tStart.getFullYear()}` : 'Sin definir';
+            const dStr = tDue ? `${tDue.getDate()}/${tDue.getMonth()+1}/${tDue.getFullYear()}` : 'Sin definir';
+
+            let userNames = 'Sin Asignar';
+            if (task.assigned_users && task.assigned_users.length > 0) {
+                userNames = task.assigned_users.map(u => u.name).join(', ');
+            }
+
+            tooltip.innerHTML = `
+                <div class="tm-tooltip-header">
+                    <strong>${this.escapeHtml(task.title)}</strong>
+                    <span class="tm-status-pill status-${task.status}">${task.status}</span>
+                </div>
+                <div class="tm-tooltip-body">
+                    <div class="tm-tooltip-row"><i class="ph ph-calendar"></i> <span>${sStr} &rarr; ${dStr} (${durationDays}d)</span></div>
+                    <div class="tm-tooltip-row"><i class="ph ph-user"></i> <span>${this.escapeHtml(userNames)}</span></div>
+                    ${task.project_name ? `<div class="tm-tooltip-row"><i class="ph ph-folder"></i> <span>${this.escapeHtml(task.project_name)}</span></div>` : ''}
+                    <div class="tm-tooltip-row"><i class="ph ph-check-square"></i> <span>Avance: ${progressPct}%</span></div>
+                </div>
+            `;
+            tooltip.style.display = 'block';
+            this.positionGanttTooltip(e, tooltip);
+        });
+
+        bar.addEventListener('mousemove', (e) => {
+            this.positionGanttTooltip(e, tooltip);
+        });
+
+        bar.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+    },
+
+    positionGanttTooltip: function(e, tooltip) {
+        const x = e.clientX + 14;
+        const y = e.clientY + 14;
+        tooltip.style.left = `${Math.min(x, window.innerWidth - 280)}px`;
+        tooltip.style.top = `${Math.min(y, window.innerHeight - 150)}px`;
+    },
+
+    // ══════════════════════════════════════════════════════
     // Modals: Create / Edit Task
     // ══════════════════════════════════════════════════════
     openCreateModal: function(defaultFreq = 'one_time') {
@@ -1125,6 +1767,10 @@ const TM = {
         }
 
         this.onAreaChange(document.getElementById('tm-area').value);
+        document.getElementById('tm-start-date').value = '';
+        if (this.dpStartDate) {
+            this.dpStartDate.clear();
+        }
         document.getElementById('tm-due-date').value = '';
         if (this.dpDueDate) {
             this.dpDueDate.clear();
@@ -1178,6 +1824,17 @@ const TM = {
             }
         }
 
+        // Start date
+        document.getElementById('tm-start-date').value = task.start_date ? task.start_date.substring(0, 16) : '';
+        if (this.dpStartDate && task.start_date) {
+            try {
+                this.dpStartDate.selectDate(new Date(task.start_date.replace(' ', 'T')));
+            } catch(e) {}
+        } else if (this.dpStartDate) {
+            this.dpStartDate.clear();
+        }
+
+        // Due date
         document.getElementById('tm-due-date').value = task.due_date ? task.due_date.substring(0, 16) : '';
         if (this.dpDueDate && task.due_date) {
             try {
@@ -1282,6 +1939,7 @@ const TM = {
         formData.append('is_daily_objective', isObj);
         formData.append('objective_date', document.getElementById('tm-objective-date').value);
 
+        formData.append('start_date', document.getElementById('tm-start-date').value);
         formData.append('due_date', document.getElementById('tm-due-date').value);
         formData.append('assigned_users', JSON.stringify(selUsers));
         formData.append('tags', JSON.stringify(tags));

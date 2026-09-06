@@ -22,6 +22,14 @@ try {
 } catch(Throwable $e) {}
 ?>
 <link rel="stylesheet" href="modules/task_manager/style.css?v=<?php echo time(); ?>">
+<style>
+@media (max-width: 768px) {
+    .content-wrapper {
+        padding: 0.5rem 0.35rem !important;
+        padding-top: calc(52px + 0.5rem) !important;
+    }
+}
+</style>
 
 <!-- AirDatepicker CSS & JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.3.5/air-datepicker.min.css">
@@ -100,6 +108,9 @@ try {
             </button>
             <button class="tm-view-btn" data-view="weekly" onclick="TM.switchView('weekly')">
                 <i class="ph ph-calendar"></i> <span>Plan Semanal</span>
+            </button>
+            <button class="tm-view-btn" data-view="gantt" onclick="TM.switchView('gantt')">
+                <i class="ph ph-chart-horizontal"></i> <span>Gantt</span>
             </button>
         </div>
 
@@ -265,6 +276,106 @@ try {
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- VIEW 4: DIAGRAMA DE GANTT (DIARIO Y SEMANAL)    -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tm-gantt-view" id="tm-view-gantt" style="display:none;">
+        <!-- Gantt Toolbar: Scale, Group By, Navigation -->
+        <div class="tm-gantt-toolbar">
+            <div class="tm-gantt-toolbar-left">
+                <!-- Scale switch: Daily / Weekly -->
+                <div class="tm-gantt-scale-group">
+                    <button type="button" class="tm-gantt-scale-btn active" data-scale="day" onclick="TM.setGanttScale('day')">
+                        <i class="ph ph-calendar"></i> <span>Diario (Días)</span>
+                    </button>
+                    <button type="button" class="tm-gantt-scale-btn" data-scale="week" onclick="TM.setGanttScale('week')">
+                        <i class="ph ph-calendar-blank"></i> <span>Semanal (Semanas)</span>
+                    </button>
+                </div>
+
+                <div class="tm-gantt-divider"></div>
+
+                <!-- Group By -->
+                <div class="tm-gantt-group-wrapper">
+                    <label><i class="ph ph-squares-four"></i> Agrupar por:</label>
+                    <select id="tm-gantt-group-by" onchange="TM.setGanttGroupBy(this.value)">
+                        <option value="project" selected>Proyecto / Marca</option>
+                        <option value="area">Área de Trabajo</option>
+                        <option value="user">Responsable</option>
+                        <option value="status">Estado</option>
+                        <option value="none">Sin agrupar (Plano)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="tm-gantt-toolbar-right">
+                <!-- Mobile Mode Toggle: Split / Timeline / List -->
+                <div class="tm-gantt-mobile-toggle">
+                    <button type="button" class="tm-gantt-mode-btn active" data-mode="split" onclick="TM.setGanttMobileMode('split')" title="Vista dividida (Nombres + Barras)">
+                        <i class="ph ph-columns"></i> <span>Dividido</span>
+                    </button>
+                    <button type="button" class="tm-gantt-mode-btn" data-mode="timeline" onclick="TM.setGanttMobileMode('timeline')" title="Solo Barras de Cronograma">
+                        <i class="ph ph-chart-horizontal"></i> <span>Barras</span>
+                    </button>
+                    <button type="button" class="tm-gantt-mode-btn" data-mode="list" onclick="TM.setGanttMobileMode('list')" title="Solo Lista de Tareas">
+                        <i class="ph ph-list-dashes"></i> <span>Lista</span>
+                    </button>
+                </div>
+
+                <!-- Date Range Navigator -->
+                <div class="tm-gantt-nav-group">
+                    <button type="button" class="tm-gantt-nav-btn" onclick="TM.navGanttRange(-1)" title="Periodo Anterior">
+                        <i class="ph ph-caret-left"></i>
+                    </button>
+                    <button type="button" class="tm-gantt-today-btn" onclick="TM.setGanttToday()" title="Ir a la fecha actual">
+                        <i class="ph ph-crosshair"></i> Hoy
+                    </button>
+                    <button type="button" class="tm-gantt-nav-btn" onclick="TM.navGanttRange(1)" title="Periodo Siguiente">
+                        <i class="ph ph-caret-right"></i>
+                    </button>
+                    <span class="tm-gantt-range-label" id="tm-gantt-range-label">Septiembre 2026</span>
+                </div>
+
+                <!-- Fullscreen Toggle Button -->
+                <button type="button" class="tm-gantt-fullscreen-btn" onclick="TM.toggleGanttFullscreen()" title="Pantalla Completa">
+                    <i class="ph ph-arrows-out-simple"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Landscape Tip -->
+        <div class="tm-gantt-mobile-tip">
+            <i class="ph-bold ph-device-rotate"></i>
+            <span>Tip: Gira tu teléfono en horizontal para ver el cronograma panorámico completo</span>
+        </div>
+
+        <!-- Gantt Main Container (Two Synchronized Columns) -->
+        <div class="tm-gantt-container mode-split" id="tm-gantt-container">
+            <!-- Left Side: Task Tree / Sidebar -->
+            <div class="tm-gantt-sidebar" id="tm-gantt-sidebar">
+                <div class="tm-gantt-sidebar-header">
+                    <span class="tm-gantt-col-title">Tarea / Entregable</span>
+                    <span class="tm-gantt-col-dates">Duración / Fechas</span>
+                </div>
+                <div class="tm-gantt-sidebar-body" id="tm-gantt-sidebar-body">
+                    <!-- Populated dynamically by JS -->
+                </div>
+            </div>
+
+            <!-- Right Side: Scrollable Timeline Grid -->
+            <div class="tm-gantt-timeline-wrapper" id="tm-gantt-timeline-wrapper">
+                <div class="tm-gantt-timeline" id="tm-gantt-timeline">
+                    <!-- Timeline Header (Months / Weeks / Days) -->
+                    <div class="tm-gantt-timeline-header" id="tm-gantt-timeline-header"></div>
+                    <!-- Timeline Body (Grid & Task Bars) -->
+                    <div class="tm-gantt-timeline-body" id="tm-gantt-timeline-body">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- ═══════════════════════════════════════════════════ -->
@@ -275,7 +386,6 @@ try {
         <div class="lumio-accent-bar" id="tm-modal-accent"></div>
         <form id="form-task" onsubmit="TM.saveTask(event)" class="lumio-form">
             <input type="hidden" id="tm-task-id">
-            <input type="hidden" id="tm-start-date">
             <select id="tm-assigned-roles" multiple style="display:none;"></select>
 
             <!-- Header -->
@@ -423,6 +533,16 @@ try {
                                         <i class="ph-bold ph-check"></i> Actualizar Fase
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fecha de Inicio -->
+                    <div class="lumio-meta-row">
+                        <div class="lumio-meta-label"><i class="ph ph-calendar-plus"></i> Fecha de Inicio</div>
+                        <div class="lumio-meta-value">
+                            <div class="lumio-date-trigger" onclick="document.getElementById('tm-start-date').focus()">
+                                <input type="text" id="tm-start-date" placeholder="Seleccionar fecha de inicio..." readonly>
                             </div>
                         </div>
                     </div>
