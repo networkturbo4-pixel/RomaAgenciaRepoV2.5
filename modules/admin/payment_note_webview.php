@@ -182,422 +182,565 @@ body.public-mode {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
 }
-/* Specific Styles for Nota de Pago Webview */
+/* ==========================================================================
+   APP-MODERN SAAS STYLING FOR PAYMENT NOTE WEBVIEW (ADMIN & CORE)
+   ========================================================================== */
+
 .payment-notes-container {
-    --card-elevation: 0 12px 30px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.02);
-    --border: color-mix(in srgb, var(--border-color) 80%, #000 20%);
+    --card-elevation: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+    --border: var(--border-color);
     --accent: var(--primary-color);
     --accent-light: color-mix(in srgb, var(--primary-color) 80%, white);
     --success: var(--secondary-color);
     --pending: var(--warning-color);
-    --pending-bg: color-mix(in srgb, var(--warning-color) 10%, transparent);
-    --paid-bg: color-mix(in srgb, var(--secondary-color) 10%, transparent);
+    --pending-bg: color-mix(in srgb, var(--warning-color) 12%, transparent);
+    --paid-bg: color-mix(in srgb, var(--secondary-color) 12%, transparent);
     --paid-text: var(--secondary-color);
-    --hover-card: var(--bg-surface);
-    --copy-btn: var(--bg-color);
+    --hover-card: color-mix(in srgb, var(--bg-surface) 96%, var(--text-main) 4%);
+    --copy-btn: var(--bg-body);
 
-    max-width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    padding: 0 0 3rem 0;
+    font-family: var(--font-family);
     animation: fadeIn 0.3s ease;
 }
 
-[data-theme="dark"] .payment-notes-container {
-    --card-elevation: 0 12px 30px rgba(0, 0, 0, 0.4);
-    --border: color-mix(in srgb, var(--border-color) 80%, #fff 20%);
-    --hover-card: var(--bg-surface);
-    --copy-btn: var(--bg-color);
-    --pending-bg: color-mix(in srgb, var(--warning-color) 15%, transparent);
-    --paid-bg: color-mix(in srgb, var(--secondary-color) 15%, transparent);
-}
-
-.payment-notes-container .header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 32px;
-    gap: 16px;
-}
-
-.payment-notes-container .brand h1 {
-    font-size: 1.9rem;
-    font-weight: 650;
-    letter-spacing: -0.5px;
-    background: linear-gradient(130deg, var(--accent), var(--accent-light));
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-}
-
-.payment-notes-container .brand p {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-top: 6px;
-    font-weight: 450;
-}
-
-.payment-notes-container .section-card {
+/* --- APP STUDIO HEADER --- */
+.pn-app-header {
     background: var(--bg-surface);
-    border-radius: 28px;
-    border: 1px solid var(--border);
-    box-shadow: var(--card-elevation);
-    margin-bottom: 36px;
-    overflow: hidden;
-    transition: all 0.2s;
-}
-
-.payment-notes-container .section-header {
-    padding: 1.2rem 1.8rem;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
-    background: var(--bg-surface);
-}
-
-.payment-notes-container .section-header h2 {
-    font-size: 1.35rem;
-    font-weight: 600;
-    letter-spacing: -0.2px;
-    margin: 0;
-}
-
-.payment-notes-container .badge-soft {
-    background: var(--accent);
-    color: white;
-    padding: 4px 14px;
-    border-radius: 40px;
-    font-size: 0.7rem;
-    font-weight: 500;
-    opacity: 0.9;
-}
-
-.payment-notes-container .cards-grid {
-    padding: 1.5rem 1.8rem;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.payment-notes-container .row-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 1rem 1.2rem;
+    padding: 1.25rem 1.5rem;
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
     justify-content: space-between;
-    transition: all 0.2s;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-}
-
-.payment-notes-container .row-card:hover {
-    background: var(--hover-card);
-    border-color: var(--accent-light);
-    transform: translateY(-2px);
-}
-
-.payment-notes-container .card-info {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
     align-items: center;
-    flex: 3;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--card-elevation);
+    transition: all 0.2s ease;
 }
 
-.payment-notes-container .info-field {
+.pn-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    flex: 1;
+    min-width: 280px;
+}
+
+.pn-btn-back {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.pn-btn-back:hover {
+    background: var(--hover-card);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateX(-3px);
+}
+
+.pn-header-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 25%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.pn-header-info-box {
     display: flex;
     flex-direction: column;
-    min-width: 110px;
+    gap: 2px;
 }
 
-.payment-notes-container .field-label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    letter-spacing: 0.5px;
+.pn-header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
-.payment-notes-container .field-value {
-    font-weight: 600;
-    font-size: 0.95rem;
-    margin-top: 4px;
+.pn-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.4px;
     color: var(--text-main);
 }
 
-.payment-notes-container .amount-highlight {
+.pn-badge-code {
+    font-size: 0.75rem;
     font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--accent);
+    color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 25%, transparent);
+    padding: 3px 12px;
+    border-radius: 30px;
+    letter-spacing: 0.2px;
 }
 
-.payment-notes-container .card-actions {
+.pn-subtitle {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 450;
+}
+
+.pn-header-actions {
     display: flex;
-    gap: 12px;
     align-items: center;
+    gap: 0.65rem;
     flex-wrap: wrap;
 }
 
-.payment-notes-container .btn-icon-sm {
-    background: var(--copy-btn);
-    border: none;
-    border-radius: 40px;
-    padding: 6px 16px;
-    font-size: 0.75rem;
-    font-weight: 500;
+.pn-btn-cancel {
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    text-decoration: none;
     cursor: pointer;
-    transition: 0.1s;
-    color: var(--text-muted);
+    transition: all 0.15s;
+}
+
+.pn-btn-cancel:hover {
+    background: var(--hover-card);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.pn-btn-preview-toggle {
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.pn-btn-preview-toggle:hover,
+.pn-btn-preview-toggle.active {
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.pn-btn-save {
+    padding: 0.65rem 1.4rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color) 35%, transparent);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.pn-btn-save:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-color) 45%, transparent);
+    opacity: 0.95;
+}
+
+/* --- SECTION CARDS --- */
+.payment-notes-container .section-card {
+    background: var(--bg-surface);
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-elevation);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.payment-notes-container .section-header {
+    padding: 1.15rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: var(--bg-surface);
+}
+
+.section-header-title {
     display: flex;
     align-items: center;
+    gap: 12px;
+}
+
+.section-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.payment-notes-container .section-header h2 {
+    font-size: 1.05rem;
+    font-weight: 750;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-main);
+}
+
+.section-sub {
+    margin: 2px 0 0 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 450;
+}
+
+.payment-notes-container .badge-soft {
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    color: var(--text-muted);
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.section-card-body {
+    padding: 1.5rem;
+}
+
+/* --- CLIENT FORM & INPUT GROUPS --- */
+.pn-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.modern-input-group {
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 10px 14px;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
     gap: 6px;
 }
 
-.payment-notes-container .btn-icon-sm:hover {
-    background: var(--accent);
+.modern-input-group:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 40%, transparent);
+}
+
+.modern-input-group:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 15%, transparent);
+}
+
+.modern-input-group label {
+    font-size: 0.7rem;
+    font-weight: 750;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.pn-select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.pn-select-wrapper select,
+.modern-input-group select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 2px 24px 2px 0;
+    font-family: var(--font-family);
+}
+
+.pn-select-caret {
+    position: absolute;
+    right: 0;
+    pointer-events: none;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.modern-input-group input[type="date"],
+.modern-input-group input[type="text"],
+.modern-input-group input[type="number"] {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-main);
+    padding: 2px 0;
+    font-family: var(--font-family);
+    width: 100%;
+}
+
+/* --- FEATURE TILES --- */
+.pn-feature-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.pn-feature-tile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 16px;
+    transition: all 0.2s ease;
+}
+
+.pn-feature-tile:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 40%, transparent);
+}
+
+.pn-tile-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.pn-tile-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pn-tile-title {
+    font-size: 0.85rem;
+    font-weight: 750;
+    color: var(--text-main);
+}
+
+.pn-tile-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.pn-voucher-tile {
+    grid-column: 1 / -1;
+}
+
+.pn-voucher-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+.pn-voucher-input-row input {
+    flex: 1;
+    min-width: 150px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.pn-voucher-input-row input:focus {
+    border-color: var(--accent);
+}
+
+.pn-btn-ocr {
+    border-radius: 8px;
+    white-space: nowrap;
+    font-weight: 600;
+    padding: 6px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.82rem;
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.pn-btn-ocr:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--hover-card);
+}
+
+.pn-btn-voucher-view {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+
+.pn-btn-voucher-view:hover {
+    background: var(--primary-color);
     color: white;
+}
+
+/* --- BUTTONS & PILLS --- */
+.payment-notes-container .btn-primary-custom {
+    background: var(--primary-color);
+    border: none;
+    padding: 7px 16px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.payment-notes-container .btn-primary-custom:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 35%, transparent);
+}
+
+.payment-notes-container .btn-icon-sm {
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.payment-notes-container .btn-icon-sm:hover {
+    background: var(--hover-card);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.payment-notes-container .inline-input {
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    font-family: var(--font-family);
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.payment-notes-container .inline-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 15%, transparent);
 }
 
 .payment-notes-container .status-pill {
     display: inline-block;
-    padding: 4px 14px;
-    border-radius: 40px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: capitalize;
 }
 
 .payment-notes-container .status-pending {
     background: var(--pending-bg);
     color: var(--pending);
-    border: 0.5px solid var(--pending);
+    border: 1px solid var(--pending);
 }
 
 .payment-notes-container .status-paid {
     background: var(--paid-bg);
     color: var(--paid-text);
-    border: 0.5px solid var(--paid-text);
-}
-
-.payment-notes-container .action-bar {
-    padding: 0.8rem 1.8rem 1.5rem 1.8rem;
-    display: flex;
-    justify-content: flex-end;
-    border-top: 1px solid var(--border);
-    background: var(--bg-surface);
-}
-
-.payment-notes-container .btn-primary-custom {
-    background: var(--accent);
-    border: none;
-    padding: 10px 24px;
-    border-radius: 40px;
-    color: white;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.payment-notes-container .btn-primary-custom:hover {
-    background: var(--accent-light);
-    transform: scale(0.97);
-}
-
-.payment-notes-container .summary-modern {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-bottom: 32px;
-}
-
-.payment-notes-container .stat-card-modern {
-    background: var(--bg-surface);
-    border-radius: 24px;
-    border: 1px solid var(--border);
-    padding: 1.2rem 1.6rem;
-    flex: 1;
-    min-width: 180px;
-    box-shadow: var(--card-elevation);
-}
-
-.payment-notes-container .stat-label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.payment-notes-container .stat-number {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-top: 6px;
-    color: var(--text-main);
-}
-
-.payment-notes-container .stat-highlight {
-    border-left: 3px solid var(--pending);
-}
-
-.payment-notes-container .pending-number {
-    color: var(--pending);
-}
-
-.payment-notes-container .payments-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    align-items: center;
-    margin: 12px 0 8px;
-}
-
-.payment-notes-container .payment-item {
-    background: var(--copy-btn);
-    border-radius: 60px;
-    padding: 8px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.8rem;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: 0.1s;
-    color: var(--text-main);
-}
-
-.payment-notes-container .payment-item:hover {
-    background: var(--accent);
-    color: white;
-}
-
-.payment-notes-container .payment-code {
-    font-family: monospace;
-    font-weight: 600;
-}
-
-.toast-msg {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1e293b;
-    color: #ffffff;
-    padding: 12px 24px;
-    border-radius: 60px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    z-index: 10001;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    animation: toastIn 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.toast-msg::before {
-    content: '✓';
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    background: #10b981;
-    color: #fff;
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: 800;
-}
-@keyframes toastIn {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Inline Inputs for editing */
-.payment-notes-container .inline-input {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.6rem;
-    font-size: 0.85rem;
-    font-family: var(--font-family);
-    width: 100%;
-}
-.payment-notes-container .inline-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-}
-
-/* Service Table Card Layout */
-.payment-notes-container .serv-card-table {
-    display: block;
-    padding: 0 !important;
-    overflow: hidden;
-}
-
-.payment-notes-container .serv-table-grid {
-    display: grid;
-    grid-template-columns: 2fr 0.5fr 1fr 1fr;
-    align-items: center;
-    gap: 0;
-    width: 100%;
-}
-
-.payment-notes-container .serv-col {
-    padding: 1rem 1.1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.payment-notes-container .serv-col + .serv-col {
-    border-left: 1px solid var(--border-color);
-}
-
-.payment-notes-container .serv-col-num {
-    text-align: right;
-    align-items: flex-end;
-}
-
-.payment-notes-container .serv-desc {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-}
-
-.payment-notes-container .serv-card-table .card-actions {
-    border-top: 1px solid var(--border-color);
-    padding: 0.6rem 1rem;
-    justify-content: flex-end;
-    display: flex;
-    gap: 8px;
-}
-
-@media (max-width: 700px) {
-    .payment-notes-container .serv-table-grid {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto;
-    }
-    .payment-notes-container .serv-col-name {
-        grid-column: 1 / -1;
-        border-left: none !important;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .payment-notes-container .serv-col + .serv-col {
-        border-left: none;
-    }
-    .payment-notes-container .serv-col:nth-child(3) {
-        border-left: 1px solid var(--border-color);
-    }
-    .payment-notes-container .serv-col-num {
-        text-align: left;
-        align-items: flex-start;
-    }
+    border: 1px solid var(--paid-text);
 }
 
 /* Public Mode Styles */
@@ -854,20 +997,33 @@ body.public-mode .modern-table tr.is-paid {
     background-color: var(--bg-page);
 }
 
-/* --- New CSS for Grid and App-like UI --- */
+/* --- TWO COLUMN STUDIO LAYOUT --- */
 .two-column-layout {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.95fr);
     gap: 24px;
     align-items: start;
+    transition: all 0.3s ease;
 }
+
+.two-column-layout.pn-layout-full {
+    grid-template-columns: 1fr !important;
+}
+
+.two-column-layout.pn-layout-full .right-column,
+.pn-preview-hidden {
+    display: none !important;
+}
+
 body.public-mode .two-column-layout {
     display: flex;
     justify-content: center;
 }
 body.public-mode .left-column,
-body.public-mode #client-info-card {
-    display: none;
+body.public-mode #client-info-card,
+body.public-mode .pn-app-header,
+body.public-mode .pn-bottom-floating-bar {
+    display: none !important;
 }
 body.public-mode .right-column {
     display: block;
@@ -881,25 +1037,11 @@ body.public-mode .preview-container {
     border-radius: 0 !important;
     box-shadow: none !important;
     position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
 }
 
-.modern-input-group {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 10px 16px;
-    transition: all 0.2s;
-    background: var(--bg-page);
-    border: 1px solid var(--border);
-    padding: 10px 14px;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    transition: 0.2s;
-}
-
-/* Custom Autocomplete CSS */
+/* Custom Autocomplete */
 .autocomplete-container {
     position: relative;
     width: 100%;
@@ -910,21 +1052,22 @@ body.public-mode .preview-container {
     left: 0;
     right: 0;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     margin-top: 4px;
-    max-height: 200px;
+    max-height: 220px;
     overflow-y: auto;
-    z-index: 100;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
     display: none;
 }
 .autocomplete-item {
     padding: 10px 14px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+    font-weight: 500;
     color: var(--text-main);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-color);
     transition: background 0.15s;
 }
 .autocomplete-item:last-child {
@@ -932,41 +1075,7 @@ body.public-mode .preview-container {
 }
 .autocomplete-item:hover {
     background: var(--hover-card);
-    color: var(--accent);
-}
-
-.modern-input-group:focus-within, .modern-input-group:hover {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
-.modern-input-group label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: var(--text-main);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.modern-input-group select, 
-.modern-input-group input[type="text"], 
-.modern-input-group input[type="number"], 
-.modern-input-group input[type="date"] {
-    border: none;
-    background: transparent;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-main);
-    padding: 0;
-    width: 100%;
-}
-
-.modern-input-group select:focus, 
-.modern-input-group input:focus {
-    outline: none;
+    color: var(--primary-color);
 }
 
 /* Toggle Switch */
@@ -989,7 +1098,7 @@ body.public-mode .preview-container {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--border);
+  background-color: var(--border-color);
   transition: .3s;
   border-radius: 24px;
 }
@@ -1012,102 +1121,343 @@ input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
 
+/* --- STICKY LIVE PREVIEW CONTAINER --- */
 .preview-container {
     background: var(--bg-surface);
-    border-radius: 24px;
+    border-radius: 20px;
     border: 1px solid var(--border-color);
     box-shadow: var(--card-elevation);
     position: sticky;
     top: 24px;
     overflow: hidden;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    transition: all 0.2s ease;
 }
 .preview-header {
-    background: var(--primary-color);
-    color: white;
-    padding: 16px 20px;
-    text-align: center;
-}
-.preview-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 14px 20px;
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 8px;
-}
-.preview-header p {
-    margin: 4px 0 0;
-    font-size: 0.8rem;
-    opacity: 0.8;
+    justify-content: space-between;
 }
 .preview-content {
     padding: 20px;
 }
-.preview-client-info h4 {
-    margin: 0 0 4px 0;
-    font-size: 1.1rem;
+.pn-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    display: inline-block;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+    animation: livePulse 2s infinite;
 }
-.preview-client-info p {
-    margin: 0;
+@keyframes livePulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* --- FINANCIAL SUMMARY & RECEIPT --- */
+.pn-resumen-toggles {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.pn-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 0.85rem;
-    color: var(--text-muted);
-}
-.preview-divider {
-    height: 1px;
-    background: var(--border-color);
-    margin: 16px 0;
-}
-.preview-section-title {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--primary-color);
-    margin-bottom: 12px;
-}
-.preview-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-}
-.preview-item-name {
-    color: var(--text-main);
-    font-weight: 500;
-}
-.preview-item-price {
     font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
 }
-.preview-total-row {
+.pn-discount-group {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+.pn-discount-group input {
+    width: 75px;
+    text-align: right;
+}
+.pn-resumen-body {
+    padding: 1.5rem;
+}
+.pn-summary-table-wrap {
+    width: 100%;
+}
+.pn-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.pn-summary-table td {
+    padding: 9px 0;
+}
+.pn-summary-table .lbl {
+    text-align: right;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    padding-right: 24px;
+    letter-spacing: 0.4px;
+}
+.pn-summary-table .val {
+    text-align: right;
     font-weight: 700;
-    font-size: 0.95rem;
-    margin-top: 12px;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    width: 160px;
 }
-.preview-grand-total {
+.pn-summary-table .lbl-discount,
+.pn-summary-table .val-discount {
+    color: #ef4444 !important;
+}
+.pn-summary-table .lbl-abonos,
+.pn-summary-table .val-abonos {
+    color: var(--secondary-color) !important;
+}
+.pn-summary-table .row-total-gen .lbl {
+    font-weight: 750;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+.pn-summary-table .row-total-gen .val {
+    font-weight: 850;
+    font-size: 1.25rem;
+    color: var(--primary-color);
+}
+.pn-summary-table .row-saldo-total td {
+    border-top: 2px solid var(--border-color);
+    padding-top: 14px;
+}
+.pn-summary-table .lbl-saldo {
+    font-weight: 850;
+    font-size: 1.05rem;
+    color: var(--primary-color) !important;
+}
+.pn-summary-table .val-saldo {
+    font-weight: 900;
+    font-size: 1.5rem;
+    color: var(--primary-color) !important;
+}
+
+/* --- PAYMENT METHODS CARDS --- */
+.payment-notes-container .payments-wrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+.payment-notes-container .payment-item {
+    background: var(--bg-body);
+    border-radius: 14px;
+    padding: 12px 16px;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-main);
+}
+.payment-notes-container .payment-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+}
+.copy-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 1rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+.payment-item:hover .copy-icon {
+    background: var(--primary-color);
+    color: white;
+}
+.pn-pm-footer {
+    margin-top: 16px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* --- ADVANCED SETTINGS GRID --- */
+.pn-config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+.pn-config-item label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 750;
+    color: var(--text-main);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.pn-config-item small {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    display: block;
+}
+.pn-pin-input {
+    letter-spacing: 8px;
     font-weight: 800;
     font-size: 1.2rem;
+    text-align: center;
+    max-width: 140px;
+}
+
+/* --- FLOATING BOTTOM BAR --- */
+.pn-bottom-floating-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.16);
+    border-radius: 40px;
+    padding: 10px 22px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    animation: toastSlideUp 0.3s ease;
+}
+.pn-bottom-summary {
+    display: flex;
+    flex-direction: column;
+}
+.pn-bottom-label {
+    font-size: 0.65rem;
+    font-weight: 750;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.pn-bottom-total {
+    font-size: 1.15rem;
+    font-weight: 850;
     color: var(--primary-color);
+    letter-spacing: -0.3px;
 }
-.badge-pagado {
-    background: var(--paid-bg);
-    color: var(--paid-text);
-    font-size: 0.65rem;
-    padding: 2px 6px;
-    border-radius: 12px;
-    margin-left: 6px;
-    vertical-align: middle;
+.pn-bottom-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-.badge-pendiente {
-    background: var(--pending-bg);
-    color: var(--pending);
-    font-size: 0.65rem;
-    padding: 2px 6px;
-    border-radius: 12px;
-    margin-left: 6px;
-    vertical-align: middle;
+
+/* --- OLED DARK MODE OVERRIDES FOR ADMIN --- */
+[data-theme="dark"] .pn-app-header,
+[data-theme="dark"] .section-card,
+[data-theme="dark"] .preview-container,
+[data-theme="dark"] .pn-bottom-floating-bar {
+    background: #0b0b0e !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .section-header,
+[data-theme="dark"] .preview-header {
+    background: #0b0b0e !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .modern-input-group,
+[data-theme="dark"] .pn-feature-tile,
+[data-theme="dark"] .payment-item,
+[data-theme="dark"] .pn-btn-back,
+[data-theme="dark"] .pn-btn-cancel,
+[data-theme="dark"] .pn-btn-preview-toggle,
+[data-theme="dark"] .pn-btn-ocr,
+[data-theme="dark"] .inline-input,
+[data-theme="dark"] .btn-icon-sm {
+    background: #121217 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .modern-input-group select,
+[data-theme="dark"] .modern-input-group input,
+[data-theme="dark"] .pn-btn-back,
+[data-theme="dark"] .pn-btn-cancel,
+[data-theme="dark"] .pn-btn-preview-toggle,
+[data-theme="dark"] .pn-btn-ocr {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .modern-table th {
+    background: #101015 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .modern-table td {
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .modern-table tbody tr:hover {
+    background: #15151c !important;
+}
+
+[data-theme="dark"] .autocomplete-dropdown {
+    background: #121217 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.8) !important;
+}
+
+[data-theme="dark"] .autocomplete-item {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .autocomplete-item:hover {
+    background: #1c1c24 !important;
+    color: var(--primary-contrast) !important;
+}
+
+[data-theme="dark"] .pn-voucher-input-row input {
+    background: #0b0b0e !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .copy-icon {
+    background: #181820 !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 1024px) {
+    .two-column-layout {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* New App-Like UI Styles */
@@ -1527,130 +1877,199 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
   </div>
 
   <div class="payment-notes-inner">
-  <!-- INFORMACIÓN DEL CLIENTE / PROYECTO -->
-  <div class="section-card" id="client-info-card">
-    <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
-      <div style="display: flex; align-items: center; gap: 20px; flex: 1;">
 
-          <div class="brand" style="display: flex; flex-direction: column;">
-            <h1 style="margin: 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                NOTA DE PAGO
-                <span id="invoice-header-info" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); background: var(--bg-page); padding: 6px 14px; border-radius: 40px; letter-spacing: 0;">NUEVA NOTA &middot; RUC 20610965530 &middot; THE ROMA AGENCY CORPORACION S.A.C.</span>
-            </h1>
+  <?php if (!$is_public): ?>
+  <!-- ADMIN APP STUDIO TOPBAR -->
+  <div class="pn-app-header">
+      <div class="pn-header-left">
+          <a href="index.php?module=admin&action=payment_notes" class="pn-btn-back" title="Volver a Notas de Pago">
+              <i class="ph ph-arrow-left"></i>
+          </a>
+          <div class="pn-header-icon">
+              <i class="ph ph-receipt"></i>
+          </div>
+          <div class="pn-header-info-box">
+              <div class="pn-header-title-row">
+                  <h1 class="pn-title">Nota de Pago</h1>
+                  <span id="invoice-header-info" class="pn-badge-code">NUEVA NOTA &middot; THE ROMA AGENCY CORPORACION S.A.C.</span>
+              </div>
+              <p class="pn-subtitle">Configura los datos del cliente, servicios facturables, cronograma y comprobantes.</p>
           </div>
       </div>
-      <div class="botones-finales" style="display: flex; gap: 12px; align-items: center;">
-          <button class="btn btn-outline" onclick="window.location.href='index.php?module=admin&action=payment_notes'" style="padding: 10px 20px; border-radius: 12px;">Cancelar</button>
-          <button class="btn btn-primary" id="btn-guardar-nota-total" style="padding: 10px 24px; border-radius: 12px; font-size: 0.95rem; font-weight: 600;"><i class="ph ph-floppy-disk"></i> Guardar Nota</button>
+      <div class="pn-header-actions">
+          <button type="button" class="btn btn-outline pn-btn-preview-toggle" id="btn-toggle-live-preview" onclick="toggleLivePreview()">
+              <i class="ph ph-device-mobile"></i> <span id="preview-toggle-text">Ocultar Previa</span>
+          </button>
+          <a href="index.php?module=admin&action=payment_notes" class="pn-btn-cancel">
+              <i class="ph ph-x"></i> Cancelar
+          </a>
+          <button type="button" class="btn btn-primary pn-btn-save" id="btn-guardar-nota-total">
+              <i class="ph ph-floppy-disk"></i> Guardar Nota
+          </button>
       </div>
+  </div>
+  <?php endif; ?>
+
+  <div class="two-column-layout">
+    <div class="left-column">
+
+  <!-- INFORMACIÓN DEL CLIENTE / PROYECTO -->
+  <div class="section-card" id="client-info-card">
+    <div class="section-header">
+      <div class="section-header-title">
+        <div class="section-icon-badge"><i class="ph ph-user-circle"></i></div>
+        <div>
+          <h2>Información del Cliente y Configuración</h2>
+          <p class="section-sub">Datos principales de facturación y módulos activos de la nota</p>
+        </div>
+      </div>
+      <div class="badge-soft">General</div>
     </div>
-    <div style="padding: 1.5rem 1.8rem;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+    <div class="section-card-body">
+      <!-- 3 Primary Fields -->
+      <div class="pn-form-grid">
           <div class="modern-input-group">
-              <label><i class="ph ph-user-circle"></i> Cliente / Contacto</label>
+              <label><i class="ph ph-user"></i> Cliente / Contacto</label>
               <span id="public-client-text" class="public-readonly-text" style="display: none;"></span>
-              <select id="note-client">
-                  <option value="">Selecciona un cliente...</option>
-                  <?php foreach ($clients as $client): ?>
-                      <option value="<?php echo htmlspecialchars($client['name']); ?>" 
-                              data-brands="<?php echo htmlspecialchars($client['brands'] ?? ''); ?>"
-                              data-memberships="<?php echo htmlspecialchars($client['memberships'] ?? ''); ?>"
-                              data-services="<?php echo htmlspecialchars($client['services_ids'] ?? ''); ?>">
-                          <?php echo htmlspecialchars($client['name']); ?>
-                      </option>
-                  <?php endforeach; ?>
-              </select>
+              <div class="pn-select-wrapper">
+                  <select id="note-client">
+                      <option value="">Selecciona un cliente...</option>
+                      <?php foreach ($clients as $client): ?>
+                          <option value="<?php echo htmlspecialchars($client['name']); ?>" 
+                                  data-brands="<?php echo htmlspecialchars($client['brands'] ?? ''); ?>"
+                                  data-memberships="<?php echo htmlspecialchars($client['memberships'] ?? ''); ?>"
+                                  data-services="<?php echo htmlspecialchars($client['services_ids'] ?? ''); ?>">
+                              <?php echo htmlspecialchars($client['name']); ?>
+                          </option>
+                      <?php endforeach; ?>
+                  </select>
+                  <i class="ph ph-caret-down pn-select-caret"></i>
+              </div>
           </div>
           <div class="modern-input-group">
               <label><i class="ph ph-buildings"></i> Empresa / Marca</label>
               <span id="public-company-text" class="public-readonly-text" style="display: none;"></span>
-              <select id="note-company">
-                  <option value="">Selecciona una marca...</option>
-              </select>
+              <div class="pn-select-wrapper">
+                  <select id="note-company">
+                      <option value="">Selecciona una marca...</option>
+                  </select>
+                  <i class="ph ph-caret-down pn-select-caret"></i>
+              </div>
           </div>
           <div class="modern-input-group">
               <label><i class="ph ph-calendar-blank"></i> Fecha de Inicio</label>
               <span id="public-date-text" class="public-readonly-text" style="display: none;"></span>
               <input type="date" id="note-start-date">
           </div>
-          
-          <div class="modern-input-group" style="flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px;">
-              <label style="margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 6px;"><i class="ph ph-calendar-star" style="font-size: 1.1rem; color: var(--primary-color);"></i> Mostrar Membresías</label>
+      </div>
+
+      <!-- Feature Tiles & Voucher Bar -->
+      <div class="pn-feature-tiles">
+          <div class="pn-feature-tile">
+              <div class="pn-tile-icon"><i class="ph ph-calendar-star"></i></div>
+              <div class="pn-tile-info">
+                  <div class="pn-tile-title">Cronograma de Membresía</div>
+                  <div class="pn-tile-desc">Pagos mensuales y cuotas recurrentes</div>
+              </div>
               <label class="toggle-switch">
                   <input type="checkbox" id="toggle-membership" checked>
                   <span class="toggle-slider"></span>
               </label>
           </div>
 
-          <div class="modern-input-group" style="flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px;">
-              <label style="margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 6px;"><i class="ph ph-wallet" style="font-size: 1.1rem; color: var(--primary-color);"></i> Mostrar Adelantos</label>
+          <div class="pn-feature-tile">
+              <div class="pn-tile-icon"><i class="ph ph-wallet"></i></div>
+              <div class="pn-tile-info">
+                  <div class="pn-tile-title">Registro de Adelantos</div>
+                  <div class="pn-tile-desc">Depósitos previos y abonos parciales</div>
+              </div>
               <label class="toggle-switch">
                   <input type="checkbox" id="toggle-abonos">
                   <span class="toggle-slider"></span>
               </label>
           </div>
 
-          <div class="modern-input-group" id="admin-voucher-input-group">
-              <label style="margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 6px;"><i class="ph ph-receipt" style="font-size: 1.1rem; color: var(--primary-color);"></i> Comprobante / Voucher</label>
-              <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
-                  <input type="text" id="admin-note-op-number" placeholder="N° Operación..." style="flex: 1; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; font-size: 0.85rem;" oninput="onAdminOpNumberChange(this.value)">
-                  <button type="button" class="btn btn-outline btn-sm" onclick="openVoucherUploadModal()" style="border-radius: 8px; white-space: nowrap; font-weight: 600; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px;">
-                      <i class="ph ph-camera"></i> Subir / OCR
-                  </button>
-                  <a id="admin-voucher-view-link" href="#" target="_blank" style="display: none; padding: 6px 8px; color: var(--primary-color); font-size: 1.2rem;" title="Ver Voucher Adjunto"><i class="ph ph-file-text"></i></a>
+          <div class="pn-feature-tile pn-voucher-tile" id="admin-voucher-input-group">
+              <div class="pn-tile-icon"><i class="ph ph-receipt"></i></div>
+              <div class="pn-tile-info">
+                  <div class="pn-tile-title">Comprobante / Voucher de Pago</div>
+                  <div class="pn-voucher-input-row">
+                      <input type="text" id="admin-note-op-number" placeholder="N° Operación..." oninput="onAdminOpNumberChange(this.value)">
+                      <button type="button" class="btn btn-outline btn-sm pn-btn-ocr" onclick="openVoucherUploadModal()">
+                          <i class="ph ph-camera"></i> Subir / OCR
+                      </button>
+                      <a id="admin-voucher-view-link" href="#" target="_blank" style="display: none;" class="pn-btn-voucher-view" title="Ver Comprobante Adjunto">
+                          <i class="ph ph-file-text"></i> <span>Ver Voucher</span>
+                      </a>
+                  </div>
               </div>
           </div>
       </div>
     </div>
   </div>
 
-  <div class="two-column-layout">
-    <div class="left-column">
-
   <!-- TABLA 1 - SERVICIOS REALIZADOS -->
   <div class="section-card">
     <div class="section-header">
-      <h2>Servicios Realizados</h2>
-      <div class="badge-soft">Ítem facturable</div>
+      <div class="section-header-title">
+        <div class="section-icon-badge"><i class="ph ph-package"></i></div>
+        <div>
+          <h2>Servicios Realizados</h2>
+          <p class="section-sub">Ítems facturables individuales y entregables de la nota</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="badge-soft">Ítem facturable</div>
+        <button type="button" class="btn-primary-custom" id="agregarServicioBtn">
+          <i class="ph ph-plus"></i> Agregar servicio
+        </button>
+      </div>
     </div>
-    <div class="table-responsive" style="padding: 1.5rem 1.8rem;">
+    <div class="table-responsive">
       <table class="modern-table" id="serviciosTable">
         <thead>
           <tr>
             <th>Servicio y Descripción</th>
-            <th style="width: 100px; text-align: center;">Cant.</th>
-            <th style="width: 150px; text-align: right;">Costo Unit.</th>
-            <th style="width: 150px; text-align: right;">Total</th>
-            <th style="width: 120px; text-align: right;">Acciones</th>
+            <th style="width: 90px; text-align: center;">Cant.</th>
+            <th style="width: 140px; text-align: right;">Costo Unit.</th>
+            <th style="width: 140px; text-align: right;">Total</th>
+            <th style="width: 110px; text-align: right;">Acciones</th>
           </tr>
         </thead>
         <tbody id="serviciosCardsContainer">
           <!-- Aquí se renderizan dinámicamente las filas de servicios -->
         </tbody>
-
       </table>
-    </div>
-    <div class="action-bar">
-      <button class="btn-primary-custom" id="agregarServicioBtn"><i class="ph ph-plus"></i> Agregar servicio</button>
     </div>
   </div>
 
   <!-- TABLA 2 - HISTORIAL DE MEMBRESÍA -->
   <div class="section-card" id="cronograma-card">
     <div class="section-header">
-      <h2>Servicios Tipo Membresía</h2>
-      <div class="badge-soft">Historial de pagos</div>
+      <div class="section-header-title">
+        <div class="section-icon-badge"><i class="ph ph-calendar-star"></i></div>
+        <div>
+          <h2>Servicios Tipo Membresía</h2>
+          <p class="section-sub">Cronograma de pagos mensuales y estado de cuotas</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="badge-soft">Historial de pagos</div>
+        <button type="button" class="btn-primary-custom" id="agregarCuotaBtn">
+          <i class="ph ph-plus"></i> Añadir cuota
+        </button>
+      </div>
     </div>
-    <div class="table-responsive" style="padding: 1.5rem 1.8rem;">
+    <div class="table-responsive">
       <table class="modern-table" id="cronogramaTable">
         <thead>
           <tr>
             <th>Servicio</th>
-            <th style="width: 150px;">Mes</th>
-            <th style="width: 150px;">Fecha de Pago</th>
-            <th style="width: 150px; text-align: right;">Monto</th>
-            <th style="width: 120px; text-align: center;">Estado</th>
-            <th style="width: 140px; text-align: right;">Acciones</th>
+            <th style="width: 130px;">Mes</th>
+            <th style="width: 130px;">Fecha de Pago</th>
+            <th style="width: 130px; text-align: right;">Monto</th>
+            <th style="width: 110px; text-align: center;">Estado</th>
+            <th style="width: 120px; text-align: right;">Acciones</th>
           </tr>
         </thead>
         <tbody id="cronogramaCardsContainer">
@@ -1658,26 +2077,34 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
         </tbody>
       </table>
     </div>
-    <div class="action-bar">
-      <button class="btn-primary-custom" id="agregarCuotaBtn"><i class="ph ph-plus"></i> Añadir cuota</button>
-    </div>
   </div>
 
   <!-- TABLA 3 - REGISTRO DE PAGOS / ADELANTOS -->
   <div class="section-card" id="abonos-card" style="display: none;">
     <div class="section-header">
-      <h2>Registro de Pagos / Abonos</h2>
-      <div class="badge-soft">Adelantos</div>
+      <div class="section-header-title">
+        <div class="section-icon-badge"><i class="ph ph-wallet"></i></div>
+        <div>
+          <h2>Registro de Pagos / Abonos</h2>
+          <p class="section-sub">Adelantos y depósitos parciales recibidos del cliente</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="badge-soft">Adelantos</div>
+        <button type="button" class="btn-primary-custom" id="agregarAbonoBtn">
+          <i class="ph ph-plus"></i> Añadir abono
+        </button>
+      </div>
     </div>
-    <div class="table-responsive" style="padding: 1.5rem 1.8rem;">
+    <div class="table-responsive">
       <table class="modern-table" id="abonosTable">
         <thead>
           <tr>
             <th>Concepto de Pago</th>
             <th style="width: 150px;">Método / Banco</th>
-            <th style="width: 150px;">Fecha</th>
-            <th style="width: 150px; text-align: right;">Monto</th>
-            <th style="width: 120px; text-align: right;">Acciones</th>
+            <th style="width: 130px;">Fecha</th>
+            <th style="width: 130px; text-align: right;">Monto</th>
+            <th style="width: 110px; text-align: right;">Acciones</th>
           </tr>
         </thead>
         <tbody id="abonosCardsContainer">
@@ -1685,72 +2112,83 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
         </tbody>
       </table>
     </div>
-    <div class="action-bar">
-      <button class="btn-primary-custom" id="agregarAbonoBtn"><i class="ph ph-plus"></i> Añadir abono</button>
-    </div>
   </div>
 
   <!-- RESUMEN FINAL -->
   <div class="section-card" id="resumen-final-card">
-      <div style="padding: 1.5rem 1.8rem; background-color: var(--hover-card); border-bottom: 1px solid var(--border);">
-          <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: flex-end;">
-              <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">
-                  <span style="font-size: 0.85rem; color: var(--text-main);">Aplicar IGV (+18%)</span>
-                  <div class="toggle-switch">
-                      <input type="checkbox" id="toggle-igv">
-                      <span class="slider round"></span>
-                  </div>
-              </label>
-              
-              <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Descuento Global (%)</span>
-                  <input type="number" id="discount-input" class="inline-input" value="0" min="0" max="100" step="1" style="width: 80px; text-align: right; background: var(--bg-page);">
-              </div>
+      <div class="section-header">
+        <div class="section-header-title">
+          <div class="section-icon-badge"><i class="ph ph-calculator"></i></div>
+          <div>
+            <h2>Resumen y Liquidación</h2>
+            <p class="section-sub">Cálculo de impuestos, descuentos y saldo restante</p>
           </div>
+        </div>
+        <div class="pn-resumen-toggles">
+            <label class="pn-toggle-label">
+                <span>Aplicar IGV (+18%)</span>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="toggle-igv">
+                    <span class="toggle-slider"></span>
+                </div>
+            </label>
+            
+            <div class="pn-discount-group">
+                <span>Descuento Global (%)</span>
+                <input type="number" id="discount-input" class="inline-input" value="0" min="0" max="100" step="1">
+            </div>
+        </div>
       </div>
-      <div style="padding: 1.5rem 1.8rem;">
-          <table style="width: 100%; border-collapse: collapse;">
-              <tr id="row-stat-subtotal" style="display: none;">
-                <td style="text-align: right; font-weight: 600; text-transform: uppercase; font-size: 0.95rem; color: var(--text-muted); padding: 0.5rem 0;">Subtotal</td>
-                <td style="text-align: right; font-weight: 600; font-size: 1.1rem; color: var(--text-main); padding: 0.5rem 0;" id="statSubtotal">S/ 0.00</td>
-              </tr>
-              <tr id="row-stat-discount" style="display: none;">
-                <td style="text-align: right; font-weight: 600; text-transform: uppercase; font-size: 0.95rem; color: #ef4444; padding: 0.5rem 0;">Descuento</td>
-                <td style="text-align: right; font-weight: 600; font-size: 1.1rem; color: #ef4444; padding: 0.5rem 0;" id="statDiscount">-S/ 0.00</td>
-              </tr>
-              <tr id="row-stat-igv" style="display: none;">
-                <td style="text-align: right; font-weight: 600; text-transform: uppercase; font-size: 0.95rem; color: var(--text-muted); padding: 0.5rem 0;">IGV (18%)</td>
-                <td style="text-align: right; font-weight: 600; font-size: 1.1rem; color: var(--text-main); padding: 0.5rem 0;" id="statIgv">S/ 0.00</td>
-              </tr>
-              <tr>
-              <tr>
-                <td style="text-align: right; font-weight: 700; text-transform: uppercase; font-size: 0.95rem; color: var(--text-main); padding: 0.5rem 0;">Total General + Pendiente</td>
-                <td style="text-align: right; font-weight: 800; font-size: 1.25rem; color: var(--primary-color); padding: 0.5rem 0;" id="statGeneral">S/ 0.00</td>
-              </tr>
-              <tr id="row-stat-abonos" style="display: none;">
-                <td style="text-align: right; font-weight: 700; text-transform: uppercase; font-size: 0.95rem; color: var(--success); padding: 0.5rem 0;">(-) Adelantos Depositados</td>
-                <td style="text-align: right; font-weight: 800; font-size: 1.1rem; color: var(--success); padding: 0.5rem 0;" id="statAbonos">S/ 0.00</td>
-              </tr>
-              <tr id="row-stat-saldo" style="display: none;">
-                <td style="text-align: right; font-weight: 800; text-transform: uppercase; font-size: 1.1rem; color: var(--accent); padding-top: 1rem; border-top: 2px solid var(--border-color);">Saldo Restante a Pagar</td>
-                <td style="text-align: right; font-weight: 800; font-size: 1.4rem; color: var(--accent); padding-top: 1rem; border-top: 2px solid var(--border-color);" id="statSaldo">S/ 0.00</td>
-              </tr>
-          </table>
+      <div class="pn-resumen-body">
+          <div class="pn-summary-table-wrap">
+              <table class="pn-summary-table">
+                  <tr id="row-stat-subtotal" style="display: none;">
+                    <td class="lbl">Subtotal</td>
+                    <td class="val" id="statSubtotal">S/ 0.00</td>
+                  </tr>
+                  <tr id="row-stat-discount" style="display: none;">
+                    <td class="lbl lbl-discount">Descuento Global</td>
+                    <td class="val val-discount" id="statDiscount">-S/ 0.00</td>
+                  </tr>
+                  <tr id="row-stat-igv" style="display: none;">
+                    <td class="lbl">IGV (18%)</td>
+                    <td class="val" id="statIgv">S/ 0.00</td>
+                  </tr>
+                  <tr class="row-total-gen">
+                    <td class="lbl">Total General + Pendiente</td>
+                    <td class="val" id="statGeneral">S/ 0.00</td>
+                  </tr>
+                  <tr id="row-stat-abonos" style="display: none;">
+                    <td class="lbl lbl-abonos">(-) Adelantos Depositados</td>
+                    <td class="val val-abonos" id="statAbonos">S/ 0.00</td>
+                  </tr>
+                  <tr id="row-stat-saldo" style="display: none;" class="row-saldo-total">
+                    <td class="lbl lbl-saldo">Saldo Restante a Pagar</td>
+                    <td class="val val-saldo" id="statSaldo">S/ 0.00</td>
+                  </tr>
+              </table>
+          </div>
       </div>
   </div>
 
   <!-- MÉTODOS DE PAGO CON COPIA -->
   <div class="section-card">
     <div class="section-header">
-      <h2>Métodos de pago</h2>
+      <div class="section-header-title">
+        <div class="section-icon-badge"><i class="ph ph-credit-card"></i></div>
+        <div>
+          <h2>Métodos de Pago Activos</h2>
+          <p class="section-sub">Cuentas y billeteras que se mostrarán al cliente</p>
+        </div>
+      </div>
       <div class="badge-soft">Click para copiar</div>
     </div>
-    <div style="padding: 0.5rem 1.8rem 1.8rem 1.8rem;">
+    <div class="section-card-body">
       <div class="payments-wrapper" id="paymentMethodsList">
         <!-- dinámico -->
       </div>
-      <div style="margin-top: 20px; font-size:0.75rem; color:var(--text-muted); border-top: 1px solid var(--border); padding-top: 14px;">
-        <span>🔹 A nombre de CESAR A. MENDOZA CASTRO</span>
+      <div class="pn-pm-footer">
+        <i class="ph ph-info"></i> Titular de cuentas: <strong>CESAR A. MENDOZA CASTRO</strong> &middot; Corporación The Roma Agency S.A.C.
       </div>
     </div>
   </div>
@@ -1758,32 +2196,46 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
   <!-- CONFIGURACIÓN AVANZADA -->
   <div class="section-card" id="config-avanzada-card">
     <div class="section-header">
-      <h2><i class="ph ph-gear-six"></i> Configuración Avanzada</h2>
-    </div>
-    <div style="padding: 1rem 1.8rem 1.8rem;">
-      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end;">
-        <div style="flex: 1; min-width: 180px;">
-          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">
-            <i class="ph ph-calendar-x" style="color: var(--accent);"></i> Días para vencimiento
-          </label>
-          <input type="number" id="note-due-days" class="inline-input" value="30" min="1" max="365" style="width: 100%; background: var(--bg-page); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Días desde la fecha de inicio para considerar la nota como vencida.</div>
+      <div class="section-header-title">
+        <div class="section-icon-badge"><i class="ph ph-gear-six"></i></div>
+        <div>
+          <h2>Configuración Avanzada</h2>
+          <p class="section-sub">Control de vencimientos y seguridad mediante clave PIN</p>
         </div>
-        <div style="flex: 1; min-width: 180px;">
-          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">
-            <i class="ph ph-lock-simple" style="color: var(--accent);"></i> PIN de Acceso (opcional)
+      </div>
+    </div>
+    <div class="section-card-body">
+      <div class="pn-config-grid">
+        <div class="pn-config-item">
+          <label>
+            <i class="ph ph-calendar-x"></i> Días para vencimiento
           </label>
-          <input type="text" id="note-access-pin" class="inline-input" maxlength="4" pattern="[0-9]{4}" placeholder="Ej: 1234" style="width: 100%; background: var(--bg-page); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); letter-spacing: 8px; font-weight: 700; font-size: 1.1rem;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Si se define, el cliente deberá ingresar este PIN para ver la nota.</div>
+          <input type="number" id="note-due-days" class="inline-input" value="30" min="1" max="365">
+          <small>Días desde la fecha de inicio para considerar la nota como vencida.</small>
+        </div>
+        <div class="pn-config-item">
+          <label>
+            <i class="ph ph-lock-key"></i> PIN de Acceso (opcional)
+          </label>
+          <input type="text" id="note-access-pin" class="inline-input pn-pin-input" maxlength="4" pattern="[0-9]{4}" placeholder="••••">
+          <small>Si se define un PIN de 4 dígitos, el cliente deberá ingresarlo para ver la nota.</small>
         </div>
       </div>
     </div>
   </div>
 
     </div> <!-- end left-column -->
-    <div class="right-column">
+    <div class="right-column" id="pn-preview-column">
       <div class="preview-container">
-
+         <div class="preview-header">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="pn-live-dot"></span>
+                    <span style="font-weight: 750; font-size: 0.82rem; letter-spacing: 0.5px; text-transform: uppercase;">Vista Previa en Vivo</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Modo Cliente</div>
+            </div>
+         </div>
          <div class="preview-content" id="public-preview-render">
             <div style="text-align: center; color: var(--text-muted); padding: 20px;">
                 Cargando previsualización...
@@ -1793,6 +2245,23 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
     </div>
   </div> <!-- end two-column-layout -->
 
+  <?php if (!$is_public): ?>
+  <!-- BOTTOM FLOATING DOCK -->
+  <div class="pn-bottom-floating-bar" id="pn-bottom-bar">
+      <div class="pn-bottom-summary">
+          <div class="pn-bottom-label">TOTAL NOTA</div>
+          <div class="pn-bottom-total" id="pn-bottom-total-text">S/ 0.00</div>
+      </div>
+      <div class="pn-bottom-actions">
+          <a href="index.php?module=admin&action=payment_notes" class="btn btn-outline btn-sm" style="border-radius: 20px; padding: 6px 14px;">
+              Cancelar
+          </a>
+          <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('btn-guardar-nota-total').click()" style="border-radius: 20px; padding: 6px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="ph ph-floppy-disk"></i> Guardar
+          </button>
+      </div>
+  </div>
+  <?php endif; ?>
 
   </div> <!-- end payment-notes-inner -->
 </div>
@@ -1995,6 +2464,26 @@ document.addEventListener('DOMContentLoaded', () => {
   window.closeVoucherUploadModal = function() {
       const modal = document.getElementById('modal-voucher-upload');
       if (modal) modal.style.display = 'none';
+  };
+
+  window.toggleLivePreview = function() {
+      const col = document.getElementById('pn-preview-column');
+      const btn = document.getElementById('btn-toggle-live-preview');
+      const label = document.getElementById('preview-toggle-text');
+      const layout = document.querySelector('.two-column-layout');
+      if (!col) return;
+      
+      if (col.classList.contains('pn-preview-hidden')) {
+          col.classList.remove('pn-preview-hidden');
+          if (layout) layout.classList.remove('pn-layout-full');
+          if (btn) btn.classList.remove('active');
+          if (label) label.innerText = 'Ocultar Previa';
+      } else {
+          col.classList.add('pn-preview-hidden');
+          if (layout) layout.classList.add('pn-layout-full');
+          if (btn) btn.classList.add('active');
+          if (label) label.innerText = 'Ver Previa';
+      }
   };
 
   window.handleVoucherFileSelected = async function(input) {
@@ -2518,6 +3007,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         if (rowAbonos) rowAbonos.style.display = 'none';
         if (rowSaldo) rowSaldo.style.display = 'none';
+    }
+
+    const bottomTotal = document.getElementById('pn-bottom-total-text');
+    if (bottomTotal) {
+        if (toggleAbonos && toggleAbonos.checked && abonos.length > 0) {
+            bottomTotal.innerText = `S/ ${Math.max(0, saldo).toFixed(2)}`;
+        } else {
+            bottomTotal.innerText = `S/ ${totalGeneral.toFixed(2)}`;
+        }
     }
     
     renderPublicPreview();
