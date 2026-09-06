@@ -179,6 +179,12 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
                 <span>Clientes</span>
             </a>
             <?php endif; ?>
+            <?php if (in_array('suppliers', $perms)): ?>
+            <a href="index.php?module=suppliers&action=index" class="nav-item <?php echo $current_module === 'suppliers' ? 'active' : ''; ?>" data-title="Proveedores">
+                <i class="ph ph-buildings"></i>
+                <span>Proveedores</span>
+            </a>
+            <?php endif; ?>
             <?php if (in_array('quotes', $perms)): ?>
             <a href="index.php?module=quotes&action=index" class="nav-item <?php echo $current_module === 'quotes' ? 'active' : ''; ?>" data-title="Cotizaciones">
                 <i class="ph ph-file-text"></i>
