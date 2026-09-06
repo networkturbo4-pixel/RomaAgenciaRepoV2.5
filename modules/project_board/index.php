@@ -1297,6 +1297,9 @@ try {
                     
                     $c_borrador = (int)($statusCounts['c_borrador'] ?? 0);
                     $c_revision = (int)($statusCounts['c_revision'] ?? 0);
+                    $c_aprobado = (int)($statusCounts['c_aprobado'] ?? 0);
+                    $c_publicado = (int)($statusCounts['c_publicado'] ?? 0);
+                    
                     $completedPosts = $c_aprobado + $c_publicado;
                     $progressPct = $postsCount > 0 ? round(($completedPosts / $postsCount) * 100) : 0;
                     $isMonthCompleted = ($postsCount > 0 && $progressPct >= 100) || in_array(strtolower($m['status']), ['finalizado', 'terminado']);
