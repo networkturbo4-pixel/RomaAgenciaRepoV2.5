@@ -20,8 +20,19 @@ try {
         exit();
     }
 
+    $stM = $db->prepare("SELECT month_id FROM month_posts WHERE id = ?");
+    $stM->execute([$id]);
+    $monthId = (int)$stM->fetchColumn();
+
     $stmt = $db->prepare("DELETE FROM month_posts WHERE id = ?");
     $stmt->execute([$id]);
+
+    if ($monthId > 0) {
+        try {
+            require_once '../../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncMonthPostsCompletion($db, $monthId);
+        } catch(Throwable $eSync) {}
+    }
 
     echo json_encode(['success' => true]);
 

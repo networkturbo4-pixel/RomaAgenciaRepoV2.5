@@ -22,6 +22,17 @@ try {
     // sin comprobar la sesión del admin.
     $stmt = $db->prepare("UPDATE month_posts SET status = ? WHERE id = ?");
     $stmt->execute([$status, $id]);
+
+    // Sincronizar finalización del mes hacia las tareas si los posts llegaron al 100%
+    try {
+        $stMonthId = $db->prepare("SELECT month_id FROM month_posts WHERE id = ?");
+        $stMonthId->execute([$id]);
+        $monthId = (int)$stMonthId->fetchColumn();
+        if ($monthId > 0) {
+            require_once '../../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncMonthPostsCompletion($db, $monthId);
+        }
+    } catch (Throwable $eSync) {}
     
     // Notify team members
     try {

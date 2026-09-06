@@ -676,6 +676,10 @@ if ($action === 'create_task') {
         // Sincronizar fechas con la Fase / Grupo de Marca si está vinculada
         syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate);
 
+        // Sincronizar estado con el Mes de Calendario vinculado
+        require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
+        TaskSyncHelper::syncTaskStatusToMonth($db, $taskId, $status);
+
         // Insert subtasks
         $subtasksArr = json_decode($subtasksJson, true) ?: [];
         if (!empty($subtasksArr)) {
@@ -887,6 +891,10 @@ if ($action === 'update_task_details') {
 
         // Sincronizar fechas con la Fase / Grupo de Marca si está vinculada
         syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate);
+
+        // Sincronizar estado con el Mes de Calendario vinculado
+        require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
+        TaskSyncHelper::syncTaskStatusToMonth($db, $taskId, $status);
         
         // Insert new subtasks added in edit modal
         $newSubtasksArr = json_decode($newSubtasksJson, true) ?: [];
@@ -923,6 +931,10 @@ if ($action === 'update_status') {
     try {
         $stmt = $db->prepare("UPDATE tm_tasks SET status = ? WHERE id = ?");
         $stmt->execute([$newStatus, $taskId]);
+
+        // Sincronizar estado con el Mes de Calendario vinculado
+        require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
+        TaskSyncHelper::syncTaskStatusToMonth($db, $taskId, $newStatus);
 
         // Check if this task is part of a linked entity and whether all its tasks are done
         $completionNotice = null;
@@ -1106,6 +1118,11 @@ if ($action === 'toggle_daily_objective') {
             $newStatus = in_array($curr, ['completed', 'approved']) ? 'pending' : 'completed';
             $stmtUp = $db->prepare("UPDATE tm_tasks SET status = ? WHERE id = ?");
             $stmtUp->execute([$newStatus, $taskId]);
+
+            // Sincronizar estado con el Mes de Calendario vinculado
+            require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncTaskStatusToMonth($db, $taskId, $newStatus);
+
             echo json_encode(['success'=>true, 'new_status'=>$newStatus]);
         } else {
             // Toggle whether it is a daily objective

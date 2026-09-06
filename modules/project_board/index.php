@@ -197,10 +197,24 @@ try {
         letter-spacing: 0.5px;
     }
     .status-activo, .status-active, .status-finalizado, .status-terminado { background: rgba(16, 185, 129, 0.15); color: #059669; }
+    .status-en_progreso, .status-en-progreso { background: rgba(14, 165, 233, 0.15); color: #0284c7; }
     .status-inactivo, .status-inactive { background: rgba(100, 116, 139, 0.15); color: #64748b; }
     .status-pendiente { background: rgba(245, 158, 11, 0.15); color: #d97706; }
     [data-theme="dark"] .status-activo, [data-theme="dark"] .status-active, [data-theme="dark"] .status-finalizado, [data-theme="dark"] .status-terminado { color: #34d399; background: rgba(16, 185, 129, 0.2); }
+    [data-theme="dark"] .status-en_progreso, [data-theme="dark"] .status-en-progreso { color: #38bdf8; background: rgba(14, 165, 233, 0.2); }
     [data-theme="dark"] .status-pendiente { color: #fbbf24; background: rgba(245, 158, 11, 0.2); }
+    select.board-status-badge {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        cursor: pointer;
+        outline: none;
+        appearance: auto;
+        font-family: inherit;
+    }
+    select.board-status-badge option {
+        background: #1e293b;
+        color: #f8fafc;
+        font-weight: 600;
+    }
 
     /* Actions & Filters Group */
     .project-header-actions {
@@ -1283,12 +1297,10 @@ try {
                     
                     $c_borrador = (int)($statusCounts['c_borrador'] ?? 0);
                     $c_revision = (int)($statusCounts['c_revision'] ?? 0);
-                    $c_aprobado = (int)($statusCounts['c_aprobado'] ?? 0);
-                    $c_publicado = (int)($statusCounts['c_publicado'] ?? 0);
-                    
-                    $progressPct = $postsCount > 0 ? round(($c_publicado / $postsCount) * 100) : 0;
-                    $isMonthCompleted = ($postsCount > 0 && $progressPct >= 100) || strtolower($m['status']) === 'finalizado';
-                    $statusBadgeClass = $isMonthCompleted ? 'status-terminado' : 'status-' . strtolower($m['status']);
+                    $completedPosts = $c_aprobado + $c_publicado;
+                    $progressPct = $postsCount > 0 ? round(($completedPosts / $postsCount) * 100) : 0;
+                    $isMonthCompleted = ($postsCount > 0 && $progressPct >= 100) || in_array(strtolower($m['status']), ['finalizado', 'terminado']);
+                    $statusBadgeClass = $isMonthCompleted ? 'status-terminado' : 'status-' . str_replace(' ', '_', strtolower($m['status']));
                     $statusBadgeText = $isMonthCompleted ? 'TERMINADO' : strtoupper($m['status']);
                 ?>
                 <div class="mc-card">
@@ -1367,7 +1379,11 @@ try {
                     <!-- Footer & Actions -->
                     <div class="mc-card-footer">
                         <div class="mc-footer-meta">
-                            <span class="board-status-badge <?php echo $statusBadgeClass; ?>"><?php echo htmlspecialchars($statusBadgeText); ?></span>
+                            <select class="board-status-badge <?php echo $statusBadgeClass; ?>" onchange="quickChangeMonthStatus(<?php echo $m['id']; ?>, this.value)" title="Cambiar estado del mes">
+                                <option value="Pendiente" <?php echo strtolower($m['status']) === 'pendiente' ? 'selected' : ''; ?>>PENDIENTE</option>
+                                <option value="en progreso" <?php echo in_array(strtolower($m['status']), ['en progreso', 'activo']) ? 'selected' : ''; ?>>EN PROGRESO</option>
+                                <option value="finalizado" <?php echo $isMonthCompleted ? 'selected' : ''; ?>>TERMINADO</option>
+                            </select>
                             <?php if (isset($role_id) && $role_id == 1): ?>
                             <div class="mc-actions-btns">
                                 <button class="mc-action-icon-btn edit" onclick="editMonth(<?php echo $m['id']; ?>)" title="Editar Mes">
@@ -1547,6 +1563,24 @@ try {
                                 <i class="ph ph-flag-checkered app-input-icon" style="color: #f59e0b;"></i>
                                 <input type="date" name="due_date" id="edit-due_date" class="app-form-control" required>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Estado del Mes -->
+                <div class="app-modal-section">
+                    <div class="app-modal-section-title">
+                        <i class="ph-bold ph-check-circle" style="color: #10b981;"></i> Estado del Mes
+                    </div>
+                    <div class="app-field-group">
+                        <label class="app-field-label">Estado Actual del Mes</label>
+                        <div class="app-input-wrap">
+                            <i class="ph ph-sliders app-input-icon"></i>
+                            <select name="status" id="edit-status" class="app-form-control">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="en progreso">En Progreso</option>
+                                <option value="finalizado">Finalizado / Terminado</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -2202,6 +2236,10 @@ async function editMonth(id) {
             document.getElementById('edit-due_date').value = data.due_date || '';
             document.getElementById('edit_drive_folders_json').value = data.drive_folders_json || '';
             
+            if (document.getElementById('edit-status')) {
+                document.getElementById('edit-status').value = data.status || 'Pendiente';
+            }
+            
             renderDriveFolderCards(data.drive_folders_json, 'edit-folders-container', 'btn-generate-edit-folders');
             
             document.getElementById('edit-month-modal').classList.add('active');
@@ -2211,6 +2249,26 @@ async function editMonth(id) {
     } catch (e) {
         console.error(e);
         alert('Error de red.');
+    }
+}
+
+async function quickChangeMonthStatus(id, newStatus) {
+    const formData = new FormData();
+    formData.append('id', id);
+    formData.append('status', newStatus);
+    try {
+        const response = await fetch('modules/project_board/ajax_update_month.php', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert(result.error || 'Error al cambiar estado.');
+        }
+    } catch (e) {
+        console.error(e);
     }
 }
 

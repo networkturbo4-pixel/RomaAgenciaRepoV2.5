@@ -98,6 +98,12 @@ try {
             $stmtClear->execute([$id]);
         }
         
+        // Sincronizar finalización con tareas si el mes alcanzó el 100%
+        try {
+            require_once '../../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncMonthPostsCompletion($db, $month_id);
+        } catch(Throwable $eSync) {}
+
         $actionTitle = "Post Actualizado";
         $actionBody = "Se actualizó el post: " . $concept;
         
@@ -113,6 +119,12 @@ try {
         ]);
         $newId = $db->lastInsertId();
         
+        // Sincronizar finalización con tareas si el mes alcanzó el 100%
+        try {
+            require_once '../../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncMonthPostsCompletion($db, $month_id);
+        } catch(Throwable $eSync) {}
+
         $actionTitle = "Nuevo Post en Calendario";
         $actionBody = "Se creó un post: " . $concept;
         

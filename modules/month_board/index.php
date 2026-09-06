@@ -65,6 +65,15 @@ foreach ($posts as $pst) {
 $monthProgressPct = $totalPostsCount > 0 ? round(($completedPostsCount / $totalPostsCount) * 100) : 0;
 $isMonthComplete = ($totalPostsCount > 0 && $monthProgressPct >= 100) || strtolower($monthData['status'] ?? '') === 'finalizado';
 
+if ($totalPostsCount > 0 && $monthProgressPct >= 100 && strtolower($monthData['status'] ?? '') !== 'finalizado') {
+    try {
+        require_once 'includes/TaskSyncHelper.php';
+        TaskSyncHelper::syncMonthPostsCompletion($db, $monthId);
+        $monthData['status'] = 'finalizado';
+        $isMonthComplete = true;
+    } catch(Throwable $eSync) {}
+}
+
 $monthNames = [
     1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 
     5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 
