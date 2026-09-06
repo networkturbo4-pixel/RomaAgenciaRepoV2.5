@@ -130,11 +130,60 @@ require_once 'includes/header.php';
 
 .icon-tasks { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
 .icon-romita { background: linear-gradient(135deg, #4f46e5, #ec4899); }
-.icon-app { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+.icon-app { background: linear-gradient(135deg, #71717a, #52525b); }
 .icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-.icon-web { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-.icon-audio { background: linear-gradient(135deg, #fa709a, #fee140); }
-.icon-drive { background: linear-gradient(135deg, #667eea, #764ba2); }
+.icon-web { background: linear-gradient(135deg, #52525b, #3f3f46); }
+.icon-audio { background: linear-gradient(135deg, #52525b, #3f3f46); }
+
+/* Disabled Card State */
+.workspace-card.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    filter: grayscale(0.6);
+    user-select: none;
+}
+
+.workspace-card.is-disabled:hover {
+    transform: none !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .workspace-card.is-disabled:hover {
+    background: #0a0a0a !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    border-color: #262626 !important;
+}
+
+.workspace-card.is-disabled:hover .workspace-card-icon {
+    transform: none !important;
+}
+
+.workspace-card.is-disabled::before {
+    display: none !important;
+}
+
+.workspace-card-badge-disabled {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text, #71717a);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-theme="dark"] .workspace-card-badge-disabled {
+    background: rgba(255, 255, 255, 0.04);
+    color: #71717a;
+    border-color: #262626;
+}
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
@@ -162,7 +211,7 @@ require_once 'includes/header.php';
 
     <div class="workspace-grid">
         
-        <!-- Tareas y Objetivos Diarios -->
+        <!-- Tareas y Objetivos Diarios (Activo) -->
         <a href="index.php?module=task_manager&action=index" class="workspace-card" style="animation-delay: 0.05s;">
             <div class="workspace-card-icon icon-tasks">
                 <i class="ph ph-check-square-offset"></i>
@@ -171,7 +220,7 @@ require_once 'includes/header.php';
             <p class="workspace-card-desc">Control de tareas diarias, semanales, evaluación de objetivos y proyectos activos.</p>
         </a>
 
-        <!-- Romita IA -->
+        <!-- Romita IA (Activo) -->
         <a href="index.php?module=romita&action=index" class="workspace-card" style="animation-delay: 0.1s;">
             <div class="workspace-card-icon icon-romita">
                 <i class="ph ph-sparkle"></i>
@@ -180,17 +229,8 @@ require_once 'includes/header.php';
             <p class="workspace-card-desc">Asistente inteligente con IA para creación de contenidos, estrategias y automatización.</p>
         </a>
 
-        <!-- App -->
-        <a href="index.php?module=app&action=index" class="workspace-card" style="animation-delay: 0.15s;">
-            <div class="workspace-card-icon icon-app">
-                <i class="ph ph-device-mobile"></i>
-            </div>
-            <h3 class="workspace-card-title">App</h3>
-            <p class="workspace-card-desc">Accede a las configuraciones y desarrollo de la aplicación móvil.</p>
-        </a>
-
-        <!-- Desarrollo de Marca -->
-        <a href="index.php?module=desarrollo_marca&action=index" class="workspace-card" style="animation-delay: 0.2s;">
+        <!-- Desarrollo de Marca (Activo) -->
+        <a href="index.php?module=desarrollo_marca&action=index" class="workspace-card" style="animation-delay: 0.15s;">
             <div class="workspace-card-icon icon-brand">
                 <i class="ph ph-paint-brush-broad"></i>
             </div>
@@ -198,32 +238,35 @@ require_once 'includes/header.php';
             <p class="workspace-card-desc">Gestión de identidad visual, manuales de marca y assets corporativos.</p>
         </a>
 
-        <!-- Desarrollo Web -->
-        <a href="index.php?module=desarrollo_web&action=index" class="workspace-card" style="animation-delay: 0.3s;">
+        <!-- App (Desactivado) -->
+        <div class="workspace-card is-disabled" style="animation-delay: 0.2s;">
+            <span class="workspace-card-badge-disabled"><i class="ph ph-lock-key"></i> Desactivado</span>
+            <div class="workspace-card-icon icon-app">
+                <i class="ph ph-device-mobile"></i>
+            </div>
+            <h3 class="workspace-card-title">App</h3>
+            <p class="workspace-card-desc">Accede a las configuraciones y desarrollo de la aplicación móvil.</p>
+        </div>
+
+        <!-- Desarrollo Web (Desactivado) -->
+        <div class="workspace-card is-disabled" style="animation-delay: 0.25s;">
+            <span class="workspace-card-badge-disabled"><i class="ph ph-lock-key"></i> Desactivado</span>
             <div class="workspace-card-icon icon-web">
                 <i class="ph ph-browser"></i>
             </div>
             <h3 class="workspace-card-title">Desarrollo Web</h3>
             <p class="workspace-card-desc">Proyectos web, sitios corporativos, e-commerce y landing pages.</p>
-        </a>
+        </div>
 
-        <!-- Audiovisual -->
-        <a href="index.php?module=audiovisual&action=index" class="workspace-card" style="animation-delay: 0.4s;">
+        <!-- Audiovisual (Desactivado) -->
+        <div class="workspace-card is-disabled" style="animation-delay: 0.3s;">
+            <span class="workspace-card-badge-disabled"><i class="ph ph-lock-key"></i> Desactivado</span>
             <div class="workspace-card-icon icon-audio">
                 <i class="ph ph-video-camera"></i>
             </div>
             <h3 class="workspace-card-title">Audiovisual</h3>
             <p class="workspace-card-desc">Producción de videos, fotografía, edición y material multimedia.</p>
-        </a>
-
-        <!-- Google Drive (Modern Interface) -->
-        <a href="index.php?module=drive&action=index" class="workspace-card" style="animation-delay: 0.5s;">
-            <div class="workspace-card-icon icon-drive">
-                <i class="ph ph-google-drive-logo"></i>
-            </div>
-            <h3 class="workspace-card-title">Google Drive</h3>
-            <p class="workspace-card-desc">Almacenamiento en la nube con una interfaz integrada y moderna.</p>
-        </a>
+        </div>
 
     </div>
 </div>
