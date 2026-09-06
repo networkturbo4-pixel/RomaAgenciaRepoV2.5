@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) && empty($is_public)) {
 }
 
 $current_module = $_GET['module'] ?? 'dashboard';
+$current_action = $_GET['action'] ?? ($action ?? 'index');
 $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
 ?>
 <!DOCTYPE html>
@@ -178,31 +179,27 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
                 <span>Clientes</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('quotes', $perms) || in_array('services', $perms)): ?>
-            <div class="nav-dropdown <?php echo in_array($current_module, ['quotes', 'services']) ? 'active' : ''; ?>">
-                <button class="nav-item dropdown-toggle" data-title="Área Comercial">
-                    <div style="display:flex; align-items:center; gap:var(--space-3);">
-                        <i class="ph ph-storefront"></i>
-                        <span>Área Comercial</span>
-                    </div>
-                    <i class="ph ph-caret-down dropdown-icon"></i>
-                </button>
-                <div class="nav-dropdown-menu">
-                    <?php if (in_array('quotes', $perms)): ?>
-                    <a href="index.php?module=quotes&action=index" class="dropdown-item <?php echo $current_module === 'quotes' ? 'active' : ''; ?>">Cotizaciones</a>
-                    <?php endif; ?>
-                    <?php if (in_array('services', $perms)): ?>
-                    <a href="index.php?module=services&action=index" class="dropdown-item <?php echo $current_module === 'services' ? 'active' : ''; ?>">Servicios</a>
-                    <?php endif; ?>
-                </div>
-            </div>
+            <?php if (in_array('quotes', $perms)): ?>
+            <a href="index.php?module=quotes&action=index" class="nav-item <?php echo $current_module === 'quotes' ? 'active' : ''; ?>" data-title="Cotizaciones">
+                <i class="ph ph-file-text"></i>
+                <span>Cotizaciones</span>
+            </a>
             <?php endif; ?>
+
+            <?php if (in_array('services', $perms)): ?>
+            <a href="index.php?module=services&action=index" class="nav-item <?php echo $current_module === 'services' ? 'active' : ''; ?>" data-title="Servicios">
+                <i class="ph ph-package"></i>
+                <span>Servicios</span>
+            </a>
+            <?php endif; ?>
+
             <?php if (in_array('work_orders', $perms)): ?>
             <a href="index.php?module=work_orders&action=index" class="nav-item <?php echo $current_module === 'work_orders' ? 'active' : ''; ?>" data-title="Órdenes de Servicio">
                 <i class="ph ph-clipboard-text"></i>
                 <span>Órdenes de Servicio</span>
             </a>
             <?php endif; ?>
+
             <?php if (in_array('calendar', $perms)): ?>
             <a href="index.php?module=calendar&action=index" class="nav-item <?php echo $current_module === 'calendar' ? 'active' : ''; ?>" data-title="Calendario">
                 <i class="ph ph-calendar"></i>
@@ -225,20 +222,20 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             <?php endif; ?>
 
             <?php if (in_array('admin', $perms)): ?>
-            <div class="nav-dropdown <?php echo ($current_module === 'admin') ? 'active' : ''; ?>">
-                <button class="nav-item dropdown-toggle" data-title="Administración">
-                    <div style="display:flex; align-items:center; gap:var(--space-3);">
-                        <i class="ph ph-briefcase"></i>
-                        <span>Administración</span>
-                    </div>
-                    <i class="ph ph-caret-down dropdown-icon"></i>
-                </button>
-                <div class="nav-dropdown-menu">
-                    <a href="index.php?module=admin&action=finances" class="dropdown-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'finances') ? 'active' : ''; ?>">Finanzas</a>
-                    <a href="index.php?module=admin&action=payment_notes" class="dropdown-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'payment_notes') ? 'active' : ''; ?>">Notas de Pago</a>
-                    <a href="index.php?module=admin&action=rrhh" class="dropdown-item <?php echo ($current_module === 'admin' && ($action ?? '') === 'rrhh') ? 'active' : ''; ?>">RRHH</a>
-                </div>
-            </div>
+            <a href="index.php?module=admin&action=finances" class="nav-item <?php echo ($current_module === 'admin' && $current_action === 'finances') ? 'active' : ''; ?>" data-title="Finanzas">
+                <i class="ph ph-chart-line-up"></i>
+                <span>Finanzas</span>
+            </a>
+
+            <a href="index.php?module=admin&action=payment_notes" class="nav-item <?php echo ($current_module === 'admin' && in_array($current_action, ['payment_notes', 'payment_note_webview'])) ? 'active' : ''; ?>" data-title="Notas de Pago">
+                <i class="ph ph-receipt"></i>
+                <span>Notas de Pago</span>
+            </a>
+
+            <a href="index.php?module=admin&action=rrhh" class="nav-item <?php echo ($current_module === 'admin' && $current_action === 'rrhh') ? 'active' : ''; ?>" data-title="Recursos Humanos">
+                <i class="ph ph-users-three"></i>
+                <span>Recursos Humanos</span>
+            </a>
             <?php endif; ?>
 
         </nav>
