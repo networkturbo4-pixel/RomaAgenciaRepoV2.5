@@ -1,52 +1,360 @@
-/* assets/css/romita.css */
+/* assets/css/romita.css - Rediseño Moderno Romita AI */
 
+/* --- TOKENS DE COLOR Y VARIABLES DE TEMA --- */
+:root {
+    --romita-bg: #f8fafc;
+    --romita-surface: #ffffff;
+    --romita-card: #ffffff;
+    --romita-card-hover: #f1f5f9;
+    --romita-border: rgba(0, 0, 0, 0.08);
+    --romita-border-light: rgba(0, 0, 0, 0.04);
+    --romita-border-focus: rgba(99, 102, 241, 0.4);
+    --romita-text: #0f172a;
+    --romita-text-muted: #64748b;
+    --romita-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+    --romita-gradient-accent: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --romita-glow: rgba(99, 102, 241, 0.12);
+    --romita-sidebar-bg: #ffffff;
+    --romita-composer-bg: rgba(255, 255, 255, 0.95);
+    --romita-composer-border: rgba(0, 0, 0, 0.1);
+    --romita-user-bubble: linear-gradient(135deg, #4f46e5, #6366f1);
+    --romita-user-text: #ffffff;
+    --romita-ai-bubble: #ffffff;
+    --romita-ai-border: rgba(0, 0, 0, 0.06);
+    --romita-code-bg: #0f172a;
+    --romita-code-header: #1e293b;
+    --romita-code-text: #e2e8f0;
+    --romita-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --romita-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.06);
+    --romita-shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.09);
+}
+
+[data-theme="dark"] {
+    --romita-bg: #090d16;
+    --romita-surface: #0f1523;
+    --romita-card: #131b2e;
+    --romita-card-hover: #1a243c;
+    --romita-border: rgba(255, 255, 255, 0.08);
+    --romita-border-light: rgba(255, 255, 255, 0.04);
+    --romita-border-focus: rgba(129, 140, 248, 0.5);
+    --romita-text: #f8fafc;
+    --romita-text-muted: #94a3b8;
+    --romita-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+    --romita-gradient-accent: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --romita-glow: rgba(99, 102, 241, 0.22);
+    --romita-sidebar-bg: #0d121f;
+    --romita-composer-bg: rgba(19, 27, 46, 0.88);
+    --romita-composer-border: rgba(255, 255, 255, 0.1);
+    --romita-user-bubble: linear-gradient(135deg, #4f46e5, #7c3aed);
+    --romita-user-text: #ffffff;
+    --romita-ai-bubble: rgba(19, 27, 46, 0.75);
+    --romita-ai-border: rgba(255, 255, 255, 0.08);
+    --romita-code-bg: #070a12;
+    --romita-code-header: #0f1523;
+    --romita-code-text: #e2e8f0;
+    --romita-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --romita-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.4);
+    --romita-shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.55);
+}
+
+/* Ajuste del viewport principal para modo app completa */
+.content-wrapper:has(.romita-container),
+body:has(.romita-container) .content-wrapper {
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
 .romita-container {
     display: flex;
-    flex-direction: column;
-    height: calc(100vh - 80px); /* Adjust based on your header height */
-    max-height: 100%;
-    background: var(--bg-body);
-    font-family: var(--font-family);
+    flex-direction: row;
+    height: calc(100vh - 60px);
+    height: calc(100dvh - 60px);
+    width: 100%;
+    background: var(--romita-bg);
+    color: var(--romita-text);
+    font-family: var(--font-family, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+    font-size: 13px;
     position: relative;
     overflow: hidden;
 }
 
-/* --- HEADER --- */
+/* --- SIDEBAR HISTORIAL --- */
+.romita-sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: var(--romita-sidebar-bg);
+    border-right: 1px solid var(--romita-border);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 25;
+    position: relative;
+}
+
+.romita-sidebar:not(.open) {
+    width: 0;
+    min-width: 0;
+    border: none;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.romita-sidebar-header {
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--romita-border);
+}
+
+.romita-sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--romita-text);
+}
+
+.romita-sidebar-title i {
+    font-size: 1.1rem;
+    color: var(--romita-text-muted);
+}
+
+.romita-sidebar-actions {
+    padding: 0.75rem 1rem 0.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.btn-new-chat-primary {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--romita-gradient-accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    transition: all 0.25s ease;
+}
+
+.btn-new-chat-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    filter: brightness(1.08);
+}
+
+.sidebar-search-box {
+    position: relative;
+    width: 100%;
+}
+
+.sidebar-search-box i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--romita-text-muted);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+.sidebar-search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+    border-radius: 8px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-surface);
+    color: var(--romita-text);
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sidebar-search-input:focus {
+    border-color: var(--romita-border-focus);
+    box-shadow: 0 0 0 2px var(--romita-glow);
+}
+
+.romita-chat-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.romita-chat-list::-webkit-scrollbar {
+    width: 5px;
+}
+.romita-chat-list::-webkit-scrollbar-thumb {
+    background: var(--romita-border);
+    border-radius: 4px;
+}
+
+.chat-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--romita-text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    group: relative;
+}
+
+.chat-history-item:hover {
+    background: var(--romita-card-hover);
+    color: var(--romita-text);
+}
+
+.chat-history-item.active {
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+    font-weight: 600;
+    border-left: 3px solid #6366f1;
+}
+
+[data-theme="dark"] .chat-history-item.active {
+    color: #a5b4fc;
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.chat-history-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    flex: 1;
+}
+
+.chat-history-content i {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.chat-history-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-history-delete {
+    opacity: 0;
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    padding: 0.2rem 0.35rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.chat-history-item:hover .chat-history-delete {
+    opacity: 0.8;
+}
+
+.chat-history-delete:hover {
+    opacity: 1 !important;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+/* --- ÁREA PRINCIPAL --- */
+.romita-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    background: var(--romita-bg);
+}
+
+/* Aura sutil de fondo */
+.romita-main::before {
+    content: '';
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 650px;
+    height: 400px;
+    background: radial-gradient(ellipse at center, var(--romita-glow) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(60px);
+}
+
+/* --- HEADER SUPERIOR --- */
 .romita-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.25rem 2.5rem;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0.85rem 1.75rem;
+    background: var(--romita-surface);
+    border-bottom: 1px solid var(--romita-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     z-index: 10;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-}
-
-[data-theme="dark"] .romita-header {
-    background: rgba(15, 23, 42, 0.6);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
 }
 
 .romita-brand {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 0.85rem;
+}
+
+.btn-toggle-sidebar {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-card);
+    color: var(--romita-text);
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+}
+
+.btn-toggle-sidebar:hover {
+    background: var(--romita-card-hover);
+    border-color: var(--romita-border-focus);
 }
 
 .romita-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: var(--romita-gradient);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.75rem;
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+    font-size: 1.35rem;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+    flex-shrink: 0;
     position: relative;
     overflow: hidden;
 }
@@ -58,69 +366,315 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: linear-gradient(rgba(255,255,255,0.2), transparent);
+    background: linear-gradient(rgba(255,255,255,0.25), transparent);
     transform: rotate(45deg);
     pointer-events: none;
 }
 
-.romita-greeting {
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: var(--color-title);
-    margin: 0 0 0.2rem 0;
-    letter-spacing: -0.5px;
+.romita-brand-info {
+    display: flex;
+    flex-direction: column;
 }
 
-.romita-subtitle {
-    font-size: 0.9rem;
-    color: var(--text-muted);
+.romita-greeting-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--romita-text);
     margin: 0;
-    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-/* --- CHAT AREA --- */
+.romita-model-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    margin-top: 0.15rem;
+}
+
+[data-theme="dark"] .romita-model-badge {
+    color: #a5b4fc;
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.romita-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* Buscador en conversación activa */
+.search-chat-container {
+    position: relative;
+}
+
+.search-chat-container i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--romita-text-muted);
+    font-size: 0.85rem;
+}
+
+.search-chat-input {
+    padding: 0.45rem 0.75rem 0.45rem 2rem;
+    border-radius: 20px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-card);
+    color: var(--romita-text);
+    font-size: 0.8rem;
+    outline: none;
+    width: 170px;
+    transition: all 0.25s;
+}
+
+.search-chat-input:focus {
+    width: 220px;
+    border-color: var(--romita-border-focus);
+    box-shadow: 0 0 0 2px var(--romita-glow);
+}
+
+/* Selector de Marca (Prept) */
+.prept-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.prept-select-custom {
+    padding: 0.45rem 1rem 0.45rem 2.1rem;
+    border-radius: 20px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-card);
+    color: var(--romita-text);
+    font-size: 0.8rem;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.prept-select-custom:hover {
+    border-color: var(--romita-border-focus);
+}
+
+.prept-select-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: #8b5cf6;
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+
+.prept-select-caret {
+    position: absolute;
+    right: 0.75rem;
+    color: var(--romita-text-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+}
+
+/* Botones de acción header */
+.btn-romita-action {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-card);
+    color: var(--romita-text);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-romita-action:hover {
+    background: var(--romita-card-hover);
+    border-color: var(--romita-border-focus);
+    transform: translateY(-1px);
+}
+
+.btn-romita-action i {
+    font-size: 0.95rem;
+    color: var(--romita-text-muted);
+}
+
+/* --- FEED DE CONVERSACIÓN --- */
 .romita-chat-area {
     flex: 1;
     overflow-y: auto;
-    padding: 2.5rem 20%;
+    padding: 2rem 1.5rem 1rem 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
     scroll-behavior: smooth;
-    background: radial-gradient(circle at center, var(--bg-surface) 0%, var(--bg-body) 100%);
-}
-
-@media (max-width: 1200px) {
-    .romita-chat-area { padding: 2rem 10%; }
-}
-@media (max-width: 768px) {
-    .romita-chat-area { padding: 1.5rem 5%; }
+    position: relative;
+    z-index: 1;
 }
 
 .romita-chat-area::-webkit-scrollbar {
-    width: 8px;
-}
-.romita-chat-area::-webkit-scrollbar-track {
-    background: transparent;
+    width: 6px;
 }
 .romita-chat-area::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.3);
-    border-radius: 10px;
-}
-.romita-chat-area::-webkit-scrollbar-thumb:hover {
-    background: rgba(156, 163, 175, 0.6);
+    background: var(--romita-border);
+    border-radius: 4px;
 }
 
-/* --- MESSAGES --- */
+.chat-stream-inner {
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+/* --- EMPTY STATE / PANTALLA HERO --- */
+.romita-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: auto 0;
+    padding: 2rem 1rem;
+    animation: fadeIn 0.6s ease;
+}
+
+.romita-hero-glow {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.romita-hero-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    background: var(--romita-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: white;
+    box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
+    position: relative;
+    animation: pulseSlow 3s infinite ease-in-out;
+}
+
+@keyframes pulseSlow {
+    0%, 100% { transform: scale(1); box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4); }
+    50% { transform: scale(1.04); box-shadow: 0 16px 45px rgba(236, 72, 153, 0.5); }
+}
+
+.romita-hero-title {
+    font-size: 1.7rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.5px;
+    background: var(--romita-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.romita-hero-sub {
+    font-size: 0.95rem;
+    color: var(--romita-text-muted);
+    max-width: 480px;
+    margin: 0 0 2rem 0;
+    line-height: 1.5;
+}
+
+/* Grilla de Tarjetas de Sugerencias */
+.romita-prompt-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    width: 100%;
+    max-width: 760px;
+}
+
+@media (max-width: 640px) {
+    .romita-prompt-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.prompt-starter-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.1rem;
+    background: var(--romita-card);
+    border: 1px solid var(--romita-border);
+    border-radius: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--romita-shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.prompt-starter-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--romita-border-focus);
+    box-shadow: var(--romita-shadow-md);
+    background: var(--romita-card-hover);
+}
+
+.prompt-starter-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.prompt-starter-icon.copywriting { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
+.prompt-starter-icon.sales { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.prompt-starter-icon.analysis { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.prompt-starter-icon.automation { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+
+.prompt-starter-details h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--romita-text);
+}
+
+.prompt-starter-details p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--romita-text-muted);
+    line-height: 1.4;
+}
+
+/* --- MENSAJES Y BURBUJAS --- */
 .romita-message {
     display: flex;
-    gap: 1.25rem;
+    gap: 0.85rem;
     max-width: 90%;
-    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: messageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes slideUpFade {
-    from { opacity: 0; transform: translateY(20px); }
+@keyframes messageSlideIn {
+    from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -131,414 +685,1380 @@
 
 .romita-message.assistant {
     align-self: flex-start;
+    max-width: 95%;
 }
 
 .message-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    color: white;
     font-size: 1.1rem;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 
 .message-avatar.user-avatar {
-    background: var(--text-muted);
+    background: var(--romita-card);
+    border: 1px solid var(--romita-border);
+    color: var(--romita-text-muted);
 }
 
 .message-avatar.ai-avatar {
-    background: linear-gradient(135deg, #6366f1, #a855f7);
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    background: var(--romita-gradient-accent);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.message-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.romita-message.user .message-wrapper {
+    align-items: flex-end;
 }
 
 .message-bubble {
-    padding: 1.25rem 1.5rem;
-    border-radius: 20px;
-    font-size: 1.05rem;
-    line-height: 1.6;
+    padding: 0.95rem 1.25rem;
+    border-radius: 16px;
+    font-size: 0.92rem;
+    line-height: 1.65;
     position: relative;
     word-break: break-word;
-    letter-spacing: -0.2px;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .romita-message.user .message-bubble {
-    background: var(--primary-color);
-    color: white;
-    border-top-right-radius: 4px;
-    box-shadow: 0 10px 25px color-mix(in srgb, var(--primary-color), transparent 70%);
+    background: var(--romita-user-bubble);
+    color: var(--romita-user-text);
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 18px rgba(79, 70, 229, 0.25);
 }
 
 .romita-message.assistant .message-bubble {
-    background: rgba(255, 255, 255, 0.85);
-    color: var(--text-main);
-    border-top-left-radius: 4px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(255, 255, 255, 1);
-    backdrop-filter: blur(20px);
+    background: var(--romita-ai-bubble);
+    color: var(--romita-text);
+    border-bottom-left-radius: 4px;
+    border: 1px solid var(--romita-ai-border);
+    box-shadow: var(--romita-shadow-sm);
+    backdrop-filter: blur(16px);
 }
 
-[data-theme="dark"] .romita-message.assistant .message-bubble {
-    background: rgba(30, 41, 59, 0.85);
-    color: #f1f5f9;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
-
-/* --- TYPING INDICATOR --- */
-.typing-indicator {
+/* Barra de utilidades del mensaje de IA */
+.message-actions-bar {
     display: flex;
-    gap: 6px;
     align-items: center;
-    padding: 0.5rem 0.25rem;
+    gap: 0.5rem;
+    padding: 0.1rem 0.25rem;
+}
+
+.btn-message-action {
+    background: transparent;
+    border: none;
+    color: var(--romita-text-muted);
+    font-size: 0.78rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-message-action:hover {
+    background: var(--romita-card-hover);
+    color: var(--romita-text);
+}
+
+.btn-message-action.copied {
+    color: #10b981;
+}
+
+/* --- INDICADOR DE ESCRITURA (TYPING) --- */
+.typing-msg {
+    animation: messageSlideIn 0.3s ease;
+}
+
+.typing-bubble {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.1rem;
+    background: var(--romita-ai-bubble);
+    border: 1px solid var(--romita-ai-border);
+    border-radius: 14px;
+    box-shadow: var(--romita-shadow-sm);
+}
+
+.typing-text {
+    font-size: 0.8rem;
+    color: var(--romita-text-muted);
+    font-weight: 500;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
 }
 
 .typing-dot {
-    width: 8px;
-    height: 8px;
-    background: var(--primary-color);
+    width: 6px;
+    height: 6px;
+    background: #6366f1;
     border-radius: 50%;
-    animation: typingBounce 1.4s infinite cubic-bezier(0.45, 0, 0.55, 1) both;
+    animation: typingPulse 1.4s infinite cubic-bezier(0.45, 0, 0.55, 1) both;
 }
 
 .typing-dot:nth-child(1) { animation-delay: -0.32s; }
 .typing-dot:nth-child(2) { animation-delay: -0.16s; }
 .typing-dot:nth-child(3) { animation-delay: 0s; }
 
-@keyframes typingBounce {
-    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-    40% { transform: translateY(-8px); opacity: 1; }
+@keyframes typingPulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 4px #6366f1); }
 }
 
-/* --- INPUT AREA --- */
+/* --- COMPOSER DOCK (ÁREA DE ENTRADA) --- */
 .romita-input-wrapper {
-    padding: 0 20% 2.5rem 20%;
-    background: linear-gradient(to top, var(--bg-body) 80%, transparent);
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    background: linear-gradient(to top, var(--romita-bg) 75%, transparent);
     z-index: 10;
     position: relative;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
 }
-@media (max-width: 1200px) { .romita-input-wrapper { padding: 0 10% 2rem 10%; } }
-@media (max-width: 768px) { .romita-input-wrapper { padding: 0 5% 1.5rem 5%; } }
 
+/* Habilidades (Skills) Pills */
 .romita-skills-pills {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.5rem;
     overflow-x: auto;
-    padding-bottom: 1rem;
-    margin-bottom: 0.5rem;
+    padding-bottom: 0.6rem;
+    margin-bottom: 0.25rem;
     scrollbar-width: none;
-    mask-image: linear-gradient(to right, black 80%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
 }
 .romita-skills-pills::-webkit-scrollbar { display: none; }
 
 .skill-pill {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0,0,0,0.08);
-    padding: 0.5rem 1.25rem;
-    border-radius: 30px;
-    font-size: 0.9rem;
+    background: var(--romita-card);
+    border: 1px solid var(--romita-border);
+    padding: 0.4rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--romita-text-muted);
     cursor: pointer;
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    gap: 0.4rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--romita-shadow-sm);
     backdrop-filter: blur(10px);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-}
-[data-theme="dark"] .skill-pill {
-    background: rgba(30, 41, 59, 0.7);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #e2e8f0;
 }
 
 .skill-pill:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
-    background: var(--bg-surface);
-}
-.skill-pill.active {
-    background: linear-gradient(135deg, #6366f1, #a855f7);
-    color: white;
-    border-color: transparent;
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+    border-color: var(--romita-border-focus);
+    color: var(--romita-text);
+    background: var(--romita-card-hover);
 }
 
+.skill-pill.active {
+    background: var(--romita-gradient-accent);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+.skill-pill i {
+    font-size: 0.9rem;
+}
+
+/* Caja de entrada flotante */
 .romita-input-container {
     display: flex;
-    align-items: flex-end;
-    background: var(--bg-surface);
-    border-radius: 28px;
-    padding: 0.5rem 0.75rem;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0,0,0,0.05);
+    flex-direction: column;
+    background: var(--romita-composer-bg);
+    border-radius: 20px;
+    padding: 0.75rem 1rem 0.65rem 1rem;
+    box-shadow: var(--romita-shadow-md);
+    border: 1px solid var(--romita-composer-border);
     transition: box-shadow 0.3s, border-color 0.3s, transform 0.3s;
-}
-[data-theme="dark"] .romita-input-container {
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .romita-input-container:focus-within {
-    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
-    border-color: rgba(99, 102, 241, 0.4);
-    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--romita-border-focus), var(--romita-shadow-lg);
+    border-color: transparent;
+    transform: translateY(-1px);
 }
 
 .romita-textarea {
-    flex: 1;
+    width: 100%;
     border: none;
     background: transparent;
-    padding: 1rem 1.25rem;
-    font-size: 1.05rem;
-    color: var(--text-main);
+    padding: 0.2rem 0;
+    font-size: 0.92rem;
+    color: var(--romita-text);
     resize: none;
-    max-height: 200px;
+    max-height: 180px;
+    min-height: 24px;
     outline: none;
-    font-family: var(--font-family);
-    line-height: 1.6;
+    font-family: inherit;
+    line-height: 1.55;
 }
 
 .romita-textarea::placeholder {
-    color: var(--text-muted);
-    font-weight: 400;
+    color: var(--romita-text-muted);
+    font-size: 0.88rem;
+}
+
+/* Barra inferior del composer */
+.romita-composer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.4rem;
+    padding-top: 0.3rem;
+    border-top: 1px solid var(--romita-border-light);
+}
+
+.composer-hints {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.72rem;
+    color: var(--romita-text-muted);
+}
+
+.composer-hint-badge {
+    background: var(--romita-card-hover);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid var(--romita-border);
+    font-family: monospace;
 }
 
 .romita-send-btn {
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: var(--primary-color);
+    background: var(--romita-gradient-accent);
     color: white;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    margin: 4px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     flex-shrink: 0;
-    box-shadow: 0 4px 15px color-mix(in srgb, var(--primary-color), transparent 60%);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
 }
 
 .romita-send-btn:hover {
-    transform: scale(1.05) rotate(5deg);
-    background: var(--color-btn-hover);
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-color), transparent 40%);
+    transform: scale(1.08);
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.5);
 }
+
 .romita-send-btn:disabled {
-    background: var(--bg-body);
-    color: var(--text-muted);
+    background: var(--romita-card-hover);
+    color: var(--romita-text-muted);
     box-shadow: none;
     cursor: not-allowed;
     transform: none;
 }
-[data-theme="dark"] .romita-send-btn:disabled {
-    background: #334155;
-}
 
-/* --- EMPTY STATE --- */
-.romita-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    text-align: center;
-    animation: fadeIn 0.8s ease;
-}
-
-.romita-empty-icon {
-    font-size: 5rem;
-    background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 1.5rem;
-    filter: drop-shadow(0 10px 20px rgba(99,102,241,0.2));
-}
-
-.romita-empty-state h3 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    margin-bottom: 0.5rem;
-}
-
-.romita-empty-state p {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-    max-width: 400px;
-    line-height: 1.6;
-}
-
-/* --- MARKDOWN STYLING --- */
+/* --- MARKDOWN STYLING DENTRO DE MENSAJES --- */
 .message-bubble.markdown-body {
-    font-family: var(--font-family);
-    color: inherit;
+    font-size: 0.92rem;
+    line-height: 1.65;
 }
-.message-bubble.markdown-body > *:first-child {
-    margin-top: 0;
-}
-.message-bubble.markdown-body > *:last-child {
-    margin-bottom: 0;
-}
-.message-bubble.markdown-body h1, 
-.message-bubble.markdown-body h2, 
-.message-bubble.markdown-body h3 {
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-    font-weight: 700;
-    color: var(--color-title);
-}
-.message-bubble.markdown-body h1 { font-size: 1.6rem; }
-.message-bubble.markdown-body h2 { font-size: 1.4rem; }
-.message-bubble.markdown-body h3 { font-size: 1.2rem; }
 
-.message-bubble.markdown-body p { margin-bottom: 1rem; line-height: 1.7; }
-.message-bubble.markdown-body p:last-child { margin-bottom: 0; }
-.message-bubble.markdown-body strong { font-weight: 700; color: var(--color-title); }
+.message-bubble.markdown-body > *:first-child { margin-top: 0; }
+.message-bubble.markdown-body > *:last-child { margin-bottom: 0; }
+
+.message-bubble.markdown-body h1,
+.message-bubble.markdown-body h2,
+.message-bubble.markdown-body h3,
+.message-bubble.markdown-body h4 {
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: var(--romita-text);
+    letter-spacing: -0.3px;
+}
+
+.message-bubble.markdown-body h1 { font-size: 1.25rem; }
+.message-bubble.markdown-body h2 { font-size: 1.1rem; }
+.message-bubble.markdown-body h3 { font-size: 0.98rem; }
+.message-bubble.markdown-body h4 { font-size: 0.9rem; }
+
+.message-bubble.markdown-body p {
+    margin-bottom: 0.85rem;
+}
+
+.message-bubble.markdown-body strong {
+    font-weight: 600;
+    color: var(--romita-text);
+}
+
+.message-bubble.markdown-body ul,
+.message-bubble.markdown-body ol {
+    margin: 0.75rem 0;
+    padding-left: 1.4rem;
+}
+
+.message-bubble.markdown-body li {
+    margin-bottom: 0.35rem;
+}
+
+/* Bloques de Código */
+.code-block-wrapper {
+    margin: 1rem 0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--romita-code-bg);
+    border: 1px solid var(--romita-border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.45rem 0.85rem;
+    background: var(--romita-code-header);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.btn-copy-code {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-copy-code:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
 
 .message-bubble.markdown-body pre {
-    background: #0f172a;
-    color: #e2e8f0;
-    padding: 1.25rem;
-    border-radius: 12px;
+    margin: 0;
+    padding: 1rem;
+    background: transparent;
+    color: var(--romita-code-text);
     overflow-x: auto;
-    margin: 1.25rem 0;
-    font-size: 0.95em;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    font-size: 0.84rem;
+    font-family: 'Fira Code', Consolas, Monaco, monospace;
+    line-height: 1.5;
 }
+
 .message-bubble.markdown-body code {
     background: rgba(99, 102, 241, 0.1);
     color: #6366f1;
-    padding: 0.2em 0.4em;
-    border-radius: 6px;
-    font-size: 0.9em;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.85em;
     font-family: monospace;
 }
+
 [data-theme="dark"] .message-bubble.markdown-body code {
     background: rgba(168, 85, 247, 0.2);
     color: #c084fc;
 }
+
 .message-bubble.markdown-body pre code {
-    background: transparent;
-    color: inherit;
-    padding: 0;
+    background: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
 }
 
-.message-bubble.markdown-body ul, 
-.message-bubble.markdown-body ol {
-    margin: 1rem 0;
-    padding-left: 1.5rem;
+/* --- TABLAS MODERNAS RESPONSIVAS Y CON TOOLBAR --- */
+.romita-table-container {
+    margin: 1.25rem 0;
+    border-radius: 12px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-surface);
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    transition: all 0.25s ease;
 }
-.message-bubble.markdown-body li {
-    margin-bottom: 0.5rem;
+
+.romita-table-container:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
+.romita-table-container.is-fullscreen {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    right: 2rem;
+    bottom: 2rem;
+    z-index: 9999;
+    margin: 0;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    background: var(--romita-surface);
+    display: flex;
+    flex-direction: column;
+}
+
+.romita-table-container.is-fullscreen .table-responsive-wrapper {
+    max-height: none !important;
+    flex: 1;
+}
+
+.table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.9rem;
+    background: var(--romita-bg);
+    border-bottom: 1px solid var(--romita-border);
+    font-size: 0.78rem;
+    gap: 0.75rem;
+}
+
+.table-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--romita-text-muted);
+}
+
+.table-info-badge {
+    background: var(--romita-surface);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--romita-border);
+    color: var(--romita-text);
+}
+
+.table-scroll-hint {
+    font-size: 0.72rem;
+    color: var(--romita-text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.table-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-table-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-surface);
+    color: var(--romita-text);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-table-action:hover {
+    background: var(--romita-card-hover);
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+.table-responsive-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 480px;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-track {
+    background: var(--romita-bg);
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb {
+    background: var(--romita-border);
+    border-radius: 4px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--romita-text-muted);
 }
 
 .message-bubble.markdown-body table {
     width: 100%;
+    min-width: 650px;
     border-collapse: collapse;
-    margin: 1.25rem 0;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-.message-bubble.markdown-body th {
-    background: var(--bg-surface);
-    font-weight: 700;
+    font-size: 0.82rem;
     text-align: left;
+    margin: 0 !important;
 }
-.message-bubble.markdown-body th, 
+
+.message-bubble.markdown-body thead th,
+.message-bubble.markdown-body th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--romita-card-hover);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 2px solid var(--romita-border);
+    color: var(--romita-text);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    user-select: none;
+}
+
+.message-bubble.markdown-body th:hover {
+    background: rgba(99, 102, 241, 0.08);
+}
+
 .message-bubble.markdown-body td {
-    border: 1px solid var(--border-color);
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--romita-border-light);
+    color: var(--romita-text);
+    line-height: 1.45;
+    vertical-align: top;
+    overflow-wrap: break-word;
+}
+
+.message-bubble.markdown-body tbody tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.018);
+}
+[data-theme="dark"] .message-bubble.markdown-body tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.message-bubble.markdown-body tbody tr:hover {
+    background: rgba(99, 102, 241, 0.06) !important;
+}
+
+.message-bubble.markdown-body tr:last-child td {
+    border-bottom: none;
 }
 
 .message-bubble.markdown-body blockquote {
-    border-left: 4px solid var(--primary-color);
-    margin: 1.25rem 0;
-    padding: 0.5rem 1rem;
-    background: var(--primary-bg);
+    border-left: 3px solid #8b5cf6;
+    margin: 1rem 0;
+    padding: 0.4rem 0.85rem;
+    background: rgba(139, 92, 246, 0.06);
     border-radius: 0 8px 8px 0;
-    color: var(--text-main);
+    color: var(--romita-text-muted);
     font-style: italic;
 }
 
-/* --- SIDEBAR HISTORIAL --- */
-.romita-sidebar {
-    width: 280px;
-    background: var(--bg-surface);
-    border-right: 1px solid var(--border-color);
+/* --- MODALES CON ESTILO GLASSMORPHISM --- */
+.romita-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    padding: 1rem;
+}
+
+.romita-modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.romita-modal-card {
+    width: 100%;
+    max-width: 580px;
+    background: var(--romita-surface);
+    border: 1px solid var(--romita-border);
+    border-radius: 18px;
+    box-shadow: var(--romita-shadow-lg);
+    overflow: hidden;
+    transform: translateY(16px) scale(0.98);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 20;
+    max-height: 88vh;
 }
-.romita-sidebar:not(.open) {
-    width: 0;
-    border: none;
-    overflow: hidden;
-    opacity: 0;
+
+.romita-modal-overlay.active .romita-modal-card {
+    transform: translateY(0) scale(1);
 }
-.romita-sidebar-header {
-    padding: 1.25rem;
+
+.romita-modal-header {
+    padding: 1.1rem 1.4rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
+    justify-content: space-between;
+    border-bottom: 1px solid var(--romita-border);
 }
-.romita-sidebar-header h3 {
+
+.romita-modal-header h3 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 700;
-}
-.romita-chat-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.5rem;
-}
-.chat-history-item {
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.25rem;
-    border-radius: 8px;
-    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--text-main);
+}
+
+.romita-modal-body {
+    padding: 1.25rem 1.4rem;
+    overflow-y: auto;
+}
+
+.btn-close-modal {
+    background: transparent;
+    border: none;
+    color: var(--romita-text-muted);
+    font-size: 1.15rem;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-close-modal:hover {
+    color: var(--romita-text);
+    background: var(--romita-card-hover);
+}
+
+/* --- CHIP DE INTELIGENCIA DE MARCA ACTIVA --- */
+.brand-intel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 20px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: #6366f1;
+    font-size: 0.78rem;
+    font-weight: 600;
+    animation: fadeIn 0.3s ease;
+}
+
+[data-theme="dark"] .brand-intel-chip {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(129, 140, 248, 0.3);
+    color: #a5b4fc;
+}
+
+.brand-intel-chip i {
     font-size: 0.95rem;
-    transition: background 0.2s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
-.chat-history-item:hover {
-    background: var(--primary-bg);
-    color: var(--primary-color);
+
+/* --- TARJETA DE ACCIÓN DE PLAN DE CALENDARIO --- */
+.calendar-plan-action-card {
+    margin-top: 1rem;
+    background: var(--romita-card);
+    border: 1px solid var(--romita-border-focus);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--romita-shadow-md);
+    animation: messageSlideIn 0.35s ease;
 }
-.chat-history-item.active {
-    background: var(--primary-color);
+
+.cpac-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+}
+
+.cpac-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--romita-gradient-accent);
     color: white;
-}
-.chat-history-item i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     flex-shrink: 0;
 }
 
+.cpac-title-wrap h4 {
+    margin: 0 0 0.15rem 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--romita-text);
+}
+
+.cpac-title-wrap p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--romita-text-muted);
+}
+
+.cpac-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+    max-height: 140px;
+    overflow-y: auto;
+    padding-right: 0.3rem;
+}
+
+.cpac-preview-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.65rem;
+    background: var(--romita-card-hover);
+    border-radius: 6px;
+    font-size: 0.78rem;
+}
+
+.cpac-preview-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80%;
+}
+
+.cpac-preview-item-badge {
+    background: rgba(99, 102, 241, 0.15);
+    color: #6366f1;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .cpac-preview-item-badge {
+    color: #a5b4fc;
+}
+
+.cpac-preview-item-date {
+    font-size: 0.72rem;
+    color: var(--romita-text-muted);
+}
+
+.btn-create-month-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    background: var(--romita-gradient-accent);
+    color: white;
+    border: none;
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    transition: all 0.25s ease;
+}
+
+.btn-create-month-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    filter: brightness(1.08);
+}
+
+.btn-create-month-action:disabled {
+    background: var(--romita-card-hover);
+    color: var(--romita-text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.cpac-success-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-top: 0.75rem;
+}
+
+.cpac-success-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #10b981;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-open-month-board {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #10b981;
+    color: white;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.btn-open-month-board:hover {
+    background: #059669;
+    color: white;
+    transform: translateY(-1px);
+}
+/* Backdrop para drawer móvil */
+.romita-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1040;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+}
+
+.romita-sidebar-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.badge-text-desktop {
+    display: inline;
+}
+
+.badge-text-mobile {
+    display: none;
+}
+
+.romita-header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.brand-intel-chip-container {
+    display: flex;
+    align-items: center;
+}
+
+/* ==========================================================================
+   ADAPTACIÓN RESPONSIVA COMPLETA: TABLET Y MÓVIL
+   ========================================================================== */
+
+/* --- TABLET (max-width: 1024px) --- */
+@media (max-width: 1024px) {
+    .romita-header {
+        padding: 0.75rem 1.25rem;
+    }
+    
+    .prept-select-wrap {
+        max-width: 240px;
+    }
+    
+    .prept-select-custom {
+        max-width: 240px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    
+    .search-chat-input {
+        width: 130px;
+    }
+    .search-chat-input:focus {
+        width: 160px;
+    }
+    
+    .chat-stream-inner,
+    .romita-input-wrapper {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .romita-prompt-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.85rem;
+    }
+}
+
+/* --- MÓVIL Y TABLETS PEQUEÑAS (max-width: 768px) --- */
 @media (max-width: 768px) {
+    /* Backdrop del Drawer */
+    .romita-sidebar-backdrop {
+        display: block;
+    }
+
+    /* Sidebar como Drawer flotante nativo */
     .romita-sidebar {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 84vw !important;
+        max-width: 320px !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        z-index: 1050 !important;
+        background: var(--romita-sidebar-bg) !important;
+        box-shadow: 14px 0 45px rgba(0, 0, 0, 0.5) !important;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .romita-sidebar.open {
+        transform: translateX(0) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 84vw !important;
+        min-width: 0 !important;
+    }
+
+    .romita-sidebar:not(.open) {
+        transform: translateX(-100%) !important;
+        width: 84vw !important;
+        min-width: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Header Móvil ordenado de 2 filas */
+    .romita-header {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 0.55rem 0.75rem !important;
+        gap: 0.45rem !important;
+        background: var(--romita-surface) !important;
+    }
+
+    /* Fila 1: Branding a la izquierda y badge a la derecha */
+    .romita-brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .btn-toggle-sidebar {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        font-size: 1.05rem;
+        border-radius: 8px;
+    }
+
+    .romita-logo {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: 9px;
+        font-size: 1.15rem;
+    }
+
+    .romita-brand-info {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        flex: 1;
+        min-width: 0;
+        gap: 0.5rem;
+    }
+
+    .romita-greeting-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .user-greeting-pill {
+        display: none !important;
+    }
+
+    .romita-model-badge {
+        font-size: 0.68rem;
+        padding: 0.2rem 0.5rem;
+        margin-top: 0;
+        white-space: nowrap;
+    }
+
+    .badge-text-desktop {
+        display: none !important;
+    }
+    .badge-text-mobile {
+        display: inline !important;
+    }
+
+    /* Fila 2: Selector de Marca y Botones de Acción */
+    .romita-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.1rem;
+    }
+
+    .prept-select-wrap {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .prept-select-custom {
+        width: 100%;
+        max-width: 100%;
+        height: 36px;
+        font-size: 0.78rem;
+        padding: 0.4rem 1.8rem 0.4rem 2rem;
+        border-radius: 8px;
+        background: var(--romita-card);
+    }
+
+    .prept-select-icon {
+        left: 0.65rem;
+        font-size: 0.95rem;
+    }
+
+    .prept-select-caret {
+        right: 0.65rem;
+    }
+
+    .romita-header-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-shrink: 0;
+    }
+
+    .btn-romita-action {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
+    .btn-romita-action i {
+        font-size: 1.05rem;
+    }
+
+    /* Chip de Marca en Móvil (Fila 3 si está activo) */
+    .brand-intel-chip {
+        width: 100%;
+        justify-content: center;
+        padding: 0.35rem 0.7rem;
+        font-size: 0.74rem;
+        border-radius: 8px;
+        box-sizing: border-box;
+        margin-top: 0.15rem;
+    }
+
+    /* Feed de Chat en Móvil */
+    .romita-chat-area {
+        padding: 0.85rem 0.65rem 0.5rem 0.65rem !important;
+        gap: 1rem !important;
+    }
+
+    .chat-stream-inner {
+        width: 100%;
+        gap: 1.1rem;
+    }
+
+    /* Mensajes de Usuario en Móvil: sin avatar grande, ultra elegante */
+    .romita-message.user {
+        gap: 0;
+        max-width: 88%;
+        align-self: flex-end;
+    }
+
+    .romita-message.user .message-avatar {
+        display: none !important;
+    }
+
+    .romita-message.user .message-bubble {
+        padding: 0.65rem 0.95rem;
+        font-size: 0.88rem;
+        border-radius: 18px 18px 4px 18px;
+        box-shadow: 0 3px 12px rgba(79, 70, 229, 0.28);
+    }
+
+    /* Mensajes de Asistente en Móvil: avatar compacto de 28px, máximo espacio de lectura */
+    .romita-message.assistant {
+        gap: 0.5rem;
+        max-width: 98%;
+        align-self: flex-start;
+    }
+
+    .romita-message.assistant .message-avatar {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        margin-top: 2px;
+    }
+
+    .romita-message.assistant .message-bubble {
+        padding: 0.75rem 0.9rem;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        border-radius: 4px 18px 18px 18px;
+    }
+
+    .romita-message.assistant .message-bubble h1 { font-size: 1.15rem; }
+    .romita-message.assistant .message-bubble h2 { font-size: 1.05rem; }
+    .romita-message.assistant .message-bubble h3 { font-size: 0.95rem; }
+
+    /* Barra de utilidades del mensaje */
+    .message-actions-bar {
+        padding: 0.1rem 0;
+    }
+
+    .btn-message-action {
+        font-size: 0.72rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    /* Empty State Hero en Móvil */
+    .romita-empty-state {
+        padding: 1rem 0.25rem !important;
+    }
+
+    .romita-hero-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.85rem;
+        border-radius: 16px;
+        margin-bottom: 0.75rem;
+    }
+
+    .romita-hero-title {
+        font-size: 1.3rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .romita-hero-sub {
+        font-size: 0.8rem;
+        margin-bottom: 1.25rem;
+        padding: 0 0.5rem;
+    }
+
+    .romita-prompt-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.6rem !important;
+        width: 100% !important;
+    }
+
+    .prompt-starter-card {
+        padding: 0.75rem 0.85rem;
+        border-radius: 12px;
+        gap: 0.75rem;
+    }
+
+    .prompt-starter-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 1.15rem;
+        border-radius: 10px;
+    }
+
+    .prompt-starter-details h4 {
+        font-size: 0.84rem;
+    }
+
+    .prompt-starter-details p {
+        font-size: 0.74rem;
+        line-height: 1.35;
+    }
+
+    /* Pills de Skills */
+    .romita-skills-pills {
+        padding: 0.2rem 0.1rem 0.45rem 0.1rem;
+        margin-bottom: 0.2rem;
+        gap: 0.4rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .skill-pill {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+        scroll-snap-align: start;
+        border-radius: 18px;
+    }
+
+    /* Floating Composer Dock en Móvil */
+    .romita-input-wrapper {
+        padding: 0 0.5rem calc(0.55rem + env(safe-area-inset-bottom, 0px)) 0.5rem !important;
+        background: var(--romita-bg) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .romita-input-container {
+        border-radius: 16px;
+        padding: 0.5rem 0.75rem 0.45rem 0.75rem;
+        background: var(--romita-composer-bg);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .romita-textarea {
+        font-size: 15px; /* Evita auto-zoom en iOS Safari */
+        min-height: 22px;
+        max-height: 120px;
+        line-height: 1.4;
+    }
+
+    .romita-textarea::placeholder {
+        font-size: 0.84rem;
+    }
+
+    .romita-composer-bottom {
+        margin-top: 0.25rem;
+        padding-top: 0.2rem;
+        border-top: none;
+        justify-content: flex-end;
+    }
+
+    .composer-hints {
+        display: none !important;
+    }
+
+    .romita-send-btn {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 50%;
+        font-size: 1.05rem;
+    }
+
+    /* Tarjeta de Acción de Calendario en Móvil */
+    .calendar-plan-action-card {
+        padding: 0.85rem;
+        border-radius: 12px;
+    }
+
+    .cpac-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+    }
+
+    .cpac-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-create-month-action,
+    .btn-open-month-board {
+        width: 100% !important;
+        justify-content: center;
+        height: 40px;
+        font-size: 0.84rem;
+        box-sizing: border-box;
+    }
+
+    .cpac-preview-item {
+        padding: 0.5rem 0.65rem;
+    }
+
+    .cpac-preview-item-left strong {
+        font-size: 0.78rem;
+    }
+
+    /* Tablas en Móvil */
+    .romita-table-container {
+        margin: 0.75rem 0;
+        border-radius: 10px;
+    }
+
+    .table-toolbar {
+        padding: 0.45rem 0.65rem;
+        gap: 0.4rem;
+    }
+
+    .table-info-badge {
+        font-size: 0.68rem;
+        padding: 0.15rem 0.4rem;
+    }
+
+    .btn-table-action {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .table-scroll-hint {
+        display: none;
+    }
+
+    .table-responsive-wrapper {
+        max-height: 360px;
+    }
+
+    .hide-mobile {
+        display: none !important;
     }
 }
