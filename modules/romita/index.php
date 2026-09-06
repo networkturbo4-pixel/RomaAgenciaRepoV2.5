@@ -13,35 +13,73 @@ $is_admin = ($stmt_admin->fetchColumn() == 1);
 $skills = [];
 $prepts = [];
 $calendarProjects = [];
+$user_role = $_SESSION['role'] ?? 'user';
 
+// 1. Fetch Skills (con control de excepciones independiente)
 try {
-    $user_role = $_SESSION['role'] ?? 'user';
     if ($is_admin) {
-        $stmt = $db->query("SELECT id, name, description, prompt_base, allowed_role FROM romita_skills ORDER BY name ASC");
+        $stmt = $db->query("SELECT id, name, description, prompt_base, allowed_role FROM romita_skills WHERE is_active = 1 ORDER BY name ASC");
     } else {
-        $stmt = $db->prepare("SELECT id, name, description, prompt_base, allowed_role FROM romita_skills WHERE allowed_role = 'all' OR allowed_role = ? ORDER BY name ASC");
+        $stmt = $db->prepare("SELECT id, name, description, prompt_base, allowed_role FROM romita_skills WHERE is_active = 1 AND (allowed_role = 'all' OR allowed_role = ?) ORDER BY name ASC");
         $stmt->execute([$user_role]);
     }
-    $skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Fetch Prepts
-    $stmtPrepts = $db->query("SELECT id, name, tone, audience, rules FROM romita_prepts ORDER BY name ASC");
-    $prepts = $stmtPrepts->fetchAll(PDO::FETCH_ASSOC);
+    if ($stmt) $skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch(Exception $e) {
+    $skills = [];
+}
 
-    // Fetch Calendar Projects with brands and metrics
+// 2. Fetch Prepts (con control de excepciones independiente)
+try {
+    $stmtPrepts = $db->query("SELECT id, name, tone, audience, rules FROM romita_prepts ORDER BY name ASC");
+    if ($stmtPrepts) $prepts = $stmtPrepts->fetchAll(PDO::FETCH_ASSOC);
+} catch(Exception $e) {
+    $prepts = [];
+}
+
+// 3. Fetch Calendar Projects (Resiliente: independiente de romita_skills/prepts y con fallback seguro)
+try {
+    // Intento A: Con métricas completas de meses y posts
     $stmtProjects = $db->query("
-        SELECT p.id as project_id, wo.brand_name, wo.correlativo, cb.logo, cb.color,
+        SELECT p.id as project_id, 
+               COALESCE(NULLIF(wo.brand_name, ''), CONCAT('Proyecto #', p.id)) as brand_name, 
+               wo.correlativo,
                (SELECT COUNT(*) FROM project_months pm WHERE pm.project_id = p.id) as total_months,
                (SELECT COUNT(*) FROM month_posts mp JOIN project_months pm ON mp.month_id = pm.id WHERE pm.project_id = p.id) as total_posts
         FROM projects p
-        JOIN work_orders wo ON p.work_order_id = wo.id
-        LEFT JOIN client_brands cb ON cb.name = wo.brand_name
-        WHERE p.status = 'active'
-        ORDER BY wo.brand_name ASC
+        LEFT JOIN work_orders wo ON p.work_order_id = wo.id
+        WHERE (wo.is_archived IS NULL OR wo.is_archived = 0)
+        ORDER BY brand_name ASC
     ");
-    $calendarProjects = $stmtProjects->fetchAll(PDO::FETCH_ASSOC);
-
-} catch(Exception $e) {}
+    if ($stmtProjects) {
+        $calendarProjects = $stmtProjects->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch(Exception $e) {
+    // Intento B (Fallback): Si project_months o month_posts fallan en producción
+    try {
+        $stmtFallback = $db->query("
+            SELECT p.id as project_id, 
+                   COALESCE(NULLIF(wo.brand_name, ''), CONCAT('Proyecto #', p.id)) as brand_name, 
+                   wo.correlativo, 
+                   0 as total_months, 
+                   0 as total_posts
+            FROM projects p
+            LEFT JOIN work_orders wo ON p.work_order_id = wo.id
+            WHERE (wo.is_archived IS NULL OR wo.is_archived = 0)
+            ORDER BY brand_name ASC
+        ");
+        if ($stmtFallback) {
+            $calendarProjects = $stmtFallback->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } catch(Exception $e2) {
+        // Intento C (Respaldo directo de tabla projects):
+        try {
+            $stmtSimple = $db->query("SELECT id as project_id, CONCAT('Proyecto #', id) as brand_name, '' as correlativo, 0 as total_months, 0 as total_posts FROM projects ORDER BY id DESC");
+            if ($stmtSimple) $calendarProjects = $stmtSimple->fetchAll(PDO::FETCH_ASSOC);
+        } catch(Exception $e3) {
+            $calendarProjects = [];
+        }
+    }
+}
 
 $first_name = htmlspecialchars(explode(' ', $_SESSION['user_name'] ?? 'Usuario')[0]);
 $hour = (int)date('H');
