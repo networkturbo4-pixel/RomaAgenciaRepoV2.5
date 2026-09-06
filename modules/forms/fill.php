@@ -1,12 +1,27 @@
 <?php
 // modules/forms/fill.php — Public Modern SaaS & Native App-Style Form with Cover Banners & View Modes
-$token = $_GET['token'] ?? '';
+if (!isset($db)) {
+    require_once __DIR__ . '/../../config/database.php';
+    $db = (new Database())->getConnection();
+}
+if (!isset($global_settings)) {
+    if (file_exists(__DIR__ . '/../../includes/functions.php')) {
+        require_once __DIR__ . '/../../includes/functions.php';
+        $global_settings = function_exists('get_settings') ? get_settings() : [];
+    } else {
+        $global_settings = [];
+    }
+}
+
+$token = $_GET['token'] ?? $_GET['t'] ?? '';
 if (empty($token)) { die("Enlace inválido."); }
 
-$stmt = $db->prepare("SELECT * FROM form_templates WHERE public_token = ? AND status = 'active'");
-$stmt->execute([$token]);
+$stmt = $db->prepare("SELECT * FROM form_templates WHERE (public_token = ? OR LEFT(public_token, 8) = ?) AND status = 'active' LIMIT 1");
+$stmt->execute([$token, $token]);
 $form = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$form) { die("Formulario no encontrado o no está activo."); }
+// Normalizar al token canónico completo
+$token = $form['public_token'];
 
 $fields = json_decode($form['fields_json'] ?: '[]', true);
 $settings = json_decode($form['settings_json'] ?: '{}', true);
@@ -65,13 +80,61 @@ foreach ($fields as $field) {
 if (!empty($currentStep)) $steps[] = $currentStep;
 if (empty($steps)) $steps[] = [];
 $totalSteps = count($steps);
+
+// Configuración y Generación de Open Graph
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+$baseUrl = (!empty($global_settings['site_url'])) ? rtrim($global_settings['site_url'], '/') : ($protocol . '://' . $host . ($scriptDir ? $scriptDir : ''));
+
+$shortToken = substr($form['public_token'], 0, 8);
+$ogUrl = $baseUrl . '/f/' . $shortToken;
+$ogTitle = !empty($form['title']) ? $form['title'] : 'Formulario';
+$cleanDesc = !empty($form['description']) ? trim(strip_tags($form['description'])) : '';
+$ogDesc = !empty($cleanDesc) ? mb_strimwidth($cleanDesc, 0, 160, '...') : ('Completa este formulario en línea con ' . $siteName);
+
+$ogImage = '';
+if (!empty($settings['cover_image']) && (str_starts_with($settings['cover_image'], 'http') || str_starts_with($settings['cover_image'], 'uploads/'))) {
+    $ogImage = str_starts_with($settings['cover_image'], 'http') ? $settings['cover_image'] : ($baseUrl . '/' . ltrim($settings['cover_image'], '/'));
+} elseif (!empty($global_settings['logo_light'])) {
+    $ogImage = str_starts_with($global_settings['logo_light'], 'http') ? $global_settings['logo_light'] : ($baseUrl . '/' . ltrim($global_settings['logo_light'], '/'));
+} elseif (!empty($global_settings['logo_dark'])) {
+    $ogImage = str_starts_with($global_settings['logo_dark'], 'http') ? $global_settings['logo_dark'] : ($baseUrl . '/' . ltrim($global_settings['logo_dark'], '/'));
+} else {
+    $ogImage = $baseUrl . '/assets/img/icon-512x512.png';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?php echo htmlspecialchars($form['title']); ?> | <?php echo htmlspecialchars($siteName); ?></title>
+
+<!-- Primary Meta Tags -->
+<title><?php echo htmlspecialchars($ogTitle); ?> | <?php echo htmlspecialchars($siteName); ?></title>
+<meta name="title" content="<?php echo htmlspecialchars($ogTitle); ?>">
+<meta name="description" content="<?php echo htmlspecialchars($ogDesc); ?>">
+
+<!-- Open Graph / Facebook / WhatsApp -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="<?php echo htmlspecialchars($ogUrl); ?>">
+<meta property="og:title" content="<?php echo htmlspecialchars($ogTitle); ?>">
+<meta property="og:description" content="<?php echo htmlspecialchars($ogDesc); ?>">
+<?php if (!empty($ogImage)): ?>
+<meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>">
+<meta property="og:image:alt" content="<?php echo htmlspecialchars($ogTitle); ?>">
+<?php endif; ?>
+<meta property="og:site_name" content="<?php echo htmlspecialchars($siteName); ?>">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="<?php echo htmlspecialchars($ogUrl); ?>">
+<meta name="twitter:title" content="<?php echo htmlspecialchars($ogTitle); ?>">
+<meta name="twitter:description" content="<?php echo htmlspecialchars($ogDesc); ?>">
+<?php if (!empty($ogImage)): ?>
+<meta name="twitter:image" content="<?php echo htmlspecialchars($ogImage); ?>">
+<?php endif; ?>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -799,6 +862,180 @@ body {
     color: #ffffff;
 }
 
+/* Comparative Visual Cards (Images & Icons) */
+.app-compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 0.35rem;
+}
+
+.app-compare-card {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--app-border);
+    border-radius: 18px;
+    background: var(--app-surface);
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.app-compare-card:hover {
+    border-color: var(--app-border-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.app-compare-card.selected {
+    border-color: var(--app-accent);
+    background: var(--app-surface);
+    box-shadow: 0 0 0 1.5px var(--app-accent), 0 10px 30px var(--app-accent-glow);
+    transform: translateY(-2px);
+}
+
+.app-compare-media-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: var(--app-surface-sub);
+}
+
+.app-compare-img-wrap {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--app-surface-sub);
+}
+
+.app-compare-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+}
+
+.app-compare-card:hover .app-compare-img-wrap img {
+    transform: scale(1.05);
+}
+
+.app-compare-badge-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+}
+
+.app-compare-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.app-compare-icon-wrap {
+    height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: radial-gradient(circle at 50% 50%, var(--app-accent-light) 0%, transparent 70%);
+}
+
+.app-compare-icon-badge {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    background: var(--app-accent-light);
+    color: var(--app-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.85rem;
+    transition: all 0.25s ease;
+}
+
+.app-compare-card.selected .app-compare-icon-badge {
+    background: var(--app-accent);
+    color: #ffffff;
+    transform: scale(1.08);
+}
+
+.app-compare-body {
+    padding: 1rem 1.15rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+}
+
+.app-compare-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.app-compare-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--app-text);
+    line-height: 1.3;
+}
+
+.app-compare-desc {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--app-text-muted);
+    line-height: 1.4;
+}
+
+.app-compare-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--app-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+    background: var(--app-surface-sub);
+}
+
+.app-compare-card.selected .app-compare-check {
+    background: var(--app-accent);
+    border-color: var(--app-accent);
+    color: #ffffff;
+}
+
+@media (max-width: 600px) {
+    .app-compare-grid {
+        grid-template-columns: 1fr;
+    }
+    .app-compare-img-wrap {
+        height: 160px;
+    }
+}
+
 /* Action Bar */
 .app-actions {
     display: flex;
@@ -1267,6 +1504,59 @@ body {
                                             </label>
                                             <?php endforeach; ?>
                                         </div>
+
+                                    <?php elseif($field['type']==='image_compare'): ?>
+                                        <?php 
+                                            $compOpts = $field['compare_options'] ?? [];
+                                            $isMulti = !empty($field['compare_multi']);
+                                            $inputType = $isMulti ? 'checkbox' : 'radio';
+                                        ?>
+                                        <div class="app-compare-grid">
+                                            <?php foreach($compOpts as $oi => $cOpt): ?>
+                                            <?php 
+                                                $isImg = ($cOpt['opt_type'] ?? 'image') === 'image';
+                                                $val = !empty($cOpt['title']) ? $cOpt['title'] : ('Opción ' . chr(65 + $oi));
+                                            ?>
+                                            <label class="app-compare-card">
+                                                <input type="<?php echo $inputType; ?>" 
+                                                       name="field_<?php echo $field['id']; ?><?php echo $isMulti ? '[]' : ''; ?>" 
+                                                       value="<?php echo htmlspecialchars($val); ?>" 
+                                                       <?php echo !empty($field['required']) ? 'required data-req="true"' : ''; ?> 
+                                                       style="display:none;" 
+                                                       onchange="handleCompareCardChange(this, <?php echo $isMulti ? 'true' : 'false'; ?>)">
+                                                
+                                                <div class="app-compare-media-container">
+                                                    <?php if($isImg && !empty($cOpt['image'])): ?>
+                                                        <div class="app-compare-img-wrap">
+                                                            <img src="<?php echo htmlspecialchars($cOpt['image']); ?>" alt="<?php echo htmlspecialchars($val); ?>" loading="lazy">
+                                                            <div class="app-compare-badge-overlay">
+                                                                <span class="app-compare-pill">Opción <?php echo chr(65 + $oi); ?></span>
+                                                            </div>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="app-compare-icon-wrap">
+                                                            <div class="app-compare-icon-badge">
+                                                                <i class="ph-bold <?php echo htmlspecialchars($cOpt['icon'] ?? 'ph-image'); ?>"></i>
+                                                            </div>
+                                                            <span class="app-compare-pill">Opción <?php echo chr(65 + $oi); ?></span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+
+                                                <div class="app-compare-body">
+                                                    <div class="app-compare-header-row">
+                                                        <h4 class="app-compare-title"><?php echo htmlspecialchars($val); ?></h4>
+                                                        <div class="app-compare-check">
+                                                            <i class="ph-bold ph-check"></i>
+                                                        </div>
+                                                    </div>
+                                                    <?php if(!empty($cOpt['desc'])): ?>
+                                                        <p class="app-compare-desc"><?php echo htmlspecialchars($cOpt['desc']); ?></p>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
@@ -1411,6 +1701,26 @@ function handleIconCardChange(input, isMulti) {
     // Auto-advance in slides mode on single-choice card selection
     if (isSlidesMode && !isMulti && input.checked && currentStepIdx < totalSteps - 1) {
         setTimeout(() => { goToStep(currentStepIdx + 1); }, 260);
+    }
+}
+
+function handleCompareCardChange(input, isMulti) {
+    const card = input.closest('.app-compare-card');
+    const container = input.closest('.app-compare-grid');
+    if (!isMulti) {
+        container.querySelectorAll('.app-compare-card').forEach(c => c.classList.remove('selected'));
+        if (input.checked) card.classList.add('selected');
+    } else {
+        card.classList.toggle('selected', input.checked);
+        const reqBoxes = container.querySelectorAll('input[data-req="true"]');
+        const anyChecked = container.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+        reqBoxes.forEach(b => b.required = !anyChecked);
+    }
+    updateProgress();
+
+    // Auto-advance in slides mode on single-choice compare selection
+    if (isSlidesMode && !isMulti && input.checked && currentStepIdx < totalSteps - 1) {
+        setTimeout(() => { goToStep(currentStepIdx + 1); }, 300);
     }
 }
 

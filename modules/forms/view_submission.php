@@ -253,6 +253,82 @@ body {
     letter-spacing: 0.8px;
 }
 
+/* Compare Tool View */
+.view-compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+}
+.view-compare-card {
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: var(--bg-card);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.view-compare-card.is-selected {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+.view-compare-card.is-correct {
+    border-color: #10b981;
+}
+.view-compare-badges {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+.view-badge-selected {
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.view-badge-correct {
+    background: #10b981;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.view-compare-img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+.view-compare-icon {
+    font-size: 2.2rem;
+    color: var(--primary-color);
+    text-align: center;
+    padding: 0.75rem 0;
+}
+.view-compare-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-title);
+}
+.view-compare-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
 /* Print Button */
 .print-btn {
     position: fixed;
@@ -380,6 +456,39 @@ body {
                             <?php echo htmlspecialchars($fn); ?>
                         </a>
                     <?php endforeach; ?>
+                <?php elseif($f['type'] === 'image_compare' && !empty($f['compare_options'])): ?>
+                    <?php 
+                        $selectedVals = is_array($val) ? $val : (is_string($val) ? array_map('trim', explode(',', $val)) : []);
+                    ?>
+                    <div class="view-compare-grid">
+                        <?php foreach($f['compare_options'] as $opt): 
+                            $optTitle = $opt['title'] ?: 'Opción';
+                            $isSelected = in_array($optTitle, $selectedVals);
+                            if(!$isSelected && empty($opt['is_correct'])) continue;
+                        ?>
+                        <div class="view-compare-card <?php echo $isSelected ? 'is-selected' : ''; ?> <?php echo !empty($opt['is_correct']) ? 'is-correct' : ''; ?>">
+                            <div class="view-compare-badges">
+                                <?php if($isSelected): ?>
+                                    <span class="view-badge-selected"><i class="ph-bold ph-check"></i> Elegida</span>
+                                <?php endif; ?>
+                                <?php if(!empty($opt['is_correct'])): ?>
+                                    <span class="view-badge-correct"><i class="ph-bold ph-seal-check"></i> Correcta</span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if(($opt['opt_type'] ?? 'image') === 'image' && !empty($opt['image'])): ?>
+                                <img src="<?php echo htmlspecialchars($opt['image']); ?>" alt="<?php echo htmlspecialchars($optTitle); ?>" class="view-compare-img">
+                            <?php elseif(($opt['opt_type'] ?? '') === 'icon' && !empty($opt['icon'])): ?>
+                                <div class="view-compare-icon"><i class="<?php echo htmlspecialchars($opt['icon']); ?>"></i></div>
+                            <?php endif; ?>
+                            <div class="view-compare-info">
+                                <div class="view-compare-title"><?php echo htmlspecialchars($optTitle); ?></div>
+                                <?php if(!empty($opt['desc'])): ?>
+                                    <div class="view-compare-desc"><?php echo htmlspecialchars($opt['desc']); ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 <?php else: ?>
                     <?php echo htmlspecialchars($val ?: '—'); ?>
                 <?php endif; ?>

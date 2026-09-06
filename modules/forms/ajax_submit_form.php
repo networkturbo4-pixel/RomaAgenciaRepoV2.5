@@ -14,8 +14,8 @@ if (empty($token) || empty($data_json)) {
 }
 
 try {
-    $stmt = $db->prepare("SELECT * FROM form_templates WHERE public_token=? AND status='active'");
-    $stmt->execute([$token]);
+    $stmt = $db->prepare("SELECT * FROM form_templates WHERE (public_token = ? OR LEFT(public_token, 8) = ?) AND status = 'active' LIMIT 1");
+    $stmt->execute([$token, $token]);
     $template = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$template) { echo json_encode(['success'=>false,'error'=>'Formulario no encontrado o inactivo']); exit(); }
 

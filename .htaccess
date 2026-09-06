@@ -12,6 +12,10 @@
     RewriteRule ^c/([^/]+)/?$ index.php?module=quotes&action=public&token=$1 [QSA,L]
     RewriteRule ^cotizacion/([^/]+)/?$ index.php?module=quotes&action=public&token=$1 [QSA,L]
 
+    # Ruta amigable corta para formularios: /f/TOKEN o /form/TOKEN
+    RewriteRule ^f/([^/]+)/?$ index.php?module=forms&action=fill&token=$1 [QSA,L]
+    RewriteRule ^form/([^/]+)/?$ index.php?module=forms&action=fill&token=$1 [QSA,L]
+
     # Ruta amigable para chat de invitados: /m/TOKEN
     RewriteRule ^m/([^/]+)/?$ index.php?module=mensajes&action=guest&token=$1 [QSA,L]
 

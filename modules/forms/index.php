@@ -1046,8 +1046,9 @@ function filterForms() {
 }
 
 function shareForm(token, title) {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const url = baseUrl + '?module=forms&action=fill&token=' + token;
+    const basePath = window.location.pathname.replace(/\/index\.php.*$/, '').replace(/\/$/, '');
+    const shortToken = (token && token.length > 8) ? token.substring(0, 8) : token;
+    const url = window.location.origin + (basePath ? basePath : '') + '/f/' + shortToken;
     document.getElementById('shareFormLink').value = url;
     document.getElementById('shareFormTitle').textContent = title;
     document.getElementById('shareFormWhatsapp').href = 'https://wa.me/?text=' + encodeURIComponent('Hola, por favor completa este formulario: ' + url);

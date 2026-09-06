@@ -410,6 +410,27 @@ function viewDetail(sub) {
                 return `<a href="${escH(url)}" target="_blank" style="color:var(--primary-color); font-weight:600; display:inline-flex; align-items:center; gap:6px; margin:4px 8px 4px 0; background:var(--bg-surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border-color); text-decoration:none; font-size:0.8rem;"><i class="ph-bold ph-paperclip"></i> ${escH(fn)}</a>`;
             }).join('');
             html += `<div class="detail-field-box"><div class="detail-field-lbl">${escH(f.label)}</div><div class="detail-field-val">${filesHtml}</div></div>`;
+        } else if (f.type === 'image_compare' && f.compare_options) {
+            const selectedVals = Array.isArray(data[key]) ? data[key] : (val ? val.split(',').map(s => s.trim()) : []);
+            let compareHtml = '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 6px;">';
+            f.compare_options.forEach(opt => {
+                const optTitle = opt.title || 'Opción';
+                const isSelected = selectedVals.includes(optTitle);
+                if (!isSelected && !opt.is_correct) return;
+                compareHtml += `
+                <div style="border: 2px solid ${isSelected ? (opt.is_correct ? '#10b981' : 'var(--primary-color)') : 'var(--border-color)'}; background: ${isSelected ? 'color-mix(in srgb, var(--primary-color) 8%, transparent)' : 'var(--bg-surface)'}; border-radius: 10px; padding: 10px; position: relative;">
+                    <div style="display:flex; gap:4px; margin-bottom:6px; flex-wrap:wrap;">
+                        ${isSelected ? '<span style="background:var(--primary-color); color:#fff; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px;"><i class="ph-bold ph-check"></i> Elegida</span>' : ''}
+                        ${opt.is_correct ? '<span style="background:#10b981; color:#fff; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px;"><i class="ph-bold ph-seal-check"></i> Correcta</span>' : ''}
+                    </div>
+                    ${opt.opt_type === 'image' && opt.image ? `<img src="${escH(opt.image)}" style="width:100%; height:75px; object-fit:cover; border-radius:6px; margin-bottom:6px;">` : ''}
+                    ${opt.opt_type === 'icon' ? `<div style="font-size:1.8rem; text-align:center; padding:6px 0; color:var(--primary-color);"><i class="${escH(opt.icon || 'ph-bold ph-check-circle')}"></i></div>` : ''}
+                    <div style="font-weight:700; font-size:0.85rem; color:var(--color-title);">${escH(optTitle)}</div>
+                    ${opt.desc ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">${escH(opt.desc)}</div>` : ''}
+                </div>`;
+            });
+            compareHtml += '</div>';
+            html += `<div class="detail-field-box"><div class="detail-field-lbl">${escH(f.label)}</div><div class="detail-field-val">${compareHtml}</div></div>`;
         } else {
             html += `<div class="detail-field-box"><div class="detail-field-lbl">${escH(f.label)}</div><div class="detail-field-val">${escH(val || '—')}</div></div>`;
         }
@@ -432,8 +453,11 @@ async function markRevisado(id) {
 }
 
 function shareThisForm() {
-    const url = window.location.origin + window.location.pathname + '?module=forms&action=fill&token=<?php echo htmlspecialchars($template['public_token']); ?>';
-    navigator.clipboard.writeText(url).then(() => alert('¡Enlace del formulario copiado al portapapeles!')).catch(() => prompt('Copia este enlace:', url));
+    const token = '<?php echo htmlspecialchars($template['public_token'] ?? ''); ?>';
+    const shortToken = (token && token.length > 8) ? token.substring(0, 8) : token;
+    const basePath = window.location.pathname.replace(/\/index\.php$/, '').replace(/\/$/, '');
+    const url = window.location.origin + (basePath ? basePath : '') + '/f/' + shortToken;
+    navigator.clipboard.writeText(url).then(() => alert('¡Enlace corto del formulario copiado al portapapeles!\n' + url)).catch(() => prompt('Copia este enlace:', url));
 }
 
 function escH(s) { 
@@ -473,6 +497,20 @@ function downloadPDF(sub) {
                 let fn = names[idx] || 'Ver archivo';
                 return `<a href="${escH(url)}" style="color:${brandColor}; font-weight:600; text-decoration:none; display:block; margin-bottom:4px;">📎 ${escH(fn)}</a>`;
             }).join('');
+        } else if (f.type === 'image_compare' && f.compare_options) {
+            const selectedVals = Array.isArray(data[key]) ? data[key] : (val ? val.split(',').map(s => s.trim()) : []);
+            valHtml = '<div style="display:flex; flex-wrap:wrap; gap:8px;">';
+            f.compare_options.forEach(opt => {
+                const optTitle = opt.title || 'Opción';
+                const isSelected = selectedVals.includes(optTitle);
+                if (isSelected) {
+                    valHtml += `<div style="border:1.5px solid ${opt.is_correct ? '#10b981' : brandColor}; border-radius:6px; padding:6px 10px; background:#f8fafc; font-size:12px;">
+                        ${opt.opt_type === 'image' && opt.image ? `<img src="${escH(opt.image)}" style="max-height:40px; border-radius:4px; display:block; margin-bottom:4px;">` : ''}
+                        <strong>${escH(optTitle)}</strong> ${opt.is_correct ? '<span style="color:#10b981; font-weight:700;">✓ Correcta</span>' : ''}
+                    </div>`;
+                }
+            });
+            valHtml += '</div>';
         } else {
             valHtml = escH(val || '—');
         }

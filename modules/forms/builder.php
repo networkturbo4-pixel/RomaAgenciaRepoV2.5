@@ -14,7 +14,8 @@ if (!empty($id)) {
 $primaryColor = $global_settings['primary_color'] ?? '#4f46e5';
 $logoLight = $global_settings['logo_light'] ?? '';
 $publicToken = $formData['public_token'] ?? '';
-$publicUrl = $publicToken ? "index.php?module=forms&action=fill&token=" . urlencode($publicToken) : '';
+$shortToken = $publicToken ? substr($publicToken, 0, 8) : '';
+$publicUrl = $shortToken ? "f/" . urlencode($shortToken) : '';
 
 $settings = json_decode($formData['settings_json'] ?? '{}', true) ?: [];
 $viewStyle = $settings['view_style'] ?? 'hero_cover';
@@ -1312,6 +1313,10 @@ html, body {
                     <i class="ph-bold ph-cards"></i>
                     <span>Cards</span>
                 </div>
+                <div class="fb-tool-btn" onclick="addField('image_compare')" title="Comparativa con imágenes o iconos">
+                    <i class="ph-bold ph-scales"></i>
+                    <span>Comparativa</span>
+                </div>
                 <div class="fb-tool-btn" onclick="addField('divider')">
                     <i class="ph-bold ph-equals"></i>
                     <span>Sección</span>
@@ -1410,6 +1415,7 @@ const TYPE_MAP = {
     number_range: 'Rango Numérico',
     color: 'Paleta de Colores',
     icon_card: 'Cards con Icono',
+    image_compare: 'Comparativa Visual',
     divider: 'Nueva Sección'
 };
 
@@ -1472,11 +1478,12 @@ function applyCustomCover() {
 
 function copyPublicLink() {
     if (!PUBLIC_URL) return;
-    const full = window.location.origin + window.location.pathname.replace('index.php', '') + PUBLIC_URL;
+    const basePath = window.location.pathname.replace(/\/index\.php.*$/, '').replace(/\/$/, '');
+    const full = window.location.origin + (basePath ? basePath : '') + '/' + PUBLIC_URL;
     navigator.clipboard.writeText(full).then(() => {
-        showToast('¡Enlace copiado al portapapeles!');
+        showToast('¡Enlace corto copiado: ' + full + '!');
     }).catch(() => {
-        prompt('Copia este enlace:', full);
+        prompt('Copia este enlace corto:', full);
     });
 }
 
@@ -1505,6 +1512,7 @@ function addField(type, atIdx = null) {
         number_range: { l: 'Rango numérico', p: '' },
         color: { l: 'Elige tus colores preferidos', p: '' },
         icon_card: { l: 'Elige una opción', p: '' },
+        image_compare: { l: '¿Cuál es la opción correcta?', p: '' },
         divider: { l: 'Sección sin título', p: '' }
     };
     const d = defs[type] || { l: 'Pregunta sin título', p: '' };
@@ -1522,6 +1530,13 @@ function addField(type, atIdx = null) {
     if (type === 'number_range') { field.nr_min = 18; field.nr_max = 65; field.nr_step = 1; }
     if (type === 'color') { field.color_options = ['#4f46e5', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6']; field.color_multi = true; }
     if (type === 'icon_card') { field.icon_options = [{ icon: 'ph-star', text: 'Opción 1' }, { icon: 'ph-rocket', text: 'Opción 2' }]; field.icon_multi = false; }
+    if (type === 'image_compare') {
+        field.compare_options = [
+            { id: uid(), opt_type: 'image', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80', icon: 'ph-check-circle', title: 'Propuesta A', desc: 'Diseño conceptual moderno', is_correct: true },
+            { id: uid(), opt_type: 'image', image: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80', icon: 'ph-sparkle', title: 'Propuesta B', desc: 'Enfoque alternativo', is_correct: false }
+        ];
+        field.compare_multi = false;
+    }
     
     if (atIdx !== null && atIdx >= 0 && atIdx <= fields.length) {
         fields.splice(atIdx, 0, field);
@@ -1641,7 +1656,7 @@ function renderFields() {
             if (i === activeIdx) {
                 // Active Editing Mode
                 let typeOpts = '';
-                ['text','textarea','select','checkbox','dropdown','email','phone','date','file','range','number_range','color','icon_card'].forEach(t => {
+                ['text','textarea','select','checkbox','dropdown','email','phone','date','file','range','number_range','color','icon_card','image_compare'].forEach(t => {
                     typeOpts += `<option value="${t}" ${f.type===t?'selected':''}>${TYPE_MAP[t]}</option>`;
                 });
                 bodyHtml = `
@@ -1715,6 +1730,13 @@ function changeFieldType(idx, newType) {
     }
     if (newType === 'icon_card' && !fields[idx].icon_options) {
         fields[idx].icon_options = [{icon:'ph-star',text:'Opción 1'}, {icon:'ph-rocket',text:'Opción 2'}];
+    }
+    if (newType === 'image_compare' && !fields[idx].compare_options) {
+        fields[idx].compare_options = [
+            { id: uid(), opt_type: 'image', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80', icon: 'ph-check-circle', title: 'Propuesta A', desc: 'Diseño conceptual moderno', is_correct: true },
+            { id: uid(), opt_type: 'image', image: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80', icon: 'ph-sparkle', title: 'Propuesta B', desc: 'Enfoque alternativo', is_correct: false }
+        ];
+        fields[idx].compare_multi = false;
     }
     renderFields();
 }
@@ -1833,6 +1855,88 @@ function renderFieldContent(f, i) {
         html += `</div><div style="margin-top:10px"><button type="button" class="fb-btn-link" onclick="event.stopPropagation();if(!fields[${i}].icon_options)fields[${i}].icon_options=[{icon:'ph-star',text:'Opción 1'}];fields[${i}].icon_options.push({icon:ICON_LIST[Math.floor(Math.random()*ICON_LIST.length)],text:'Opción '+(fields[${i}].icon_options.length+1)});renderFields()"><i class="ph-bold ph-plus"></i> Añadir Card</button></div>`;
         return html;
     }
+    if (f.type === 'image_compare') {
+        const opts = f.compare_options || [];
+        const isMulti = !!f.compare_multi;
+        let html = `
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.85rem; padding-bottom:0.6rem; border-bottom:1px solid var(--app-border); flex-wrap:wrap; gap:8px;">
+                <label style="display:flex; align-items:center; gap:0.45rem; font-size:0.78rem; font-weight:600; color:var(--app-text); cursor:pointer">
+                    <input type="checkbox" ${isMulti ? 'checked' : ''} onchange="event.stopPropagation();fields[${i}].compare_multi=this.checked;renderFields()">
+                    Permitir selección múltiple
+                </label>
+                <span style="font-size:0.72rem; color:var(--app-text-muted);"><i class="ph-bold ph-check-circle" style="color:#10b981;"></i> Marca qué opción es la correcta con el botón verde</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+        `;
+
+        opts.forEach((o, oi) => {
+            const isImg = (o.opt_type || 'image') === 'image';
+            const isCorr = !!o.is_correct;
+            const letter = String.fromCharCode(65 + oi);
+
+            let iconPicker = `<select style="padding:6px 10px; border:1px solid var(--app-border); border-radius:8px; font-size:0.82rem; background:var(--app-surface); color:var(--app-text); cursor:pointer;" onchange="event.stopPropagation();fields[${i}].compare_options[${oi}].icon=this.value;renderFields()">`;
+            ICON_LIST.forEach(ic => { iconPicker += `<option value="${ic}" ${o.icon===ic?'selected':''}>${ic.replace('ph-','')}</option>`; });
+            iconPicker += '</select>';
+
+            html += `
+                <div style="border:1.5px solid ${isCorr ? '#10b981' : 'var(--app-border)'}; border-radius:14px; padding:12px 14px; background:var(--app-surface-sub); transition:all 0.2s ease;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:0.72rem; font-weight:800; background:var(--app-surface); border:1px solid var(--app-border); padding:3px 8px; border-radius:6px; color:var(--app-text);">Opción ${letter}</span>
+                            
+                            <div style="display:inline-flex; border:1px solid var(--app-border); border-radius:8px; overflow:hidden;">
+                                <button type="button" style="padding:4px 10px; font-size:0.75rem; font-weight:600; border:none; cursor:pointer; background:${isImg?'var(--app-accent)':'var(--app-surface)'}; color:${isImg?'#ffffff':'var(--app-text-muted)'};" onclick="event.stopPropagation();fields[${i}].compare_options[${oi}].opt_type='image';renderFields()">
+                                    <i class="ph-bold ph-image"></i> Imagen
+                                </button>
+                                <button type="button" style="padding:4px 10px; font-size:0.75rem; font-weight:600; border:none; cursor:pointer; background:${!isImg?'var(--app-accent)':'var(--app-surface)'}; color:${!isImg?'#ffffff':'var(--app-text-muted)'};" onclick="event.stopPropagation();fields[${i}].compare_options[${oi}].opt_type='icon';renderFields()">
+                                    <i class="ph-bold ph-sparkle"></i> Ícono
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" style="padding:5px 12px; font-size:0.72rem; font-weight:700; border-radius:8px; cursor:pointer; border:1px solid ${isCorr?'#10b981':'var(--app-border)'}; background:${isCorr?'#10b981':'var(--app-surface)'}; color:${isCorr?'#ffffff':'var(--app-text-muted)'}; display:flex; align-items:center; gap:5px; transition:all 0.15s ease;" onclick="event.stopPropagation();${!isMulti ? `fields[${i}].compare_options.forEach(x=>x.is_correct=false);` : ''}fields[${i}].compare_options[${oi}].is_correct=!${isCorr};renderFields()" title="Marcar como opción correcta">
+                                <i class="ph-bold ${isCorr?'ph-check-circle':'ph-circle'}"></i> ${isCorr ? 'Opción Correcta ✓' : 'Marcar Correcta'}
+                            </button>
+                            
+                            <button type="button" class="fb-opt-delete-btn" onclick="event.stopPropagation();fields[${i}].compare_options.splice(${oi},1);renderFields()" title="Eliminar"><i class="ph-bold ph-x"></i></button>
+                        </div>
+                    </div>
+
+                    ${isImg ? `
+                        <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+                            <div style="width:64px; height:52px; border-radius:8px; overflow:hidden; border:1px solid var(--app-border); flex-shrink:0; background:var(--app-surface); display:flex; align-items:center; justify-content:center;">
+                                ${o.image ? `<img src="${esc(o.image)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">` : '<i class="ph-bold ph-image" style="color:var(--app-text-muted); font-size:1.3rem;"></i>'}
+                            </div>
+                            <input value="${esc(o.image||'')}" placeholder="https://ejemplo.com/imagen.jpg (URL de la imagen)" style="flex:1; padding:7px 10px; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface); color:var(--app-text); outline:none;" oninput="fields[${i}].compare_options[${oi}].image=this.value" autocomplete="off">
+                        </div>
+                    ` : `
+                        <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+                            <div style="width:42px; height:42px; border-radius:10px; background:var(--app-accent-light); color:var(--app-accent); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0;">
+                                <i class="ph-bold ${o.icon || 'ph-star'}"></i>
+                            </div>
+                            <div style="flex:1;">${iconPicker}</div>
+                        </div>
+                    `}
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <input value="${esc(o.title||'')}" placeholder="Título de la opción (ej: Propuesta A)" style="padding:7px 10px; border:1px solid var(--app-border); border-radius:8px; font-size:0.85rem; font-weight:600; background:var(--app-surface); color:var(--app-text); outline:none;" oninput="fields[${i}].compare_options[${oi}].title=this.value" autocomplete="off">
+                        <input value="${esc(o.desc||'')}" placeholder="Descripción opcional..." style="padding:7px 10px; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface); color:var(--app-text); outline:none;" oninput="fields[${i}].compare_options[${oi}].desc=this.value" autocomplete="off">
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+            </div>
+            <div style="margin-top:12px;">
+                <button type="button" class="fb-btn-link" onclick="event.stopPropagation();if(!fields[${i}].compare_options)fields[${i}].compare_options=[];const nextIdx=(fields[${i}].compare_options.length);fields[${i}].compare_options.push({id:uid(),opt_type:'image',image:'',icon:'ph-star',title:'Opción '+String.fromCharCode(65+nextIdx),desc:'',is_correct:false});renderFields()">
+                    <i class="ph-bold ph-plus-circle"></i> Añadir Opción Comparativa
+                </button>
+            </div>
+        `;
+        return html;
+    }
     return '';
 }
 
@@ -1848,6 +1952,7 @@ function renderCollapsedPreview(f) {
     if (f.type === 'number_range') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">Rango: ${f.nr_min??18} - ${f.nr_max??65}</span>`;
     if (f.type === 'color') return `<div style="display:inline-flex; gap:4px;">${(f.color_options||['#4f46e5']).map(c=>`<div style="width:12px; height:12px; border-radius:50%; background:${c};"></div>`).join('')}</div>`;
     if (f.type === 'icon_card') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">${(f.icon_options||[]).length} cards configuradas</span>`;
+    if (f.type === 'image_compare') return `<span style="font-size:0.8rem; color:var(--app-text-muted);"><i class="ph-bold ph-scales"></i> Comparativa: ${(f.compare_options||[]).length} opciones</span>`;
     return '';
 }
 
