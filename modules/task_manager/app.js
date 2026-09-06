@@ -185,6 +185,7 @@ const TM = {
         if (!this.currentAssignedUserIds.includes(uid)) {
             this.currentAssignedUserIds.push(uid);
             this.renderAssignedUsers();
+            this.updateProjectMembersBar();
         }
     },
 
@@ -192,6 +193,7 @@ const TM = {
         uid = parseInt(uid, 10);
         this.currentAssignedUserIds = this.currentAssignedUserIds.filter(id => id !== uid);
         this.renderAssignedUsers();
+        this.updateProjectMembersBar();
     },
 
     onUserSelectChange: function(val) {
@@ -240,7 +242,11 @@ const TM = {
             chip.type = 'button';
             chip.className = `tm-pm-chip ${isAssigned ? 'is-assigned' : ''}`;
             chip.title = isAssigned ? `Quitar a ${u.name}` : `Asignar a ${u.name}`;
-            chip.onclick = () => this.toggleProjectMemberAssign(u.id);
+            chip.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleProjectMemberAssign(u.id);
+            };
             chip.innerHTML = `
                 ${u.avatar ? `<img src="${u.avatar}" class="tm-pm-avatar" alt="${this.escapeHtml(u.name)}">` : `<span class="tm-pm-initial">${u.initial || u.name.charAt(0).toUpperCase()}</span>`}
                 <span class="tm-pm-name">${this.escapeHtml(u.name)}</span>
@@ -269,6 +275,7 @@ const TM = {
             }
         });
         this.renderAssignedUsers();
+        this.updateProjectMembersBar();
     },
 
     // ══════════════════════════════════════════════════════
@@ -548,6 +555,14 @@ const TM = {
         });
 
         this.refreshSyncPanelFromSelections();
+
+        // Auto-assign project members if none assigned yet
+        const pMembers = this.getProjectTeamMembers();
+        if (pMembers && pMembers.length > 0 && this.currentAssignedUserIds.length === 0) {
+            this.currentAssignedUserIds = [...pMembers.map(id => parseInt(id, 10))];
+            this.renderAssignedUsers();
+        }
+
         this.updateProjectMembersBar();
     },
 
@@ -557,6 +572,14 @@ const TM = {
 
     onBrandProjectChange: function(bpId) {
         this.refreshSyncPanelFromSelections();
+
+        // Auto-assign brand project members if none assigned yet
+        const pMembers = this.getProjectTeamMembers();
+        if (pMembers && pMembers.length > 0 && this.currentAssignedUserIds.length === 0) {
+            this.currentAssignedUserIds = [...pMembers.map(id => parseInt(id, 10))];
+            this.renderAssignedUsers();
+        }
+
         this.updateProjectMembersBar();
     },
 
@@ -1267,14 +1290,24 @@ const TM = {
             // Users Avatars
             let usersHtml = '';
             if(t.assigned_users && t.assigned_users.length > 0) {
-                usersHtml = `<div class="tm-task-users">`;
-                t.assigned_users.forEach(u => {
+                usersHtml = `<div class="tm-task-users" title="${t.assigned_users.map(u => u.name).join(', ')}">`;
+                const maxVisible = 4;
+                const visibleUsers = t.assigned_users.slice(0, maxVisible);
+                const extra = t.assigned_users.length - maxVisible;
+
+                visibleUsers.forEach(u => {
+                    const safeName = this.escapeHtml(u.name || 'Usuario');
+                    const initial = u.initial || (u.name ? u.name.charAt(0).toUpperCase() : 'U');
                     if(u.avatar) {
-                        usersHtml += `<div class="tm-task-user" title="${u.name}"><img src="${u.avatar}"></div>`;
+                        usersHtml += `<div class="tm-task-user" title="${safeName}"><img src="${u.avatar}" alt="${safeName}"></div>`;
                     } else {
-                        usersHtml += `<div class="tm-task-user" title="${u.name}">${u.initial}</div>`;
+                        usersHtml += `<div class="tm-task-user" title="${safeName}">${initial}</div>`;
                     }
                 });
+
+                if (extra > 0) {
+                    usersHtml += `<div class="tm-task-user tm-task-user-extra" title="+${extra} más">+${extra}</div>`;
+                }
                 usersHtml += `</div>`;
             }
 
@@ -1299,7 +1332,9 @@ const TM = {
                     <div class="tm-task-footer-left">
                         ${timerHtml}
                     </div>
-                    ${usersHtml}
+                    <div class="tm-task-footer-right">
+                        ${usersHtml}
+                    </div>
                 </div>
             `;
             col.appendChild(card);

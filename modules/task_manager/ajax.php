@@ -261,13 +261,31 @@ if ($action === 'get_all_tasks') {
     $allTasks = [];
     
     try {
-        // Pre-fetch Project metadata map
+        // Pre-fetch Project metadata map and Team Members
         $projectMap = [];
+        $projectTeamMap = [];
         try {
-            $stmtP = $db->query("SELECT p.id, w.brand_name FROM projects p JOIN work_orders w ON p.work_order_id = w.id");
-            while ($r = $stmtP->fetch(PDO::FETCH_ASSOC)) $projectMap[$r['id']] = $r['brand_name'];
+            $stmtP = $db->query("SELECT p.id, w.brand_name, p.team_members FROM projects p JOIN work_orders w ON p.work_order_id = w.id");
+            while ($r = $stmtP->fetch(PDO::FETCH_ASSOC)) {
+                $projectMap[$r['id']] = $r['brand_name'];
+                $tmRaw = json_decode($r['team_members'] ?: '[]', true) ?: [];
+                $tmInts = [];
+                foreach ((array)$tmRaw as $uid) {
+                    if (is_numeric($uid) && (int)$uid > 0) $tmInts[] = (int)$uid;
+                }
+                $projectTeamMap[(int)$r['id']] = $tmInts;
+            }
             $stmtMP = $db->query("SELECT id, name FROM module_projects");
             while ($r = $stmtMP->fetch(PDO::FETCH_ASSOC)) $projectMap[$r['id'] + 10000] = $r['name'];
+        } catch(Throwable $e) {}
+
+        // Pre-fetch Brand Projects team members
+        $bpuMap = [];
+        try {
+            $stBPU = $db->query("SELECT project_id, user_id FROM brand_project_users");
+            while ($b = $stBPU->fetch(PDO::FETCH_ASSOC)) {
+                $bpuMap[(int)$b['project_id']][] = (int)$b['user_id'];
+            }
         } catch(Throwable $e) {}
 
         // Pre-fetch Calendar Month metadata map
@@ -409,8 +427,21 @@ if ($action === 'get_all_tasks') {
         ];
 
         foreach ($tasks as $t) {
+            $pId = (int)($t['project_id'] ?? 0);
+            $pmId = (int)($t['project_month_id'] ?? 0);
+            $bpId = (int)($t['brand_project_id'] ?? 0);
+            $psId = (int)($t['project_service_id'] ?? 0);
+
             // resolve users
             $usersArr = json_decode($t['assigned_users']??'[]', true) ?: [];
+            if (empty($usersArr)) {
+                if ($pId && !empty($projectTeamMap[$pId])) {
+                    $usersArr = $projectTeamMap[$pId];
+                } elseif ($bpId && !empty($bpuMap[$bpId])) {
+                    $usersArr = $bpuMap[$bpId];
+                }
+            }
+
             $aUsers = [];
             foreach ($usersArr as $uid) {
                 if(isset($userMap[$uid])) {
@@ -418,13 +449,6 @@ if ($action === 'get_all_tasks') {
                     $aUsers[] = ['id'=>$uid, 'name'=>$u['name'], 'avatar'=>$u['avatar'], 'initial'=>$u['initial']];
                 }
             }
-
-            $areaKey = $t['area'] ?: 'general';
-            $freqKey = $t['frequency'] ?: 'one_time';
-            $pId = (int)($t['project_id'] ?? 0);
-            $pmId = (int)($t['project_month_id'] ?? 0);
-            $bpId = (int)($t['brand_project_id'] ?? 0);
-            $psId = (int)($t['project_service_id'] ?? 0);
             
             $allTasks[] = [
                 'id' => (int)$t['id'],
@@ -588,6 +612,16 @@ if ($action === 'get_task') {
         
         if ($task) {
             $task['assigned_users'] = json_decode($task['assigned_users'] ?? '[]', true) ?: [];
+            if (empty($task['assigned_users']) && !empty($task['project_id'])) {
+                $stTM = $db->prepare("SELECT team_members FROM projects WHERE id = ?");
+                $stTM->execute([(int)$task['project_id']]);
+                $tmRaw = $stTM->fetchColumn();
+                $task['assigned_users'] = json_decode($tmRaw ?: '[]', true) ?: [];
+            } elseif (empty($task['assigned_users']) && !empty($task['brand_project_id'])) {
+                $stBPU = $db->prepare("SELECT user_id FROM brand_project_users WHERE project_id = ?");
+                $stBPU->execute([(int)$task['brand_project_id']]);
+                $task['assigned_users'] = $stBPU->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            }
             $task['assigned_roles'] = json_decode($task['assigned_roles'] ?? '[]', true) ?: [];
             $task['tags'] = json_decode($task['tags'] ?? '[]', true) ?: [];
             
