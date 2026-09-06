@@ -19,6 +19,9 @@ const TM = {
     isGanttFullscreen: false,
     ganttAnchorDate: new Date(),
     dpStartDate: null,
+    dpDueDate: null,
+    dpDailyDate: null,
+    dpObjectiveDate: null,
     dailyObjectivesData: null,
     quillDesc: null,
     tagifyUsers: null,
@@ -85,6 +88,17 @@ const TM = {
                         onSelect: ({formattedDate}) => {
                             if (formattedDate) {
                                 TM.setDailyDate(formattedDate);
+                            }
+                        }
+                    });
+                }
+                if (document.getElementById('tm-objective-date-display')) {
+                    this.dpObjectiveDate = new AirDatepicker('#tm-objective-date-display', {
+                        ...dpConfig,
+                        timepicker: false,
+                        onSelect: ({formattedDate}) => {
+                            if (formattedDate) {
+                                TM.setObjectiveDate(formattedDate);
                             }
                         }
                     });
@@ -569,16 +583,122 @@ const TM = {
     },
 
     onDailyObjectiveToggle: function(checked) {
-        const dateInput = document.getElementById('tm-objective-date');
-        const caption = document.getElementById('tm-objective-text');
-        if (dateInput) {
-            dateInput.style.display = checked ? 'inline-block' : 'none';
-            if (checked && !dateInput.value) {
-                dateInput.value = new Date().toISOString().substring(0, 10);
+        const card = document.getElementById('tm-objective-card');
+        const panel = document.getElementById('tm-objective-date-panel');
+        const badge = document.getElementById('tm-objective-badge');
+        const subtext = document.getElementById('tm-objective-text');
+        const hiddenInput = document.getElementById('tm-objective-date');
+        const displayInput = document.getElementById('tm-objective-date-display');
+
+        if (card) card.classList.toggle('is-active', checked);
+        if (panel) panel.style.display = checked ? 'flex' : 'none';
+        if (badge) badge.style.display = checked ? 'inline-flex' : 'none';
+
+        if (checked) {
+            const cur = hiddenInput && hiddenInput.value ? hiddenInput.value : '';
+            const targetDate = cur || this.currentDailyDate || new Date().toISOString().substring(0, 10);
+            this.setObjectiveDate(targetDate);
+        } else {
+            if (subtext) subtext.textContent = 'Fijar como meta principal del día';
+            if (hiddenInput) hiddenInput.value = '';
+            if (displayInput) displayInput.value = '';
+            if (this.dpObjectiveDate) {
+                try { this.dpObjectiveDate.clear(); } catch(e) {}
             }
         }
-        if (caption) {
-            caption.textContent = checked ? 'Meta del día:' : 'Fijar como meta de hoy';
+    },
+
+    setObjectiveDate: function(dateStr) {
+        const hidden = document.getElementById('tm-objective-date');
+        const display = document.getElementById('tm-objective-date-display');
+        const badge = document.getElementById('tm-objective-badge');
+        const subtext = document.getElementById('tm-objective-text');
+
+        if (!dateStr) {
+            if (hidden) hidden.value = '';
+            if (display) display.value = '';
+            if (badge) badge.style.display = 'none';
+            if (subtext) subtext.textContent = 'Fijar como meta principal del día';
+            return;
+        }
+
+        // Clean up date string format if timestamp is passed
+        dateStr = dateStr.substring(0, 10);
+        if (hidden) hidden.value = dateStr;
+
+        // Calculate today & tomorrow strings
+        const todayStr = new Date().toISOString().substring(0, 10);
+        const tomDate = new Date();
+        tomDate.setDate(tomDate.getDate() + 1);
+        const tomStr = tomDate.toISOString().substring(0, 10);
+
+        const isToday = (dateStr === todayStr);
+        const isTomorrow = (dateStr === tomStr);
+
+        const parts = dateStr.split('-');
+        let formatted = dateStr;
+        if (parts.length === 3) {
+            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            formatted = `${dayNames[d.getDay()]}, ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+            if (isToday) formatted += ' • Hoy';
+            else if (isTomorrow) formatted += ' • Mañana';
+
+            if (subtext) {
+                subtext.textContent = isToday ? 'Meta programada para Hoy' : (isTomorrow ? 'Meta programada para Mañana' : `Meta para el ${d.getDate()} de ${monthNames[d.getMonth()]}`);
+            }
+        }
+
+        if (display) display.value = formatted;
+        if (badge) badge.style.display = 'inline-flex';
+
+        // Shortcut buttons active state
+        const btnToday = document.getElementById('btn-obj-today');
+        const btnTom = document.getElementById('btn-obj-tomorrow');
+        const btnCustom = document.getElementById('btn-obj-custom');
+        if (btnToday) btnToday.classList.toggle('active', isToday);
+        if (btnTom) btnTom.classList.toggle('active', isTomorrow);
+        if (btnCustom) btnCustom.classList.toggle('active', !isToday && !isTomorrow);
+
+        if (this.dpObjectiveDate) {
+            try {
+                const p = dateStr.split('-');
+                if (p.length === 3) {
+                    this.dpObjectiveDate.selectDate(new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)));
+                }
+            } catch(e) {}
+        }
+    },
+
+    setObjectiveQuickDate: function(type) {
+        let target = new Date();
+        if (type === 'tomorrow') {
+            target.setDate(target.getDate() + 1);
+        }
+        const y = target.getFullYear();
+        const m = String(target.getMonth() + 1).padStart(2, '0');
+        const day = String(target.getDate()).padStart(2, '0');
+        this.setObjectiveDate(`${y}-${m}-${day}`);
+    },
+
+    openObjectiveDatePicker: function() {
+        if (this.dpObjectiveDate) {
+            this.dpObjectiveDate.show();
+        } else {
+            const display = document.getElementById('tm-objective-date-display');
+            if (display) display.focus();
+        }
+    },
+
+    toggleDailyObjectiveFromCard: function(event) {
+        if (event.target.closest('.tm-switch') || event.target.closest('.tm-objective-date-panel') || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') {
+            return;
+        }
+        const chk = document.getElementById('tm-is-daily-objective');
+        if (chk) {
+            chk.checked = !chk.checked;
+            this.onDailyObjectiveToggle(chk.checked);
         }
     },
 
@@ -1764,6 +1884,11 @@ const TM = {
         if (isObjCheck) {
             isObjCheck.checked = (defaultFreq === 'daily');
             this.onDailyObjectiveToggle(isObjCheck.checked);
+            if (isObjCheck.checked) {
+                this.setObjectiveDate(this.currentDailyDate || new Date().toISOString().substring(0, 10));
+            } else {
+                this.setObjectiveDate('');
+            }
         }
 
         this.onAreaChange(document.getElementById('tm-area').value);
@@ -1817,10 +1942,15 @@ const TM = {
         // Daily objective
         const isObjCheck = document.getElementById('tm-is-daily-objective');
         if (isObjCheck) {
-            isObjCheck.checked = Boolean(task.is_daily_objective);
-            this.onDailyObjectiveToggle(isObjCheck.checked);
+            const isDaily = Boolean(task.is_daily_objective);
+            isObjCheck.checked = isDaily;
+            this.onDailyObjectiveToggle(isDaily);
             if (task.objective_date) {
-                document.getElementById('tm-objective-date').value = task.objective_date;
+                this.setObjectiveDate(task.objective_date.substring(0, 10));
+            } else if (isDaily) {
+                this.setObjectiveDate(new Date().toISOString().substring(0, 10));
+            } else {
+                this.setObjectiveDate('');
             }
         }
 
@@ -1893,7 +2023,13 @@ const TM = {
 
     closeModal: function(id) {
         document.body.style.overflow = '';
-        document.getElementById(id).style.display = 'none';
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+        if (id === 'tm-modal-task') {
+            if (this.dpStartDate) try { this.dpStartDate.hide(); } catch(e) {}
+            if (this.dpDueDate) try { this.dpDueDate.hide(); } catch(e) {}
+            if (this.dpObjectiveDate) try { this.dpObjectiveDate.hide(); } catch(e) {}
+        }
     },
 
     saveTask: function(e) {

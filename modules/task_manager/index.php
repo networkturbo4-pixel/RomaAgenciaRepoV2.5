@@ -382,7 +382,7 @@ try {
 <!-- MODAL: CREAR / EDITAR TAREA                         -->
 <!-- ═══════════════════════════════════════════════════ -->
 <div class="tm-modal-overlay" id="tm-modal-task" style="display:none;">
-    <div class="lumio-modal">
+    <div class="lumio-modal lumio-modal-wide">
         <div class="lumio-accent-bar" id="tm-modal-accent"></div>
         <form id="form-task" onsubmit="TM.saveTask(event)" class="lumio-form">
             <input type="hidden" id="tm-task-id">
@@ -392,7 +392,7 @@ try {
             <div class="lumio-header">
                 <div class="lumio-header-left">
                     <button type="button" class="lumio-icon-btn lumio-close-btn" onclick="TM.closeModal('tm-modal-task')"><i class="ph ph-x"></i></button>
-                    <h3 id="tm-modal-title" style="margin:0; font-size:1.1rem; font-weight:700;">Nueva Tarea</h3>
+                    <h3 id="tm-modal-title" style="margin:0; font-size:1.2rem; font-weight:700;">Nueva Tarea</h3>
                 </div>
                 <div class="lumio-header-right" id="tm-edit-actions" style="display:none;">
                     <span class="lumio-task-id-badge" id="tm-task-id-badge"></span>
@@ -403,7 +403,7 @@ try {
 
             <!-- Body -->
             <div class="lumio-body">
-                <input type="text" id="tm-title" class="lumio-title" placeholder="¿Qué necesitas lograr?" required>
+                <input type="text" id="tm-title" class="lumio-title" placeholder="¿Qué necesitas lograr? Escribe el título aquí..." required>
                 <input type="hidden" id="tm-desc">
 
                 <div class="lumio-meta-grid">
@@ -420,15 +420,47 @@ try {
                     </div>
 
                     <!-- Es Objetivo Diario -->
-                    <div class="lumio-meta-row">
+                    <div class="lumio-meta-row tm-objective-field-container">
                         <div class="lumio-meta-label"><i class="ph ph-target"></i> Objetivo Diario</div>
-                        <div class="lumio-meta-value d-flex align-items-center gap-2">
-                            <label class="tm-switch">
-                                <input type="checkbox" id="tm-is-daily-objective" onchange="TM.onDailyObjectiveToggle(this.checked)">
-                                <span class="tm-slider"></span>
-                            </label>
-                            <span style="font-size:0.85rem; color:var(--text-muted);" id="tm-objective-text">Fijar como meta de hoy</span>
-                            <input type="date" id="tm-objective-date" class="tm-mini-date-input" style="display:none;">
+                        <div class="tm-objective-card" id="tm-objective-card">
+                            <div class="tm-objective-header" onclick="TM.toggleDailyObjectiveFromCard(event)">
+                                <div class="tm-objective-info">
+                                    <div class="tm-objective-icon-badge">
+                                        <i class="ph-bold ph-target"></i>
+                                    </div>
+                                    <div class="tm-objective-texts">
+                                        <div class="tm-objective-title-line">
+                                            <span class="tm-objective-title">Meta del Día</span>
+                                            <span class="tm-objective-badge" id="tm-objective-badge" style="display:none;">Prioritaria</span>
+                                        </div>
+                                        <span class="tm-objective-subtitle" id="tm-objective-text">Fijar como meta principal del día</span>
+                                    </div>
+                                </div>
+                                <label class="tm-switch tm-switch-objective" title="Activar / Desactivar Objetivo Diario">
+                                    <input type="checkbox" id="tm-is-daily-objective" onchange="TM.onDailyObjectiveToggle(this.checked)">
+                                    <span class="tm-slider"></span>
+                                </label>
+                            </div>
+
+                            <!-- Panel Interactivo de Fecha de Objetivo -->
+                            <div class="tm-objective-date-panel" id="tm-objective-date-panel" style="display:none;">
+                                <div class="tm-objective-shortcuts">
+                                    <button type="button" class="tm-obj-pill-btn active" id="btn-obj-today" onclick="TM.setObjectiveQuickDate('today')">
+                                        <i class="ph-bold ph-calendar-check"></i> Hoy
+                                    </button>
+                                    <button type="button" class="tm-obj-pill-btn" id="btn-obj-tomorrow" onclick="TM.setObjectiveQuickDate('tomorrow')">
+                                        <i class="ph-bold ph-calendar-plus"></i> Mañana
+                                    </button>
+                                    <button type="button" class="tm-obj-pill-btn" id="btn-obj-custom" onclick="TM.openObjectiveDatePicker()">
+                                        <i class="ph-bold ph-calendar"></i> Otra Fecha
+                                    </button>
+                                </div>
+                                <div class="tm-objective-date-input-wrap" onclick="TM.openObjectiveDatePicker()">
+                                    <i class="ph-bold ph-calendar-blank tm-objective-calendar-icon"></i>
+                                    <input type="text" id="tm-objective-date-display" class="tm-objective-date-input" placeholder="Seleccionar fecha de meta..." readonly>
+                                    <input type="hidden" id="tm-objective-date">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
