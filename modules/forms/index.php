@@ -257,66 +257,138 @@ foreach ($forms as $f) {
 /* Forms Grid */
 .forms-app-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
 }
 
 /* Modern Form Card */
 .form-app-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1.25rem;
+    border-radius: 20px;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .form-app-card {
+    background: #0e0e12;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 .form-app-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
-    border-color: color-mix(in srgb, var(--primary-color) 35%, var(--border-color));
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.09);
+    border-color: color-mix(in srgb, var(--primary-color) 45%, var(--border-color));
 }
 
-.form-card-top {
+[data-theme="dark"] .form-app-card:hover {
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
+    border-color: var(--primary-color);
+}
+
+/* Visual Cover Banner */
+.form-card-cover {
+    height: 115px;
+    width: 100%;
+    position: relative;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.75rem;
+    align-items: flex-end;
+    padding: 0.85rem 1.15rem;
+    background-size: cover;
+    background-position: center;
 }
 
-.form-card-badge {
-    display: inline-flex;
+.form-card-cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%);
+    pointer-events: none;
+}
+
+.form-card-avatar {
+    position: relative;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--bg-surface);
+    border: 2px solid var(--border-color);
+    display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    padding: 0.25rem 0.65rem;
-    border-radius: 20px;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    margin-bottom: -22px;
+    overflow: hidden;
     flex-shrink: 0;
 }
 
+[data-theme="dark"] .form-card-avatar {
+    background: #141419;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.form-card-avatar i {
+    font-size: 1.4rem;
+    color: var(--primary-color);
+}
+
+.form-card-avatar img {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+}
+
+[data-theme="dark"] .form-card-avatar img {
+    filter: brightness(0) invert(1);
+}
+
+.form-card-status-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 0.28rem 0.65rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .badge-active {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.25);
+    background: rgba(16, 185, 129, 0.9);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
 }
 
 .badge-draft {
-    background: rgba(245, 158, 11, 0.12);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    background: rgba(245, 158, 11, 0.9);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
 }
 
 .badge-archived {
-    background: rgba(100, 116, 139, 0.12);
-    color: #64748b;
-    border: 1px solid rgba(100, 116, 139, 0.25);
+    background: rgba(100, 116, 139, 0.9);
+    color: #ffffff;
+}
+
+/* Card Body Content */
+.form-card-body {
+    padding: 1.6rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 0.85rem;
 }
 
 .form-card-title-link {
@@ -326,67 +398,77 @@ foreach ($forms as $f) {
     transition: color 0.15s;
 }
 
-.form-card-title-link:hover {
-    color: var(--primary-color);
-}
-
 .form-card-title {
-    font-size: 1.05rem;
+    font-size: 1.12rem;
     font-weight: 700;
     margin: 0 0 0.35rem;
     line-height: 1.3;
+    color: var(--color-title);
+}
+
+.form-card-title-link:hover .form-card-title {
+    color: var(--primary-color);
 }
 
 .form-card-desc {
     font-size: 0.8125rem;
     color: var(--text-muted);
-    line-height: 1.45;
+    line-height: 1.5;
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    min-height: 2.45em;
 }
 
-/* Card Stats Chips */
-.form-card-chips {
+/* Metadata Chips Row */
+.form-card-meta-chips {
     display: flex;
-    gap: 0.5rem;
+    align-items: center;
+    gap: 0.45rem;
     flex-wrap: wrap;
-    padding: 0.75rem 0;
+    padding: 0.65rem 0;
     border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
 }
 
-.form-chip {
+.form-meta-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
+    padding: 0.28rem 0.55rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--color-title);
 }
 
-.form-chip i {
-    color: var(--primary-color);
-    font-size: 0.9rem;
+[data-theme="dark"] .form-meta-chip {
+    background: #141419;
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
-.form-chip.chip-date {
+.form-meta-chip i {
+    color: var(--primary-color);
+    font-size: 0.85rem;
+}
+
+.form-meta-chip.chip-date {
     margin-left: auto;
     color: var(--text-muted);
     font-weight: 500;
 }
 
-/* Card Actions */
+/* Card Actions Bar */
 .form-card-actions-bar {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     margin-top: auto;
+    padding-top: 0.35rem;
 }
 
 .btn-card-action {
@@ -394,17 +476,23 @@ foreach ($forms as $f) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     font-size: 0.78rem;
     font-weight: 600;
-    padding: 0.55rem 0.5rem;
-    border-radius: 9px;
+    padding: 0.6rem 0.65rem;
+    border-radius: 10px;
     border: 1px solid var(--border-color);
     background: var(--bg-color);
     color: var(--color-title);
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .btn-card-action {
+    background: #141419;
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 .btn-card-action:hover {
@@ -414,20 +502,57 @@ foreach ($forms as $f) {
 }
 
 .btn-card-action.action-edit {
-    background: color-mix(in srgb, var(--primary-color) 8%, var(--bg-surface));
-    border-color: color-mix(in srgb, var(--primary-color) 25%, transparent);
+    background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-surface));
+    border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
     color: var(--primary-color);
 }
 
 .btn-card-action.action-edit:hover {
     background: var(--primary-color);
     color: #ffffff;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 30%, transparent);
 }
 
-.btn-card-action.action-delete:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.4);
+.badge-sub-count {
+    background: var(--primary-color);
+    color: #ffffff;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.btn-card-action.action-edit .badge-sub-count {
+    background: #ffffff;
+    color: var(--primary-color);
+}
+
+.btn-card-icon-delete {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .btn-card-icon-delete {
+    background: #141419;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.btn-card-icon-delete:hover {
     color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    transform: scale(1.05);
 }
 
 /* Empty State Modern */
@@ -726,57 +851,103 @@ foreach ($forms as $f) {
             $fieldCount = count($fields);
             $subCount = (int)($form['submission_count'] ?? 0);
             $dateStr = date('d/m/Y', strtotime($form['created_at']));
+
+            $settings = json_decode($form['settings_json'] ?: '{}', true);
+            $coverPreset = $settings['cover_image'] ?? 'nebula';
+            $viewStyle = $settings['view_style'] ?? 'hero_cover';
+
+            $coverStyles = [
+                'nebula' => 'radial-gradient(circle at 20% 20%, #4338ca 0%, transparent 40%), radial-gradient(circle at 80% 80%, #7c3aed 0%, transparent 40%), radial-gradient(circle at 50% 50%, #1e1b4b 0%, #09090b 100%)',
+                'cyber' => 'radial-gradient(circle at 80% 20%, #0ea5e9 0%, transparent 45%), radial-gradient(circle at 20% 80%, #10b981 0%, transparent 45%), linear-gradient(135deg, #020617 0%, #0f172a 100%)',
+                'velvet' => 'radial-gradient(circle at 75% 30%, #e11d48 0%, transparent 40%), radial-gradient(circle at 25% 70%, #9333ea 0%, transparent 40%), linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+                'geometry' => 'linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%)',
+                'sunset' => 'radial-gradient(circle at 80% 20%, #f59e0b 0%, transparent 45%), radial-gradient(circle at 20% 80%, #ec4899 0%, transparent 45%), linear-gradient(135deg, #18181b 0%, #050505 100%)',
+                'abstract' => "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80') center/cover"
+            ];
+
+            $coverBg = $coverStyles[$coverPreset] ?? (
+                (str_starts_with($coverPreset, 'http') || str_starts_with($coverPreset, 'data:'))
+                    ? "url('" . htmlspecialchars($coverPreset, ENT_QUOTES) . "') center/cover"
+                    : $coverStyles['nebula']
+            );
+
+            $viewStyleNames = [
+                'hero_cover' => 'Portada',
+                'slides' => 'Diapositivas',
+                'minimal' => 'Minimal'
+            ];
+            $styleName = $viewStyleNames[$viewStyle] ?? 'Portada';
         ?>
         <div class="form-app-card" data-status="<?php echo htmlspecialchars($form['status']); ?>" data-title="<?php echo htmlspecialchars(strtolower($form['title'])); ?>" data-desc="<?php echo htmlspecialchars(strtolower($form['description'] ?? '')); ?>">
-            <div class="form-card-top">
-                <div style="flex: 1; min-width: 0;">
+            <!-- Visual Cover Header -->
+            <div class="form-card-cover" style="background: <?php echo $coverBg; ?>;">
+                <div class="form-card-cover-overlay"></div>
+                <span class="form-card-status-badge <?php echo $statusClass; ?>">
+                    <i class="ph-fill <?php echo $form['status']==='active'?'ph-check-circle':($form['status']==='draft'?'ph-pencil-simple':'ph-archive'); ?>"></i>
+                    <?php echo $statusLabel; ?>
+                </span>
+                <div class="form-card-avatar">
+                    <?php if(!empty($global_settings['logo_light'])): ?>
+                        <img src="<?php echo htmlspecialchars($global_settings['logo_light']); ?>" alt="Logo">
+                    <?php else: ?>
+                        <i class="ph-bold ph-shield-check"></i>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="form-card-body">
+                <div>
                     <a href="index.php?module=forms&action=builder&id=<?php echo $form['id']; ?>" class="form-card-title-link">
                         <h3 class="form-card-title" title="<?php echo htmlspecialchars($form['title']); ?>"><?php echo htmlspecialchars($form['title']); ?></h3>
                     </a>
                     <p class="form-card-desc"><?php echo htmlspecialchars($form['description'] ?: 'Sin descripción adicional para este formulario.'); ?></p>
                 </div>
-                <span class="form-card-badge <?php echo $statusClass; ?>">
-                    <i class="ph-fill <?php echo $form['status']==='active'?'ph-check-circle':($form['status']==='draft'?'ph-pencil-simple':'ph-archive'); ?>"></i>
-                    <?php echo $statusLabel; ?>
-                </span>
-            </div>
 
-            <div class="form-card-chips">
-                <div class="form-chip" title="Respuestas recibidas">
-                    <i class="ph-bold ph-envelope-open"></i>
-                    <span><?php echo $subCount; ?> respuestas</span>
+                <div class="form-card-meta-chips">
+                    <div class="form-meta-chip" title="Respuestas recibidas">
+                        <i class="ph-bold ph-envelope-open"></i>
+                        <span><strong><?php echo $subCount; ?></strong> <?php echo $subCount === 1 ? 'respuesta' : 'respuestas'; ?></span>
+                    </div>
+                    <div class="form-meta-chip" title="Campos configurados">
+                        <i class="ph-bold ph-list-numbers"></i>
+                        <span><strong><?php echo $fieldCount; ?></strong> campos</span>
+                    </div>
+                    <div class="form-meta-chip" title="Estilo de formulario">
+                        <i class="ph-bold <?php echo $viewStyle==='slides'?'ph-slides':($viewStyle==='minimal'?'ph-rows':'ph-paint-brush'); ?>"></i>
+                        <span><?php echo $styleName; ?></span>
+                    </div>
+                    <div class="form-meta-chip chip-date" title="Fecha de creación">
+                        <i class="ph ph-calendar-blank"></i>
+                        <span><?php echo $dateStr; ?></span>
+                    </div>
                 </div>
-                <div class="form-chip" title="Campos configurados">
-                    <i class="ph-bold ph-list-numbers"></i>
-                    <span><?php echo $fieldCount; ?> campos</span>
+
+                <div class="form-card-actions-bar">
+                    <a href="index.php?module=forms&action=builder&id=<?php echo $form['id']; ?>" class="btn-card-action action-edit" title="Editar Formulario">
+                        <i class="ph-bold ph-pencil-simple"></i>
+                        <span>Editar</span>
+                    </a>
+                    
+                    <?php if($form['status'] === 'active' && !empty($form['public_token'])): ?>
+                    <button type="button" class="btn-card-action" onclick="shareForm('<?php echo htmlspecialchars($form['public_token']); ?>', '<?php echo htmlspecialchars(addslashes($form['title'])); ?>')" title="Compartir Enlace">
+                        <i class="ph-bold ph-share-network"></i>
+                        <span>Compartir</span>
+                    </button>
+                    <?php endif; ?>
+
+                    <a href="index.php?module=forms&action=submissions&id=<?php echo $form['id']; ?>" class="btn-card-action" title="Ver Respuestas">
+                        <i class="ph-bold ph-tray"></i>
+                        <span>Respuestas</span>
+                        <?php if($subCount > 0): ?>
+                            <span class="badge-sub-count"><?php echo $subCount; ?></span>
+                        <?php endif; ?>
+                    </a>
+
+                    <button type="button" class="btn-card-icon-delete" onclick="deleteForm(<?php echo $form['id']; ?>)" title="Eliminar Formulario">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
                 </div>
-                <div class="form-chip chip-date" title="Fecha de creación">
-                    <i class="ph ph-calendar-blank"></i>
-                    <span><?php echo $dateStr; ?></span>
-                </div>
-            </div>
-
-            <div class="form-card-actions-bar">
-                <a href="index.php?module=forms&action=builder&id=<?php echo $form['id']; ?>" class="btn-card-action action-edit" title="Editar Formulario">
-                    <i class="ph-bold ph-pencil-simple"></i>
-                    <span>Editar</span>
-                </a>
-                
-                <?php if($form['status'] === 'active' && !empty($form['public_token'])): ?>
-                <button type="button" class="btn-card-action" onclick="shareForm('<?php echo htmlspecialchars($form['public_token']); ?>', '<?php echo htmlspecialchars(addslashes($form['title'])); ?>')" title="Compartir Enlace">
-                    <i class="ph-bold ph-share-network"></i>
-                    <span>Compartir</span>
-                </button>
-                <?php endif; ?>
-
-                <a href="index.php?module=forms&action=submissions&id=<?php echo $form['id']; ?>" class="btn-card-action" title="Ver Respuestas">
-                    <i class="ph-bold ph-tray"></i>
-                    <span>Respuestas</span>
-                </a>
-
-                <button type="button" class="btn-card-action action-delete" onclick="deleteForm(<?php echo $form['id']; ?>)" title="Eliminar">
-                    <i class="ph-bold ph-trash"></i>
-                </button>
             </div>
         </div>
         <?php endforeach; ?>

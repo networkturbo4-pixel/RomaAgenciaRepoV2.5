@@ -1,5 +1,5 @@
 <?php
-// modules/forms/fill.php — Public form fill page (Modern App UI)
+// modules/forms/fill.php — Public Modern SaaS & Native App-Style Form with Cover Banners & View Modes
 $token = $_GET['token'] ?? '';
 if (empty($token)) { die("Enlace inválido."); }
 
@@ -10,13 +10,61 @@ if (!$form) { die("Formulario no encontrado o no está activo."); }
 
 $fields = json_decode($form['fields_json'] ?: '[]', true);
 $settings = json_decode($form['settings_json'] ?: '{}', true);
+
 $showLogo = $settings['show_logo'] ?? true;
 $reqName = $settings['require_name'] ?? true;
 $reqEmail = $settings['require_email'] ?? true;
+$isMultiStep = !empty($settings['multi_step']);
+
+$viewStyle = $settings['view_style'] ?? 'hero_cover'; // 'hero_cover', 'slides', 'minimal'
+$coverPreset = $settings['cover_image'] ?? 'nebula';
+$welcomeScreen = !empty($settings['welcome_screen']);
 
 $logoUrl = $global_settings['logo_light'] ?? '';
 $siteName = $global_settings['site_name'] ?? 'Roma Agencia';
 $primaryColor = $global_settings['primary_color'] ?? '#4f46e5';
+
+$coverStyles = [
+    'nebula' => 'radial-gradient(circle at 20% 20%, #4338ca 0%, transparent 40%), radial-gradient(circle at 80% 80%, #7c3aed 0%, transparent 40%), radial-gradient(circle at 50% 50%, #1e1b4b 0%, #09090b 100%)',
+    'cyber' => 'radial-gradient(circle at 80% 20%, #0ea5e9 0%, transparent 45%), radial-gradient(circle at 20% 80%, #10b981 0%, transparent 45%), linear-gradient(135deg, #020617 0%, #0f172a 100%)',
+    'velvet' => 'radial-gradient(circle at 75% 30%, #e11d48 0%, transparent 40%), radial-gradient(circle at 25% 70%, #9333ea 0%, transparent 40%), linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+    'geometry' => 'linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%)',
+    'sunset' => 'radial-gradient(circle at 80% 20%, #f59e0b 0%, transparent 45%), radial-gradient(circle at 20% 80%, #ec4899 0%, transparent 45%), linear-gradient(135deg, #18181b 0%, #050505 100%)',
+    'abstract' => "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80') center/cover"
+];
+
+$coverBackground = $coverStyles[$coverPreset] ?? (
+    (str_starts_with($coverPreset, 'http') || str_starts_with($coverPreset, 'data:'))
+        ? "url('" . htmlspecialchars($coverPreset, ENT_QUOTES) . "') center/cover"
+        : $coverStyles['nebula']
+);
+
+// Prepare steps structure
+$isSlides = ($viewStyle === 'slides');
+$steps = [];
+$currentStep = [];
+
+if ($reqName || $reqEmail) {
+    $currentStep[] = ['type' => 'user_data_magic_field'];
+    if ($isSlides) {
+        $steps[] = $currentStep;
+        $currentStep = [];
+    }
+}
+
+foreach ($fields as $field) {
+    if ($isSlides) {
+        $steps[] = [$field];
+    } else if ($isMultiStep && $field['type'] === 'divider') {
+        if (!empty($currentStep)) $steps[] = $currentStep;
+        $currentStep = [$field];
+    } else {
+        $currentStep[] = $field;
+    }
+}
+if (!empty($currentStep)) $steps[] = $currentStep;
+if (empty($steps)) $steps[] = [];
+$totalSteps = count($steps);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -28,185 +76,481 @@ $primaryColor = $global_settings['primary_color'] ?? '#4f46e5';
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script>
+    (function() {
+        const saved = localStorage.getItem('roma_public_theme');
+        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+</script>
 <style>
+/* Modern App Design Tokens */
 :root {
-    --primary-color: <?php echo $primaryColor; ?>;
-    --primary-hover: color-mix(in srgb, var(--primary-color) 88%, black);
-    --primary-light: color-mix(in srgb, var(--primary-color) 12%, transparent);
-    --primary-glow: color-mix(in srgb, var(--primary-color) 30%, transparent);
-    
-    --bg-page: #f8fafc;
-    --bg-card: #ffffff;
-    --border-color: #e2e8f0;
-    --text-title: #0f172a;
-    --text-body: #334155;
-    --text-muted: #64748b;
-    --input-bg: #f8fafc;
+    --app-bg: #f4f4f6;
+    --app-frame: #ffffff;
+    --app-surface: #f8fafc;
+    --app-border: #e4e4e7;
+    --app-border-hover: #cbd5e1;
+    --app-text: #09090b;
+    --app-text-muted: #71717a;
+    --app-input: #f4f4f6;
+    --app-accent: <?php echo htmlspecialchars($primaryColor); ?>;
+    --app-accent-light: color-mix(in srgb, var(--app-accent) 12%, transparent);
+    --app-accent-glow: color-mix(in srgb, var(--app-accent) 25%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-page: #09090b;
-        --bg-card: #18181b;
-        --border-color: #27272a;
-        --text-title: #f8fafc;
-        --text-body: #e2e8f0;
-        --text-muted: #94a3b8;
-        --input-bg: #121214;
-    }
+[data-theme="dark"] {
+    --app-bg: #000000 !important; /* Fondo Negro Puro Requerido */
+    --app-frame: #0d0d11;
+    --app-surface: #141419;
+    --app-border: rgba(255, 255, 255, 0.08);
+    --app-border-hover: rgba(255, 255, 255, 0.18);
+    --app-text: #ffffff;
+    --app-text-muted: #8e8e93;
+    --app-input: #16161c;
+    --app-accent-light: color-mix(in srgb, var(--app-accent) 16%, transparent);
+    --app-accent-glow: color-mix(in srgb, var(--app-accent) 30%, transparent);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg-page);
-    color: var(--text-body);
+    background-color: var(--app-bg);
+    color: var(--app-text);
     min-height: 100vh;
     font-size: 13px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1rem 4rem;
 }
 
-.fill-wrapper {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 2rem 1.25rem 4rem;
+/* Unified App Container */
+.app-container {
+    width: 100%;
+    max-width: 640px;
+    background: var(--app-frame);
+    border: 1px solid var(--app-border);
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Floating Top Progress Bar */
-.fill-progress-bar-wrap {
+/* App Header */
+.app-header {
+    padding: 0.95rem 1.5rem;
+    border-bottom: 1px solid var(--app-border);
+    background: color-mix(in srgb, var(--app-frame) 92%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     position: sticky;
     top: 0;
-    z-index: 50;
-    background: color-mix(in srgb, var(--bg-page) 85%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    margin: -2rem -1.25rem 1.5rem;
-    padding: 0.75rem 1.25rem 0.5rem;
+    z-index: 40;
 }
 
-.fill-progress-track {
-    height: 6px;
-    background: var(--border-color);
-    border-radius: 99px;
-    overflow: hidden;
+.app-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--app-text);
+}
+
+.app-brand i {
+    color: var(--app-accent);
+    font-size: 1.2rem;
+}
+
+.app-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.app-step-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--app-accent);
+    background: var(--app-accent-light);
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--app-accent) 20%, transparent);
+}
+
+.app-theme-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    color: var(--app-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.15s ease;
+}
+
+.app-theme-btn:hover {
+    color: var(--app-text);
+    border-color: var(--app-border-hover);
+}
+
+/* Sleek Progress Track */
+.app-progress-bar {
+    height: 3px;
+    background: var(--app-border);
+    width: 100%;
     position: relative;
 }
 
-.fill-progress-fill {
+.app-progress-fill {
     height: 100%;
-    background: var(--primary-color);
-    border-radius: 99px;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 10px var(--primary-glow);
+    background: var(--app-accent);
+    width: 0%;
+    transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 8px var(--app-accent-glow);
 }
 
-/* Hero Header Card */
-.fill-hero-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 2.25rem 2rem;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+/* Panoramic Cover Banner */
+.app-cover-banner {
+    height: 160px;
+    width: 100%;
     position: relative;
-    overflow: hidden;
-    border-top: 6px solid var(--primary-color);
+    display: flex;
+    align-items: flex-end;
+    padding: 1.25rem 1.75rem;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
 }
 
-.fill-hero-logo {
-    max-height: 52px;
-    max-width: 180px;
+.app-cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.65) 100%);
+    pointer-events: none;
+}
+
+.app-brand-avatar-float {
+    position: relative;
+    z-index: 5;
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    background: var(--app-frame);
+    border: 2px solid var(--app-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    margin-bottom: -29px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.app-brand-avatar-float img {
+    max-width: 80%;
+    max-height: 80%;
     object-fit: contain;
+}
+
+[data-theme="dark"] .app-brand-avatar-float img {
+    filter: brightness(0) invert(1);
+}
+
+.app-brand-avatar-float i {
+    font-size: 1.85rem;
+    color: var(--app-accent);
+}
+
+/* Welcome Screen */
+.app-welcome-screen {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    animation: fadeIn 0.35s ease;
+}
+
+.app-welcome-content {
+    padding: 2.75rem 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.app-welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--app-accent);
+    background: var(--app-accent-light);
+    border: 1px solid color-mix(in srgb, var(--app-accent) 25%, transparent);
+    padding: 0.28rem 0.8rem;
+    border-radius: 999px;
     margin-bottom: 1.25rem;
+}
+
+.app-welcome-title {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--app-text);
+    line-height: 1.25;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.app-welcome-desc {
+    font-size: 0.925rem;
+    color: var(--app-text-muted);
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto 1.75rem;
+}
+
+.app-welcome-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 2.25rem;
+}
+
+.app-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--app-text-muted);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    padding: 0.4rem 0.85rem;
+    border-radius: 12px;
+}
+
+.app-meta-chip i {
+    color: var(--app-accent);
+    font-size: 0.95rem;
+}
+
+.app-btn-start {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    padding: 0.95rem 2.25rem;
+    background: var(--app-accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 24px var(--app-accent-glow);
+}
+
+.app-btn-start:hover {
+    filter: brightness(1.12);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px var(--app-accent-glow);
+}
+
+.app-btn-start:active {
+    transform: translateY(0);
+}
+
+.app-start-hint {
+    margin-top: 0.85rem;
+    font-size: 0.75rem;
+    color: var(--app-text-muted);
+}
+
+/* App Body Area */
+.app-body {
+    padding: 2rem 1.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+/* Form Hero Intro */
+.app-hero-section {
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--app-border);
+}
+
+.app-hero-logo {
+    max-height: 40px;
+    max-width: 160px;
+    object-fit: contain;
+    margin-bottom: 1rem;
     display: block;
 }
-
-.fill-hero-title {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--text-title);
-    line-height: 1.25;
-    margin-bottom: 0.5rem;
+[data-theme="dark"] .app-hero-logo {
+    filter: brightness(0) invert(1);
 }
 
-.fill-hero-desc {
+.app-hero-title {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--app-text);
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.app-hero-desc {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     line-height: 1.6;
 }
 
-/* Question Cards */
-.fill-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 1.5rem 1.75rem;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-    transition: all 0.2s ease;
+/* Question Section */
+.app-question-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-.fill-card:focus-within {
-    border-color: color-mix(in srgb, var(--primary-color) 45%, var(--border-color));
-    box-shadow: 0 6px 24px var(--primary-light);
+.app-q-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
 }
 
-.fill-label {
-    display: block;
+.app-q-number {
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-family: monospace;
+    color: var(--app-accent);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.app-q-label-box {
+    flex: 1;
+}
+
+.app-q-label {
     font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-title);
-    margin-bottom: 0.75rem;
-    line-height: 1.4;
+    font-weight: 700;
+    color: var(--app-text);
+    line-height: 1.35;
+    display: block;
 }
 
-.fill-label .req-star {
-    color: #ef4444;
-    margin-left: 0.2rem;
+/* Slides Mode Enhanced Question Typography */
+.slides-mode .app-q-label {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.3;
 }
 
-/* Input Styles */
-.fill-input {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1.5px solid var(--border-color);
-    border-radius: 12px;
+.slides-mode .app-q-desc {
     font-size: 0.875rem;
+    margin-top: 0.4rem;
+}
+
+.app-q-label .req-star {
+    color: #ef4444;
+    margin-left: 0.25rem;
+}
+
+.app-q-desc {
+    font-size: 0.8125rem;
+    color: var(--app-text-muted);
+    margin-top: 0.25rem;
+    line-height: 1.45;
+}
+
+/* Modern App Inputs */
+.app-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.app-input-icon {
+    position: absolute;
+    left: 1rem;
+    font-size: 1.15rem;
+    color: var(--app-text-muted);
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.app-input-wrap:focus-within .app-input-icon {
+    color: var(--app-accent);
+}
+
+.app-input {
+    width: 100%;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid var(--app-border);
+    border-radius: 14px;
+    font-size: 0.9rem;
     font-family: inherit;
-    background: var(--input-bg);
-    color: var(--text-title);
-    transition: all 0.2s ease;
+    background: var(--app-surface);
+    color: var(--app-text);
     outline: none;
+    transition: all 0.18s ease;
 }
 
-.fill-input:focus {
-    border-color: var(--primary-color);
-    background: var(--bg-card);
-    box-shadow: 0 0 0 3px var(--primary-light);
+.app-input.has-icon {
+    padding-left: 2.75rem;
 }
 
-.fill-textarea {
+.app-input:focus {
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 2px var(--app-accent-light);
+}
+
+.app-textarea {
     min-height: 110px;
     resize: vertical;
+    line-height: 1.5;
 }
 
-/* Radio & Checkbox Groups */
-.fill-options-group {
+/* App Selectable Options */
+.app-options-list {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
 }
 
-.fill-opt-label {
+.app-opt-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border: 1.5px solid var(--border-color);
-    border-radius: 12px;
-    background: var(--input-bg);
-    color: var(--text-title);
+    gap: 0.85rem;
+    padding: 0.9rem 1.15rem;
+    border: 1px solid var(--app-border);
+    border-radius: 14px;
+    background: var(--app-surface);
+    color: var(--app-text);
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -214,52 +558,71 @@ body {
     user-select: none;
 }
 
-.fill-opt-label:hover {
-    border-color: var(--primary-color);
-    background: var(--primary-light);
+.app-opt-row:hover {
+    border-color: var(--app-border-hover);
+    background: color-mix(in srgb, var(--app-accent) 4%, var(--app-surface));
 }
 
-.fill-opt-label.selected {
-    border-color: var(--primary-color);
-    background: var(--primary-light);
-    color: var(--primary-color);
+.app-opt-row.selected {
+    border-color: var(--app-accent);
+    background: var(--app-accent-light);
+    color: var(--app-text);
     font-weight: 600;
 }
 
-.fill-opt-label input[type="radio"],
-.fill-opt-label input[type="checkbox"] {
-    accent-color: var(--primary-color);
+.app-opt-check {
     width: 18px;
     height: 18px;
-    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid var(--app-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
 }
 
-/* File Upload Dropzone */
-.fill-file-dropzone {
-    border: 2px dashed var(--border-color);
-    border-radius: 14px;
+.app-opt-check.checkbox-style {
+    border-radius: 5px;
+}
+
+.app-opt-row.selected .app-opt-check {
+    border-color: var(--app-accent);
+    background: var(--app-accent);
+    color: #ffffff;
+}
+
+.app-opt-row input[type="radio"],
+.app-opt-row input[type="checkbox"] {
+    display: none;
+}
+
+/* File Dropzone */
+.app-file-dropzone {
+    border: 1.5px dashed var(--app-border);
+    border-radius: 16px;
     padding: 2rem 1.5rem;
     text-align: center;
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     position: relative;
-    background: var(--input-bg);
+    background: var(--app-surface);
 }
 
-.fill-file-dropzone:hover {
-    border-color: var(--primary-color);
-    background: var(--primary-light);
+.app-file-dropzone:hover {
+    border-color: var(--app-accent);
+    background: var(--app-accent-light);
 }
 
-.fill-file-dropzone i {
-    font-size: 2.2rem;
-    color: var(--primary-color);
+.app-file-dropzone i.cloud-icon {
+    font-size: 2.5rem;
+    color: var(--app-accent);
     display: block;
     margin-bottom: 0.5rem;
 }
 
-.fill-file-dropzone input[type="file"] {
+.app-file-dropzone input[type="file"] {
     position: absolute;
     inset: 0;
     opacity: 0;
@@ -269,180 +632,190 @@ body {
     height: 100%;
 }
 
-/* Scale Rating Group */
-.fill-scale-wrap {
+/* Rating Scale */
+.app-scale-wrap {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    padding: 0.5rem 0;
+    padding: 0.25rem 0;
 }
 
-.fill-scale-item {
-    cursor: pointer;
-}
+.app-scale-item input { display: none; }
 
-.fill-scale-item input {
-    display: none;
-}
-
-.fill-scale-pill {
+.app-scale-pill {
     width: 44px;
     height: 44px;
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--app-border);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.95rem;
     font-weight: 700;
-    color: var(--text-title);
-    background: var(--input-bg);
+    color: var(--app-text);
+    background: var(--app-surface);
+    cursor: pointer;
     transition: all 0.15s ease;
 }
 
-.fill-scale-item:hover .fill-scale-pill {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+.app-scale-item:hover .app-scale-pill {
+    border-color: var(--app-accent);
+    color: var(--app-accent);
 }
 
-.fill-scale-item input:checked + .fill-scale-pill {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+.app-scale-item input:checked + .app-scale-pill {
+    background: var(--app-accent);
+    border-color: var(--app-accent);
     color: #ffffff;
-    transform: scale(1.08);
-    box-shadow: 0 4px 14px var(--primary-glow);
-}
-
-/* Number Range */
-.fill-range-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    box-shadow: 0 4px 12px var(--app-accent-glow);
 }
 
 /* Color Swatches */
-.fill-color-grid {
+.app-color-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     align-items: center;
 }
 
-.fill-color-item {
+.app-color-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
-}
-
-.fill-color-swatch {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    border: 2px solid var(--border-color);
-    padding: 3px;
+    gap: 0.35rem;
     cursor: pointer;
-    background: var(--bg-card);
-    transition: transform 0.15s ease;
 }
 
-.fill-color-swatch:hover {
-    transform: scale(1.06);
-    border-color: var(--primary-color);
-}
-
-/* Interactive Icon Cards */
-.fill-icon-cards-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-}
-
-.fill-icon-card {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    padding: 0.9rem 1.1rem;
-    border: 1.5px solid var(--border-color);
+.app-color-box {
+    position: relative;
+    width: 48px;
+    height: 48px;
     border-radius: 14px;
-    background: var(--input-bg);
+    border: 2px solid var(--app-border);
+    padding: 2px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.fill-icon-card:hover {
-    border-color: var(--primary-color);
-    background: var(--primary-light);
-}
-
-.fill-icon-card.selected {
-    border-color: var(--primary-color);
-    background: var(--primary-light);
-    box-shadow: 0 4px 16px var(--primary-light);
-}
-
-.fill-icon-badge {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    background: var(--primary-light);
-    color: var(--primary-color);
+    background: var(--app-surface);
+    transition: all 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
-    transition: all 0.2s ease;
 }
 
-.fill-icon-card.selected .fill-icon-badge {
-    background: var(--primary-color);
+.app-color-box:hover {
+    border-color: var(--app-accent);
+    transform: scale(1.08);
+}
+
+.app-color-box.selected {
+    border-color: var(--app-accent);
+    transform: scale(1.1);
+    box-shadow: 0 4px 14px var(--app-accent-glow);
+}
+
+.app-color-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+/* Icon Cards */
+.app-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.65rem;
+}
+
+.app-icon-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--app-border);
+    border-radius: 14px;
+    background: var(--app-surface);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.app-icon-card:hover {
+    border-color: var(--app-border-hover);
+    transform: translateY(-1px);
+}
+
+.app-icon-card.selected {
+    border-color: var(--app-accent);
+    background: var(--app-accent-light);
+}
+
+.app-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--app-accent-light);
+    color: var(--app-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.app-icon-card.selected .app-icon-badge {
+    background: var(--app-accent);
     color: #ffffff;
 }
 
-.fill-icon-text {
+.app-icon-title {
     flex: 1;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-title);
+    color: var(--app-text);
 }
 
-.fill-icon-check {
-    width: 22px;
-    height: 22px;
+.app-icon-check {
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    border: 2px solid var(--border-color);
+    border: 1.5px solid var(--app-border);
     display: flex;
     align-items: center;
     justify-content: center;
     color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
 }
 
-.fill-icon-card.selected .fill-icon-check {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+.app-icon-card.selected .app-icon-check {
+    background: var(--app-accent);
+    border-color: var(--app-accent);
     color: #ffffff;
 }
 
-/* Action Buttons */
-.fill-actions-row {
+/* Action Bar */
+.app-actions {
     display: flex;
+    align-items: center;
     gap: 0.75rem;
-    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--app-border);
 }
 
-.fill-btn-submit {
+.app-btn-submit {
     flex: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     padding: 0.9rem 1.5rem;
-    background: var(--primary-color);
+    background: var(--app-accent);
     color: #ffffff;
     border: none;
     border-radius: 14px;
@@ -450,362 +823,558 @@ body {
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 16px var(--primary-glow);
+    transition: all 0.18s ease;
+    box-shadow: 0 4px 14px var(--app-accent-glow);
 }
 
-.fill-btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--primary-glow);
-    filter: brightness(1.08);
+.app-btn-submit:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
 }
 
-.fill-btn-submit:disabled {
+.app-btn-submit:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
-    box-shadow: none;
 }
 
-.fill-btn-prev {
+.app-btn-prev {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.9rem 1.25rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-title);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    color: var(--app-text);
     border-radius: 14px;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     font-weight: 600;
-    font-family: inherit;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
-.fill-btn-prev:hover {
-    border-color: var(--text-title);
+.app-btn-prev:hover {
+    border-color: var(--app-border-hover);
 }
 
-/* Section Header */
-.fill-section-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-title);
-    margin-bottom: 0.35rem;
-}
-
-/* Success Screen */
-.fill-success-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 3.5rem 2rem;
+/* Keyboard hint in slides */
+.app-slide-hint {
+    font-size: 0.72rem;
+    color: var(--app-text-muted);
     text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+    margin-top: 0.5rem;
 }
 
-.fill-success-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
+/* Success Confirmation Screen */
+.app-success-screen {
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.app-success-icon {
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
     background: rgba(16, 185, 129, 0.12);
     color: #10b981;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
-    margin-bottom: 1.25rem;
+    font-size: 2.75rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
 }
 
-.fill-success-card h2 {
-    font-size: 1.45rem;
+.app-success-screen h2 {
+    font-size: 1.5rem;
     font-weight: 800;
-    color: var(--text-title);
+    color: var(--app-text);
     margin-bottom: 0.5rem;
 }
 
-.fill-success-card p {
-    color: var(--text-muted);
+.app-success-screen p {
+    color: var(--app-text-muted);
     font-size: 0.875rem;
-    max-width: 440px;
+    max-width: 420px;
     margin: 0 auto 1.5rem;
     line-height: 1.6;
 }
 
-.fill-correlativo-badge {
-    display: inline-block;
-    background: var(--primary-light);
-    color: var(--primary-color);
-    font-weight: 700;
-    font-size: 0.85rem;
-    padding: 0.4rem 0.9rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
+.app-correlativo-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    padding: 0.6rem 1.15rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
     font-family: monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--app-accent);
 }
 
-.fill-footer {
-    text-align: center;
-    margin-top: 2rem;
+.app-copy-btn {
+    background: none;
+    border: none;
+    color: var(--app-text-muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+}
+
+.app-copy-btn:hover { color: var(--app-text); }
+
+.app-footer-brand {
+    margin-top: 1.75rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--app-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.form-step {
+    animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 </style>
 </head>
-<body>
+<body class="<?php echo $isSlides ? 'slides-mode' : ''; ?>">
 
-<div class="fill-wrapper">
-    <!-- Top Floating Progress Bar -->
-    <div class="fill-progress-bar-wrap">
-        <div class="fill-progress-track">
-            <div class="fill-progress-fill" id="progressBar" style="width: 0%;"></div>
+<div class="app-container">
+    <!-- Header -->
+    <div class="app-header">
+        <div class="app-brand">
+            <i class="ph-bold ph-shield-check"></i>
+            <span><?php echo htmlspecialchars($siteName); ?></span>
+        </div>
+        <div class="app-header-right">
+            <span class="app-step-pill" id="stepCounterPill">0% completado</span>
+            <button type="button" class="app-theme-btn" onclick="toggleTheme()" title="Cambiar tema">
+                <i class="ph-bold ph-moon" id="themeIcon"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Form Hero Card -->
-    <div class="fill-hero-card" id="formHero">
-        <?php if($showLogo && $logoUrl): ?>
-            <img src="<?php echo htmlspecialchars($logoUrl); ?>" class="fill-hero-logo" alt="<?php echo htmlspecialchars($siteName); ?>">
-        <?php endif; ?>
-        <h1 class="fill-hero-title"><?php echo htmlspecialchars($form['title']); ?></h1>
-        <?php if($form['description']): ?>
-            <p class="fill-hero-desc"><?php echo htmlspecialchars($form['description']); ?></p>
-        <?php endif; ?>
+    <!-- Progress Track -->
+    <div class="app-progress-bar">
+        <div class="app-progress-fill" id="progressBar"></div>
     </div>
 
-    <form id="publicForm" enctype="multipart/form-data">
-        <?php
-        $isMultiStep = $settings['multi_step'] ?? false;
-        $steps = [];
-        $currentStep = [];
-        if ($reqName || $reqEmail) {
-            $currentStep[] = ['type' => 'user_data_magic_field'];
-        }
-        foreach ($fields as $field) {
-            if ($isMultiStep && $field['type'] === 'divider') {
-                if (!empty($currentStep)) $steps[] = $currentStep;
-                $currentStep = [$field];
-            } else {
-                $currentStep[] = $field;
-            }
-        }
-        if (!empty($currentStep)) $steps[] = $currentStep;
-        if (empty($steps)) $steps[] = [];
-        ?>
-
-        <?php foreach($steps as $sIndex => $stepFields): ?>
-        <div class="form-step" id="step_<?php echo $sIndex; ?>" style="<?php echo $sIndex === 0 ? '' : 'display:none;'; ?>">
-            <?php foreach($stepFields as $field): ?>
-                <?php if($field['type'] === 'user_data_magic_field'): ?>
-                    <div class="fill-card">
-                        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.35rem;">
-                            <i class="ph-bold ph-user-circle" style="color: var(--primary-color); font-size: 1rem;"></i> Datos de Contacto
-                        </div>
-                        <?php if($reqName): ?>
-                        <div style="margin-bottom: 1rem;">
-                            <label class="fill-label">Tu nombre completo <span class="req-star">*</span></label>
-                            <input type="text" name="respondent_name" class="fill-input" placeholder="Ingresa tu nombre..." required>
-                        </div>
-                        <?php endif; ?>
-                        <?php if($reqEmail): ?>
-                        <div>
-                            <label class="fill-label">Correo electrónico <span class="req-star">*</span></label>
-                            <input type="email" name="respondent_email" class="fill-input" placeholder="tu@empresa.com" required>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                <?php elseif($field['type'] === 'divider'): ?>
-                    <div class="fill-card" style="border-top: 4px solid var(--primary-color);">
-                        <h3 class="fill-section-title"><?php echo htmlspecialchars($field['label']); ?></h3>
-                        <?php if(!empty($field['description'])): ?>
-                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;"><?php echo htmlspecialchars($field['description']); ?></p>
-                        <?php endif; ?>
-                    </div>
+    <!-- Optional Welcome Screen -->
+    <?php if($welcomeScreen): ?>
+    <div class="app-welcome-screen" id="welcomeScreen">
+        <?php if($viewStyle !== 'minimal'): ?>
+        <div class="app-cover-banner" style="background: <?php echo $coverBackground; ?>;">
+            <div class="app-cover-overlay"></div>
+            <div class="app-brand-avatar-float">
+                <?php if($showLogo && $logoUrl): ?>
+                    <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
                 <?php else: ?>
-                    <div class="fill-card">
-                        <label class="fill-label">
-                            <?php echo htmlspecialchars($field['label']); ?>
-                            <?php if(!empty($field['required'])): ?><span class="req-star">*</span><?php endif; ?>
-                        </label>
-
-                        <?php if($field['type']==='text' || $field['type']==='email' || $field['type']==='phone' || $field['type']==='date'): ?>
-                            <input type="<?php echo $field['type']==='phone'?'tel':$field['type']; ?>" name="field_<?php echo $field['id']; ?>" class="fill-input" placeholder="<?php echo htmlspecialchars($field['placeholder']??''); ?>" <?php echo !empty($field['required'])?'required':''; ?>>
-
-                        <?php elseif($field['type']==='textarea'): ?>
-                            <textarea name="field_<?php echo $field['id']; ?>" class="fill-input fill-textarea" placeholder="<?php echo htmlspecialchars($field['placeholder']??''); ?>" <?php echo !empty($field['required'])?'required':''; ?>></textarea>
-
-                        <?php elseif($field['type']==='select' || $field['type']==='checkbox'): ?>
-                            <?php 
-                                $isMulti = isset($field['is_multi']) ? $field['is_multi'] : ($field['type'] === 'checkbox');
-                                $inputType = $isMulti ? 'checkbox' : 'radio';
-                            ?>
-                            <div class="fill-options-group">
-                                <?php foreach(($field['options']??[]) as $opt): ?>
-                                    <?php $isOther = ($opt === 'Otro'); ?>
-                                    <label class="fill-opt-label">
-                                        <input type="<?php echo $inputType; ?>" name="field_<?php echo $field['id']; ?><?php echo $isMulti ? '[]' : ''; ?>" value="<?php echo htmlspecialchars($opt); ?>" <?php echo !empty($field['required']) && !$isOther ? 'required data-req="true"' : ''; ?> onchange="handleOptionChange(this)">
-                                        <span><?php echo htmlspecialchars($opt); ?></span>
-                                        <?php if($isOther): ?>
-                                            <input type="text" name="field_<?php echo $field['id']; ?>_other" class="fill-input other-input" style="display:none; margin-left: 0.5rem; padding: 0.35rem 0.6rem; width: auto; flex: 1;" placeholder="Escribe aquí...">
-                                        <?php endif; ?>
-                                    </label>
-                                <?php endforeach; ?>
-                            </div>
-
-                        <?php elseif($field['type']==='dropdown'): ?>
-                            <?php $isMulti = !empty($field['is_multi']); ?>
-                            <select name="field_<?php echo $field['id']; ?><?php echo $isMulti ? '[]' : ''; ?>" class="fill-input" <?php echo !empty($field['required'])?'required':''; ?> <?php echo $isMulti ? 'multiple style="height:auto"' : ''; ?>>
-                                <?php if(!$isMulti): ?><option value="">Selecciona una opción...</option><?php endif; ?>
-                                <?php foreach(($field['options']??[]) as $opt): ?>
-                                    <option value="<?php echo htmlspecialchars($opt); ?>"><?php echo htmlspecialchars($opt); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-
-                        <?php elseif($field['type']==='file'): ?>
-                            <?php 
-                                $maxCount = $field['file_max_count'] ?? 1;
-                                $maxSize = $field['file_max_size'] ?? 10;
-                                $accept = '';
-                                if(!empty($field['file_restrict']) && !empty($field['file_types'])) {
-                                    $mimes = [];
-                                    foreach($field['file_types'] as $t) {
-                                        if($t === 'Documento') $mimes[] = '.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt';
-                                        if($t === 'PDF') $mimes[] = '.pdf';
-                                        if($t === 'Imagen') $mimes[] = 'image/*';
-                                        if($t === 'Video') $mimes[] = 'video/*';
-                                        if($t === 'Audio') $mimes[] = 'audio/*';
-                                    }
-                                    $accept = 'accept="' . implode(',', $mimes) . '"';
-                                }
-                                $isMultiple = $maxCount > 1;
-                            ?>
-                            <div class="fill-file-dropzone" id="fz_<?php echo $field['id']; ?>">
-                                <i class="ph-bold ph-cloud-arrow-up"></i>
-                                <div style="font-weight: 600; color: var(--text-title); margin-bottom: 2px;">Toca o arrastra tus archivos aquí</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Máximo <?php echo $maxSize; ?> MB <?php echo $isMultiple ? '('.$maxCount.' archivos)' : ''; ?></div>
-                                <div id="fn_<?php echo $field['id']; ?>" style="margin-top: 10px;"></div>
-                                <input type="file" name="file_<?php echo $field['id']; ?><?php echo $isMultiple ? '[]' : ''; ?>" <?php echo $accept; ?> <?php echo $isMultiple ? 'multiple' : ''; ?> <?php echo !empty($field['required'])?'required':''; ?> onchange="handleAsyncUpload(this, '<?php echo $field['id']; ?>', <?php echo $maxSize; ?>, <?php echo $maxCount; ?>)">
-                            </div>
-
-                        <?php elseif($field['type']==='range'): ?>
-                            <?php $mn=$field['range_min']??1; $mx=$field['range_max']??5; $lMin=$field['range_label_min']??''; $lMax=$field['range_label_max']??''; ?>
-                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.4rem;">
-                                <span><?php echo htmlspecialchars($lMin); ?></span>
-                                <span><?php echo htmlspecialchars($lMax); ?></span>
-                            </div>
-                            <div class="fill-scale-wrap">
-                                <?php for($n=$mn; $n<=$mx; $n++): ?>
-                                <label class="fill-scale-item">
-                                    <input type="radio" name="field_<?php echo $field['id']; ?>" value="<?php echo $n; ?>" <?php echo !empty($field['required'])?'required':''; ?>>
-                                    <div class="fill-scale-pill"><?php echo $n; ?></div>
-                                </label>
-                                <?php endfor; ?>
-                            </div>
-
-                        <?php elseif($field['type']==='number_range'): ?>
-                            <?php $nrMin=$field['nr_min']??18; $nrMax=$field['nr_max']??65; $nrStep=$field['nr_step']??1; ?>
-                            <div class="fill-range-row">
-                                <select name="field_<?php echo $field['id']; ?>_from" class="fill-input" <?php echo !empty($field['required'])?'required':''; ?>>
-                                    <option value="">Desde</option>
-                                    <?php for($n=$nrMin; $n<=$nrMax; $n+=$nrStep): ?>
-                                    <option value="<?php echo $n; ?>"><?php echo $n; ?></option>
-                                    <?php endfor; ?>
-                                </select>
-                                <span style="font-weight: 700; color: var(--text-muted);">—</span>
-                                <select name="field_<?php echo $field['id']; ?>_to" class="fill-input" <?php echo !empty($field['required'])?'required':''; ?>>
-                                    <option value="">Hasta</option>
-                                    <?php for($n=$nrMin; $n<=$nrMax; $n+=$nrStep): ?>
-                                    <option value="<?php echo $n; ?>"><?php echo $n; ?></option>
-                                    <?php endfor; ?>
-                                </select>
-                            </div>
-
-                        <?php elseif($field['type']==='color'): ?>
-                            <?php $colorOpts=$field['color_options']??['#4f46e5']; ?>
-                            <div class="fill-color-grid">
-                                <?php foreach($colorOpts as $ci => $color): ?>
-                                <div class="fill-color-item">
-                                    <input type="color" name="field_<?php echo $field['id']; ?>[]" class="fill-color-swatch" value="<?php echo htmlspecialchars($color); ?>" <?php echo !empty($field['required'])?'required':''; ?>>
-                                    <span style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;"><?php echo htmlspecialchars($color); ?></span>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-
-                        <?php elseif($field['type']==='icon_card'): ?>
-                            <?php 
-                                $iconOpts=$field['icon_options']??[]; 
-                                $isMulti=$field['icon_multi']??false; 
-                                $inputType=$isMulti?'checkbox':'radio'; 
-                            ?>
-                            <div class="fill-icon-cards-grid">
-                                <?php foreach($iconOpts as $oi => $opt): ?>
-                                <label class="fill-icon-card">
-                                    <input type="<?php echo $inputType; ?>" name="field_<?php echo $field['id']; ?><?php echo $isMulti?'[]':''; ?>" value="<?php echo htmlspecialchars($opt['text']); ?>" <?php echo !empty($field['required']) ? 'required data-req="true"' : ''; ?> style="display:none;" onchange="handleIconCardChange(this, <?php echo $isMulti ? 'true' : 'false'; ?>)">
-                                    <div class="fill-icon-badge"><i class="ph-bold <?php echo htmlspecialchars($opt['icon']); ?>"></i></div>
-                                    <span class="fill-icon-text"><?php echo htmlspecialchars($opt['text']); ?></span>
-                                    <div class="fill-icon-check"><i class="ph-bold ph-check" style="font-size: 0.75rem;"></i></div>
-                                </label>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-            <?php endforeach; ?>
-
-            <div class="fill-actions-row">
-                <?php if($isMultiStep && $sIndex > 0): ?>
-                    <button type="button" class="fill-btn-prev" onclick="goToStep(<?php echo $sIndex-1; ?>)">
-                        <i class="ph-bold ph-arrow-left"></i> Atrás
-                    </button>
-                <?php endif; ?>
-
-                <?php if($isMultiStep && $sIndex < count($steps) - 1): ?>
-                    <button type="button" class="fill-btn-submit" onclick="goToStep(<?php echo $sIndex+1; ?>)">
-                        Siguiente <i class="ph-bold ph-arrow-right"></i>
-                    </button>
-                <?php else: ?>
-                    <button type="submit" class="fill-btn-submit" id="submitBtn">
-                        <i class="ph-bold ph-paper-plane-tilt"></i> Enviar Formulario
-                    </button>
+                    <i class="ph-bold ph-shield-check"></i>
                 <?php endif; ?>
             </div>
         </div>
-        <?php endforeach; ?>
-    </form>
+        <?php endif; ?>
 
-    <!-- Success Screen -->
-    <div class="fill-success-card" id="successScreen" style="display: none;">
-        <div class="fill-success-icon">
-            <i class="ph-bold ph-check"></i>
+        <div class="app-welcome-content">
+            <div class="app-welcome-badge">
+                <i class="ph-bold ph-sparkle"></i> Formulario Oficial
+            </div>
+            <h1 class="app-welcome-title"><?php echo htmlspecialchars($form['title']); ?></h1>
+            <?php if($form['description']): ?>
+                <p class="app-welcome-desc"><?php echo htmlspecialchars($form['description']); ?></p>
+            <?php endif; ?>
+
+            <div class="app-welcome-meta">
+                <div class="app-meta-chip">
+                    <i class="ph-bold ph-clock"></i>
+                    <span>~2 min</span>
+                </div>
+                <div class="app-meta-chip">
+                    <i class="ph-bold ph-shield-check"></i>
+                    <span>Seguro y Cifrado</span>
+                </div>
+                <div class="app-meta-chip">
+                    <i class="ph-bold ph-list-numbers"></i>
+                    <span><?php echo count($fields); ?> preguntas</span>
+                </div>
+            </div>
+
+            <button type="button" class="app-btn-start" onclick="startForm()">
+                <span>Comenzar Formulario</span>
+                <i class="ph-bold ph-arrow-right"></i>
+            </button>
+            <span class="app-start-hint">o presiona <strong>Enter ↵</strong> para comenzar</span>
         </div>
-        <h2>¡Formulario Enviado con Éxito!</h2>
-        <p>Gracias por enviarnos tu información. Hemos recibido todas tus respuestas y nuestro equipo se pondrá en contacto contigo a la brevedad.</p>
-        <div class="fill-correlativo-badge" id="successCorrelativo"></div>
     </div>
+    <?php endif; ?>
 
-    <div class="fill-footer">
-        Desarrollado con ROMA SaaS
+    <!-- Main Form Wrapper -->
+    <div id="mainFormWrap" style="<?php echo $welcomeScreen ? 'display: none;' : 'display: block;'; ?>">
+        <?php if($viewStyle === 'hero_cover'): ?>
+        <!-- Visual Cover Banner for Hero Cover Mode -->
+        <div class="app-cover-banner" id="formCoverBanner" style="background: <?php echo $coverBackground; ?>;">
+            <div class="app-cover-overlay"></div>
+            <div class="app-brand-avatar-float">
+                <?php if($showLogo && $logoUrl): ?>
+                    <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
+                <?php else: ?>
+                    <i class="ph-bold ph-shield-check"></i>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Body Area -->
+        <div class="app-body">
+            <!-- Form Hero Intro (Only if no welcome screen or in non-slides view) -->
+            <?php if(!$welcomeScreen && $viewStyle !== 'slides'): ?>
+            <div class="app-hero-section" id="formHero">
+                <?php if($viewStyle === 'minimal' && $showLogo && $logoUrl): ?>
+                    <img src="<?php echo htmlspecialchars($logoUrl); ?>" class="app-hero-logo" alt="<?php echo htmlspecialchars($siteName); ?>">
+                <?php endif; ?>
+                <h1 class="app-hero-title"><?php echo htmlspecialchars($form['title']); ?></h1>
+                <?php if($form['description']): ?>
+                    <p class="app-hero-desc"><?php echo htmlspecialchars($form['description']); ?></p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <form id="publicForm" enctype="multipart/form-data">
+                <?php $qIdx = 0; ?>
+                <?php foreach($steps as $sIndex => $stepFields): ?>
+                <div class="form-step" id="step_<?php echo $sIndex; ?>" style="<?php echo $sIndex === 0 ? '' : 'display:none;'; ?>">
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <?php foreach($stepFields as $field): ?>
+                            <?php if($field['type'] === 'user_data_magic_field'): ?>
+                                <div class="app-question-block" style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--app-border);">
+                                    <div class="app-q-header">
+                                        <div class="app-q-number"><i class="ph-bold ph-user"></i></div>
+                                        <div class="app-q-label-box">
+                                            <label class="app-q-label">Tus Datos de Contacto</label>
+                                            <p class="app-q-desc">Ingresa tus datos para confirmar la recepción.</p>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.25rem;">
+                                        <?php if($reqName): ?>
+                                        <div>
+                                            <label style="display:block; font-size:0.8125rem; font-weight:600; color:var(--app-text); margin-bottom:0.35rem;">
+                                                Nombre completo <span style="color:#ef4444;">*</span>
+                                            </label>
+                                            <div class="app-input-wrap">
+                                                <i class="ph-bold ph-user app-input-icon"></i>
+                                                <input type="text" name="respondent_name" class="app-input has-icon" placeholder="Ingresa tu nombre completo..." required>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if($reqEmail): ?>
+                                        <div>
+                                            <label style="display:block; font-size:0.8125rem; font-weight:600; color:var(--app-text); margin-bottom:0.35rem;">
+                                                Correo electrónico <span style="color:#ef4444;">*</span>
+                                            </label>
+                                            <div class="app-input-wrap">
+                                                <i class="ph-bold ph-envelope-simple app-input-icon"></i>
+                                                <input type="email" name="respondent_email" class="app-input has-icon" placeholder="correo@ejemplo.com" required>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php elseif($field['type'] === 'divider'): ?>
+                                <div style="padding: 1.25rem 0 0.5rem; <?php echo $sIndex > 0 ? '' : 'border-top: 1px solid var(--app-border);'; ?>">
+                                    <div style="font-size: 0.72rem; font-weight: 700; color: var(--app-accent); text-transform: uppercase; margin-bottom: 0.25rem;">Sección</div>
+                                    <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--app-text);"><?php echo htmlspecialchars($field['label']); ?></h3>
+                                    <?php if(!empty($field['description'])): ?>
+                                        <p style="font-size: 0.875rem; color: var(--app-text-muted); margin-top: 0.35rem; line-height: 1.5;"><?php echo htmlspecialchars($field['description']); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php else: ?>
+                                <?php 
+                                    $qIdx++; 
+                                    $qStr = $qIdx < 10 ? '0' . $qIdx : $qIdx;
+                                ?>
+                                <div class="app-question-block">
+                                    <div class="app-q-header">
+                                        <div class="app-q-number"><?php echo $qStr; ?></div>
+                                        <div class="app-q-label-box">
+                                            <label class="app-q-label">
+                                                <?php echo htmlspecialchars($field['label']); ?>
+                                                <?php if(!empty($field['required'])): ?><span class="req-star">*</span><?php endif; ?>
+                                            </label>
+                                            <?php if(!empty($field['description'])): ?>
+                                                <p class="app-q-desc"><?php echo htmlspecialchars($field['description']); ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+
+                                    <?php if($field['type']==='text'): ?>
+                                        <div class="app-input-wrap">
+                                            <i class="ph-bold ph-text-aa app-input-icon"></i>
+                                            <input type="text" name="field_<?php echo $field['id']; ?>" class="app-input has-icon" placeholder="<?php echo htmlspecialchars($field['placeholder'] ?: 'Escribe tu respuesta...'); ?>" <?php echo !empty($field['required'])?'required':''; ?>>
+                                        </div>
+
+                                    <?php elseif($field['type']==='email'): ?>
+                                        <div class="app-input-wrap">
+                                            <i class="ph-bold ph-envelope-simple app-input-icon"></i>
+                                            <input type="email" name="field_<?php echo $field['id']; ?>" class="app-input has-icon" placeholder="<?php echo htmlspecialchars($field['placeholder'] ?: 'correo@ejemplo.com'); ?>" <?php echo !empty($field['required'])?'required':''; ?>>
+                                        </div>
+
+                                    <?php elseif($field['type']==='phone'): ?>
+                                        <div class="app-input-wrap">
+                                            <i class="ph-bold ph-phone app-input-icon"></i>
+                                            <input type="tel" name="field_<?php echo $field['id']; ?>" class="app-input has-icon" placeholder="<?php echo htmlspecialchars($field['placeholder'] ?: '+51 999 999 999'); ?>" <?php echo !empty($field['required'])?'required':''; ?>>
+                                        </div>
+
+                                    <?php elseif($field['type']==='date'): ?>
+                                        <div class="app-input-wrap">
+                                            <i class="ph-bold ph-calendar-blank app-input-icon"></i>
+                                            <input type="date" name="field_<?php echo $field['id']; ?>" class="app-input has-icon" <?php echo !empty($field['required'])?'required':''; ?>>
+                                        </div>
+
+                                    <?php elseif($field['type']==='textarea'): ?>
+                                        <textarea name="field_<?php echo $field['id']; ?>" class="app-input app-textarea" placeholder="<?php echo htmlspecialchars($field['placeholder'] ?: 'Escribe los detalles aquí...'); ?>" <?php echo !empty($field['required'])?'required':''; ?>></textarea>
+
+                                    <?php elseif($field['type']==='select' || $field['type']==='checkbox'): ?>
+                                        <?php 
+                                            $isMulti = isset($field['is_multi']) ? $field['is_multi'] : ($field['type'] === 'checkbox');
+                                            $inputType = $isMulti ? 'checkbox' : 'radio';
+                                        ?>
+                                        <div class="app-options-list">
+                                            <?php foreach(($field['options']??[]) as $opt): ?>
+                                                <?php $isOther = ($opt === 'Otro'); ?>
+                                                <label class="app-opt-row">
+                                                    <input type="<?php echo $inputType; ?>" name="field_<?php echo $field['id']; ?><?php echo $isMulti ? '[]' : ''; ?>" value="<?php echo htmlspecialchars($opt); ?>" <?php echo !empty($field['required']) && !$isOther ? 'required data-req="true"' : ''; ?> onchange="handleOptionChange(this)">
+                                                    <div class="app-opt-check <?php echo $isMulti ? 'checkbox-style' : ''; ?>">
+                                                        <i class="ph-bold ph-check" style="font-size: 0.75rem;"></i>
+                                                    </div>
+                                                    <span style="flex:1;"><?php echo htmlspecialchars($opt); ?></span>
+                                                    <?php if($isOther): ?>
+                                                        <input type="text" name="field_<?php echo $field['id']; ?>_other" class="app-input other-input" style="display:none; margin-left: 0.5rem; padding: 0.4rem 0.75rem; width: auto; flex: 1;" placeholder="Especifica...">
+                                                    <?php endif; ?>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+
+                                    <?php elseif($field['type']==='dropdown'): ?>
+                                        <?php $isMulti = !empty($field['is_multi']); ?>
+                                        <select name="field_<?php echo $field['id']; ?><?php echo $isMulti ? '[]' : ''; ?>" class="app-input" <?php echo !empty($field['required'])?'required':''; ?> <?php echo $isMulti ? 'multiple style="height:auto"' : ''; ?>>
+                                            <?php if(!$isMulti): ?><option value="">Selecciona una opción...</option><?php endif; ?>
+                                            <?php foreach(($field['options']??[]) as $opt): ?>
+                                                <option value="<?php echo htmlspecialchars($opt); ?>"><?php echo htmlspecialchars($opt); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+
+                                    <?php elseif($field['type']==='file'): ?>
+                                        <?php 
+                                            $maxCount = $field['file_max_count'] ?? 1;
+                                            $maxSize = $field['file_max_size'] ?? 10;
+                                            $accept = '';
+                                            if(!empty($field['file_restrict']) && !empty($field['file_types'])) {
+                                                $mimes = [];
+                                                foreach($field['file_types'] as $t) {
+                                                    if($t === 'Documento') $mimes[] = '.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt';
+                                                    if($t === 'PDF') $mimes[] = '.pdf';
+                                                    if($t === 'Imagen') $mimes[] = 'image/*';
+                                                    if($t === 'Video') $mimes[] = 'video/*';
+                                                    if($t === 'Audio') $mimes[] = 'audio/*';
+                                                }
+                                                $accept = 'accept="' . implode(',', $mimes) . '"';
+                                            }
+                                            $isMultiple = $maxCount > 1;
+                                        ?>
+                                        <div class="app-file-dropzone" id="fz_<?php echo $field['id']; ?>">
+                                            <i class="ph-bold ph-cloud-arrow-up cloud-icon"></i>
+                                            <div style="font-weight: 700; color: var(--app-text); margin-bottom: 2px;">Arrastra tus archivos o haz clic aquí</div>
+                                            <div style="font-size: 0.75rem; color: var(--app-text-muted);">Máximo <?php echo $maxSize; ?> MB <?php echo $isMultiple ? '('.$maxCount.' archivos)' : ''; ?></div>
+                                            <div id="fn_<?php echo $field['id']; ?>" style="margin-top: 10px;"></div>
+                                            <input type="file" name="file_<?php echo $field['id']; ?><?php echo $isMultiple ? '[]' : ''; ?>" <?php echo $accept; ?> <?php echo $isMultiple ? 'multiple' : ''; ?> <?php echo !empty($field['required'])?'required':''; ?> onchange="handleAsyncUpload(this, '<?php echo $field['id']; ?>', <?php echo $maxSize; ?>, <?php echo $maxCount; ?>)">
+                                        </div>
+
+                                    <?php elseif($field['type']==='range'): ?>
+                                        <?php $mn=$field['range_min']??1; $mx=$field['range_max']??5; $lMin=$field['range_label_min']??''; $lMax=$field['range_label_max']??''; ?>
+                                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; font-weight:600; color:var(--app-text-muted); margin-bottom:0.5rem;">
+                                            <span><?php echo htmlspecialchars($lMin); ?></span>
+                                            <span><?php echo htmlspecialchars($lMax); ?></span>
+                                        </div>
+                                        <div class="app-scale-wrap">
+                                            <?php for($n=$mn; $n<=$mx; $n++): ?>
+                                            <label class="app-scale-item">
+                                                <input type="radio" name="field_<?php echo $field['id']; ?>" value="<?php echo $n; ?>" <?php echo !empty($field['required'])?'required':''; ?>>
+                                                <div class="app-scale-pill"><?php echo $n; ?></div>
+                                            </label>
+                                            <?php endfor; ?>
+                                        </div>
+
+                                    <?php elseif($field['type']==='number_range'): ?>
+                                        <?php $nrMin=$field['nr_min']??18; $nrMax=$field['nr_max']??65; $nrStep=$field['nr_step']??1; ?>
+                                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                                            <select name="field_<?php echo $field['id']; ?>_from" class="app-input" <?php echo !empty($field['required'])?'required':''; ?>>
+                                                <option value="">Desde</option>
+                                                <?php for($n=$nrMin; $n<=$nrMax; $n+=$nrStep): ?>
+                                                <option value="<?php echo $n; ?>"><?php echo $n; ?></option>
+                                                <?php endfor; ?>
+                                            </select>
+                                            <span style="font-weight: 800; color: var(--app-text-muted);">—</span>
+                                            <select name="field_<?php echo $field['id']; ?>_to" class="app-input" <?php echo !empty($field['required'])?'required':''; ?>>
+                                                <option value="">Hasta</option>
+                                                <?php for($n=$nrMin; $n<=$nrMax; $n+=$nrStep): ?>
+                                                <option value="<?php echo $n; ?>"><?php echo $n; ?></option>
+                                                <?php endfor; ?>
+                                            </select>
+                                        </div>
+
+                                    <?php elseif($field['type']==='color'): ?>
+                                        <?php $colorOpts=$field['color_options']??['#4f46e5']; ?>
+                                        <div class="app-color-grid">
+                                            <?php foreach($colorOpts as $ci => $color): ?>
+                                            <label class="app-color-item">
+                                                <input type="checkbox" name="field_<?php echo $field['id']; ?>[]" value="<?php echo htmlspecialchars($color); ?>" style="display:none;" onchange="handleColorToggle(this)">
+                                                <div class="app-color-box">
+                                                    <div class="app-color-inner" style="background: <?php echo htmlspecialchars($color); ?>;">
+                                                        <i class="ph-bold ph-check" style="display:none;"></i>
+                                                    </div>
+                                                </div>
+                                                <span style="font-size:0.7rem; color:var(--app-text-muted); font-family:monospace;"><?php echo htmlspecialchars($color); ?></span>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+
+                                    <?php elseif($field['type']==='icon_card'): ?>
+                                        <?php 
+                                            $iconOpts=$field['icon_options']??[]; 
+                                            $isMulti=$field['icon_multi']??false; 
+                                            $inputType=$isMulti?'checkbox':'radio'; 
+                                        ?>
+                                        <div class="app-icon-grid">
+                                            <?php foreach($iconOpts as $oi => $opt): ?>
+                                            <label class="app-icon-card">
+                                                <input type="<?php echo $inputType; ?>" name="field_<?php echo $field['id']; ?><?php echo $isMulti?'[]':''; ?>" value="<?php echo htmlspecialchars($opt['text']); ?>" <?php echo !empty($field['required']) ? 'required data-req="true"' : ''; ?> style="display:none;" onchange="handleIconCardChange(this, <?php echo $isMulti ? 'true' : 'false'; ?>)">
+                                                <div class="app-icon-badge"><i class="ph-bold <?php echo htmlspecialchars($opt['icon']); ?>"></i></div>
+                                                <span class="app-icon-title"><?php echo htmlspecialchars($opt['text']); ?></span>
+                                                <div class="app-icon-check"><i class="ph-bold ph-check" style="font-size: 0.75rem;"></i></div>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="app-actions">
+                        <?php if(($isMultiStep || $isSlides) && $sIndex > 0): ?>
+                            <button type="button" class="app-btn-prev" onclick="goToStep(<?php echo $sIndex-1; ?>)">
+                                <i class="ph-bold ph-arrow-left"></i> Anterior
+                            </button>
+                        <?php endif; ?>
+
+                        <?php if(($isMultiStep || $isSlides) && $sIndex < count($steps) - 1): ?>
+                            <button type="button" class="app-btn-submit" onclick="goToStep(<?php echo $sIndex+1; ?>)">
+                                Siguiente <i class="ph-bold ph-arrow-right"></i>
+                            </button>
+                        <?php else: ?>
+                            <button type="submit" class="app-btn-submit" id="submitBtn">
+                                <i class="ph-bold ph-paper-plane-tilt"></i> Enviar Respuestas
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if($isSlides): ?>
+                        <div class="app-slide-hint">o presiona <strong>Enter ↵</strong> para avanzar</div>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </form>
+
+            <!-- Success Screen -->
+            <div class="app-success-screen" id="successScreen" style="display: none;">
+                <div class="app-success-icon">
+                    <i class="ph-bold ph-check"></i>
+                </div>
+                <h2>¡Respuestas Recibidas con Éxito!</h2>
+                <p>Gracias por enviarnos tu información. Hemos recibido todas tus respuestas y nuestro equipo se pondrá en contacto contigo pronto.</p>
+                <div>
+                    <div class="app-correlativo-box">
+                        <i class="ph-bold ph-hash"></i>
+                        <span id="successCorrelativo">BRIEF-0000</span>
+                        <button type="button" class="app-copy-btn" onclick="copyCorrelativo()" title="Copiar código">
+                            <i class="ph-bold ph-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <button type="button" class="app-btn-prev" onclick="window.location.reload()" style="display: inline-flex;">
+                        <i class="ph-bold ph-arrow-clockwise"></i> Enviar otra respuesta
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
+
+<div class="app-footer-brand">
+    <i class="ph-bold ph-shield-check" style="color: var(--app-accent);"></i>
+    <span>Plataforma Oficial <strong><?php echo htmlspecialchars($siteName); ?></strong></span>
 </div>
 
 <script>
 let currentStepIdx = 0;
+const totalSteps = <?php echo $totalSteps; ?>;
+const isSlidesMode = <?php echo $isSlides ? 'true' : 'false'; ?>;
+let correlativoCode = '';
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const target = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', target);
+    localStorage.setItem('roma_public_theme', target);
+    updateThemeIcon();
+}
+
+function updateThemeIcon() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.className = isDark ? 'ph-bold ph-sun' : 'ph-bold ph-moon';
+    }
+}
+updateThemeIcon();
+
+function startForm() {
+    const welcome = document.getElementById('welcomeScreen');
+    const mainWrap = document.getElementById('mainFormWrap');
+    if (welcome) welcome.style.display = 'none';
+    if (mainWrap) mainWrap.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateProgress();
+}
 
 function handleOptionChange(input) {
-    const group = input.closest('.fill-options-group');
+    const group = input.closest('.app-options-list');
     if (!group) return;
     if (input.type === 'radio') {
-        group.querySelectorAll('.fill-opt-label').forEach(lbl => lbl.classList.remove('selected'));
-        if (input.checked) input.closest('.fill-opt-label').classList.add('selected');
+        group.querySelectorAll('.app-opt-row').forEach(lbl => lbl.classList.remove('selected'));
+        if (input.checked) input.closest('.app-opt-row').classList.add('selected');
     } else {
-        input.closest('.fill-opt-label').classList.toggle('selected', input.checked);
+        input.closest('.app-opt-row').classList.toggle('selected', input.checked);
         const reqBoxes = group.querySelectorAll('input[data-req="true"]');
         const anyChecked = group.querySelectorAll('input[type="checkbox"]:checked').length > 0;
         reqBoxes.forEach(b => b.required = !anyChecked);
     }
 
-    const otherInput = input.closest('.fill-opt-label').querySelector('.other-input');
+    const otherInput = input.closest('.app-opt-row').querySelector('.other-input');
     if (otherInput) {
         if (input.checked) {
             otherInput.style.display = 'block';
@@ -818,19 +1387,42 @@ function handleOptionChange(input) {
         }
     }
     updateProgress();
+
+    // Auto-advance in slides mode on single-choice radio selection
+    if (isSlidesMode && input.type === 'radio' && input.checked && !otherInput && currentStepIdx < totalSteps - 1) {
+        setTimeout(() => { goToStep(currentStepIdx + 1); }, 260);
+    }
 }
 
 function handleIconCardChange(input, isMulti) {
-    const card = input.closest('.fill-icon-card');
-    const container = input.closest('.fill-icon-cards-grid');
+    const card = input.closest('.app-icon-card');
+    const container = input.closest('.app-icon-grid');
     if (!isMulti) {
-        container.querySelectorAll('.fill-icon-card').forEach(c => c.classList.remove('selected'));
+        container.querySelectorAll('.app-icon-card').forEach(c => c.classList.remove('selected'));
         if (input.checked) card.classList.add('selected');
     } else {
         card.classList.toggle('selected', input.checked);
         const reqBoxes = container.querySelectorAll('input[data-req="true"]');
         const anyChecked = container.querySelectorAll('input[type="checkbox"]:checked').length > 0;
         reqBoxes.forEach(b => b.required = !anyChecked);
+    }
+    updateProgress();
+
+    // Auto-advance in slides mode on single-choice card selection
+    if (isSlidesMode && !isMulti && input.checked && currentStepIdx < totalSteps - 1) {
+        setTimeout(() => { goToStep(currentStepIdx + 1); }, 260);
+    }
+}
+
+function handleColorToggle(input) {
+    const box = input.closest('.app-color-item').querySelector('.app-color-box');
+    const check = box.querySelector('.ph-check');
+    if (input.checked) {
+        box.classList.add('selected');
+        if (check) check.style.display = 'inline-block';
+    } else {
+        box.classList.remove('selected');
+        if (check) check.style.display = 'none';
     }
     updateProgress();
 }
@@ -846,7 +1438,7 @@ window.goToStep = function(nextIdx) {
     }
     document.getElementById('step_' + currentStepIdx).style.display = 'none';
     document.getElementById('step_' + nextIdx).style.display = 'block';
-    
+
     const hero = document.getElementById('formHero');
     if (hero) hero.style.display = (nextIdx > 0) ? 'none' : 'block';
 
@@ -856,18 +1448,58 @@ window.goToStep = function(nextIdx) {
 };
 
 const form = document.getElementById('publicForm');
-const totalInputs = form.querySelectorAll('input,textarea,select').length;
+const totalInputs = form ? form.querySelectorAll('input,textarea,select').length : 0;
 
 function updateProgress() {
+    if (!form) return;
     let filled = 0;
     form.querySelectorAll('input,textarea,select').forEach(el => {
-        if (el.value.trim() || el.checked) filled++;
+        if (el.type === 'radio' || el.type === 'checkbox') {
+            if (el.checked) filled++;
+        } else if (el.value.trim()) {
+            filled++;
+        }
     });
-    const pct = Math.min(100, Math.round((filled / Math.max(totalInputs, 1)) * 100));
+
+    let pct = 0;
+    if (isSlidesMode && totalSteps > 0) {
+        pct = Math.min(100, Math.round(((currentStepIdx + 1) / totalSteps) * 100));
+    } else {
+        pct = Math.min(100, Math.round((filled / Math.max(totalInputs, 1)) * 100));
+    }
+
     document.getElementById('progressBar').style.width = pct + '%';
+    
+    const pill = document.getElementById('stepCounterPill');
+    if (totalSteps > 1) {
+        pill.textContent = `Paso ${currentStepIdx + 1} de ${totalSteps} · ${pct}%`;
+    } else {
+        pill.textContent = `${pct}% completado`;
+    }
 }
 
-form.addEventListener('input', updateProgress);
+if (form) {
+    form.addEventListener('input', updateProgress);
+}
+updateProgress();
+
+// Keyboard shortcuts (Enter to start or advance)
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        const welcome = document.getElementById('welcomeScreen');
+        if (welcome && welcome.style.display !== 'none') {
+            e.preventDefault();
+            startForm();
+            return;
+        }
+        if (isSlidesMode && currentStepIdx < totalSteps - 1) {
+            if (e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                goToStep(currentStepIdx + 1);
+            }
+        }
+    }
+});
 
 let pendingUploads = 0;
 
@@ -895,15 +1527,15 @@ function handleAsyncUpload(input, fieldId, maxSizeMB, maxCount) {
         const icon = isImg ? 'ph-image' : (fName.toLowerCase().endsWith('.pdf') ? 'ph-file-pdf' : 'ph-file-text');
         
         html += `
-        <div style="display:flex; align-items:center; gap:8px; background:var(--bg-card); padding:8px 12px; border-radius:10px; border:1px solid var(--border-color); margin-bottom:6px; text-align:left;">
-            <div style="width:32px; height:32px; border-radius:8px; background:var(--primary-light); color:var(--primary-color); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+        <div style="display:flex; align-items:center; gap:10px; background:var(--app-frame); padding:8px 12px; border-radius:10px; border:1px solid var(--app-border); margin-bottom:6px; text-align:left;">
+            <div style="width:32px; height:32px; border-radius:8px; background:var(--app-accent-light); color:var(--app-accent); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
                 <i class="ph-bold ${icon}"></i>
             </div>
-            <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.8rem; font-weight:600; color:var(--text-title);">
+            <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.8125rem; font-weight:600; color:var(--app-text);">
                 ${fName}<br>
-                <span id="status_${fieldId}_${i}" style="color:#f59e0b; font-size:0.7rem;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo...</span>
+                <span id="status_${fieldId}_${i}" style="color:#f59e0b; font-size:0.72rem;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo...</span>
             </div>
-            <div style="font-size:0.7rem; color:var(--text-muted);">${(files[i].size/1024/1024).toFixed(1)} MB</div>
+            <div style="font-size:0.72rem; color:var(--app-text-muted);">${(files[i].size/1024/1024).toFixed(1)} MB</div>
         </div>`;
     }
 
@@ -955,63 +1587,76 @@ function handleAsyncUpload(input, fieldId, maxSizeMB, maxCount) {
         pendingUploads--;
         if (pendingUploads <= 0 && submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar Formulario';
+            submitBtn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar Respuestas';
         }
     });
 }
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (pendingUploads > 0) {
-        alert('Por favor espera a que terminen de subirse los archivos.');
-        return;
-    }
+if (form) {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (pendingUploads > 0) {
+            alert('Por favor espera a que terminen de subirse los archivos.');
+            return;
+        }
 
-    const btn = document.getElementById('submitBtn');
-    btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Procesando y enviando...';
-    btn.disabled = true;
+        const btn = document.getElementById('submitBtn');
+        btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Procesando...';
+        btn.disabled = true;
 
-    const fd = new FormData(form);
-    const dataObj = {};
-    for (const [key, val] of fd.entries()) {
-        if (key.startsWith('field_') || key.startsWith('temp_file_') || key.startsWith('temp_name_')) {
-            if (dataObj[key]) {
-                if (!Array.isArray(dataObj[key])) dataObj[key] = [dataObj[key]];
-                dataObj[key].push(val);
-            } else {
-                dataObj[key] = val;
+        const fd = new FormData(form);
+        const dataObj = {};
+        for (const [key, val] of fd.entries()) {
+            if (key.startsWith('field_') || key.startsWith('temp_file_') || key.startsWith('temp_name_')) {
+                if (dataObj[key]) {
+                    if (!Array.isArray(dataObj[key])) dataObj[key] = [dataObj[key]];
+                    dataObj[key].push(val);
+                } else {
+                    dataObj[key] = val;
+                }
             }
         }
-    }
 
-    const submitFd = new FormData();
-    submitFd.append('token', '<?php echo htmlspecialchars($token); ?>');
-    submitFd.append('data_json', JSON.stringify(dataObj));
-    submitFd.append('respondent_name', fd.get('respondent_name') || '');
-    submitFd.append('respondent_email', fd.get('respondent_email') || '');
+        const submitFd = new FormData();
+        submitFd.append('token', '<?php echo htmlspecialchars($token); ?>');
+        submitFd.append('data_json', JSON.stringify(dataObj));
+        submitFd.append('respondent_name', fd.get('respondent_name') || '');
+        submitFd.append('respondent_email', fd.get('respondent_email') || '');
 
-    try {
-        const res = await fetch('index.php?module=forms&action=ajax_submit_form', { method: 'POST', body: submitFd });
-        const data = await res.json();
-        if (data.success) {
-            form.style.display = 'none';
-            document.getElementById('formHero').style.display = 'none';
-            document.getElementById('successScreen').style.display = 'block';
-            document.getElementById('successCorrelativo').textContent = 'Referencia: ' + data.correlativo;
-            document.getElementById('progressBar').style.width = '100%';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            alert(data.error || 'Error al enviar');
-            btn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar Formulario';
+        try {
+            const res = await fetch('index.php?module=forms&action=ajax_submit_form', { method: 'POST', body: submitFd });
+            const data = await res.json();
+            if (data.success) {
+                form.style.display = 'none';
+                const hero = document.getElementById('formHero');
+                if (hero) hero.style.display = 'none';
+                const cover = document.getElementById('formCoverBanner');
+                if (cover) cover.style.display = 'none';
+                document.getElementById('successScreen').style.display = 'flex';
+                correlativoCode = data.correlativo || '';
+                document.getElementById('successCorrelativo').textContent = correlativoCode;
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('stepCounterPill').textContent = '100%';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                alert(data.error || 'Error al enviar');
+                btn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar Respuestas';
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert('Error de conexión');
+            btn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar Respuestas';
             btn.disabled = false;
         }
-    } catch (err) {
-        alert('Error de conexión');
-        btn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar Formulario';
-        btn.disabled = false;
-    }
-});
+    });
+}
+
+function copyCorrelativo() {
+    if (!correlativoCode) return;
+    navigator.clipboard.writeText(correlativoCode).then(() => {
+        alert('¡Código copiado: ' + correlativoCode + '!');
+    });
+}
 </script>
 </body>
 </html>
-

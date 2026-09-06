@@ -1,5 +1,5 @@
 <?php
-// modules/forms/builder.php — Modern App-style Form Builder
+// modules/forms/builder.php — Modern App-Style Form Studio with Cover Banners
 if (!isset($_SESSION['user_id'])) { 
     header("Location: index.php?module=auth&action=login"); 
     exit(); 
@@ -13,122 +13,237 @@ if (!empty($id)) {
 }
 $primaryColor = $global_settings['primary_color'] ?? '#4f46e5';
 $logoLight = $global_settings['logo_light'] ?? '';
+$publicToken = $formData['public_token'] ?? '';
+$publicUrl = $publicToken ? "index.php?module=forms&action=fill&token=" . urlencode($publicToken) : '';
+
+$settings = json_decode($formData['settings_json'] ?? '{}', true) ?: [];
+$viewStyle = $settings['view_style'] ?? 'hero_cover';
+$coverPreset = $settings['cover_image'] ?? 'nebula';
+$welcomeScreen = $settings['welcome_screen'] ?? false;
+$showLogo = $settings['show_logo'] ?? true;
+$reqName = $settings['require_name'] ?? true;
+$reqEmail = $settings['require_email'] ?? true;
+$multiStep = $settings['multi_step'] ?? false;
+
 require_once 'includes/header.php';
 ?>
 
 <style>
-/* App Builder Container & Navigation */
-.fb-builder-wrapper {
-    position: relative;
-    max-width: 740px;
-    margin: 0 auto;
-    padding: 0.5rem 1rem 5rem;
+/* App Theme Tokens */
+:root {
+    --app-bg: #f4f4f6;
+    --app-surface: #ffffff;
+    --app-surface-sub: #f8fafc;
+    --app-border: #e4e4e7;
+    --app-border-hover: #cbd5e1;
+    --app-text: #09090b;
+    --app-text-muted: #71717a;
+    --app-input: #f4f4f6;
+    --app-accent: <?php echo htmlspecialchars($primaryColor); ?>;
+    --app-accent-light: color-mix(in srgb, var(--app-accent) 12%, transparent);
+    --app-accent-glow: color-mix(in srgb, var(--app-accent) 25%, transparent);
 }
 
-/* App Sticky Topbar */
+[data-theme="dark"] {
+    --app-bg: #000000 !important; /* Fondo Negro Puro */
+    --app-surface: #0e0e12;
+    --app-surface-sub: #141419;
+    --app-border: rgba(255, 255, 255, 0.08);
+    --app-border-hover: rgba(255, 255, 255, 0.18);
+    --app-text: #ffffff;
+    --app-text-muted: #8e8e93;
+    --app-input: #16161c;
+    --app-accent-light: color-mix(in srgb, var(--app-accent) 16%, transparent);
+    --app-accent-glow: color-mix(in srgb, var(--app-accent) 30%, transparent);
+}
+
+/* Layout Lock — Elimina el doble deslizador vertical dejando un único scroll fluido */
+html, body {
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+.app-container {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+}
+
+.main-content {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
+}
+
+.content-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Scrollbar estilizada y discreta */
+.content-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+.content-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+.content-wrapper::-webkit-scrollbar-thumb {
+    background: var(--app-border);
+    border-radius: 999px;
+}
+.content-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--app-border-hover);
+}
+
+/* Base Viewport */
+.fb-viewport {
+    min-height: 100%;
+    background-color: var(--app-bg);
+    margin: 0;
+    padding-bottom: 5rem;
+    position: relative;
+    color: var(--app-text);
+}
+
+/* App Header Topbar */
 .fb-app-topbar {
     position: sticky;
     top: 0;
-    z-index: 40;
-    background: color-mix(in srgb, var(--bg-surface) 85%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-color);
-    margin: -1.5rem -1rem 1.5rem;
+    z-index: 50;
+    background: color-mix(in srgb, var(--app-bg) 88%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--app-border);
     padding: 0.75rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .fb-topbar-left {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
+    min-width: 0;
 }
 
 .fb-btn-back {
     width: 36px;
     height: 36px;
-    border-radius: 9px;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--color-title);
+    border-radius: 10px;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    color: var(--app-text);
     display: flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
     font-size: 1.1rem;
     transition: all 0.15s ease;
+    flex-shrink: 0;
 }
 
 .fb-btn-back:hover {
-    background: var(--bg-surface);
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+    background: var(--app-accent-light);
+    border-color: var(--app-accent);
+    color: var(--app-accent);
+}
+
+.fb-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
 }
 
 .fb-topbar-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    color: var(--color-title);
+    color: var(--app-text);
     margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
 }
 
 .fb-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    padding: 0.2rem 0.55rem;
-    border-radius: 20px;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
 }
 
-.fb-pill-active { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.fb-pill-draft { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.fb-status-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
 
-/* Segmented View Switcher (Tabs) */
+.fb-pill-active { 
+    background: rgba(16, 185, 129, 0.12); 
+    color: #10b981; 
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.fb-pill-active::before { background: #10b981; box-shadow: 0 0 6px #10b981; }
+
+.fb-pill-draft { 
+    background: rgba(245, 158, 11, 0.12); 
+    color: #f59e0b; 
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.fb-pill-draft::before { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+
+/* Segmented Tab Switcher */
 .fb-segmented-tabs {
     display: flex;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
     padding: 3px;
-    border-radius: 10px;
-    gap: 2px;
+    border-radius: 12px;
+    gap: 3px;
 }
 
 .fb-tab-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.85rem;
-    font-size: 0.78rem;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     border: none;
     background: transparent;
-    border-radius: 7px;
+    border-radius: 9px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.18s ease;
     user-select: none;
 }
 
-.fb-tab-btn:hover {
-    color: var(--color-title);
-}
-
+.fb-tab-btn:hover { color: var(--app-text); }
 .fb-tab-btn.active {
-    background: var(--bg-surface);
-    color: var(--primary-color);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    background: var(--app-surface-sub);
+    color: var(--app-text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--app-border);
 }
 
-/* Topbar Actions */
+/* Actions */
 .fb-topbar-actions {
     display: flex;
     align-items: center;
@@ -138,236 +253,495 @@ require_once 'includes/header.php';
 .fb-btn-action {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.55rem 0.9rem;
+    gap: 0.45rem;
+    padding: 0.52rem 0.95rem;
     font-size: 0.8125rem;
     font-weight: 600;
-    border-radius: 9px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-surface);
-    color: var(--color-title);
+    border-radius: 10px;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface);
+    color: var(--app-text);
     cursor: pointer;
     transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
 }
 
 .fb-btn-action:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+    border-color: var(--app-border-hover);
+    background: var(--app-surface-sub);
 }
 
 .fb-btn-primary {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+    background: var(--app-accent);
+    border-color: var(--app-accent);
     color: #ffffff;
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 30%, transparent);
+    box-shadow: 0 4px 14px var(--app-accent-glow);
 }
 
 .fb-btn-primary:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.1);
     color: #ffffff;
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color) 40%, transparent);
 }
 
-/* Title & Description Header Card */
+/* App Studio Layout (Canvas + Integrated Toolbox) */
+.fb-studio-layout {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 1.75rem;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 5rem;
+}
+
+.fb-canvas-column {
+    flex: 1;
+    max-width: 740px;
+    min-width: 0;
+}
+
+/* Integrated Studio Sidebar Toolbox */
+.fb-studio-sidebar {
+    width: 250px;
+    position: sticky;
+    top: 75px;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 18px;
+    padding: 1.25rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.fb-toolbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--app-border);
+}
+
+.fb-toolbox-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--app-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.fb-toolbox-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.fb-tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-sub);
+    color: var(--app-text);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.fb-tool-btn i {
+    font-size: 1.35rem;
+    color: var(--app-accent);
+}
+
+.fb-tool-btn:hover {
+    border-color: var(--app-accent);
+    background: var(--app-accent-light);
+    transform: translateY(-2px);
+}
+
+/* Header Form Title Card with Cover Banner */
 .fb-header-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1.5rem 1.75rem;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 20px;
     margin-bottom: 1.25rem;
     position: relative;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-    border-top: 5px solid var(--primary-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+/* Visual Cover Banner */
+.fb-cover-banner {
+    height: 160px;
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 1.25rem 1.75rem;
+    background-size: cover;
+    background-position: center;
+    transition: all 0.25s ease;
+}
+
+.fb-cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+}
+
+.fb-cover-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.fb-btn-cover-edit {
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.fb-btn-cover-edit:hover {
+    background: rgba(0, 0, 0, 0.85);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.fb-brand-avatar-float {
+    position: relative;
+    z-index: 5;
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    background: var(--app-surface);
+    border: 2px solid var(--app-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    margin-bottom: -32px;
+    overflow: hidden;
+}
+
+.fb-brand-avatar-float img {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+}
+
+.fb-brand-avatar-float i {
+    font-size: 1.85rem;
+    color: var(--app-accent);
+}
+
+.fb-header-content {
+    padding: 2.25rem 1.85rem 1.65rem;
 }
 
 .fb-title-input {
     width: 100%;
     border: none;
-    border-bottom: 2px solid transparent;
-    font-size: 1.45rem;
-    font-weight: 700;
-    color: var(--color-title);
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--app-text);
     background: transparent;
     font-family: inherit;
     padding: 0.25rem 0;
     outline: none;
-    transition: border-color 0.2s ease;
+    line-height: 1.25;
 }
 
-.fb-title-input:focus {
-    border-bottom-color: var(--primary-color);
-}
+.fb-title-input::placeholder { color: var(--app-text-muted); opacity: 0.5; }
 
 .fb-desc-input {
     width: 100%;
     border: none;
-    border-bottom: 1px solid transparent;
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     background: transparent;
     font-family: inherit;
-    padding: 0.4rem 0 0.2rem;
+    padding: 0.5rem 0 0;
     outline: none;
     margin-top: 0.4rem;
     resize: none;
-    transition: border-color 0.2s ease;
+    line-height: 1.5;
 }
 
-.fb-desc-input:focus {
-    border-bottom-color: var(--border-color);
-}
+.fb-desc-input::placeholder { color: var(--app-text-muted); opacity: 0.5; }
 
 /* Question Cards */
 .fb-question-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
     border-radius: 16px;
     margin-bottom: 1rem;
     position: relative;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     overflow: hidden;
 }
 
 .fb-question-card:hover {
-    border-color: color-mix(in srgb, var(--primary-color) 40%, var(--border-color));
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    border-color: var(--app-border-hover);
 }
 
 .fb-question-card.active {
-    border-color: var(--primary-color);
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-color) 12%, transparent);
-    border-left: 4px solid var(--primary-color);
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 1px var(--app-accent), 0 8px 24px var(--app-accent-glow);
 }
 
-.fb-card-drag-bar {
+.fb-card-top-bar {
     display: flex;
-    justify-content: center;
-    padding: 6px 0 2px;
-    color: var(--text-muted);
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem 0;
+    user-select: none;
+}
+
+.fb-card-number-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--app-text-muted);
+    font-family: monospace;
+    background: var(--app-surface-sub);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid var(--app-border);
+}
+
+.fb-card-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    color: var(--app-text-muted);
     cursor: grab;
+    font-size: 1rem;
     opacity: 0.4;
     transition: opacity 0.15s;
+    padding: 2px 6px;
 }
 
-.fb-question-card:hover .fb-card-drag-bar,
-.fb-question-card.active .fb-card-drag-bar {
+.fb-question-card:hover .fb-card-drag-handle,
+.fb-question-card.active .fb-card-drag-handle {
     opacity: 0.9;
 }
 
 .fb-card-content {
-    padding: 0.75rem 1.5rem 1.25rem;
+    padding: 0.85rem 1.35rem 1.25rem;
 }
 
-/* Collapsed vs Active view */
-.fb-question-card:not(.active) .fb-active-only {
-    display: none !important;
-}
-
-.fb-question-card.active .fb-collapsed-only {
-    display: none !important;
-}
-
-/* Active Editing Header */
+/* Active Header Row */
 .fb-q-header-row {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.85rem;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.15rem;
 }
 
 .fb-q-label-input {
     flex: 1;
     font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--color-title);
-    border: 1px solid transparent;
-    background: var(--bg-color);
-    border-radius: 9px;
+    font-weight: 700;
+    color: var(--app-text);
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-sub);
+    border-radius: 10px;
     font-family: inherit;
-    padding: 0.6rem 0.85rem;
+    padding: 0.65rem 0.95rem;
     outline: none;
     transition: all 0.15s ease;
 }
 
 .fb-q-label-input:focus {
-    border-color: var(--primary-color);
-    background: var(--bg-surface);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 10%, transparent);
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 2px var(--app-accent-light);
 }
 
 .fb-type-select-styled {
-    padding: 0.6rem 0.85rem;
-    border: 1px solid var(--border-color);
-    border-radius: 9px;
+    padding: 0.65rem 0.95rem;
+    border: 1px solid var(--app-border);
+    border-radius: 10px;
     font-size: 0.8125rem;
-    font-weight: 500;
+    font-weight: 600;
     font-family: inherit;
-    background: var(--bg-color);
-    color: var(--color-title);
+    background: var(--app-surface-sub);
+    color: var(--app-text);
     min-width: 170px;
     cursor: pointer;
     outline: none;
-    transition: border-color 0.15s;
+    transition: all 0.15s ease;
 }
 
 .fb-type-select-styled:focus {
-    border-color: var(--primary-color);
+    border-color: var(--app-accent);
 }
 
-/* Section Card */
-.fb-section-card {
-    border-top: 4px solid var(--primary-color);
+/* Card Action Footer */
+.fb-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 0.75rem 1.35rem;
+    border-top: 1px solid var(--app-border);
+    background: var(--app-surface-sub);
 }
 
-.fb-section-badge {
-    background: var(--primary-color);
-    color: #ffffff;
+.fb-card-icon-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--app-text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: all 0.15s ease;
+}
+
+.fb-card-icon-btn:hover {
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text);
+}
+
+.fb-card-icon-btn.btn-delete:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.fb-v-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--app-border);
+    margin: 0 0.35rem;
+}
+
+/* iOS Switch */
+.app-switch-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--app-text);
+    cursor: pointer;
+    user-select: none;
+}
+
+.app-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 6px 6px 0 0;
-    font-size: 0.72rem;
-    font-weight: 700;
+}
+
+.app-switch input { opacity: 0; width: 0; height: 0; }
+
+.app-switch-slider {
     position: absolute;
-    top: -24px;
-    left: 12px;
-    letter-spacing: 0.3px;
+    inset: 0;
+    background: var(--app-border);
+    border-radius: 20px;
+    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fb-section-title-input {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--color-title);
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    font-family: inherit;
-    padding: 0.4rem 0;
-    width: 100%;
-    outline: none;
+.app-switch-slider:before {
+    content: '';
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fb-section-title-input:focus {
-    border-bottom-color: var(--primary-color);
+.app-switch input:checked + .app-switch-slider {
+    background: var(--app-accent);
 }
 
-.fb-section-desc-input {
+.app-switch input:checked + .app-switch-slider:before {
+    transform: translateX(16px);
+}
+
+/* Inter-Card Insert Divider */
+.fb-insert-divider {
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: -6px 0 6px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.fb-insert-divider:hover { opacity: 1; }
+
+.fb-insert-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1.5px;
+    background: var(--app-accent);
+    opacity: 0.5;
+}
+
+.fb-insert-btn {
+    position: relative;
+    z-index: 2;
+    background: var(--app-surface);
+    border: 1.5px solid var(--app-accent);
+    color: var(--app-accent);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.85rem;
-    color: var(--text-muted);
-    border: none;
-    border-bottom: 1px solid transparent;
-    background: transparent;
-    font-family: inherit;
-    padding: 0.3rem 0;
-    width: 100%;
-    outline: none;
-    margin-top: 0.25rem;
+    cursor: pointer;
+    transition: transform 0.15s ease;
 }
 
-.fb-section-desc-input:focus {
-    border-bottom-color: var(--border-color);
+.fb-insert-btn:hover {
+    transform: scale(1.15);
+    background: var(--app-accent);
+    color: #ffffff;
 }
 
 /* Options Editor */
@@ -381,47 +755,43 @@ require_once 'includes/header.php';
 .fb-opt-item {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.65rem;
 }
 
 .fb-opt-indicator {
     width: 18px;
     height: 18px;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--app-border);
     border-radius: 50%;
     flex-shrink: 0;
 }
 
-.fb-opt-indicator.checkbox-style {
-    border-radius: 4px;
-}
+.fb-opt-indicator.checkbox-style { border-radius: 5px; }
 
 .fb-opt-input {
     flex: 1;
-    border: 1px solid transparent;
-    border-bottom: 1px solid var(--border-color);
-    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-sub);
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
     font-size: 0.85rem;
-    background: transparent;
     font-family: inherit;
-    color: var(--color-title);
+    color: var(--app-text);
     outline: none;
-    transition: all 0.15s ease;
+    transition: border-color 0.15s;
 }
 
 .fb-opt-input:focus {
-    border-bottom-color: var(--primary-color);
-    background: var(--bg-color);
-    border-radius: 6px 6px 0 0;
+    border-color: var(--app-accent);
 }
 
 .fb-opt-delete-btn {
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--text-muted);
+    color: var(--app-text-muted);
     font-size: 1.1rem;
-    padding: 0.2rem;
+    padding: 0.25rem;
     border-radius: 6px;
     opacity: 0.5;
     transition: all 0.15s ease;
@@ -430,7 +800,6 @@ require_once 'includes/header.php';
 .fb-opt-delete-btn:hover {
     opacity: 1;
     color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
 }
 
 .fb-add-opt-row {
@@ -438,12 +807,12 @@ require_once 'includes/header.php';
     align-items: center;
     gap: 0.5rem;
     font-size: 0.82rem;
-    color: var(--text-muted);
-    margin-top: 0.65rem;
+    color: var(--app-text-muted);
+    margin-top: 0.75rem;
 }
 
 .fb-btn-link {
-    color: var(--primary-color);
+    color: var(--app-accent);
     background: none;
     border: none;
     font-weight: 600;
@@ -452,242 +821,165 @@ require_once 'includes/header.php';
     font-size: inherit;
     font-family: inherit;
     text-decoration: none;
-}
-
-.fb-btn-link:hover {
-    text-decoration: underline;
-}
-
-/* Card Action Footer */
-.fb-card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-top: 1px solid var(--border-color);
-    background: color-mix(in srgb, var(--bg-surface) 60%, var(--bg-color));
-}
-
-.fb-card-icon-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--text-muted);
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 1.05rem;
-    transition: all 0.15s ease;
-}
-
-.fb-card-icon-btn:hover {
-    background: var(--bg-surface);
-    border-color: var(--border-color);
-    color: var(--color-title);
-}
-
-.fb-card-icon-btn.btn-delete:hover {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.2);
-}
-
-.fb-v-divider {
-    width: 1px;
-    height: 20px;
-    background: var(--border-color);
-    margin: 0 0.35rem;
-}
-
-/* Modern iOS Switch Toggle */
-.app-switch-label {
     display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--color-title);
-    cursor: pointer;
-    user-select: none;
+    gap: 0.25rem;
 }
 
-.app-switch {
-    position: relative;
-    width: 38px;
-    height: 22px;
-    display: inline-block;
-}
+.fb-btn-link:hover { text-decoration: underline; }
 
-.app-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.app-switch-slider {
-    position: absolute;
-    inset: 0;
-    background: var(--border-color);
-    border-radius: 22px;
-    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.app-switch-slider:before {
-    content: '';
-    position: absolute;
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background: #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.app-switch input:checked + .app-switch-slider {
-    background: var(--primary-color);
-}
-
-.app-switch input:checked + .app-switch-slider:before {
-    transform: translateX(16px);
-}
-
-/* Floating Component Palette Dock */
-.fb-palette-dock {
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 6px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-    z-index: 35;
-    transition: left 0.15s ease;
-}
-
-.fb-palette-btn {
-    width: 38px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    border-radius: 9px;
-    color: var(--text-muted);
-    font-size: 1.25rem;
-    transition: all 0.15s ease;
-    position: relative;
-}
-
-.fb-palette-btn:hover {
-    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-    color: var(--primary-color);
-    transform: scale(1.05);
-}
-
-.fb-palette-btn[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    left: 48px;
-    background: var(--color-title);
-    color: var(--bg-surface);
-    font-size: 0.72rem;
-    padding: 0.35rem 0.6rem;
-    border-radius: 6px;
-    white-space: nowrap;
-    font-weight: 600;
-    pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 50;
-}
-
-/* Settings Tab Panel */
+/* Settings Panel */
 .fb-settings-panel {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
+    max-width: 740px;
+    margin: 0 auto;
 }
 
 .fb-setting-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 18px;
+    padding: 1.5rem 1.75rem;
 }
 
 .fb-setting-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
 }
 
 .fb-setting-icon {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-    color: var(--primary-color);
+    background: var(--app-accent-light);
+    color: var(--app-accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-}
-
-.fb-setting-title {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--color-title);
+    font-size: 1.25rem;
+    flex-shrink: 0;
 }
 
 .fb-setting-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border-color);
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--app-border);
+    gap: 1rem;
 }
 
-.fb-setting-row:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+.fb-setting-row:last-child { border-bottom: none; }
+
+.fb-setting-info h4 { margin: 0 0 0.2rem; font-size: 0.85rem; font-weight: 600; color: var(--app-text); }
+.fb-setting-info p { margin: 0; font-size: 0.75rem; color: var(--app-text-muted); line-height: 1.4; }
+
+/* Cover Modal */
+.fb-cover-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 1100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
 }
 
-.fb-setting-info h4 {
-    margin: 0 0 0.15rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-title);
+.fb-cover-modal-overlay.active { display: flex; }
+
+.fb-cover-modal {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 22px;
+    width: 100%;
+    max-width: 540px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    overflow: hidden;
 }
 
-.fb-setting-info p {
-    margin: 0;
+.fb-cover-modal-header {
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid var(--app-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.fb-cover-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+    padding: 1.5rem;
+}
+
+.fb-cover-preset-card {
+    height: 85px;
+    border-radius: 12px;
+    border: 2px solid var(--app-border);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    padding: 8px 12px;
+    transition: all 0.15s ease;
+}
+
+.fb-cover-preset-card:hover {
+    border-color: var(--app-accent);
+    transform: scale(1.03);
+}
+
+.fb-cover-preset-card.selected {
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 2px var(--app-accent);
+}
+
+.fb-cover-preset-title {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
-/* Interactive Device Preview Modal */
+/* Toast */
+.fb-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    color: var(--app-text);
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: all 0.22s ease;
+    pointer-events: none;
+}
+.fb-toast.show { opacity: 1; transform: translateY(0); }
+
+/* Device Preview Modal */
 .fb-preview-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     z-index: 1050;
     display: none;
     align-items: center;
@@ -695,258 +987,375 @@ require_once 'includes/header.php';
     padding: 1.5rem 1rem;
 }
 
-.fb-preview-modal-overlay.active {
-    display: flex;
-}
+.fb-preview-modal-overlay.active { display: flex; }
 
 .fb-preview-container {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 28px;
     width: 100%;
-    max-width: 460px;
+    max-width: 440px;
     height: 90vh;
     max-height: 820px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
     overflow: hidden;
-    animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes modalPop {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
 }
 
 .fb-preview-top {
-    padding: 0.85rem 1.25rem;
-    border-bottom: 1px solid var(--border-color);
+    padding: 0.95rem 1.35rem;
+    border-bottom: 1px solid var(--app-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: var(--bg-color);
+    background: var(--app-surface-sub);
 }
 
 .fb-preview-top h3 {
     margin: 0;
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--color-title);
+    color: var(--app-text);
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
 }
 
 .fb-preview-body {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
-    background: #f8fafc;
-}
-[data-theme="dark"] .fb-preview-body {
-    background: #0f172a;
+    padding: 1.25rem;
+    background: var(--app-bg);
 }
 
-/* Realistic Smartphone Mockup Frame */
 .fb-phone-frame {
-    background: var(--bg-surface);
+    background: var(--app-surface);
     border-radius: 24px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    border: 1px solid var(--app-border);
     overflow: hidden;
 }
 
-.fb-phone-header {
-    background: var(--primary-color);
-    padding: 1.5rem;
-    color: #ffffff;
+.fb-phone-notch {
+    height: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--app-surface);
+    padding-top: 6px;
 }
 
-.fb-phone-header h2 {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 700;
+.fb-phone-island {
+    width: 80px;
+    height: 10px;
+    background: var(--app-border);
+    border-radius: 9999px;
 }
 
-.fb-phone-header p {
-    margin: 0.4rem 0 0;
-    font-size: 0.82rem;
-    opacity: 0.9;
-}
+.fb-phone-content { padding: 1.35rem; }
 
-.fb-phone-content {
-    padding: 1.25rem;
+/* Responsive */
+@media (max-width: 1040px) {
+    .fb-studio-sidebar { display: none; }
+    .fb-studio-layout { padding-top: 1.25rem; }
 }
-
-/* Mobile responsive adjustments */
-@media (max-width: 920px) {
-    .fb-palette-dock {
-        position: fixed;
-        bottom: 0;
-        left: 0 !important;
-        right: 0;
-        top: auto;
-        transform: none;
-        flex-direction: row;
-        justify-content: center;
-        border-radius: 0;
-        padding: 6px 12px;
-        border-left: none;
-        border-right: none;
-        border-bottom: none;
-        overflow-x: auto;
-    }
-    .fb-palette-btn[title]:hover::after {
-        display: none;
-    }
-    .fb-builder-wrapper {
-        padding-bottom: 6rem;
-    }
-    .fb-app-topbar {
-        flex-wrap: wrap;
-    }
+@media (max-width: 768px) {
+    .fb-viewport { padding-top: 52px; }
 }
 </style>
 
-<!-- Topbar Navigation -->
-<div class="fb-app-topbar">
-    <div class="fb-topbar-left">
-        <a href="index.php?module=forms&action=index" class="fb-btn-back" title="Volver a formularios">
-            <i class="ph-bold ph-arrow-left"></i>
-        </a>
-        <div>
-            <h2 class="fb-topbar-title">
-                <?php echo $formData ? htmlspecialchars($formData['title']) : 'Nuevo Formulario'; ?>
+<div class="fb-viewport">
+    <!-- Topbar Navigation -->
+    <div class="fb-app-topbar">
+        <div class="fb-topbar-left">
+            <a href="index.php?module=forms&action=index" class="fb-btn-back" title="Volver a formularios">
+                <i class="ph-bold ph-arrow-left"></i>
+            </a>
+            <div class="fb-title-wrap">
+                <h2 class="fb-topbar-title" id="topbarTitleText">
+                    <?php echo $formData ? htmlspecialchars($formData['title']) : 'Nuevo Formulario'; ?>
+                </h2>
                 <span class="fb-status-pill <?php echo ($formData && $formData['status']==='active') ? 'fb-pill-active' : 'fb-pill-draft'; ?>" id="topbarStatusBadge">
                     <?php echo ($formData && $formData['status']==='active') ? 'Publicado' : 'Borrador'; ?>
                 </span>
-            </h2>
-        </div>
-    </div>
-
-    <!-- Segmented Tab Switcher -->
-    <div class="fb-segmented-tabs">
-        <button type="button" class="fb-tab-btn active" id="tabBtnEditor" onclick="switchTab('editor')">
-            <i class="ph-bold ph-faders"></i> Editor
-        </button>
-        <button type="button" class="fb-tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">
-            <i class="ph-bold ph-gear"></i> Configuración
-        </button>
-    </div>
-
-    <!-- Topbar Actions -->
-    <div class="fb-topbar-actions">
-        <button type="button" class="fb-btn-action" onclick="toggleDevicePreview()" title="Vista previa interactiva">
-            <i class="ph-bold ph-eye"></i> <span class="d-none d-md-inline">Vista Previa</span>
-        </button>
-        <button type="button" class="fb-btn-action" onclick="saveForm('draft')" title="Guardar como borrador">
-            <i class="ph-bold ph-floppy-disk"></i> <span class="d-none d-md-inline">Borrador</span>
-        </button>
-        <button type="button" class="fb-btn-action fb-btn-primary" onclick="saveForm('active')" title="Publicar formulario">
-            <i class="ph-bold ph-rocket-launch"></i> <span>Publicar</span>
-        </button>
-    </div>
-</div>
-
-<div class="fb-builder-wrapper">
-    <!-- View 1: Form Canvas (Editor) -->
-    <div id="viewEditor">
-        <!-- Form Header Card (Title & Description) -->
-        <div class="fb-header-card">
-            <input type="text" class="fb-title-input" id="formTitle" placeholder="Título del formulario..." value="<?php echo htmlspecialchars($formData['title'] ?? ''); ?>" autocomplete="off">
-            <textarea class="fb-desc-input" id="formDesc" rows="1" placeholder="Añade una descripción o instrucciones para tus clientes..." autocomplete="off"><?php echo htmlspecialchars($formData['description'] ?? ''); ?></textarea>
+            </div>
         </div>
 
-        <!-- Dynamic Fields List Container -->
-        <div id="fieldsList"></div>
+        <!-- Segmented Tab Switcher -->
+        <div class="fb-segmented-tabs">
+            <button type="button" class="fb-tab-btn active" id="tabBtnEditor" onclick="switchTab('editor')">
+                <i class="ph-bold ph-faders"></i> Editor
+            </button>
+            <button type="button" class="fb-tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">
+                <i class="ph-bold ph-gear"></i> Configuración
+            </button>
+        </div>
 
-        <!-- Quick Add Field Button -->
-        <div style="text-align: center; margin-top: 1rem;">
-            <button type="button" class="fb-btn-action" onclick="addField('text')" style="padding: 0.7rem 1.5rem; border-radius: 12px; font-weight: 600;">
-                <i class="ph-bold ph-plus-circle" style="color: var(--primary-color); font-size: 1.1rem;"></i> Añadir pregunta
+        <!-- Topbar Actions -->
+        <div class="fb-topbar-actions">
+            <?php if($publicUrl): ?>
+            <button type="button" class="fb-btn-action" onclick="copyPublicLink()" title="Copiar enlace para clientes">
+                <i class="ph-bold ph-link-simple"></i> <span class="d-none d-lg-inline">Copiar Enlace</span>
+            </button>
+            <?php endif; ?>
+            <button type="button" class="fb-btn-action" onclick="toggleDevicePreview()" title="Vista previa interactiva">
+                <i class="ph-bold ph-device-mobile"></i> <span class="d-none d-md-inline">Vista Previa</span>
+            </button>
+            <button type="button" class="fb-btn-action" onclick="saveForm('draft')" title="Guardar como borrador">
+                <i class="ph-bold ph-floppy-disk"></i> <span class="d-none d-md-inline">Borrador</span>
+            </button>
+            <button type="button" class="fb-btn-action fb-btn-primary" onclick="saveForm('active')" title="Publicar formulario">
+                <i class="ph-bold ph-rocket-launch"></i> <span>Publicar</span>
             </button>
         </div>
     </div>
 
-    <!-- View 2: Settings Panel -->
-    <div id="viewSettings" class="fb-settings-panel" style="display: none;">
-        <!-- General Settings -->
-        <div class="fb-setting-card">
-            <div class="fb-setting-header">
-                <div class="fb-setting-icon"><i class="ph-bold ph-sliders-horizontal"></i></div>
-                <h3 class="fb-setting-title">Preferencias Generales</h3>
-            </div>
-            
-            <div class="fb-setting-row">
-                <div class="fb-setting-info">
-                    <h4>Mostrar logotipo</h4>
-                    <p>Muestra el logo de la agencia en la cabecera del formulario.</p>
+    <!-- Main Studio Workspace -->
+    <div class="fb-studio-layout">
+        <!-- Canvas Column -->
+        <div class="fb-canvas-column">
+            <!-- View 1: Editor -->
+            <div id="viewEditor">
+                <!-- Header Card with Visual Cover -->
+                <div class="fb-header-card">
+                    <!-- Dynamic Cover Banner -->
+                    <div class="fb-cover-banner" id="headerCoverBanner">
+                        <div class="fb-cover-overlay"></div>
+                        <div class="fb-cover-actions">
+                            <button type="button" class="fb-btn-cover-edit" onclick="openCoverModal()">
+                                <i class="ph-bold ph-image"></i> Cambiar Portada
+                            </button>
+                        </div>
+                        <div class="fb-brand-avatar-float">
+                            <?php if($logoLight): ?>
+                                <img src="<?php echo htmlspecialchars($logoLight); ?>" alt="Logo">
+                            <?php else: ?>
+                                <i class="ph-bold ph-shield-check"></i>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="fb-header-content">
+                        <input type="text" class="fb-title-input" id="formTitle" placeholder="Título del formulario..." value="<?php echo htmlspecialchars($formData['title'] ?? ''); ?>" autocomplete="off" oninput="updateHeaderStats()">
+                        <textarea class="fb-desc-input" id="formDesc" rows="1" placeholder="Añade una descripción o instrucciones para tus clientes..." autocomplete="off"><?php echo htmlspecialchars($formData['description'] ?? ''); ?></textarea>
+                    </div>
                 </div>
-                <label class="app-switch">
-                    <input type="checkbox" id="settShowLogo" <?php echo (json_decode($formData['settings_json'] ?? '{}', true)['show_logo'] ?? true) ? 'checked' : ''; ?>>
-                    <span class="app-switch-slider"></span>
-                </label>
+
+                <!-- Dynamic Fields Container -->
+                <div id="fieldsList"></div>
+
+                <!-- Empty State -->
+                <div id="fbEmptyState" style="display: none; text-align: center; padding: 3rem 1.5rem; background: var(--app-surface); border: 1.5px dashed var(--app-border); border-radius: 18px; margin-bottom: 1.5rem;">
+                    <i class="ph-bold ph-cards" style="font-size: 2.2rem; color: var(--app-accent); display: inline-block; margin-bottom: 0.75rem;"></i>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.35rem;">Tu formulario está vacío</h3>
+                    <p style="font-size: 0.8125rem; color: var(--app-text-muted); margin-bottom: 1.25rem;">Haz clic en cualquiera de las herramientas a la derecha para añadir una pregunta.</p>
+                </div>
+
+                <!-- Bottom Add Button -->
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button type="button" class="fb-btn-action" onclick="addField('text')" style="padding: 0.75rem 1.75rem; border-radius: 12px; font-weight: 700; background: var(--app-surface);">
+                        <i class="ph-bold ph-plus-circle" style="color: var(--app-accent); font-size: 1.15rem;"></i> Añadir Pregunta
+                    </button>
+                </div>
             </div>
 
-            <div class="fb-setting-row">
-                <div class="fb-setting-info">
-                    <h4>Solicitar nombre del cliente</h4>
-                    <p>Añade un campo obligatorio para el nombre al inicio del formulario.</p>
-                </div>
-                <label class="app-switch">
-                    <input type="checkbox" id="settRequireName" <?php echo (json_decode($formData['settings_json'] ?? '{}', true)['require_name'] ?? true) ? 'checked' : ''; ?>>
-                    <span class="app-switch-slider"></span>
-                </label>
-            </div>
+            <!-- View 2: Settings -->
+            <div id="viewSettings" class="fb-settings-panel" style="display: none;">
+                <!-- Visual Style & Cover Settings -->
+                <div class="fb-setting-card">
+                    <div class="fb-setting-header">
+                        <div class="fb-setting-icon"><i class="ph-bold ph-palette"></i></div>
+                        <div>
+                            <h3 style="margin:0; font-size:0.95rem; font-weight:700;">Estilo y Apariencia</h3>
+                            <p style="margin:2px 0 0; font-size:0.75rem; color:var(--app-text-muted);">Configura la portada visual y el modo de presentación</p>
+                        </div>
+                    </div>
 
-            <div class="fb-setting-row">
-                <div class="fb-setting-info">
-                    <h4>Solicitar correo electrónico</h4>
-                    <p>Añade un campo obligatorio para el email de contacto.</p>
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Estilo de Vista</h4>
+                            <p>Elige cómo se desplegará el formulario para el usuario.</p>
+                        </div>
+                        <select id="settViewStyle" style="padding: 6px 12px; border: 1px solid var(--app-border); border-radius: 9px; background: var(--app-surface-sub); color: var(--app-text); font-weight: 600;">
+                            <option value="hero_cover" <?php echo $viewStyle==='hero_cover'?'selected':''; ?>>🌟 Portada Visual (Hero Cover)</option>
+                            <option value="slides" <?php echo $viewStyle==='slides'?'selected':''; ?>>🎯 Diapositivas (Tipo Typeform)</option>
+                            <option value="minimal" <?php echo $viewStyle==='minimal'?'selected':''; ?>>📱 Minimal App</option>
+                        </select>
+                    </div>
+
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Pantalla de Bienvenida (Welcome Screen)</h4>
+                            <p>Muestra una portada inicial de presentación con botón "Comenzar Formulario".</p>
+                        </div>
+                        <label class="app-switch">
+                            <input type="checkbox" id="settWelcomeScreen" <?php echo $welcomeScreen ? 'checked' : ''; ?>>
+                            <span class="app-switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Portada Visual</h4>
+                            <p>Preset actual para la cabecera panorámica.</p>
+                        </div>
+                        <button type="button" class="fb-btn-action" onclick="openCoverModal()">
+                            <i class="ph-bold ph-image"></i> Cambiar Portada
+                        </button>
+                    </div>
                 </div>
-                <label class="app-switch">
-                    <input type="checkbox" id="settRequireEmail" <?php echo (json_decode($formData['settings_json'] ?? '{}', true)['require_email'] ?? true) ? 'checked' : ''; ?>>
-                    <span class="app-switch-slider"></span>
-                </label>
+
+                <!-- General Preferences -->
+                <div class="fb-setting-card">
+                    <div class="fb-setting-header">
+                        <div class="fb-setting-icon"><i class="ph-bold ph-sliders-horizontal"></i></div>
+                        <div>
+                            <h3 style="margin:0; font-size:0.95rem; font-weight:700;">Preferencias de Captura</h3>
+                            <p style="margin:2px 0 0; font-size:0.75rem; color:var(--app-text-muted);">Campos obligatorios iniciales</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Mostrar logotipo de la agencia</h4>
+                            <p>Muestra el avatar con el logo en la portada del formulario.</p>
+                        </div>
+                        <label class="app-switch">
+                            <input type="checkbox" id="settShowLogo" <?php echo $showLogo ? 'checked' : ''; ?>>
+                            <span class="app-switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Solicitar nombre del cliente</h4>
+                            <p>Añade un campo obligatorio para el nombre completo.</p>
+                        </div>
+                        <label class="app-switch">
+                            <input type="checkbox" id="settRequireName" <?php echo $reqName ? 'checked' : ''; ?>>
+                            <span class="app-switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Solicitar correo electrónico</h4>
+                            <p>Añade un campo obligatorio para el email de contacto.</p>
+                        </div>
+                        <label class="app-switch">
+                            <input type="checkbox" id="settRequireEmail" <?php echo $reqEmail ? 'checked' : ''; ?>>
+                            <span class="app-switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Formulario Multi-paso (Wizard)</h4>
+                            <p>Divide el formulario en páginas usando los divisores de sección.</p>
+                        </div>
+                        <label class="app-switch">
+                            <input type="checkbox" id="settMultiStep" <?php echo $multiStep ? 'checked' : ''; ?>>
+                            <span class="app-switch-slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Form Flow / Multi-step -->
-        <div class="fb-setting-card">
-            <div class="fb-setting-header">
-                <div class="fb-setting-icon"><i class="ph-bold ph-steps"></i></div>
-                <h3 class="fb-setting-title">Flujo de Navegación</h3>
+        <!-- Integrated Studio Sidebar Toolbox (Desktop) -->
+        <div class="fb-studio-sidebar" id="studioSidebar">
+            <div class="fb-toolbox-header">
+                <span class="fb-toolbox-title"><i class="ph-bold ph-wrench"></i> Herramientas</span>
             </div>
-
-            <div class="fb-setting-row">
-                <div class="fb-setting-info">
-                    <h4>Formulario Multi-paso (Paso a paso)</h4>
-                    <p>Divide el formulario en páginas interactivas usando los divisores de sección.</p>
+            <div class="fb-toolbox-grid">
+                <div class="fb-tool-btn" onclick="addField('text')">
+                    <i class="ph-bold ph-text-aa"></i>
+                    <span>Texto</span>
                 </div>
-                <label class="app-switch">
-                    <input type="checkbox" id="settMultiStep" <?php echo (json_decode($formData['settings_json'] ?? '{}', true)['multi_step'] ?? false) ? 'checked' : ''; ?>>
-                    <span class="app-switch-slider"></span>
-                </label>
+                <div class="fb-tool-btn" onclick="addField('textarea')">
+                    <i class="ph-bold ph-text-align-left"></i>
+                    <span>Párrafo</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('select')">
+                    <i class="ph-bold ph-radio-button"></i>
+                    <span>Opciones</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('checkbox')">
+                    <i class="ph-bold ph-check-square"></i>
+                    <span>Casillas</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('dropdown')">
+                    <i class="ph-bold ph-caret-down"></i>
+                    <span>Desplegable</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('file')">
+                    <i class="ph-bold ph-upload-simple"></i>
+                    <span>Archivos</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('date')">
+                    <i class="ph-bold ph-calendar-blank"></i>
+                    <span>Fecha</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('range')">
+                    <i class="ph-bold ph-dots-three-outline"></i>
+                    <span>Escala</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('number_range')">
+                    <i class="ph-bold ph-arrows-out-line-horizontal"></i>
+                    <span>Rango</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('color')">
+                    <i class="ph-bold ph-palette"></i>
+                    <span>Colores</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('icon_card')">
+                    <i class="ph-bold ph-cards"></i>
+                    <span>Cards</span>
+                </div>
+                <div class="fb-tool-btn" onclick="addField('divider')">
+                    <i class="ph-bold ph-equals"></i>
+                    <span>Sección</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Floating Component Palette Dock -->
-<div class="fb-palette-dock" id="gfToolbar">
-    <button type="button" class="fb-palette-btn" onclick="addField('text')" title="Texto Corto"><i class="ph-bold ph-text-aa"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('textarea')" title="Párrafo"><i class="ph-bold ph-text-align-left"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('select')" title="Opción Múltiple"><i class="ph-bold ph-radio-button"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('checkbox')" title="Casillas de Verificación"><i class="ph-bold ph-check-square"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('dropdown')" title="Lista Desplegable"><i class="ph-bold ph-caret-down"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('file')" title="Subida de Archivos"><i class="ph-bold ph-upload-simple"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('date')" title="Fecha"><i class="ph-bold ph-calendar-blank"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('range')" title="Escala de Puntuación"><i class="ph-bold ph-dots-three-outline"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('number_range')" title="Rango Numérico"><i class="ph-bold ph-arrows-out-line-horizontal"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('color')" title="Paleta de Colores"><i class="ph-bold ph-palette"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('icon_card')" title="Cards Interactivas"><i class="ph-bold ph-cards"></i></button>
-    <button type="button" class="fb-palette-btn" onclick="addField('divider')" title="Nueva Sección"><i class="ph-bold ph-equals"></i></button>
+<!-- Cover Selector Modal -->
+<div class="fb-cover-modal-overlay" id="coverModalOverlay" onclick="if(event.target===this)closeCoverModal()">
+    <div class="fb-cover-modal">
+        <div class="fb-cover-modal-header">
+            <h3 style="margin:0; font-size:1rem; font-weight:700;"><i class="ph-bold ph-image"></i> Selecciona una Portada Visual</h3>
+            <button type="button" class="fb-card-icon-btn" onclick="closeCoverModal()"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="fb-cover-grid">
+            <div class="fb-cover-preset-card" id="preset_nebula" onclick="selectCover('nebula')" style="background: radial-gradient(circle at 20% 20%, #4338ca 0%, transparent 40%), radial-gradient(circle at 80% 80%, #7c3aed 0%, transparent 40%), radial-gradient(circle at 50% 50%, #1e1b4b 0%, #09090b 100%);">
+                <span class="fb-cover-preset-title">🌌 Deep Nebula</span>
+            </div>
+            <div class="fb-cover-preset-card" id="preset_cyber" onclick="selectCover('cyber')" style="background: radial-gradient(circle at 80% 20%, #0ea5e9 0%, transparent 45%), radial-gradient(circle at 20% 80%, #10b981 0%, transparent 45%), linear-gradient(135deg, #020617 0%, #0f172a 100%);">
+                <span class="fb-cover-preset-title">⚡ Cyber Glow</span>
+            </div>
+            <div class="fb-cover-preset-card" id="preset_velvet" onclick="selectCover('velvet')" style="background: radial-gradient(circle at 75% 30%, #e11d48 0%, transparent 40%), radial-gradient(circle at 25% 70%, #9333ea 0%, transparent 40%), linear-gradient(135deg, #18181b 0%, #09090b 100%);">
+                <span class="fb-cover-preset-title">🔮 Velvet Obsidian</span>
+            </div>
+            <div class="fb-cover-preset-card" id="preset_geometry" onclick="selectCover('geometry')" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%); background-image: radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px); background-size: 14px 14px;">
+                <span class="fb-cover-preset-title">📐 Geometry Carbon</span>
+            </div>
+            <div class="fb-cover-preset-card" id="preset_sunset" onclick="selectCover('sunset')" style="background: radial-gradient(circle at 80% 20%, #f59e0b 0%, transparent 45%), radial-gradient(circle at 20% 80%, #ec4899 0%, transparent 45%), linear-gradient(135deg, #18181b 0%, #050505 100%);">
+                <span class="fb-cover-preset-title">🌅 Sunset Aura</span>
+            </div>
+            <div class="fb-cover-preset-card" id="preset_abstract" onclick="selectCover('abstract')" style="background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80') center/cover;">
+                <span class="fb-cover-preset-title">🎨 Abstract 3D</span>
+            </div>
+        </div>
+        <div style="padding: 0 1.5rem 1.5rem;">
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--app-text-muted); margin-bottom:4px;">O ingresa la URL de una imagen propia:</label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="customCoverUrlInput" placeholder="https://ejemplo.com/imagen.jpg" style="flex:1; padding:7px 12px; border:1px solid var(--app-border); border-radius:9px; background:var(--app-surface-sub); color:var(--app-text); font-size:0.8rem; outline:none;">
+                <button type="button" class="fb-btn-action fb-btn-primary" onclick="applyCustomCover()" style="padding:7px 14px; font-size:0.8rem;">Aplicar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Interactive Device Preview Modal -->
@@ -957,31 +1366,51 @@ require_once 'includes/header.php';
             <button type="button" class="fb-card-icon-btn" onclick="toggleDevicePreview()"><i class="ph-bold ph-x"></i></button>
         </div>
         <div class="fb-preview-body">
-            <div class="fb-phone-frame" id="phonePreview"></div>
+            <div class="fb-phone-frame" id="phonePreview">
+                <div class="fb-phone-notch"><div class="fb-phone-island"></div></div>
+                <div id="phoneInnerContent"></div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Toast Feedback -->
+<div class="fb-toast" id="fbToast">
+    <i class="ph-bold ph-check-circle" style="color: #10b981; font-size: 1.1rem;"></i>
+    <span id="fbToastMsg">Acción completada</span>
+</div>
+
 <script>
 const FORM_ID = '<?php echo $id; ?>';
+const PUBLIC_URL = '<?php echo $publicUrl; ?>';
 let fields = <?php echo $formData ? ($formData['fields_json'] ?: '[]') : '[]'; ?>;
 let activeIdx = null, dragSrcIdx = null;
+let currentCover = '<?php echo $coverPreset; ?>';
+
+const COVER_STYLES = {
+    nebula: 'radial-gradient(circle at 20% 20%, #4338ca 0%, transparent 40%), radial-gradient(circle at 80% 80%, #7c3aed 0%, transparent 40%), radial-gradient(circle at 50% 50%, #1e1b4b 0%, #09090b 100%)',
+    cyber: 'radial-gradient(circle at 80% 20%, #0ea5e9 0%, transparent 45%), radial-gradient(circle at 20% 80%, #10b981 0%, transparent 45%), linear-gradient(135deg, #020617 0%, #0f172a 100%)',
+    velvet: 'radial-gradient(circle at 75% 30%, #e11d48 0%, transparent 40%), radial-gradient(circle at 25% 70%, #9333ea 0%, transparent 40%), linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+    geometry: 'linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%)',
+    sunset: 'radial-gradient(circle at 80% 20%, #f59e0b 0%, transparent 45%), radial-gradient(circle at 20% 80%, #ec4899 0%, transparent 45%), linear-gradient(135deg, #18181b 0%, #050505 100%)',
+    abstract: "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80') center/cover"
+};
 
 const TYPE_MAP = {
-    text: 'Respuesta corta',
+    text: 'Texto Corto',
     textarea: 'Párrafo',
-    email: 'Email',
+    email: 'Correo Electrónico',
     phone: 'Teléfono',
     date: 'Fecha',
-    select: 'Varias opciones',
+    select: 'Varias Opciones',
     checkbox: 'Casillas',
-    dropdown: 'Desplegable',
-    file: 'Subir archivos',
-    range: 'Escala lineal',
-    number_range: 'Rango numérico',
-    color: 'Color',
-    icon_card: 'Cards con icono',
-    divider: 'Sección'
+    dropdown: 'Menú Desplegable',
+    file: 'Subir Archivos',
+    range: 'Escala Lineal',
+    number_range: 'Rango Numérico',
+    color: 'Paleta de Colores',
+    icon_card: 'Cards con Icono',
+    divider: 'Nueva Sección'
 };
 
 const ICON_LIST = [
@@ -994,33 +1423,91 @@ const ICON_LIST = [
 function uid() { return 'f_' + Math.random().toString(36).substr(2, 9); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
+function showToast(msg) {
+    const t = document.getElementById('fbToast');
+    document.getElementById('fbToastMsg').textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function updateCoverDisplay() {
+    const banner = document.getElementById('headerCoverBanner');
+    if (!banner) return;
+    if (COVER_STYLES[currentCover]) {
+        banner.style.background = COVER_STYLES[currentCover];
+    } else if (currentCover.startsWith('http') || currentCover.startsWith('data:')) {
+        banner.style.background = `url('${currentCover}') center/cover`;
+    } else {
+        banner.style.background = COVER_STYLES.nebula;
+    }
+}
+updateCoverDisplay();
+
+function openCoverModal() {
+    document.querySelectorAll('.fb-cover-preset-card').forEach(c => c.classList.remove('selected'));
+    const currCard = document.getElementById('preset_' + currentCover);
+    if (currCard) currCard.classList.add('selected');
+    document.getElementById('coverModalOverlay').classList.add('active');
+}
+
+function closeCoverModal() {
+    document.getElementById('coverModalOverlay').classList.remove('active');
+}
+
+function selectCover(preset) {
+    currentCover = preset;
+    updateCoverDisplay();
+    closeCoverModal();
+    showToast('Portada actualizada');
+}
+
+function applyCustomCover() {
+    const url = document.getElementById('customCoverUrlInput').value.trim();
+    if (!url) return;
+    currentCover = url;
+    updateCoverDisplay();
+    closeCoverModal();
+    showToast('Portada personalizada aplicada');
+}
+
+function copyPublicLink() {
+    if (!PUBLIC_URL) return;
+    const full = window.location.origin + window.location.pathname.replace('index.php', '') + PUBLIC_URL;
+    navigator.clipboard.writeText(full).then(() => {
+        showToast('¡Enlace copiado al portapapeles!');
+    }).catch(() => {
+        prompt('Copia este enlace:', full);
+    });
+}
+
 function switchTab(tab) {
     const isEditor = (tab === 'editor');
     document.getElementById('viewEditor').style.display = isEditor ? 'block' : 'none';
-    document.getElementById('viewSettings').style.display = isEditor ? 'none' : 'flex';
+    document.getElementById('viewSettings').style.display = isEditor ? 'none' : 'block';
     document.getElementById('tabBtnEditor').classList.toggle('active', isEditor);
     document.getElementById('tabBtnSettings').classList.toggle('active', !isEditor);
-    document.getElementById('gfToolbar').style.display = isEditor ? 'flex' : 'none';
+    const sb = document.getElementById('studioSidebar');
+    if (sb) sb.style.display = isEditor ? 'flex' : 'none';
 }
 
-function addField(type) {
+function addField(type, atIdx = null) {
     const defs = {
         text: { l: 'Pregunta sin título', p: 'Texto de respuesta corta' },
         textarea: { l: 'Pregunta sin título', p: 'Texto de respuesta larga' },
         email: { l: 'Correo electrónico', p: 'tu@email.com' },
         phone: { l: 'Teléfono', p: '+51 999 999 999' },
         date: { l: 'Fecha', p: '' },
-        select: { l: 'Pregunta sin título', p: '', o: ['Opción 1'] },
-        checkbox: { l: 'Pregunta sin título', p: '', o: ['Opción 1'] },
-        dropdown: { l: 'Pregunta sin título', p: '', o: ['Opción 1'] },
+        select: { l: 'Pregunta sin título', p: '', o: ['Opción 1', 'Opción 2'] },
+        checkbox: { l: 'Pregunta sin título', p: '', o: ['Opción 1', 'Opción 2'] },
+        dropdown: { l: 'Pregunta sin título', p: '', o: ['Opción 1', 'Opción 2'] },
         file: { l: 'Subir archivo', p: '' },
         range: { l: 'Escala de satisfacción', p: '' },
-        number_range: { l: 'Rango de edad', p: '' },
+        number_range: { l: 'Rango numérico', p: '' },
         color: { l: 'Elige tus colores preferidos', p: '' },
         icon_card: { l: 'Elige una opción', p: '' },
         divider: { l: 'Sección sin título', p: '' }
     };
-    const d = defs[type];
+    const d = defs[type] || { l: 'Pregunta sin título', p: '' };
     const field = {
         id: uid(),
         type,
@@ -1036,8 +1523,14 @@ function addField(type) {
     if (type === 'color') { field.color_options = ['#4f46e5', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6']; field.color_multi = true; }
     if (type === 'icon_card') { field.icon_options = [{ icon: 'ph-star', text: 'Opción 1' }, { icon: 'ph-rocket', text: 'Opción 2' }]; field.icon_multi = false; }
     
-    fields.push(field);
-    activeIdx = fields.length - 1;
+    if (atIdx !== null && atIdx >= 0 && atIdx <= fields.length) {
+        fields.splice(atIdx, 0, field);
+        activeIdx = atIdx;
+    } else {
+        fields.push(field);
+        activeIdx = fields.length - 1;
+    }
+    
     renderFields();
     
     setTimeout(() => {
@@ -1052,16 +1545,47 @@ function setActive(idx) {
     renderFields();
 }
 
+function updateHeaderStats() {
+    const titleVal = document.getElementById('formTitle').value.trim();
+    const titleTextEl = document.getElementById('topbarTitleText');
+    if (titleTextEl) {
+        titleTextEl.textContent = titleVal || 'Nuevo Formulario';
+    }
+}
+
 function renderFields() {
     const list = document.getElementById('fieldsList');
+    const emptyState = document.getElementById('fbEmptyState');
+    
+    updateHeaderStats();
+
+    if (fields.length === 0) {
+        list.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'block';
+        return;
+    }
+    if (emptyState) emptyState.style.display = 'none';
+
     list.innerHTML = '';
     let numSections = 1;
     fields.forEach(f => { if (f.type === 'divider') numSections++; });
     let currentSection = 1;
+    let questionCounter = 0;
 
     fields.forEach((f, i) => {
+        // Inter-card Insert Divider
+        const dividerDiv = document.createElement('div');
+        dividerDiv.className = 'fb-insert-divider';
+        dividerDiv.innerHTML = `
+            <div class="fb-insert-line"></div>
+            <button type="button" class="fb-insert-btn" onclick="addField('text', ${i})" title="Insertar pregunta aquí">
+                <i class="ph-bold ph-plus"></i>
+            </button>
+        `;
+        list.appendChild(dividerDiv);
+
         const card = document.createElement('div');
-        card.className = 'fb-question-card' + (i === activeIdx ? ' active' : '') + (f.type === 'divider' ? ' fb-section-card' : '');
+        card.className = 'fb-question-card' + (i === activeIdx ? ' active' : '');
         card.dataset.idx = i;
         card.draggable = true;
 
@@ -1077,9 +1601,19 @@ function renderFields() {
             if (activeIdx !== i) { activeIdx = i; renderFields(); }
         });
 
-        card.addEventListener('dragstart', e => { dragSrcIdx = i; card.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; });
-        card.addEventListener('dragend', () => { card.style.opacity = '1'; dragSrcIdx = null; });
-        card.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        card.addEventListener('dragstart', e => { 
+            dragSrcIdx = i; 
+            card.style.opacity = '0.4'; 
+            e.dataTransfer.effectAllowed = 'move'; 
+        });
+        card.addEventListener('dragend', () => { 
+            card.style.opacity = '1'; 
+            dragSrcIdx = null; 
+        });
+        card.addEventListener('dragover', e => { 
+            e.preventDefault(); 
+            e.dataTransfer.dropEffect = 'move'; 
+        });
         card.addEventListener('drop', e => {
             e.preventDefault();
             if (dragSrcIdx === null || dragSrcIdx === i) return;
@@ -1090,49 +1624,66 @@ function renderFields() {
         });
 
         let bodyHtml = '';
-        let badgeHtml = '';
 
         if (f.type === 'divider') {
             currentSection++;
-            badgeHtml = `<div class="fb-section-badge">Sección ${currentSection} de ${numSections}</div>`;
-            card.style.marginTop = '28px';
             bodyHtml = `
-                <input class="fb-section-title-input" value="${esc(f.label)}" placeholder="Sección sin título" onfocus="setActive(${i})" oninput="fields[${i}].label=this.value" autocomplete="off">
-                <input class="fb-section-desc-input" value="${esc(f.description||'')}" placeholder="Descripción de la sección (opcional)" oninput="fields[${i}].description=this.value" autocomplete="off">
-            `;
-        } else if (i === activeIdx) {
-            // Active Editing Mode
-            let typeOpts = '';
-            ['text','textarea','select','checkbox','dropdown','email','phone','date','file','range','number_range','color','icon_card'].forEach(t => {
-                typeOpts += `<option value="${t}" ${f.type===t?'selected':''}>${TYPE_MAP[t]}</option>`;
-            });
-            bodyHtml = `
-                <div class="fb-q-header-row">
-                    <input class="fb-q-label-input" value="${esc(f.label)}" placeholder="Escribe tu pregunta..." oninput="fields[${i}].label=this.value" autocomplete="off">
-                    <select class="fb-type-select-styled" onchange="fields[${i}].type=this.value;if(['select','checkbox','dropdown'].includes(this.value)&&!fields[${i}].options)fields[${i}].options=['Opción 1'];if(this.value==='color'&&!fields[${i}].color_options)fields[${i}].color_options=['#4f46e5'];if(this.value==='icon_card'&&!fields[${i}].icon_options)fields[${i}].icon_options=[{icon:'ph-star',text:'Opción'}];renderFields()">
-                        ${typeOpts}
-                    </select>
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--app-accent); text-transform: uppercase; margin-bottom: 0.4rem;">
+                    Sección ${currentSection} de ${numSections}
                 </div>
+                <input style="font-size: 1.2rem; font-weight: 800; color: var(--app-text); border: none; background: transparent; width: 100%; outline: none;" value="${esc(f.label)}" placeholder="Título de la Sección..." onfocus="setActive(${i})" oninput="fields[${i}].label=this.value" autocomplete="off">
+                <input style="font-size: 0.85rem; color: var(--app-text-muted); border: none; background: transparent; width: 100%; outline: none; margin-top: 0.25rem;" value="${esc(f.description||'')}" placeholder="Descripción de la sección (opcional)..." oninput="fields[${i}].description=this.value" autocomplete="off">
             `;
-            bodyHtml += renderFieldContent(f, i);
         } else {
-            // Collapsed Preview Mode
-            bodyHtml = `
-                <div class="fb-collapsed-only">
-                    <div style="font-size: 0.92rem; font-weight: 600; color: var(--color-title); margin-bottom: 0.35rem;">
-                        ${esc(f.label)}${f.required ? '<span style="color:#ef4444; margin-left: 3px;">*</span>' : ''}
+            questionCounter++;
+            const qNumStr = questionCounter < 10 ? '0' + questionCounter : questionCounter;
+
+            if (i === activeIdx) {
+                // Active Editing Mode
+                let typeOpts = '';
+                ['text','textarea','select','checkbox','dropdown','email','phone','date','file','range','number_range','color','icon_card'].forEach(t => {
+                    typeOpts += `<option value="${t}" ${f.type===t?'selected':''}>${TYPE_MAP[t]}</option>`;
+                });
+                bodyHtml = `
+                    <div class="fb-q-header-row">
+                        <input class="fb-q-label-input" value="${esc(f.label)}" placeholder="Escribe tu pregunta..." oninput="fields[${i}].label=this.value" autocomplete="off">
+                        <select class="fb-type-select-styled" onchange="changeFieldType(${i}, this.value)">
+                            ${typeOpts}
+                        </select>
                     </div>
-                    <div style="font-size: 0.82rem; color: var(--text-muted);">${renderCollapsedPreview(f)}</div>
-                </div>
-            `;
+                `;
+                bodyHtml += renderFieldContent(f, i);
+            } else {
+                // Collapsed Preview Mode
+                bodyHtml = `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                        <div>
+                            <div style="font-size: 0.95rem; font-weight: 700; color: var(--app-text); margin-bottom: 0.25rem;">
+                                ${esc(f.label)}${f.required ? '<span style="color:#ef4444; margin-left: 3px;">*</span>' : ''}
+                            </div>
+                            <div style="font-size: 0.8125rem; color: var(--app-text-muted);">${renderCollapsedPreview(f)}</div>
+                        </div>
+                        <span style="font-size: 0.72rem; font-weight: 600; color: var(--app-text-muted); background: var(--app-surface-sub); border: 1px solid var(--app-border); padding: 0.25rem 0.6rem; border-radius: 6px; white-space: nowrap;">
+                            ${TYPE_MAP[f.type] || f.type}
+                        </span>
+                    </div>
+                `;
+            }
         }
 
-        card.innerHTML = `${badgeHtml}<div class="fb-card-drag-bar"><i class="ph-bold ph-dots-six-vertical"></i></div><div class="fb-card-content">${bodyHtml}</div>`;
+        const topBarHtml = `
+            <div class="fb-card-top-bar">
+                <span class="fb-card-number-badge">${f.type === 'divider' ? 'SECCIÓN' : (questionCounter < 10 ? '0' + questionCounter : questionCounter)}</span>
+                <div class="fb-card-drag-handle" title="Arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
+            </div>
+        `;
+
+        card.innerHTML = `${topBarHtml}<div class="fb-card-content">${bodyHtml}</div>`;
 
         // Footer for active cards
         if (i === activeIdx) {
             const footerHtml = (f.type !== 'divider') ? `
-            <div class="fb-card-footer fb-active-only">
+            <div class="fb-card-footer">
                 <button type="button" class="fb-card-icon-btn" onclick="event.stopPropagation();dupField(${i})" title="Duplicar pregunta"><i class="ph-bold ph-copy"></i></button>
                 <button type="button" class="fb-card-icon-btn btn-delete" onclick="event.stopPropagation();delField(${i})" title="Eliminar"><i class="ph-bold ph-trash"></i></button>
                 <div class="fb-v-divider"></div>
@@ -1144,7 +1695,7 @@ function renderFields() {
                     </span>
                 </label>
             </div>` : `
-            <div class="fb-card-footer fb-active-only">
+            <div class="fb-card-footer">
                 <button type="button" class="fb-card-icon-btn" onclick="event.stopPropagation();dupField(${i})" title="Duplicar"><i class="ph-bold ph-copy"></i></button>
                 <button type="button" class="fb-card-icon-btn btn-delete" onclick="event.stopPropagation();delField(${i})" title="Eliminar"><i class="ph-bold ph-trash"></i></button>
             </div>`;
@@ -1154,134 +1705,149 @@ function renderFields() {
     });
 }
 
+function changeFieldType(idx, newType) {
+    fields[idx].type = newType;
+    if (['select','checkbox','dropdown'].includes(newType) && (!fields[idx].options || fields[idx].options.length === 0)) {
+        fields[idx].options = ['Opción 1', 'Opción 2'];
+    }
+    if (newType === 'color' && !fields[idx].color_options) {
+        fields[idx].color_options = ['#4f46e5', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6'];
+    }
+    if (newType === 'icon_card' && !fields[idx].icon_options) {
+        fields[idx].icon_options = [{icon:'ph-star',text:'Opción 1'}, {icon:'ph-rocket',text:'Opción 2'}];
+    }
+    renderFields();
+}
+
 function renderFieldContent(f, i) {
     if (f.type === 'text' || f.type === 'email' || f.type === 'phone') {
-        return `<div style="border-bottom: 1px solid var(--border-color); padding: 0.4rem 0; font-size: 0.85rem; color: var(--text-muted); max-width: 60%;">${f.type==='text' ? 'Texto de respuesta corta' : (f.type==='email' ? 'correo@ejemplo.com' : '+51 999 999 999')}</div>`;
+        const ph = f.type==='text' ? 'Texto de respuesta corta' : (f.type==='email' ? 'correo@ejemplo.com' : '+51 999 999 999');
+        return `<div style="border-bottom: 1px solid var(--app-border); padding: 0.5rem 0; font-size: 0.85rem; color: var(--app-text-muted); max-width: 65%;">${ph}</div>`;
     }
     if (f.type === 'textarea') {
-        return `<div style="border-bottom: 1px solid var(--border-color); padding: 0.4rem 0; font-size: 0.85rem; color: var(--text-muted); max-width: 80%;">Texto de respuesta larga (párrafo)</div>`;
+        return `<div style="border-bottom: 1px solid var(--app-border); padding: 0.5rem 0; font-size: 0.85rem; color: var(--app-text-muted); max-width: 85%;">Texto de respuesta larga (párrafo)</div>`;
     }
     if (f.type === 'date') {
-        return `<div style="display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border-color); padding: 0.4rem 0; font-size: 0.85rem; color: var(--text-muted); max-width: 50%;"><i class="ph-bold ph-calendar-blank"></i> Día / Mes / Año</div>`;
+        return `<div style="display: flex; align-items: center; gap: 0.6rem; border-bottom: 1px solid var(--app-border); padding: 0.5rem 0; font-size: 0.85rem; color: var(--app-text-muted); max-width: 50%;"><i class="ph-bold ph-calendar-blank" style="color: var(--app-accent);"></i> Día / Mes / Año</div>`;
     }
     if (f.type === 'file') {
         if (typeof f.file_max_count === 'undefined') f.file_max_count = 1;
         if (typeof f.file_max_size === 'undefined') f.file_max_size = 10;
         const types = f.file_types || [];
-        let html = `<div class="fb-active-only" style="display:flex; flex-direction:column; gap:10px; margin-bottom:1rem; padding:12px; background:var(--bg-color); border-radius:12px; border:1px solid var(--border-color)">`;
+        let html = `<div style="display:flex; flex-direction:column; gap:10px; margin-bottom:1.15rem; padding:12px; background:var(--app-surface-sub); border-radius:12px; border:1px solid var(--app-border)">`;
         html += `<div>
-            <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; font-weight:600; color:var(--color-title); cursor:pointer; margin-bottom:8px">
+            <label style="display:flex; align-items:center; gap:0.55rem; font-size:0.78rem; font-weight:600; color:var(--app-text); cursor:pointer; margin-bottom:8px">
                 <input type="checkbox" ${f.file_restrict?'checked':''} onchange="event.stopPropagation();fields[${i}].file_restrict=this.checked;renderFields()"> Permitir solo tipos de archivo específicos
             </label>
-            <div style="display:${f.file_restrict?'flex':'none'}; flex-wrap:wrap; gap:8px; padding:8px; background:var(--bg-surface); border-radius:8px; border:1px solid var(--border-color)">
+            <div style="display:${f.file_restrict?'flex':'none'}; flex-wrap:wrap; gap:8px; padding:10px; background:var(--app-surface); border-radius:10px; border:1px solid var(--app-border)">
                 ${['Documento','PDF','Imagen','Video','Audio'].map(t=>`
-                    <label style="font-size:0.75rem; display:flex; align-items:center; gap:4px; cursor:pointer; color:var(--color-title)"><input type="checkbox" ${types.includes(t)?'checked':''} onchange="event.stopPropagation();if(this.checked){fields[${i}].file_types=(fields[${i}].file_types||[]);fields[${i}].file_types.push('${t}');}else{fields[${i}].file_types=fields[${i}].file_types.filter(x=>x!=='${t}');}renderFields()"> ${t}</label>
+                    <label style="font-size:0.75rem; font-weight:500; display:flex; align-items:center; gap:5px; cursor:pointer; color:var(--app-text)"><input type="checkbox" ${types.includes(t)?'checked':''} onchange="event.stopPropagation();if(this.checked){fields[${i}].file_types=(fields[${i}].file_types||[]);fields[${i}].file_types.push('${t}');}else{fields[${i}].file_types=fields[${i}].file_types.filter(x=>x!=='${t}');}renderFields()"> ${t}</label>
                 `).join('')}
             </div>
         </div>`;
         html += `<div style="display:flex; gap:1rem; flex-wrap:wrap">
             <div style="flex:1; min-width:140px">
-                <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-muted); margin-bottom:4px">Cantidad máxima</label>
-                <select style="width:100%; padding:6px 8px; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-surface); color:var(--color-title)" onchange="event.stopPropagation();fields[${i}].file_max_count=parseInt(this.value);renderFields()">
+                <label style="display:block; font-size:0.72rem; font-weight:700; color:var(--app-text-muted); margin-bottom:4px; text-transform:uppercase;">Cantidad máxima</label>
+                <select style="width:100%; padding:7px 10px; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface); color:var(--app-text)" onchange="event.stopPropagation();fields[${i}].file_max_count=parseInt(this.value);renderFields()">
                     ${[1,5,10].map(v=>`<option value="${v}" ${f.file_max_count===v?'selected':''}>${v} archivo(s)</option>`).join('')}
                 </select>
             </div>
             <div style="flex:1; min-width:140px">
-                <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-muted); margin-bottom:4px">Tamaño máximo</label>
-                <select style="width:100%; padding:6px 8px; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-surface); color:var(--color-title)" onchange="event.stopPropagation();fields[${i}].file_max_size=parseInt(this.value);renderFields()">
+                <label style="display:block; font-size:0.72rem; font-weight:700; color:var(--app-text-muted); margin-bottom:4px; text-transform:uppercase;">Tamaño máximo</label>
+                <select style="width:100%; padding:7px 10px; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface); color:var(--app-text)" onchange="event.stopPropagation();fields[${i}].file_max_size=parseInt(this.value);renderFields()">
                     ${[1,10,25,50,100].map(v=>`<option value="${v}" ${f.file_max_size===v?'selected':''}>${v} MB</option>`).join('')}
                 </select>
             </div>
         </div></div>`;
-        html += `<div style="border:2px dashed var(--border-color); border-radius:12px; padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.85rem;"><i class="ph-bold ph-cloud-arrow-up" style="font-size:1.8rem; color:var(--primary-color); display:block; margin-bottom:0.4rem;"></i>Zona de subida de archivos</div>`;
+        html += `<div style="border:2px dashed var(--app-border); border-radius:14px; padding:1.75rem; text-align:center; color:var(--app-text-muted); font-size:0.85rem;"><i class="ph-bold ph-cloud-arrow-up" style="font-size:2rem; color:var(--app-accent); display:block; margin-bottom:0.4rem;"></i>Zona de subida de archivos</div>`;
         return html;
     }
     if (f.type === 'select' || f.type === 'checkbox' || f.type === 'dropdown') {
         if (typeof f.is_multi === 'undefined') f.is_multi = (f.type === 'checkbox');
         const isCheck = f.is_multi;
         const isDrop = f.type === 'dropdown';
-        let html = `<div class="fb-active-only" style="margin-bottom:0.6rem;"><label style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; font-weight:500; color:var(--text-muted); cursor:pointer"><input type="checkbox" ${f.is_multi?'checked':''} onchange="event.stopPropagation();fields[${i}].is_multi=this.checked;renderFields()"> Permitir selección múltiple</label></div>`;
+        let html = `<div style="margin-bottom:0.75rem;"><label style="display:flex; align-items:center; gap:0.45rem; font-size:0.78rem; font-weight:600; color:var(--app-text-muted); cursor:pointer"><input type="checkbox" ${f.is_multi?'checked':''} onchange="event.stopPropagation();fields[${i}].is_multi=this.checked;renderFields()"> Permitir selección múltiple</label></div>`;
         html += '<div class="fb-options-list">';
         (f.options || []).forEach((o, oi) => {
             html += `<div class="fb-opt-item">
-                <div class="${isDrop?'':'fb-opt-indicator'} ${isCheck?'checkbox-style':''}" style="${isDrop?'font-size:0.85rem; color:var(--text-muted); width:20px; text-align:center; font-weight:600':''}">${isDrop?(oi+1)+'.':''}</div>
+                <div class="${isDrop?'':'fb-opt-indicator'} ${isCheck?'checkbox-style':''}" style="${isDrop?'font-size:0.85rem; color:var(--app-text-muted); width:20px; text-align:center; font-weight:600':''}">${isDrop?(oi+1)+'.':''}</div>
                 <input class="fb-opt-input" value="${esc(o)}" oninput="fields[${i}].options[${oi}]=this.value" onclick="event.stopPropagation()" autocomplete="off">
                 <button type="button" class="fb-opt-delete-btn" onclick="event.stopPropagation();fields[${i}].options.splice(${oi},1);renderFields()"><i class="ph-bold ph-x"></i></button>
             </div>`;
         });
-        html += `</div><div class="fb-add-opt-row"><div class="${isDrop?'':'fb-opt-indicator'} ${isCheck?'checkbox-style':''}"></div> <button type="button" class="fb-btn-link" onclick="event.stopPropagation();if(!fields[${i}].options)fields[${i}].options=[];fields[${i}].options.push('Opción '+((fields[${i}].options||[]).length+1));renderFields()">+ Añadir opción</button> ${isDrop?'':`o <button type="button" class="fb-btn-link" style="color:var(--text-muted)" onclick="event.stopPropagation();if(!fields[${i}].options)fields[${i}].options=[];fields[${i}].options.push('Otro');renderFields()">añadir "Otro"</button>`}</div>`;
+        html += `</div><div class="fb-add-opt-row"><div class="${isDrop?'':'fb-opt-indicator'} ${isCheck?'checkbox-style':''}"></div> <button type="button" class="fb-btn-link" onclick="event.stopPropagation();if(!fields[${i}].options)fields[${i}].options=[];fields[${i}].options.push('Opción '+((fields[${i}].options||[]).length+1));renderFields()"><i class="ph-bold ph-plus"></i> Añadir opción</button> ${isDrop?'':`o <button type="button" class="fb-btn-link" style="color:var(--app-text-muted)" onclick="event.stopPropagation();if(!fields[${i}].options)fields[${i}].options=[];fields[${i}].options.push('Otro');renderFields()">añadir "Otro"</button>`}</div>`;
         return html;
     }
     if (f.type === 'range') {
         const mn = f.range_min || 1, mx = Math.min(f.range_max || 5, 10), lMin = f.range_label_min || '', lMax = f.range_label_max || '';
         let dots = '';
-        for (let n = mn; n <= mx; n++) dots += `<div style="width:30px; height:30px; border:2px solid var(--border-color); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:var(--color-title); font-weight:600;">${n}</div>`;
-        let html = `<div class="fb-active-only" style="display:flex; gap:0.5rem; margin-bottom:0.75rem; flex-wrap:wrap">
-            <div style="flex:1; min-width:60px"><label style="font-size:0.7rem; font-weight:600; color:var(--text-muted)">Mín</label><input type="number" value="${mn}" min="0" max="10" style="width:100%; padding:0.4rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-color); color:var(--color-title)" onchange="fields[${i}].range_min=Math.max(0,Math.min(10,parseInt(this.value)||0));renderFields()"></div>
-            <div style="flex:1; min-width:60px"><label style="font-size:0.7rem; font-weight:600; color:var(--text-muted)">Máx</label><input type="number" value="${mx}" min="1" max="10" style="width:100%; padding:0.4rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-color); color:var(--color-title)" onchange="fields[${i}].range_max=Math.max(1,Math.min(10,parseInt(this.value)||5));renderFields()"></div>
-            <div style="flex:2; min-width:100px"><label style="font-size:0.7rem; font-weight:600; color:var(--text-muted)">Etiqueta mín</label><input value="${esc(lMin)}" placeholder="ej: Malo" style="width:100%; padding:0.4rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-color); color:var(--color-title)" oninput="fields[${i}].range_label_min=this.value"></div>
-            <div style="flex:2; min-width:100px"><label style="font-size:0.7rem; font-weight:600; color:var(--text-muted)">Etiqueta máx</label><input value="${esc(lMax)}" placeholder="ej: Excelente" style="width:100%; padding:0.4rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-color); color:var(--color-title)" oninput="fields[${i}].range_label_max=this.value"></div>
+        for (let n = mn; n <= mx; n++) dots += `<div style="width:32px; height:32px; border:1px solid var(--app-border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:var(--app-text); font-weight:700; background:var(--app-surface-sub);">${n}</div>`;
+        let html = `<div style="display:flex; gap:0.65rem; margin-bottom:0.85rem; flex-wrap:wrap">
+            <div style="flex:1; min-width:65px"><label style="font-size:0.7rem; font-weight:700; color:var(--app-text-muted); text-transform:uppercase;">Mín</label><input type="number" value="${mn}" min="0" max="10" style="width:100%; padding:0.45rem; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface-sub); color:var(--app-text)" onchange="fields[${i}].range_min=Math.max(0,Math.min(10,parseInt(this.value)||0));renderFields()"></div>
+            <div style="flex:1; min-width:65px"><label style="font-size:0.7rem; font-weight:700; color:var(--app-text-muted); text-transform:uppercase;">Máx</label><input type="number" value="${mx}" min="1" max="10" style="width:100%; padding:0.45rem; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface-sub); color:var(--app-text)" onchange="fields[${i}].range_max=Math.max(1,Math.min(10,parseInt(this.value)||5));renderFields()"></div>
+            <div style="flex:2; min-width:110px"><label style="font-size:0.7rem; font-weight:700; color:var(--app-text-muted); text-transform:uppercase;">Etiqueta mín</label><input value="${esc(lMin)}" placeholder="ej: Bajo" style="width:100%; padding:0.45rem; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface-sub); color:var(--app-text)" oninput="fields[${i}].range_label_min=this.value"></div>
+            <div style="flex:2; min-width:110px"><label style="font-size:0.7rem; font-weight:700; color:var(--app-text-muted); text-transform:uppercase;">Etiqueta máx</label><input value="${esc(lMax)}" placeholder="ej: Excelente" style="width:100%; padding:0.45rem; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface-sub); color:var(--app-text)" oninput="fields[${i}].range_label_max=this.value"></div>
         </div>`;
-        html += `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">${lMin?`<span style="font-size:0.78rem; color:var(--text-muted)">${esc(lMin)}</span>`:''}<div style="display:flex; gap:6px; flex-wrap:wrap">${dots}</div>${lMax?`<span style="font-size:0.78rem; color:var(--text-muted)">${esc(lMax)}</span>`:''}</div>`;
+        html += `<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">${lMin?`<span style="font-size:0.78rem; font-weight:600; color:var(--app-text-muted)">${esc(lMin)}</span>`:''}<div style="display:flex; gap:6px; flex-wrap:wrap">${dots}</div>${lMax?`<span style="font-size:0.78rem; font-weight:600; color:var(--app-text-muted)">${esc(lMax)}</span>`:''}</div>`;
         return html;
     }
     if (f.type === 'number_range') {
         const nrMin = f.nr_min ?? 18, nrMax = f.nr_max ?? 65, nrStep = f.nr_step ?? 1;
-        let html = `<div class="fb-active-only" style="display:flex; gap:0.5rem; margin-bottom:0.75rem; flex-wrap:wrap">
-            <div style="flex:1; min-width:70px"><label style="font-size:0.7rem; font-weight:600; color:var(--text-muted)">Desde</label><input type="number" value="${nrMin}" style="width:100%; padding:0.4rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-color); color:var(--color-title)" onchange="fields[${i}].nr_min=parseInt(this.value)"></div>
-            <div style="flex:1; min-width:70px"><label style="font-size:0.7rem; font-weight:600; color:var(--text-muted)">Hasta</label><input type="number" value="${nrMax}" style="width:100%; padding:0.4rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-color); color:var(--color-title)" onchange="fields[${i}].nr_max=parseInt(this.value)"></div>
-            <div style="flex:1; min-width:70px"><label style="font-size:0.7rem; font-weight:600; color:var(--text-muted)">Paso</label><input type="number" value="${nrStep}" min="1" style="width:100%; padding:0.4rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.8rem; background:var(--bg-color); color:var(--color-title)" onchange="fields[${i}].nr_step=parseInt(this.value)||1"></div>
+        let html = `<div style="display:flex; gap:0.65rem; margin-bottom:0.85rem; flex-wrap:wrap">
+            <div style="flex:1; min-width:75px"><label style="font-size:0.7rem; font-weight:700; color:var(--app-text-muted); text-transform:uppercase;">Desde</label><input type="number" value="${nrMin}" style="width:100%; padding:0.45rem; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface-sub); color:var(--app-text)" onchange="fields[${i}].nr_min=parseInt(this.value)"></div>
+            <div style="flex:1; min-width:75px"><label style="font-size:0.7rem; font-weight:700; color:var(--app-text-muted); text-transform:uppercase;">Hasta</label><input type="number" value="${nrMax}" style="width:100%; padding:0.45rem; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface-sub); color:var(--app-text)" onchange="fields[${i}].nr_max=parseInt(this.value)"></div>
+            <div style="flex:1; min-width:75px"><label style="font-size:0.7rem; font-weight:700; color:var(--app-text-muted); text-transform:uppercase;">Paso</label><input type="number" value="${nrStep}" min="1" style="width:100%; padding:0.45rem; border:1px solid var(--app-border); border-radius:8px; font-size:0.8rem; background:var(--app-surface-sub); color:var(--app-text)" onchange="fields[${i}].nr_step=parseInt(this.value)||1"></div>
         </div>`;
-        html += `<div style="display:flex; align-items:center; gap:8px"><span style="font-size:0.8rem; color:var(--text-muted); font-weight:600">${nrMin}</span><div style="flex:1; height:6px; background:var(--border-color); border-radius:3px; position:relative"><div style="position:absolute; left:0; top:0; height:100%; width:45%; background:var(--primary-color); border-radius:3px"></div></div><span style="font-size:0.8rem; color:var(--text-muted); font-weight:600">${nrMax}</span></div>`;
+        html += `<div style="display:flex; align-items:center; gap:10px"><span style="font-size:0.85rem; color:var(--app-text-muted); font-weight:700">${nrMin}</span><div style="flex:1; height:6px; background:var(--app-border); border-radius:99px; position:relative"><div style="position:absolute; left:0; top:0; height:100%; width:50%; background:var(--app-accent); border-radius:99px"></div></div><span style="font-size:0.85rem; color:var(--app-text-muted); font-weight:700">${nrMax}</span></div>`;
         return html;
     }
     if (f.type === 'color') {
         const colors = f.color_options || ['#4f46e5'];
-        let html = `<div class="fb-active-only" style="margin-bottom:0.5rem;"><span style="font-size:0.78rem; color:var(--text-muted);">Muestras de color seleccionables para el cliente:</span></div>`;
-        html += '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center">';
+        let html = `<div style="margin-bottom:0.6rem;"><span style="font-size:0.78rem; font-weight:600; color:var(--app-text-muted);">Muestras de color seleccionables para el cliente:</span></div>`;
+        html += '<div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">';
         colors.forEach((c, ci) => {
-            html += `<div style="position:relative; display:flex; flex-direction:column; align-items:center; gap:3px">
-                <input type="color" value="${c}" style="width:42px; height:42px; border:2px solid var(--border-color); border-radius:12px; cursor:pointer; padding:2px; background:var(--bg-surface);" onchange="event.stopPropagation();fields[${i}].color_options[${ci}]=this.value;renderFields()">
-                <span style="font-size:0.65rem; color:var(--text-muted); font-family:monospace">${c}</span>
+            html += `<div style="position:relative; display:flex; flex-direction:column; align-items:center; gap:4px">
+                <input type="color" value="${c}" style="width:40px; height:40px; border:2px solid var(--app-border); border-radius:10px; cursor:pointer; padding:2px; background:var(--app-surface);" onchange="event.stopPropagation();fields[${i}].color_options[${ci}]=this.value;renderFields()">
+                <span style="font-size:0.65rem; color:var(--app-text-muted); font-family:monospace">${c}</span>
                 <button type="button" style="position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:#ef4444; color:white; border:none; cursor:pointer; font-size:0.7rem; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation();fields[${i}].color_options.splice(${ci},1);renderFields()"><i class="ph-bold ph-x"></i></button>
             </div>`;
         });
-        html += `<button type="button" style="width:42px; height:42px; border:2px dashed var(--border-color); border-radius:12px; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--primary-color)" onclick="event.stopPropagation();if(!fields[${i}].color_options)fields[${i}].color_options=['#4f46e5'];fields[${i}].color_options.push('#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'));renderFields()" title="Añadir color"><i class="ph-bold ph-plus"></i></button></div>`;
+        html += `<button type="button" style="width:40px; height:40px; border:1px dashed var(--app-border); border-radius:10px; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--app-accent)" onclick="event.stopPropagation();if(!fields[${i}].color_options)fields[${i}].color_options=['#4f46e5'];fields[${i}].color_options.push('#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'));renderFields()" title="Añadir color"><i class="ph-bold ph-plus"></i></button></div>`;
         return html;
     }
     if (f.type === 'icon_card') {
         const opts = f.icon_options || [];
-        let html = `<div class="fb-active-only" style="margin-bottom:0.6rem;"><label style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; font-weight:500; color:var(--text-muted); cursor:pointer"><input type="checkbox" ${f.icon_multi?'checked':''} onchange="event.stopPropagation();fields[${i}].icon_multi=this.checked;renderFields()"> Permitir selección múltiple</label></div>`;
+        let html = `<div style="margin-bottom:0.75rem;"><label style="display:flex; align-items:center; gap:0.45rem; font-size:0.78rem; font-weight:600; color:var(--app-text-muted); cursor:pointer"><input type="checkbox" ${f.icon_multi?'checked':''} onchange="event.stopPropagation();fields[${i}].icon_multi=this.checked;renderFields()"> Permitir selección múltiple</label></div>`;
         html += '<div style="display:flex; flex-direction:column; gap:8px">';
         opts.forEach((o, oi) => {
-            let iconPicker = `<select style="width:46px; padding:4px; border:1px solid var(--border-color); border-radius:8px; font-size:1rem; background:var(--bg-color); color:var(--color-title); cursor:pointer; text-align:center" onchange="event.stopPropagation();fields[${i}].icon_options[${oi}].icon=this.value;renderFields()">`;
+            let iconPicker = `<select style="width:48px; padding:5px; border:1px solid var(--app-border); border-radius:8px; font-size:1rem; background:var(--app-surface-sub); color:var(--app-text); cursor:pointer; text-align:center" onchange="event.stopPropagation();fields[${i}].icon_options[${oi}].icon=this.value;renderFields()">`;
             ICON_LIST.forEach(ic => { iconPicker += `<option value="${ic}" ${o.icon===ic?'selected':''}>${ic.replace('ph-','')}</option>`; });
             iconPicker += '</select>';
-            html += `<div style="display:flex; align-items:center; gap:8px; border:1.5px solid var(--border-color); border-radius:12px; padding:8px 12px; background:var(--bg-color)">
-                <div style="width:36px; height:36px; background:color-mix(in srgb,var(--primary-color) 12%,transparent); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--primary-color); flex-shrink:0"><i class="ph-bold ${o.icon}"></i></div>
-                <input value="${esc(o.text)}" style="flex:1; border:none; outline:none; font-size:0.85rem; background:transparent; color:var(--color-title); font-weight:500;" oninput="fields[${i}].icon_options[${oi}].text=this.value" onclick="event.stopPropagation()" autocomplete="off">
+            html += `<div style="display:flex; align-items:center; gap:10px; border:1px solid var(--app-border); border-radius:12px; padding:8px 12px; background:var(--app-surface-sub)">
+                <div style="width:36px; height:36px; background:var(--app-accent-light); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--app-accent); flex-shrink:0"><i class="ph-bold ${o.icon}"></i></div>
+                <input value="${esc(o.text)}" style="flex:1; border:none; outline:none; font-size:0.875rem; background:transparent; color:var(--app-text); font-weight:600;" oninput="fields[${i}].icon_options[${oi}].text=this.value" onclick="event.stopPropagation()" autocomplete="off">
                 ${iconPicker}
                 <button type="button" class="fb-opt-delete-btn" onclick="event.stopPropagation();fields[${i}].icon_options.splice(${oi},1);renderFields()"><i class="ph-bold ph-x"></i></button>
             </div>`;
         });
-        html += `</div><div style="margin-top:8px"><button type="button" class="fb-btn-link" onclick="event.stopPropagation();if(!fields[${i}].icon_options)fields[${i}].icon_options=[{icon:'ph-star',text:'Opción 1'}];fields[${i}].icon_options.push({icon:ICON_LIST[Math.floor(Math.random()*ICON_LIST.length)],text:'Opción '+(fields[${i}].icon_options.length+1)});renderFields()">+ Añadir Card</button></div>`;
+        html += `</div><div style="margin-top:10px"><button type="button" class="fb-btn-link" onclick="event.stopPropagation();if(!fields[${i}].icon_options)fields[${i}].icon_options=[{icon:'ph-star',text:'Opción 1'}];fields[${i}].icon_options.push({icon:ICON_LIST[Math.floor(Math.random()*ICON_LIST.length)],text:'Opción '+(fields[${i}].icon_options.length+1)});renderFields()"><i class="ph-bold ph-plus"></i> Añadir Card</button></div>`;
         return html;
     }
     return '';
 }
 
 function renderCollapsedPreview(f) {
-    if (f.type === 'text' || f.type === 'email' || f.type === 'phone') return `<input disabled placeholder="${esc(f.placeholder||'Texto de respuesta corta')}" style="width:100%; max-width:280px; border:none; border-bottom:1px solid var(--border-color); background:transparent; padding:0.2rem 0; font-size:0.8rem; color:var(--text-muted)">`;
-    if (f.type === 'textarea') return `<input disabled placeholder="Texto de respuesta larga" style="width:100%; max-width:380px; border:none; border-bottom:1px solid var(--border-color); background:transparent; padding:0.2rem 0; font-size:0.8rem; color:var(--text-muted)">`;
-    if (f.type === 'date') return `<span style="font-size:0.8rem; color:var(--text-muted);"><i class="ph ph-calendar-blank"></i> Día / Mes / Año</span>`;
-    if (f.type === 'file') return '<span style="font-size:0.8rem; color:var(--text-muted);"><i class="ph ph-cloud-arrow-up"></i> Zona de subida de archivos</span>';
-    if (f.type === 'select') return (f.options||[]).map(o => `<div style="display:flex; align-items:center; gap:0.4rem; margin:0.2rem 0;"><span style="width:12px; height:12px; border:2px solid var(--border-color); border-radius:50%; display:inline-block;"></span><span style="font-size:0.82rem;">${esc(o)}</span></div>`).join('');
-    if (f.type === 'checkbox') return (f.options||[]).map(o => `<div style="display:flex; align-items:center; gap:0.4rem; margin:0.2rem 0;"><span style="width:12px; height:12px; border:2px solid var(--border-color); border-radius:3px; display:inline-block;"></span><span style="font-size:0.82rem;">${esc(o)}</span></div>`).join('');
-    if (f.type === 'dropdown') return `<div style="padding:4px 8px; border:1px solid var(--border-color); border-radius:6px; display:inline-flex; align-items:center; gap:12px; font-size:0.8rem; color:var(--text-muted);"><span>1. ${esc(f.options?.[0]||'Opciones')}</span><i class="ph ph-caret-down"></i></div>`;
-    if (f.type === 'range') return `<span style="font-size:0.8rem; color:var(--text-muted);">Escala de ${f.range_min||1} a ${f.range_max||5}</span>`;
-    if (f.type === 'number_range') return `<span style="font-size:0.8rem; color:var(--text-muted);">Rango numérico: ${f.nr_min??18} - ${f.nr_max??65}</span>`;
-    if (f.type === 'color') return `<div style="display:flex; gap:4px;">${(f.color_options||['#4f46e5']).map(c=>`<div style="width:16px; height:16px; border-radius:50%; background:${c}; border:1px solid var(--border-color);"></div>`).join('')}</div>`;
-    if (f.type === 'icon_card') return `<span style="font-size:0.8rem; color:var(--text-muted);">${(f.icon_options||[]).length} cards interactivas configuradas</span>`;
+    if (f.type === 'text' || f.type === 'email' || f.type === 'phone') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">${f.placeholder || 'Texto de respuesta corta'}</span>`;
+    if (f.type === 'textarea') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">Párrafo de respuesta larga</span>`;
+    if (f.type === 'date') return `<span style="font-size:0.8rem; color:var(--app-text-muted);"><i class="ph-bold ph-calendar-blank"></i> Día / Mes / Año</span>`;
+    if (f.type === 'file') return '<span style="font-size:0.8rem; color:var(--app-text-muted);"><i class="ph-bold ph-cloud-arrow-up"></i> Subida de archivos</span>';
+    if (f.type === 'select') return (f.options||[]).map(o => `<div style="display:inline-flex; align-items:center; gap:0.4rem; margin-right:0.75rem;"><span style="width:8px; height:8px; border:2px solid var(--app-border); border-radius:50%; display:inline-block;"></span><span style="font-size:0.8rem;">${esc(o)}</span></div>`).join('');
+    if (f.type === 'checkbox') return (f.options||[]).map(o => `<div style="display:inline-flex; align-items:center; gap:0.4rem; margin-right:0.75rem;"><span style="width:8px; height:8px; border:2px solid var(--app-border); border-radius:2px; display:inline-block;"></span><span style="font-size:0.8rem;">${esc(o)}</span></div>`).join('');
+    if (f.type === 'dropdown') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">${(f.options||[]).length} opciones disponibles</span>`;
+    if (f.type === 'range') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">Escala de ${f.range_min||1} a ${f.range_max||5}</span>`;
+    if (f.type === 'number_range') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">Rango: ${f.nr_min??18} - ${f.nr_max??65}</span>`;
+    if (f.type === 'color') return `<div style="display:inline-flex; gap:4px;">${(f.color_options||['#4f46e5']).map(c=>`<div style="width:12px; height:12px; border-radius:50%; background:${c};"></div>`).join('')}</div>`;
+    if (f.type === 'icon_card') return `<span style="font-size:0.8rem; color:var(--app-text-muted);">${(f.icon_options||[]).length} cards configuradas</span>`;
     return '';
 }
 
@@ -1291,6 +1857,7 @@ function dupField(idx) {
     fields.splice(idx + 1, 0, clone);
     activeIdx = idx + 1;
     renderFields();
+    showToast('Pregunta duplicada');
 }
 
 function delField(idx) {
@@ -1298,6 +1865,7 @@ function delField(idx) {
     if (activeIdx >= fields.length) activeIdx = fields.length - 1;
     if (activeIdx < 0) activeIdx = null;
     renderFields();
+    showToast('Pregunta eliminada');
 }
 
 async function saveForm(status) {
@@ -1316,7 +1884,10 @@ async function saveForm(status) {
         show_logo: document.getElementById('settShowLogo').checked,
         require_name: document.getElementById('settRequireName').checked,
         require_email: document.getElementById('settRequireEmail').checked,
-        multi_step: document.getElementById('settMultiStep').checked
+        multi_step: document.getElementById('settMultiStep').checked,
+        view_style: document.getElementById('settViewStyle').value,
+        welcome_screen: document.getElementById('settWelcomeScreen').checked,
+        cover_image: currentCover
     }));
     fd.append('status', status);
 
@@ -1338,15 +1909,16 @@ async function saveForm(status) {
                     badge.className = 'fb-status-pill ' + (status === 'active' ? 'fb-pill-active' : 'fb-pill-draft');
                     badge.textContent = (status === 'active' ? 'Publicado' : 'Borrador');
                 }
+                showToast(status === 'active' ? '¡Publicado con éxito!' : 'Borrador guardado');
                 setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
             }
         } else {
-            alert(data.error || 'Error al guardar el formulario.');
+            alert(data.error || 'Error al guardar.');
             btn.innerHTML = orig;
             btn.disabled = false;
         }
     } catch (e) {
-        alert('Error de conexión al servidor.');
+        alert('Error de conexión.');
         btn.innerHTML = orig;
         btn.disabled = false;
     }
@@ -1354,9 +1926,11 @@ async function saveForm(status) {
 
 // Deselect active card on outside click
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('.fb-question-card') && !e.target.closest('.fb-palette-dock') && !e.target.closest('.fb-app-topbar') && !e.target.closest('#viewSettings')) {
-        activeIdx = null;
-        renderFields();
+    if (!e.target.closest('.fb-question-card') && !e.target.closest('.fb-studio-sidebar') && !e.target.closest('.fb-app-topbar') && !e.target.closest('#viewSettings') && !e.target.closest('.fb-insert-divider') && !e.target.closest('.fb-cover-modal-overlay')) {
+        if (activeIdx !== null) {
+            activeIdx = null;
+            renderFields();
+        }
     }
 });
 
@@ -1368,7 +1942,7 @@ document.getElementById('formDesc').addEventListener('input', function() {
 
 renderFields();
 
-// Interactive Device Preview
+// Device Preview
 const LOGO_URL = '<?php echo htmlspecialchars($logoLight); ?>';
 
 function toggleDevicePreview() {
@@ -1382,8 +1956,8 @@ function toggleDevicePreview() {
 }
 
 function renderPreview() {
-    const phone = document.getElementById('phonePreview');
-    if (!phone) return;
+    const phoneContent = document.getElementById('phoneInnerContent');
+    if (!phoneContent) return;
     const title = document.getElementById('formTitle').value || 'Formulario sin título';
     const desc = document.getElementById('formDesc').value || '';
     const showLogo = document.getElementById('settShowLogo').checked;
@@ -1394,82 +1968,68 @@ function renderPreview() {
     let h = '';
 
     if (reqName) {
-        h += `<div style="margin-bottom: 1rem;"><label style="font-size: 0.8rem; font-weight: 600; color: var(--color-title); display: block; margin-bottom: 4px;">Tu Nombre <span style="color:#ef4444">*</span></label><input style="width:100%; padding:0.6rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); font-size:0.85rem;" placeholder="Nombre completo" disabled></div>`;
+        h += `<div style="margin-bottom: 1rem;"><label style="font-size: 0.8rem; font-weight: 700; color: var(--app-text); display: block; margin-bottom: 4px;">Tu Nombre <span style="color:#ef4444">*</span></label><input style="width:100%; padding:0.6rem; border:1px solid var(--app-border); border-radius:10px; background:var(--app-surface-sub); font-size:0.85rem;" placeholder="Nombre completo" disabled></div>`;
     }
     if (reqEmail) {
-        h += `<div style="margin-bottom: 1rem;"><label style="font-size: 0.8rem; font-weight: 600; color: var(--color-title); display: block; margin-bottom: 4px;">Tu Correo Electrónico <span style="color:#ef4444">*</span></label><input style="width:100%; padding:0.6rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); font-size:0.85rem;" placeholder="correo@ejemplo.com" disabled></div>`;
+        h += `<div style="margin-bottom: 1rem;"><label style="font-size: 0.8rem; font-weight: 700; color: var(--app-text); display: block; margin-bottom: 4px;">Tu Correo Electrónico <span style="color:#ef4444">*</span></label><input style="width:100%; padding:0.6rem; border:1px solid var(--app-border); border-radius:10px; background:var(--app-surface-sub); font-size:0.85rem;" placeholder="correo@ejemplo.com" disabled></div>`;
     }
 
-    fields.forEach(f => {
+    fields.forEach((f, idx) => {
         if (f.type === 'divider') {
-            h += `<hr style="border:none; border-top:1px solid var(--border-color); margin:1.25rem 0 0.75rem;"><h4 style="margin:0 0 0.5rem; font-size:0.95rem; font-weight:700; color:var(--color-title);">${esc(f.label)}</h4>`;
+            h += `<hr style="border:none; border-top:1px solid var(--app-border); margin:1.25rem 0 0.75rem;"><h4 style="margin:0 0 0.5rem; font-size:0.95rem; font-weight:700; color:var(--app-text);">${esc(f.label)}</h4>`;
             return;
         }
         const req = f.required ? '<span style="color:#ef4444">*</span>' : '';
         let inp = '';
         if (['text','email','phone','date'].includes(f.type)) {
-            inp = `<input style="width:100%; padding:0.6rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); font-size:0.85rem;" placeholder="${esc(f.placeholder)}" disabled>`;
+            inp = `<input style="width:100%; padding:0.6rem; border:1px solid var(--app-border); border-radius:10px; background:var(--app-surface-sub); font-size:0.85rem;" placeholder="${esc(f.placeholder)}" disabled>`;
         } else if (f.type === 'textarea') {
-            inp = `<textarea style="width:100%; padding:0.6rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); font-size:0.85rem; height:60px;" placeholder="${esc(f.placeholder)}" disabled></textarea>`;
+            inp = `<textarea style="width:100%; padding:0.6rem; border:1px solid var(--app-border); border-radius:10px; background:var(--app-surface-sub); font-size:0.85rem; height:60px;" placeholder="${esc(f.placeholder)}" disabled></textarea>`;
         } else if (f.type === 'select') {
-            inp = (f.options||[]).map(o => `<div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--color-title); margin:0.3rem 0;"><input type="radio" disabled> ${esc(o)}</div>`).join('');
+            inp = (f.options||[]).map(o => `<div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--app-text); margin:0.35rem 0;"><input type="radio" disabled> ${esc(o)}</div>`).join('');
         } else if (f.type === 'checkbox') {
-            inp = (f.options||[]).map(o => `<div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--color-title); margin:0.3rem 0;"><input type="checkbox" disabled> ${esc(o)}</div>`).join('');
+            inp = (f.options||[]).map(o => `<div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--app-text); margin:0.35rem 0;"><input type="checkbox" disabled> ${esc(o)}</div>`).join('');
         } else if (f.type === 'dropdown') {
-            inp = `<select style="width:100%; padding:0.6rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); font-size:0.85rem;" disabled><option>Selecciona una opción</option>${(f.options||[]).map(o=>`<option>${esc(o)}</option>`).join('')}</select>`;
+            inp = `<select style="width:100%; padding:0.6rem; border:1px solid var(--app-border); border-radius:10px; background:var(--app-surface-sub); font-size:0.85rem;" disabled><option>Selecciona una opción</option>${(f.options||[]).map(o=>`<option>${esc(o)}</option>`).join('')}</select>`;
         } else if (f.type === 'file') {
-            inp = `<div style="border:2px dashed var(--border-color); border-radius:10px; padding:1.2rem; text-align:center; color:var(--text-muted); font-size:0.8rem;"><i class="ph-bold ph-cloud-arrow-up" style="font-size:1.5rem; display:block; margin-bottom:0.3rem;"></i>Subir archivos</div>`;
+            inp = `<div style="border:2px dashed var(--app-border); border-radius:12px; padding:1.2rem; text-align:center; color:var(--app-text-muted); font-size:0.8rem;"><i class="ph-bold ph-cloud-arrow-up" style="font-size:1.6rem; color:var(--app-accent); display:block; margin-bottom:0.3rem;"></i>Subir archivos</div>`;
         } else if (f.type === 'range') {
             const mn = f.range_min||1, mx = Math.min(f.range_max||5, 10);
             let dots = '';
-            for (let n = mn; n <= mx; n++) dots += `<div style="width:24px; height:24px; border:2px solid var(--border-color); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:var(--color-title); font-weight:600;">${n}</div>`;
-            inp = `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">${f.range_label_min?`<span style="font-size:0.75rem; color:var(--text-muted)">${esc(f.range_label_min)}</span>`:''}<div style="display:flex; gap:4px;">${dots}</div>${f.range_label_max?`<span style="font-size:0.75rem; color:var(--text-muted)">${esc(f.range_label_max)}</span>`:''}</div>`;
+            for (let n = mn; n <= mx; n++) dots += `<div style="width:24px; height:24px; border:1px solid var(--app-border); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; color:var(--app-text); font-weight:700;">${n}</div>`;
+            inp = `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">${f.range_label_min?`<span style="font-size:0.72rem; color:var(--app-text-muted)">${esc(f.range_label_min)}</span>`:''}<div style="display:flex; gap:4px;">${dots}</div>${f.range_label_max?`<span style="font-size:0.72rem; color:var(--app-text-muted)">${esc(f.range_label_max)}</span>`:''}</div>`;
         } else if (f.type === 'number_range') {
-            inp = `<div style="display:flex; gap:8px; align-items:center;"><span style="font-size:0.8rem; font-weight:600;">${f.nr_min??18}</span><div style="flex:1; height:4px; background:var(--border-color); border-radius:2px;"></div><span style="font-size:0.8rem; font-weight:600;">${f.nr_max??65}</span></div>`;
+            inp = `<div style="display:flex; gap:8px; align-items:center;"><span style="font-size:0.8rem; font-weight:700;">${f.nr_min??18}</span><div style="flex:1; height:4px; background:var(--app-border); border-radius:2px;"></div><span style="font-size:0.8rem; font-weight:700;">${f.nr_max??65}</span></div>`;
         } else if (f.type === 'color') {
             const colors = f.color_options || ['#4f46e5'];
-            inp = `<div style="display:flex; gap:6px; flex-wrap:wrap;">${colors.map(c=>`<div style="width:28px; height:28px; border-radius:50%; background:${c}; border:2px solid var(--border-color);"></div>`).join('')}</div>`;
+            inp = `<div style="display:flex; gap:6px; flex-wrap:wrap;">${colors.map(c=>`<div style="width:24px; height:24px; border-radius:50%; background:${c};"></div>`).join('')}</div>`;
         } else if (f.type === 'icon_card') {
-            inp = (f.icon_options||[]).map(o => `<div style="display:flex; align-items:center; gap:8px; border:1px solid var(--border-color); border-radius:10px; padding:8px 12px; margin:4px 0;"><i class="ph-bold ${o.icon}" style="color:var(--primary-color);"></i><span style="font-size:0.85rem; font-weight:500;">${esc(o.text)}</span></div>`).join('');
+            inp = (f.icon_options||[]).map(o => `<div style="display:flex; align-items:center; gap:8px; border:1px solid var(--app-border); border-radius:10px; padding:8px 10px; margin:4px 0;"><i class="ph-bold ${o.icon}" style="color:var(--app-accent);"></i><span style="font-size:0.82rem; font-weight:600;">${esc(o.text)}</span></div>`).join('');
         }
 
-        h += `<div style="margin-bottom: 1rem;"><label style="font-size: 0.82rem; font-weight: 600; color: var(--color-title); display: block; margin-bottom: 4px;">${esc(f.label)} ${req}</label>${inp}</div>`;
+        h += `<div style="margin-bottom: 1.15rem;"><label style="font-size: 0.82rem; font-weight: 700; color: var(--app-text); display: block; margin-bottom: 4px;">${esc(f.label)} ${req}</label>${inp}</div>`;
     });
 
-    phone.innerHTML = `
-        <div class="fb-phone-header">
-            ${logo}
-            <h2>${esc(title)}</h2>
-            ${desc ? `<p>${esc(desc)}</p>` : ''}
+    const coverBg = COVER_STYLES[currentCover] || COVER_STYLES.nebula;
+
+    phoneContent.innerHTML = `
+        <div style="height: 110px; width:100%; background: ${coverBg}; position:relative; display:flex; align-items:flex-end; padding:10px 14px;">
+            <div style="width:40px; height:40px; border-radius:12px; background:var(--app-surface); border:1.5px solid var(--app-border); display:flex; align-items:center; justify-content:center; margin-bottom:-18px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                ${logo ? logo : '<i class="ph-bold ph-shield-check" style="color:var(--app-accent); font-size:1.2rem;"></i>'}
+            </div>
+        </div>
+        <div style="padding: 1.5rem 1rem 0.5rem;">
+            <h2 style="margin:0; font-size:1.15rem; font-weight:800;">${esc(title)}</h2>
+            ${desc ? `<p style="margin:4px 0 0; font-size:0.75rem; color:var(--app-text-muted);">${esc(desc)}</p>` : ''}
         </div>
         <div class="fb-phone-content">
             ${h}
-            <button type="button" style="width:100%; padding:0.75rem; background:var(--primary-color); color:#fff; border:none; border-radius:10px; font-weight:700; font-size:0.85rem; margin-top:1rem; cursor:not-allowed;" disabled>
+            <button type="button" style="width:100%; padding:0.8rem; background:var(--app-accent); color:#fff; border:none; border-radius:12px; font-weight:700; font-size:0.875rem; margin-top:1rem; cursor:not-allowed;" disabled>
                 Enviar Formulario
             </button>
         </div>
     `;
 }
-
-// Position toolbar floating next to the canvas
-function positionToolbar() {
-    const wrap = document.querySelector('.fb-builder-wrapper');
-    const tb = document.getElementById('gfToolbar');
-    if (!wrap || !tb) return;
-    const rect = wrap.getBoundingClientRect();
-    const leftPos = rect.right + 18;
-    if (leftPos + 60 > window.innerWidth) {
-        tb.style.cssText = 'position:fixed; bottom:0; left:0; right:0; top:auto; transform:none; flex-direction:row; justify-content:center; border-radius:0; padding:6px 12px; border-left:none; border-right:none; border-bottom:none; z-index:35; display:flex;';
-        return;
-    }
-    tb.style.cssText = '';
-    tb.style.left = leftPos + 'px';
-}
-
-positionToolbar();
-window.addEventListener('resize', positionToolbar);
-setTimeout(positionToolbar, 100);
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
-
