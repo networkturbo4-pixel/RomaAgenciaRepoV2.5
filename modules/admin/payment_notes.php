@@ -23,6 +23,39 @@ require_once 'includes/header.php';
     </div>
 </div>
 
+<style>
+@media (max-width: 768px) {
+    #summary-cards-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem !important;
+        margin-bottom: 1.25rem !important;
+    }
+    #summary-cards-container > div:not([style*="grid-column"]) {
+        padding: 0.85rem 0.9rem !important;
+        border-radius: 12px !important;
+    }
+    #summary-cards-container > div span:first-child {
+        font-size: 0.68rem !important;
+        letter-spacing: 0.2px !important;
+    }
+    #summary-cards-container > div span:last-child {
+        font-size: 1.25rem !important;
+        margin-top: 0.25rem !important;
+    }
+}
+@media (max-width: 380px) {
+    #summary-cards-container {
+        gap: 0.5rem !important;
+    }
+    #summary-cards-container > div:not([style*="grid-column"]) {
+        padding: 0.75rem 0.7rem !important;
+    }
+    #summary-cards-container > div span:last-child {
+        font-size: 1.15rem !important;
+    }
+}
+</style>
+
 <!-- Summary Cards Container -->
 <div id="summary-cards-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
     <!-- Cards will be injected here via JS -->

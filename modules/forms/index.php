@@ -751,6 +751,96 @@ foreach ($forms as $f) {
     border-color: var(--primary-color);
     color: var(--primary-color);
 }
+
+/* Mobile Responsive Layout - 2 Columns for Informative Metric Cards */
+@media (max-width: 768px) {
+    .forms-metrics-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem !important;
+        margin-bottom: 1.25rem !important;
+    }
+    .forms-metric-card {
+        padding: 0.75rem 0.8rem !important;
+        gap: 0.65rem !important;
+        border-radius: 12px !important;
+        min-width: 0 !important;
+    }
+    .forms-metric-card > div:last-child {
+        min-width: 0 !important;
+        flex: 1 !important;
+    }
+    .metric-icon-box {
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 10px !important;
+        font-size: 1.15rem !important;
+        flex-shrink: 0 !important;
+    }
+    .metric-val {
+        font-size: 1.25rem !important;
+        line-height: 1.1 !important;
+    }
+    .metric-lbl {
+        font-size: 0.68rem !important;
+        line-height: 1.2 !important;
+        word-break: break-word !important;
+    }
+    .forms-app-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 1.1rem;
+    }
+    .btn-new-form {
+        width: 100%;
+        justify-content: center;
+    }
+    .forms-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        padding: 0.85rem;
+    }
+    .forms-search-box {
+        width: 100%;
+        min-width: 0;
+    }
+    .forms-filter-pills {
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+        flex-wrap: nowrap;
+        scrollbar-width: none;
+    }
+    .forms-filter-pills::-webkit-scrollbar {
+        display: none;
+    }
+    .forms-app-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .forms-metrics-grid {
+        gap: 0.5rem !important;
+    }
+    .forms-metric-card {
+        padding: 0.65rem 0.6rem !important;
+        gap: 0.5rem !important;
+    }
+    .metric-icon-box {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px !important;
+        font-size: 1.05rem !important;
+    }
+    .metric-val {
+        font-size: 1.1rem !important;
+    }
+    .metric-lbl {
+        font-size: 0.64rem !important;
+    }
+}
 </style>
 
 <div class="forms-app-container">
