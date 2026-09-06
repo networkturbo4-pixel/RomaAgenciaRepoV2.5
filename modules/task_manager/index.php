@@ -477,7 +477,7 @@ try {
                         </div>
                     </div>
 
-                    <!-- Proyecto de Marca (Condicional) -->
+                    <!-- Proyecto de Marca (Condicional para Desarrollo de Marca) -->
                     <div class="lumio-meta-row" id="row-brand-project" style="display:none;">
                         <div class="lumio-meta-label"><i class="ph ph-paint-brush"></i> Proy. Marca</div>
                         <div class="lumio-meta-value">
@@ -487,8 +487,18 @@ try {
                         </div>
                     </div>
 
-                    <!-- Proyecto Activo -->
-                    <div class="lumio-meta-row">
+                    <!-- Fase / Grupo de Marca (Condicional para Desarrollo de Marca) -->
+                    <div class="lumio-meta-row" id="row-brand-group" style="display:none;">
+                        <div class="lumio-meta-label"><i class="ph ph-git-branch"></i> Fase / Etapa</div>
+                        <div class="lumio-meta-value">
+                            <select id="tm-brand-group-id" class="lumio-pill-select" onchange="TM.onBrandGroupChange(this.value)">
+                                <option value="">-- Seleccionar Fase de Marca --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Proyecto Activo (Para Calendario / General / Web) -->
+                    <div class="lumio-meta-row" id="row-project">
                         <div class="lumio-meta-label"><i class="ph ph-folder"></i> Proyecto</div>
                         <div class="lumio-meta-value">
                             <select id="tm-project-id" class="lumio-pill-select" onchange="TM.onProjectChange(this.value)">
@@ -497,7 +507,7 @@ try {
                         </div>
                     </div>
 
-                    <!-- Mes de Calendario Activo -->
+                    <!-- Mes de Calendario Activo (Para Calendario / Marketing) -->
                     <div class="lumio-meta-row" id="row-calendar-month">
                         <div class="lumio-meta-label"><i class="ph ph-calendar-blank"></i> Mes Activo</div>
                         <div class="lumio-meta-value">

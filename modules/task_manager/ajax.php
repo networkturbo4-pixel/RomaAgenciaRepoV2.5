@@ -59,6 +59,70 @@ function getUserMap($db) {
     return $map;
 }
 
+function syncCalendarMonthDates($db, $projectMonthId, $startDate, $dueDate) {
+    $projectMonthId = (int)$projectMonthId;
+    if ($projectMonthId <= 0 || (!$startDate && !$dueDate)) return;
+    $mStart = $startDate ? substr(str_replace('T', ' ', $startDate), 0, 10) : null;
+    $mDue = $dueDate ? substr(str_replace('T', ' ', $dueDate), 0, 10) : null;
+    try {
+        $st = $db->prepare("SELECT start_date, due_date FROM project_months WHERE id = ?");
+        $st->execute([$projectMonthId]);
+        $curr = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$curr) return;
+        $currStart = $curr['start_date'] ?? null;
+        $currDue = $curr['due_date'] ?? null;
+
+        if ($mStart && !$mDue) {
+            if (!$currDue || strtotime($currDue) <= strtotime($mStart)) {
+                $mDue = date('Y-m-d', strtotime($mStart . ' +30 days'));
+            } else {
+                $mDue = $currDue;
+            }
+        } elseif ($mDue && !$mStart) {
+            if (!$currStart || strtotime($currStart) >= strtotime($mDue)) {
+                $mStart = date('Y-m-d', strtotime($mDue . ' -30 days'));
+            } else {
+                $mStart = $currStart;
+            }
+        }
+
+        $stmtM = $db->prepare("UPDATE project_months SET start_date = ?, due_date = ?, status = 'en progreso' WHERE id = ?");
+        $stmtM->execute([$mStart, $mDue, $projectMonthId]);
+    } catch(Throwable $e) {}
+}
+
+function syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate) {
+    $brandGroupId = (int)$brandGroupId;
+    if ($brandGroupId <= 0 || (!$startDate && !$dueDate)) return;
+    $bgStart = $startDate ? substr(str_replace('T', ' ', $startDate), 0, 10) : null;
+    $bgDue = $dueDate ? substr(str_replace('T', ' ', $dueDate), 0, 10) : null;
+    try {
+        $st = $db->prepare("SELECT start_date, due_date FROM brand_task_groups WHERE id = ?");
+        $st->execute([$brandGroupId]);
+        $curr = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$curr) return;
+        $currStart = $curr['start_date'] ?? null;
+        $currDue = $curr['due_date'] ?? null;
+
+        if ($bgStart && !$bgDue) {
+            if (!$currDue || strtotime($currDue) <= strtotime($bgStart)) {
+                $bgDue = date('Y-m-d', strtotime($bgStart . ' +14 days'));
+            } else {
+                $bgDue = $currDue;
+            }
+        } elseif ($bgDue && !$bgStart) {
+            if (!$currStart || strtotime($currStart) >= strtotime($bgDue)) {
+                $bgStart = date('Y-m-d', strtotime($bgDue . ' -14 days'));
+            } else {
+                $bgStart = $currStart;
+            }
+        }
+
+        $stmtBG = $db->prepare("UPDATE brand_task_groups SET start_date = ?, due_date = ? WHERE id = ?");
+        $stmtBG->execute([$bgStart, $bgDue, $brandGroupId]);
+    } catch(Throwable $e) {}
+}
+
 function checkOverdueTasks($db) {
     try {
         $db->query("UPDATE tm_tasks SET status = 'overdue' WHERE due_date IS NOT NULL AND due_date < NOW() AND status IN ('new', 'pending')");
@@ -232,11 +296,28 @@ if ($action === 'get_projects_and_months') {
             }
         } catch(Throwable $e) {}
 
+        // Brand Task Groups (Fases de Desarrollo de Marca)
+        $brandGroups = [];
+        try {
+            $stmtBG = $db->query("SELECT id, project_id, name, sort_order, color, start_date, due_date FROM brand_task_groups ORDER BY sort_order ASC, id ASC");
+            while ($r = $stmtBG->fetch(PDO::FETCH_ASSOC)) {
+                $brandGroups[] = [
+                    'id' => (int)$r['id'],
+                    'project_id' => (int)$r['project_id'],
+                    'name' => $r['name'],
+                    'color' => $r['color'] ?: '#6366f1',
+                    'start_date' => $r['start_date'] ?: '',
+                    'due_date' => $r['due_date'] ?: ''
+                ];
+            }
+        } catch(Throwable $e) {}
+
         echo json_encode([
             'success' => true,
             'projects' => $projects,
             'project_months' => $projectMonths,
             'brand_projects' => $brandProjects,
+            'brand_groups' => $brandGroups,
             'project_services' => $projectServices,
             'available_tags' => $availableTags,
             'users' => array_values($userMap)
@@ -326,6 +407,22 @@ if ($action === 'get_all_tasks') {
                     'title' => $r['title'],
                     'client_name' => $r['client_name'] ?? '',
                     'status' => $r['status'] ?: 'Active',
+                    'start_date' => $r['start_date'] ?: '',
+                    'due_date' => $r['due_date'] ?: ''
+                ];
+            }
+        } catch(Throwable $e) {}
+
+        // Pre-fetch Brand Groups map (Fases de Marca)
+        $brandGroupMap = [];
+        try {
+            $stmtBG = $db->query("SELECT id, project_id, name, start_date, due_date, color FROM brand_task_groups");
+            while ($r = $stmtBG->fetch(PDO::FETCH_ASSOC)) {
+                $brandGroupMap[(int)$r['id']] = [
+                    'id' => (int)$r['id'],
+                    'project_id' => (int)$r['project_id'],
+                    'name' => $r['name'],
+                    'color' => $r['color'] ?: '#6366f1',
                     'start_date' => $r['start_date'] ?: '',
                     'due_date' => $r['due_date'] ?: ''
                 ];
@@ -435,6 +532,7 @@ if ($action === 'get_all_tasks') {
             $pId = (int)($t['project_id'] ?? 0);
             $pmId = (int)($t['project_month_id'] ?? 0);
             $bpId = (int)($t['brand_project_id'] ?? 0);
+            $bgId = (int)($t['brand_group_id'] ?? 0);
             $psId = (int)($t['project_service_id'] ?? 0);
 
             // resolve users
@@ -472,6 +570,9 @@ if ($action === 'get_all_tasks') {
                 'brand_project_id' => $bpId,
                 'brand_project_info' => $brandProjectMap[$bpId] ?? null,
                 'brand_project_title' => isset($brandProjectMap[$bpId]) ? $brandProjectMap[$bpId]['title'] : null,
+                'brand_group_id' => $bgId,
+                'brand_group_info' => $brandGroupMap[$bgId] ?? null,
+                'brand_group_name' => isset($brandGroupMap[$bgId]) ? $brandGroupMap[$bgId]['name'] : null,
                 'project_service_id' => $psId,
                 'project_service_info' => $projectServiceMap[$psId] ?? null,
                 'is_daily_objective' => (int)($t['is_daily_objective'] ?? 0),
@@ -540,6 +641,7 @@ if ($action === 'create_task') {
     $projectId = !empty($_POST['project_id']) ? (int)$_POST['project_id'] : null;
     $projectMonthId = !empty($_POST['project_month_id']) ? (int)$_POST['project_month_id'] : null;
     $brandProjectId = !empty($_POST['brand_project_id']) ? (int)$_POST['brand_project_id'] : null;
+    $brandGroupId = !empty($_POST['brand_group_id']) ? (int)$_POST['brand_group_id'] : null;
     $projectServiceId = !empty($_POST['project_service_id']) ? (int)$_POST['project_service_id'] : null;
     $isDailyObjective = !empty($_POST['is_daily_objective']) ? 1 : 0;
     $objectiveDate = !empty($_POST['objective_date']) ? $_POST['objective_date'] : ($isDailyObjective ? date('Y-m-d') : null);
@@ -557,16 +659,22 @@ if ($action === 'create_task') {
         $stmt = $db->prepare("
             INSERT INTO tm_tasks (
                 title, description, priority, status, frequency, area, 
-                project_id, project_month_id, brand_project_id, project_service_id, is_daily_objective, objective_date, 
+                project_id, project_month_id, brand_project_id, brand_group_id, project_service_id, is_daily_objective, objective_date, 
                 start_date, due_date, assigned_users, assigned_roles, tags, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $title, $desc, $priority, $status, $frequency, $area,
-            $projectId, $projectMonthId, $brandProjectId, $projectServiceId, $isDailyObjective, $objectiveDate,
+            $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $isDailyObjective, $objectiveDate,
             $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $userId
         ]);
         $taskId = $db->lastInsertId();
+
+        // Sincronizar fechas con el Mes de Calendario vinculado para reiniciar el cronómetro del mes
+        syncCalendarMonthDates($db, $projectMonthId, $startDate, $dueDate);
+
+        // Sincronizar fechas con la Fase / Grupo de Marca si está vinculada
+        syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate);
 
         // Insert subtasks
         $subtasksArr = json_decode($subtasksJson, true) ?: [];
@@ -659,6 +767,26 @@ if ($action === 'get_task') {
                         'content_phase' => $r['content_phase'] ?: 'En Borrador'
                     ];
                 }
+            } elseif (!empty($task['brand_group_id'])) {
+                $stBG = $db->prepare("
+                    SELECT bg.id, bg.name, bg.start_date, bg.due_date, bp.title as project_title, bp.status as project_status 
+                    FROM brand_task_groups bg 
+                    LEFT JOIN brand_projects bp ON bg.project_id = bp.id 
+                    WHERE bg.id = ?
+                ");
+                $stBG->execute([(int)$task['brand_group_id']]);
+                $r = $stBG->fetch(PDO::FETCH_ASSOC);
+                if ($r) {
+                    $task['brand_group_info'] = $r;
+                    $task['sync_info'] = [
+                        'type' => 'brand_group',
+                        'id' => (int)$r['id'],
+                        'title' => ($r['project_title'] ? $r['project_title'] . ' · ' : '') . $r['name'],
+                        'start_date' => $r['start_date'] ?: '',
+                        'due_date' => $r['due_date'] ?: '',
+                        'status' => $r['project_status'] ?: 'Active'
+                    ];
+                }
             } elseif (!empty($task['brand_project_id'])) {
                 $st = $db->prepare("SELECT id, title, client_name, status, start_date, due_date FROM brand_projects WHERE id = ?");
                 $st->execute([$task['brand_project_id']]);
@@ -721,6 +849,7 @@ if ($action === 'update_task_details') {
     $projectId = !empty($_POST['project_id']) ? (int)$_POST['project_id'] : null;
     $projectMonthId = !empty($_POST['project_month_id']) ? (int)$_POST['project_month_id'] : null;
     $brandProjectId = !empty($_POST['brand_project_id']) ? (int)$_POST['brand_project_id'] : null;
+    $brandGroupId = !empty($_POST['brand_group_id']) ? (int)$_POST['brand_group_id'] : null;
     $projectServiceId = !empty($_POST['project_service_id']) ? (int)$_POST['project_service_id'] : null;
     $isDailyObjective = !empty($_POST['is_daily_objective']) ? 1 : 0;
     $objectiveDate = !empty($_POST['objective_date']) ? $_POST['objective_date'] : ($isDailyObjective ? date('Y-m-d') : null);
@@ -743,15 +872,21 @@ if ($action === 'update_task_details') {
         $stmt = $db->prepare("
             UPDATE tm_tasks SET 
                 title = ?, description = ?, priority = ?, status = ?, frequency = ?, area = ?, 
-                project_id = ?, project_month_id = ?, brand_project_id = ?, project_service_id = ?, is_daily_objective = ?, objective_date = ?, 
+                project_id = ?, project_month_id = ?, brand_project_id = ?, brand_group_id = ?, project_service_id = ?, is_daily_objective = ?, objective_date = ?, 
                 start_date = ?, due_date = ?, assigned_users = ?, assigned_roles = ?, tags = ? 
             WHERE id = ?
         ");
         $stmt->execute([
             $title, $desc, $priority, $status, $frequency, $area,
-            $projectId, $projectMonthId, $brandProjectId, $projectServiceId, $isDailyObjective, $objectiveDate,
+            $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $isDailyObjective, $objectiveDate,
             $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $taskId
         ]);
+
+        // Sincronizar fechas con el Mes de Calendario vinculado para reiniciar el cronómetro del mes
+        syncCalendarMonthDates($db, $projectMonthId, $startDate, $dueDate);
+
+        // Sincronizar fechas con la Fase / Grupo de Marca si está vinculada
+        syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate);
         
         // Insert new subtasks added in edit modal
         $newSubtasksArr = json_decode($newSubtasksJson, true) ?: [];
@@ -862,6 +997,22 @@ if ($action === 'update_task_dates') {
     try {
         $stmt = $db->prepare("UPDATE tm_tasks SET start_date = ?, due_date = ? WHERE id = ?");
         $stmt->execute([$startDate, $dueDate, $taskId]);
+
+        // Sincronizar fechas con el Mes de Calendario o Grupo de Marca vinculado
+        $stMCheck = $db->prepare("SELECT project_month_id, brand_group_id FROM tm_tasks WHERE id = ?");
+        $stMCheck->execute([$taskId]);
+        $rowLinks = $stMCheck->fetch(PDO::FETCH_ASSOC);
+        if ($rowLinks) {
+            $linkedPmId = (int)($rowLinks['project_month_id'] ?? 0);
+            $linkedBgId = (int)($rowLinks['brand_group_id'] ?? 0);
+            if ($linkedPmId > 0 && ($startDate || $dueDate)) {
+                syncCalendarMonthDates($db, $linkedPmId, $startDate, $dueDate);
+            }
+            if ($linkedBgId > 0 && ($startDate || $dueDate)) {
+                syncBrandGroupDates($db, $linkedBgId, $startDate, $dueDate);
+            }
+        }
+
         echo json_encode([
             'success' => true,
             'task_id' => $taskId,

@@ -77,12 +77,24 @@ const TM = {
                     firstDay: 1
                 }
             };
+            const dpTaskConfig = {
+                ...dpConfig,
+                onSelect: () => {
+                    setTimeout(() => TM.onTaskDatesChanged(), 50);
+                }
+            };
             try {
                 if (document.getElementById('tm-start-date')) {
-                    this.dpStartDate = new AirDatepicker('#tm-start-date', dpConfig);
+                    this.dpStartDate = new AirDatepicker('#tm-start-date', dpTaskConfig);
+                    const sInput = document.getElementById('tm-start-date');
+                    sInput.addEventListener('change', () => TM.onTaskDatesChanged());
+                    sInput.addEventListener('input', () => TM.onTaskDatesChanged());
                 }
                 if (document.getElementById('tm-due-date')) {
-                    this.dpDueDate = new AirDatepicker('#tm-due-date', dpConfig);
+                    this.dpDueDate = new AirDatepicker('#tm-due-date', dpTaskConfig);
+                    const dInput = document.getElementById('tm-due-date');
+                    dInput.addEventListener('change', () => TM.onTaskDatesChanged());
+                    dInput.addEventListener('input', () => TM.onTaskDatesChanged());
                 }
                 if (document.getElementById('tm-daily-datepicker')) {
                     this.dpDailyDate = new AirDatepicker('#tm-daily-datepicker', {
@@ -463,6 +475,7 @@ const TM = {
                 this.projects = data.projects || [];
                 this.projectMonths = data.project_months || [];
                 this.brandProjects = data.brand_projects || [];
+                this.brandGroups = data.brand_groups || [];
                 this.projectServices = data.project_services || [];
                 if (data.available_tags && Array.isArray(data.available_tags)) {
                     data.available_tags.forEach(t => {
@@ -570,8 +583,26 @@ const TM = {
         this.refreshSyncPanelFromSelections();
     },
 
-    onBrandProjectChange: function(bpId) {
-        this.refreshSyncPanelFromSelections();
+    onBrandProjectChange: function(bpId, selectedGroupId = null) {
+        const groupSelect = document.getElementById('tm-brand-group-id');
+        if (groupSelect) {
+            groupSelect.innerHTML = '<option value="">-- Seleccionar Fase de Marca --</option>';
+            if (bpId && this.brandGroups) {
+                const matched = this.brandGroups.filter(g => String(g.project_id) === String(bpId));
+                matched.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g.id;
+                    const dateText = (g.start_date && g.due_date) ? ` (${g.start_date} al ${g.due_date})` : (g.due_date ? ` (Hasta ${g.due_date})` : '');
+                    opt.textContent = `${g.name}${dateText}`;
+                    opt.dataset.startDate = g.start_date || '';
+                    opt.dataset.dueDate = g.due_date || '';
+                    if (selectedGroupId && String(g.id) === String(selectedGroupId)) {
+                        opt.selected = true;
+                    }
+                    groupSelect.appendChild(opt);
+                });
+            }
+        }
 
         // Auto-assign brand project members if none assigned yet
         const pMembers = this.getProjectTeamMembers();
@@ -581,6 +612,26 @@ const TM = {
         }
 
         this.updateProjectMembersBar();
+        this.refreshSyncPanelFromSelections();
+    },
+
+    onBrandGroupChange: function(groupId) {
+        const groupSelect = document.getElementById('tm-brand-group-id');
+        const opt = groupSelect?.selectedOptions[0];
+        if (opt && groupId) {
+            const gStart = opt.dataset.startDate;
+            const gDue = opt.dataset.dueDate;
+            const startInput = document.getElementById('tm-start-date');
+            const dueInput = document.getElementById('tm-due-date');
+            if (gStart && startInput && !startInput.value) {
+                startInput.value = gStart + ' 09:00';
+            }
+            if (gDue && dueInput && !dueInput.value) {
+                dueInput.value = gDue + ' 18:00';
+            }
+        }
+        this.refreshSyncPanelFromSelections();
+        this.onTaskDatesChanged();
     },
 
     onProjectServiceChange: function(psId) {
@@ -589,18 +640,26 @@ const TM = {
 
     onAreaChange: function(area) {
         const brandRow = document.getElementById('row-brand-project');
+        const brandGroupRow = document.getElementById('row-brand-group');
+        const projectRow = document.getElementById('row-project');
+        const monthRow = document.getElementById('row-calendar-month');
         const serviceRow = document.getElementById('row-project-service');
         const accentBar = document.getElementById('tm-modal-accent');
         
-        if (brandRow) {
-            brandRow.style.display = (area === 'desarrollo_marca') ? 'flex' : 'none';
-        }
-
-        if (serviceRow) {
-            const isServiceArea = (area === 'desarrollo_web' || area === 'audiovisual');
-            serviceRow.style.display = isServiceArea ? 'flex' : 'none';
-            if (isServiceArea) {
-                // Filter service options by area
+        if (area === 'desarrollo_marca') {
+            if (brandRow) brandRow.style.display = 'flex';
+            if (brandGroupRow) brandGroupRow.style.display = 'flex';
+            if (projectRow) projectRow.style.display = 'none';
+            if (monthRow) monthRow.style.display = 'none';
+            if (serviceRow) serviceRow.style.display = 'none';
+            this.onBrandProjectChange(document.getElementById('tm-brand-project-id')?.value, document.getElementById('tm-brand-group-id')?.value);
+        } else if (area === 'desarrollo_web' || area === 'audiovisual') {
+            if (brandRow) brandRow.style.display = 'none';
+            if (brandGroupRow) brandGroupRow.style.display = 'none';
+            if (projectRow) projectRow.style.display = 'flex';
+            if (monthRow) monthRow.style.display = 'none';
+            if (serviceRow) {
+                serviceRow.style.display = 'flex';
                 const psSelect = document.getElementById('tm-project-service-id');
                 if (psSelect) {
                     Array.from(psSelect.options).forEach((opt, idx) => {
@@ -610,6 +669,13 @@ const TM = {
                     });
                 }
             }
+        } else {
+            // General / Calendario
+            if (brandRow) brandRow.style.display = 'none';
+            if (brandGroupRow) brandGroupRow.style.display = 'none';
+            if (projectRow) projectRow.style.display = 'flex';
+            if (monthRow) monthRow.style.display = 'flex';
+            if (serviceRow) serviceRow.style.display = 'none';
         }
 
         this.updateProjectMembersBar();
@@ -629,14 +695,46 @@ const TM = {
         this.refreshSyncPanelFromSelections();
     },
 
+    onTaskDatesChanged: function() {
+        const startVal = document.getElementById('tm-start-date')?.value || '';
+        const dueVal = document.getElementById('tm-due-date')?.value || '';
+
+        if (this.currentSyncEntity) {
+            if (startVal) this.currentSyncEntity.start_date = startVal.substring(0, 10);
+            if (dueVal) this.currentSyncEntity.due_date = dueVal.substring(0, 10);
+
+            const deadlineEl = document.getElementById('tm-sync-parent-deadline');
+            if (deadlineEl && dueVal) {
+                deadlineEl.textContent = dueVal.substring(0, 10);
+            }
+            const timerEl = document.getElementById('tm-sync-parent-timer');
+            if (timerEl) {
+                if (dueVal) timerEl.setAttribute('data-due', dueVal.substring(0, 10));
+                if (startVal) timerEl.setAttribute('data-start', startVal.substring(0, 10));
+                timerEl.setAttribute('data-status', 'en progreso');
+            }
+        }
+        this.checkDeadlineDrift();
+        this.updateAllTimers();
+    },
+
     refreshSyncPanelFromSelections: function() {
         const pmId = document.getElementById('tm-project-month-id')?.value;
         const bpId = document.getElementById('tm-brand-project-id')?.value;
+        const bgId = document.getElementById('tm-brand-group-id')?.value;
         const psId = document.getElementById('tm-project-service-id')?.value;
         const area = document.getElementById('tm-area')?.value;
 
-        if (area === 'desarrollo_marca' && bpId) {
-            this.updateSyncPanel('brand_project', bpId);
+        if (area === 'desarrollo_marca') {
+            if (bgId) {
+                this.updateSyncPanel('brand_group', bgId);
+            } else if (bpId) {
+                this.updateSyncPanel('brand_project', bpId);
+            } else {
+                const panel = document.getElementById('tm-sync-panel');
+                if (panel) panel.style.display = 'none';
+                this.currentSyncEntity = null;
+            }
         } else if ((area === 'desarrollo_web' || area === 'audiovisual') && psId) {
             this.updateSyncPanel('project_service', psId);
         } else if (pmId) {
@@ -676,6 +774,25 @@ const TM = {
                 { val: 'Publicado', label: 'Publicado (En redes)' }
             ];
             currentPhase = entity.content_phase || 'En Borrador';
+        } else if (type === 'brand_group') {
+            const group = this.brandGroups ? this.brandGroups.find(g => String(g.id) === String(id)) : null;
+            if (!group) return;
+            const parentBP = this.brandProjects.find(b => String(b.id) === String(group.project_id));
+            entity = {
+                id: group.id,
+                title: group.name,
+                due_date: group.due_date || parentBP?.due_date || '',
+                start_date: group.start_date || parentBP?.start_date || '',
+                status: parentBP?.status || 'Active'
+            };
+            typeBadge = `Fase de Marca · ${group.name}`;
+            phaseOptions = [
+                { val: 'pending', label: 'Pendiente' },
+                { val: 'in_progress', label: 'En Proceso' },
+                { val: 'review', label: 'En Revisión' },
+                { val: 'completed', label: 'Completado' }
+            ];
+            currentPhase = group.status || 'in_progress';
         } else if (type === 'brand_project') {
             entity = this.brandProjects.find(b => String(b.id) === String(id));
             if (!entity) return;
@@ -721,7 +838,7 @@ const TM = {
         if (timerEl) {
             timerEl.setAttribute('data-due', entity.due_date || '');
             timerEl.setAttribute('data-start', entity.start_date || '');
-            timerEl.setAttribute('data-status', entity.status || '');
+            timerEl.setAttribute('data-status', entity.status || 'en progreso');
         }
 
         const phaseSelect = document.getElementById('tm-sync-phase-select');
@@ -1231,10 +1348,14 @@ const TM = {
                 `;
             } else if (t.brand_project_info) {
                 const bp = t.brand_project_info;
-                entityDueDate = bp.due_date;
+                entityDueDate = (t.brand_group_info && t.brand_group_info.due_date) ? t.brand_group_info.due_date : bp.due_date;
+                let brandPhaseTxt = '';
+                if (t.brand_group_name) {
+                    brandPhaseTxt = ` <span class="tm-brand-phase-txt">· ${this.escapeHtml(t.brand_group_name)}</span>`;
+                }
                 projectHtml = `
-                    <div class="tm-task-project-chip" title="Desarrollo de Marca: ${bp.title}">
-                        <i class="ph ph-paint-brush"></i> <span>${this.escapeHtml(bp.title)}</span>
+                    <div class="tm-task-project-chip" title="Desarrollo de Marca: ${bp.title}${t.brand_group_name ? ' (' + t.brand_group_name + ')' : ''}">
+                        <i class="ph ph-paint-brush"></i> <span>${this.escapeHtml(bp.title)}${brandPhaseTxt}</span>
                     </div>
                 `;
                 phaseChipHtml = `
@@ -1274,6 +1395,14 @@ const TM = {
                     ${t.status === 'overdue' ? '<span class="tm-badge tm-badge-overdue"><i class="ph ph-warning-circle"></i> Retrasada</span>' : ''}
                 </div>
             `;
+
+            // Tags Badges Row
+            let tagsHtml = '';
+            if (t.tags && Array.isArray(t.tags) && t.tags.length > 0) {
+                tagsHtml = `<div class="tm-task-tags-row">` + 
+                    t.tags.map(tag => `<span class="tm-tag-pill"><i class="ph ph-tag"></i> ${this.escapeHtml(tag)}</span>`).join('') +
+                    `</div>`;
+            }
 
             // Subtasks Progress
             let subtasksHtml = '';
@@ -1326,6 +1455,7 @@ const TM = {
             card.innerHTML = `
                 ${badgesHtml}
                 <h4 class="tm-task-title">${this.escapeHtml(t.title)}</h4>
+                ${tagsHtml}
                 ${projectHtml}
                 ${subtasksHtml}
                 <div class="tm-task-footer">
@@ -2261,6 +2391,9 @@ const TM = {
         }
 
         this.onAreaChange(document.getElementById('tm-area').value);
+        if (document.getElementById('tm-brand-group-id')) {
+            document.getElementById('tm-brand-group-id').innerHTML = '<option value="">-- Seleccionar Fase de Marca --</option>';
+        }
         document.getElementById('tm-start-date').value = '';
         if (this.dpStartDate) {
             this.dpStartDate.clear();
@@ -2288,9 +2421,10 @@ const TM = {
         document.getElementById('tm-area').value = task.area || 'general';
         this.onAreaChange(task.area || 'general');
 
-        // Brand project id
+        // Brand project id & phase group
         if (document.getElementById('tm-brand-project-id')) {
             document.getElementById('tm-brand-project-id').value = task.brand_project_id || '';
+            this.onBrandProjectChange(task.brand_project_id || '', task.brand_group_id || null);
         }
 
         // Project and Month cascade
@@ -2398,6 +2532,10 @@ const TM = {
                     this.currentTags = [...data.task.tags];
                     this.renderTags();
                 }
+                if (data.task.brand_group_id && document.getElementById('tm-brand-group-id')) {
+                    document.getElementById('tm-brand-group-id').value = data.task.brand_group_id;
+                    this.refreshSyncPanelFromSelections();
+                }
                 if (data.task.subtasks_list) {
                     data.task.subtasks_list.forEach(st => {
                         const row = document.createElement('div');
@@ -2472,6 +2610,7 @@ const TM = {
         formData.append('project_id', document.getElementById('tm-project-id').value);
         formData.append('project_month_id', document.getElementById('tm-project-month-id').value);
         formData.append('brand_project_id', document.getElementById('tm-brand-project-id').value);
+        formData.append('brand_group_id', document.getElementById('tm-brand-group-id') ? document.getElementById('tm-brand-group-id').value : '');
         formData.append('project_service_id', document.getElementById('tm-project-service-id') ? document.getElementById('tm-project-service-id').value : '');
 
         const isObj = document.getElementById('tm-is-daily-objective').checked ? 1 : 0;
@@ -2497,6 +2636,7 @@ const TM = {
         .then(data => {
             if(data.success) {
                 this.closeModal('tm-modal-task');
+                this.loadContextData();
                 this.loadTasks();
                 if (this.currentView === 'daily') {
                     this.renderDailyView();

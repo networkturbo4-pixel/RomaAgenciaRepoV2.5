@@ -654,6 +654,56 @@
     flex-shrink: 0;
 }
 
+.tm-brand-phase-txt {
+    color: #ec4899;
+    font-weight: 700;
+}
+
+/* Card Tags Row */
+.tm-task-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.55rem;
+}
+
+.tm-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.2rem 0.52rem;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    letter-spacing: 0.2px;
+    transition: all 0.2s ease;
+    line-height: 1.2;
+}
+
+.tm-tag-pill i {
+    font-size: 0.72rem;
+    opacity: 0.85;
+}
+
+.tm-tag-pill:hover {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="dark"] .tm-tag-pill {
+    background: rgba(129, 140, 248, 0.14);
+    color: #a5b4fc;
+    border-color: rgba(129, 140, 248, 0.28);
+}
+
+[data-theme="dark"] .tm-tag-pill:hover {
+    background: rgba(129, 140, 248, 0.24);
+    border-color: rgba(129, 140, 248, 0.45);
+}
+
 /* Subtasks Progress Bar in Card */
 .tm-subtasks-progress {
     display: flex;
