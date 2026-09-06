@@ -1,11 +1,18 @@
 <?php
 // modules/pizarras/ajax_search_pizarras.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'No autorizado']);
     exit();
 }
+
+require_once '../../config/database.php';
+$database = new Database();
+$db = $database->getConnection();
 
 $user_id = (int)$_SESSION['user_id'];
 

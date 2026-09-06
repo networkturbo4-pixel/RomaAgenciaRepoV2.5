@@ -26,12 +26,16 @@ $all_services = $stmtServices->fetchAll(PDO::FETCH_ASSOC);
 $totalClients = count($clients);
 $clientsWithMembership = 0;
 $clientsWithDrive = 0;
+$clientsWithPortal = 0;
 foreach ($clients as $c) {
     if (!empty($c['memberships']) && strpos($c['memberships'], '1') !== false) {
         $clientsWithMembership++;
     }
     if (!empty($c['drive_folder_id'])) {
         $clientsWithDrive++;
+    }
+    if (!empty($c['portal_enabled'])) {
+        $clientsWithPortal++;
     }
 }
 $totalBrands = (int)$db->query("SELECT COUNT(*) FROM client_brands")->fetchColumn();
@@ -1443,11 +1447,11 @@ require_once 'includes/header.php';
 
         <div class="client-kpi-card">
             <div class="kpi-icon-wrap teal">
-                <i class="ph ph-folder-notch-open"></i>
+                <i class="ph ph-app-window"></i>
             </div>
             <div class="kpi-content">
-                <span class="kpi-val"><?php echo $clientsWithDrive; ?></span>
-                <span class="kpi-label">Portales Drive</span>
+                <span class="kpi-val"><?php echo $clientsWithPortal; ?></span>
+                <span class="kpi-label">Portal Activo</span>
             </div>
         </div>
     </div>
@@ -1475,6 +1479,9 @@ require_once 'includes/header.php';
                 </button>
                 <button type="button" class="client-filter-pill" data-filter="membership" onclick="ClientModule.setFilter('membership', this)">
                     <i class="ph-fill ph-star" style="color: #f59e0b;"></i> Membresía
+                </button>
+                <button type="button" class="client-filter-pill" data-filter="portal" onclick="ClientModule.setFilter('portal', this)">
+                    <i class="ph ph-app-window" style="color: #10b981;"></i> Portal Activo
                 </button>
                 <button type="button" class="client-filter-pill" data-filter="has_brands" onclick="ClientModule.setFilter('has_brands', this)">
                     <i class="ph ph-briefcase"></i> Con Marcas
@@ -1545,6 +1552,11 @@ require_once 'includes/header.php';
                     <div class="client-meta-pills">
                         <?php if (!empty($client['dni'])): ?>
                         <span class="client-dni-badge"><i class="ph ph-identification-card"></i> <?php echo htmlspecialchars($client['dni']); ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($client['portal_enabled'])): ?>
+                        <span class="client-portal-badge" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10.5px; font-weight: 600; color: #10b981; background: color-mix(in srgb, #10b981 12%, transparent); padding: 1px 6px; border-radius: 4px; border: 1px solid color-mix(in srgb, #10b981 25%, transparent);" title="Portal de cliente activo">
+                            <i class="ph-fill ph-check-circle"></i> Portal Activo
+                        </span>
                         <?php endif; ?>
                         <?php if (!empty($client['drive_folder_id'])): ?>
                         <a href="https://drive.google.com/drive/folders/<?php echo htmlspecialchars($client['drive_folder_id']); ?>" target="_blank" onclick="event.stopPropagation();" class="client-drive-link" title="Abrir Google Drive">
@@ -1643,6 +1655,11 @@ require_once 'includes/header.php';
                     <div class="grid-card-badges">
                         <?php if (!empty($client['dni'])): ?>
                         <span class="client-dni-badge"><i class="ph ph-identification-card"></i> <?php echo htmlspecialchars($client['dni']); ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($client['portal_enabled'])): ?>
+                        <span class="client-portal-badge" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10px; font-weight: 600; color: #10b981; background: color-mix(in srgb, #10b981 12%, transparent); padding: 1px 5px; border-radius: 4px; border: 1px solid color-mix(in srgb, #10b981 25%, transparent);" title="Portal de cliente activo">
+                            <i class="ph-fill ph-check-circle"></i> Portal
+                        </span>
                         <?php endif; ?>
                         <?php if ($hasAnyMembership): ?>
                         <span class="membership-pill-badge"><i class="ph-fill ph-star"></i> Membresía</span>
@@ -1779,6 +1796,25 @@ require_once 'includes/header.php';
                                 <input type="text" class="form-control" name="drive_folder_id" id="client_drive_folder_id" placeholder="ID (ej: 1A2b3C4d5E...)">
                             </div>
                             <div class="field-help-tip">Habilita acceso automático al portal de entregables para este cliente.</div>
+                        </div>
+
+                        <!-- Portal Switcher Card -->
+                        <div class="portal-toggle-box" style="margin-top: 1.1rem; padding: 0.85rem 1rem; border-radius: var(--client-radius-md); background: color-mix(in srgb, var(--primary-color) 6%, var(--bg-body, var(--bg-surface))); border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--border-color));">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                    <div style="width: 34px; height: 34px; border-radius: 8px; background: color-mix(in srgb, var(--primary-color) 15%, transparent); color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+                                        <i class="ph ph-app-window"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 12.5px; font-weight: 600; color: var(--text-main);">Activar Portal de Cliente</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Permite al cliente ingresar con su DNI/RUC en el portal</div>
+                                    </div>
+                                </div>
+                                <label class="modern-toggle-switch" style="margin: 0; flex-shrink: 0;">
+                                    <input type="checkbox" name="portal_enabled" id="client_portal_enabled" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 

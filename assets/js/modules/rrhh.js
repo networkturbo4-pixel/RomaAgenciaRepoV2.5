@@ -1,38 +1,65 @@
+// assets/js/modules/rrhh.js
+
 const RrhhModule = (function() {
     let employees = [];
-    let filteredEmployees = [];
     let currentFilter = 'Todos';
     let searchQuery = '';
+    let searchTimeout = null;
     let currentEmpSalary = 0;
     let currentEmpId = 0;
     let currentEmployeePayments = [];
 
-    const tbody = document.querySelector('#employees-table tbody');
+    const tbody = document.getElementById('employeesTableBody');
     const formModal = document.getElementById('modal-employee-form');
     const deleteModal = document.getElementById('modal-delete-employee');
     const paymentsModal = document.getElementById('modal-payments');
 
     function init() {
-        fetchEmployees();
         setupEventListeners();
+        fetchEmployees();
     }
 
     function setupEventListeners() {
-        // Search
-        const searchInput = document.querySelector('.search-box input');
+        // Search Input
+        const searchInput = document.getElementById('rrhhSearchInput');
+        const clearBtn = document.getElementById('rrhhSearchClearBtn');
+
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
-                searchQuery = e.target.value.toLowerCase();
-                applyFilters();
+                searchQuery = e.target.value.trim();
+                clearBtn.style.display = searchQuery !== '' ? 'flex' : 'none';
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(fetchEmployees, 300);
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                searchQuery = '';
+                clearBtn.style.display = 'none';
+                fetchEmployees();
             });
         }
         
-        // Calculadora de pago
+        // Filter Pills
+        document.querySelectorAll('.rrhh-filter-pill').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.rrhh-filter-pill').forEach(b => b.classList.remove('active'));
+                const target = e.currentTarget;
+                target.classList.add('active');
+                currentFilter = target.dataset.status || 'Todos';
+                fetchEmployees();
+            });
+        });
+
+        // Payment Calculator Inputs
         const calcDays = document.getElementById('calc_days');
         const calcExtra = document.getElementById('calc_extra_hours');
         const calcBaseSalary = document.getElementById('calc_base_salary');
         const calcBonuses = document.getElementById('calc_bonuses');
         const calcDiscounts = document.getElementById('calc_discounts');
+
         if (calcDays && calcExtra && calcBaseSalary) {
             calcDays.addEventListener('input', updateCalculator);
             calcExtra.addEventListener('input', updateCalculator);
@@ -44,122 +71,143 @@ const RrhhModule = (function() {
             });
         }
         
-        // Botón Compartir Historial
+        // Share History Button
         const btnShareHistory = document.getElementById('btn-share-history');
         if (btnShareHistory) {
             btnShareHistory.addEventListener('click', () => {
                 if (currentEmpId > 0) {
-                    let shareLink = window.location.origin + window.location.pathname + '?module=public&action=employee_history&id=' + currentEmpId;
-                    navigator.clipboard.writeText(shareLink);
-                    alert('Enlace del historial de pagos copiado al portapapeles');
+                    const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.php.*$/, '').replace(/\/$/, '');
+                    const shareLink = baseUrl + '/index.php?module=public&action=employee_history&id=' + currentEmpId;
+                    navigator.clipboard.writeText(shareLink).then(() => {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Enlace de historial copiado',
+                                showConfirmButton: false,
+                                timer: 2500,
+                                background: 'var(--bg-surface)',
+                                color: 'var(--text-main)'
+                            });
+                        } else {
+                            alert('Enlace copiado al portapapeles');
+                        }
+                    });
                 }
             });
         }
-
-        // OCR for payment voucher (Desactivado para RRHH para no sobreescribir datos)
-        const payVoucher = document.getElementById('pay_voucher');
-        if (payVoucher) {
-            payVoucher.addEventListener('change', (e) => {
-                // Solo adjuntar el archivo, sin OCR
-            });
-        }
-
-        // Filters
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                const target = e.currentTarget;
-                target.classList.add('active');
-                currentFilter = target.textContent.trim();
-                applyFilters();
-            });
-        });
     }
 
     function fetchEmployees() {
-        fetch('index.php?module=admin&action=ajax_get_employees')
+        const spinner = document.getElementById('rrhhSearchSpinner');
+        if (spinner) spinner.style.display = 'block';
+
+        fetch(`modules/admin/ajax_get_employees.php?q=${encodeURIComponent(searchQuery)}&status=${encodeURIComponent(currentFilter)}`)
             .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    employees = data.data;
-                    applyFilters();
+            .then(res => {
+                if (spinner) spinner.style.display = 'none';
+                if (res.success) {
+                    employees = res.data;
+                    
+                    // Update KPI counters
+                    if (res.counts) {
+                        const totalBadge = document.getElementById('totalEmpBadge');
+                        const kpiTotal = document.getElementById('kpiTotal');
+                        const kpiActive = document.getElementById('kpiActive');
+                        const kpiInactive = document.getElementById('kpiInactive');
+                        const kpiPayroll = document.getElementById('kpiPayroll');
+
+                        if (totalBadge) totalBadge.textContent = `${res.counts.total} empleados`;
+                        if (kpiTotal) kpiTotal.textContent = res.counts.total;
+                        if (kpiActive) kpiActive.textContent = res.counts.active;
+                        if (kpiInactive) kpiInactive.textContent = res.counts.inactive;
+                        if (kpiPayroll) kpiPayroll.textContent = `S/ ${parseFloat(res.counts.payroll).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    }
+
+                    renderTable(employees);
+                } else {
+                    console.error(res.error);
                 }
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                if (spinner) spinner.style.display = 'none';
+                console.error(err);
+            });
     }
 
-    function applyFilters() {
-        filteredEmployees = employees.filter(emp => {
-            const matchesSearch = emp.name.toLowerCase().includes(searchQuery) ||
-                                  emp.email.toLowerCase().includes(searchQuery) ||
-                                  emp.role.toLowerCase().includes(searchQuery);
-            
-            let matchesStatus = true;
-            if (currentFilter === 'Activos') matchesStatus = emp.status === 'Activo';
-            if (currentFilter === 'Inactivos') matchesStatus = emp.status === 'Inactivo';
-            if (currentFilter === 'Pendientes') matchesStatus = emp.status === 'Pendiente';
-
-            return matchesSearch && matchesStatus;
-        });
-        renderTable();
-    }
-
-    function renderTable() {
+    function renderTable(list) {
         if (!tbody) return;
-        tbody.innerHTML = '';
+        const container = document.querySelector('.rrhh-list-container');
+        const emptyState = document.getElementById('rrhhEmptyState');
+        const pill = document.getElementById('rrhhSearchResultPill');
 
-        if (filteredEmployees.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem;">No se encontraron empleados.</td></tr>`;
+        if (pill) pill.textContent = `Mostrando ${list.length} empleados`;
+
+        if (list.length === 0) {
+            if (container) container.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'flex';
+            tbody.innerHTML = '';
             return;
         }
 
-        filteredEmployees.forEach(emp => {
+        if (container) container.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'none';
+        tbody.innerHTML = '';
+
+        list.forEach(emp => {
             const tr = document.createElement('tr');
+            tr.className = 'emp-row-card';
             
-            let statusClass = 'status-' + emp.status.toLowerCase();
-            let iconClass = '';
-            if (emp.status === 'Activo') iconClass = 'ph-check-circle';
-            if (emp.status === 'Inactivo') iconClass = 'ph-x-circle';
-            if (emp.status === 'Pendiente') iconClass = 'ph-dots-three-circle';
+            const st = (emp.status || 'Activo').toLowerCase();
+            let iconClass = 'ph-check-circle';
+            if (st === 'inactivo') iconClass = 'ph-x-circle';
+            if (st === 'pendiente') iconClass = 'ph-dots-three-circle';
+
+            let scheduleText = '';
+            if (emp.work_start && emp.work_end) {
+                scheduleText = `<span style="font-size:11px; color:var(--text-muted);"><i class="ph ph-clock"></i> ${emp.work_start.substring(0,5)} - ${emp.work_end.substring(0,5)}</span>`;
+            }
 
             tr.innerHTML = `
-                <td data-label="USUARIO">
-                    <div class="user-cell">
-                        <div class="user-avatar" style="background-color: ${emp.color};">
+                <td class="col-user" data-label="USUARIO">
+                    <div class="emp-user-cell">
+                        <div class="emp-avatar" style="background-color: ${emp.color};">
                             ${emp.initials}
                         </div>
-                        <div class="rrhh-user-info">
-                            <span class="user-name">${emp.name}</span>
-                            <span class="user-email">${emp.email}</span>
+                        <div class="emp-info-wrap">
+                            <span class="emp-name-text">${emp.name}</span>
+                            <span class="emp-email-text">${emp.email}</span>
                         </div>
                     </div>
                 </td>
-                <td data-label="ROL / DEPARTAMENTO">
-                    <div class="role-info">
-                        <span class="role-title">${emp.role}</span>
-                        <span class="role-dept">${emp.department}</span>
+                <td class="col-role" data-label="ROL / DEPARTAMENTO">
+                    <div class="emp-role-cell">
+                        <span class="emp-role-title">${emp.role}</span>
+                        <span class="emp-dept-title">${emp.department}</span>
+                        ${scheduleText}
                     </div>
                 </td>
-                <td data-label="ESTADO">
-                    <span class="status-badge ${statusClass}">
+                <td class="col-status" data-label="ESTADO">
+                    <span class="status-badge status-${st}">
                         <i class="ph ${iconClass}"></i> ${emp.status}
                     </span>
                 </td>
-                <td data-label="SALARIO / CONTRATACIÓN">
-                    <div class="role-info">
-                        <span class="role-title">S/ ${parseFloat(emp.salary).toFixed(2)}</span>
-                        <span class="role-dept">${emp.hire_date}</span>
+                <td class="col-salary" data-label="SALARIO / CONTRATACIÓN">
+                    <div class="emp-salary-cell">
+                        <span class="emp-salary-amount">S/ ${parseFloat(emp.salary).toFixed(2)}</span>
+                        <span class="emp-hire-date">Ingreso: ${emp.hire_date}</span>
                     </div>
                 </td>
-                <td data-label="ACCIONES" style="text-align: right;">
-                    <div class="action-buttons-rrhh">
-                        <button class="btn-action-icon" title="Pagos y Boletas" onclick="RrhhModule.openPaymentsModal(${emp.id})">
+                <td class="col-actions" data-label="ACCIONES" style="text-align: right;">
+                    <div class="action-buttons-group">
+                        <button class="action-btn-saas" title="Pagos y Boletas" onclick="RrhhModule.openPaymentsModal(${emp.id})">
                             <i class="ph ph-wallet"></i>
                         </button>
-                        <button class="btn-action-icon" title="Editar Empleado" onclick="RrhhModule.openModal(${emp.id})">
+                        <button class="action-btn-saas" title="Editar Empleado" onclick="RrhhModule.openModal(${emp.id})">
                             <i class="ph ph-pencil-simple"></i>
                         </button>
-                        <button class="btn-action-icon" title="Eliminar" style="color: var(--danger-color);" onclick="RrhhModule.confirmDelete(${emp.id})">
+                        <button class="action-btn-saas delete-btn" title="Eliminar" onclick="RrhhModule.confirmDelete(${emp.id})">
                             <i class="ph ph-trash"></i>
                         </button>
                     </div>
@@ -167,8 +215,6 @@ const RrhhModule = (function() {
             `;
             tbody.appendChild(tr);
         });
-        
-        document.getElementById('pagination-info-text').textContent = `Mostrando ${filteredEmployees.length} empleados`;
     }
 
     function openModal(id = 0) {
@@ -179,19 +225,20 @@ const RrhhModule = (function() {
             document.getElementById('modal-title-emp').textContent = 'Nuevo Empleado';
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('emp_hire_date').value = today;
+            document.getElementById('emp_status').value = 'Activo';
         } else {
             document.getElementById('modal-title-emp').textContent = 'Editar Empleado';
             const emp = employees.find(e => e.id == id);
             if (emp) {
-                document.getElementById('emp_name').value = emp.name;
+                document.getElementById('emp_name').value = emp.name || '';
                 document.getElementById('emp_dni').value = emp.dni || '';
-                document.getElementById('emp_email').value = emp.email;
+                document.getElementById('emp_email').value = emp.email || '';
                 document.getElementById('emp_phone').value = emp.phone || '';
-                document.getElementById('emp_role').value = emp.role;
-                document.getElementById('emp_department').value = emp.department;
-                document.getElementById('emp_status').value = emp.status;
-                document.getElementById('emp_salary').value = emp.salary;
-                document.getElementById('emp_hire_date').value = emp.hire_date;
+                document.getElementById('emp_role').value = emp.role || '';
+                document.getElementById('emp_department').value = emp.department || '';
+                document.getElementById('emp_status').value = emp.status || 'Activo';
+                document.getElementById('emp_salary').value = emp.salary || '';
+                document.getElementById('emp_hire_date').value = emp.hire_date || '';
                 document.getElementById('emp_work_start').value = emp.work_start || '';
                 document.getElementById('emp_work_end').value = emp.work_end || '';
             }
@@ -205,8 +252,12 @@ const RrhhModule = (function() {
 
     function saveEmployee() {
         const formData = new FormData(document.getElementById('emp_form'));
+        const btn = document.getElementById('btnSaveEmp');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+        btn.disabled = true;
         
-        fetch('index.php?module=admin&action=ajax_save_employee', {
+        fetch('modules/admin/ajax_save_employee.php', {
             method: 'POST',
             body: formData
         })
@@ -214,12 +265,31 @@ const RrhhModule = (function() {
         .then(data => {
             if (data.success) {
                 closeModal();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Empleado guardado correctamente',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        background: 'var(--bg-surface)',
+                        color: 'var(--text-main)'
+                    });
+                }
                 fetchEmployees();
             } else {
-                alert('Error: ' + data.message);
+                alert('Error: ' + (data.message || 'No se pudo guardar'));
             }
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+            console.error(err);
+            alert('Error de conexión.');
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
     }
 
     let deleteId = 0;
@@ -235,8 +305,12 @@ const RrhhModule = (function() {
 
     function deleteEmployee() {
         if (deleteId === 0) return;
+        const btn = document.getElementById('btnConfirmDeleteEmp');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Eliminando...';
+        btn.disabled = true;
         
-        fetch('index.php?module=admin&action=ajax_delete_employee', {
+        fetch('modules/admin/ajax_delete_employee.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -245,14 +319,34 @@ const RrhhModule = (function() {
         })
         .then(res => res.json())
         .then(data => {
+            closeDeleteModal();
             if (data.success) {
-                closeDeleteModal();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Empleado eliminado correctamente',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        background: 'var(--bg-surface)',
+                        color: 'var(--text-main)'
+                    });
+                }
                 fetchEmployees();
             } else {
-                alert('Error: ' + data.message);
+                alert('Error: ' + (data.message || 'No se pudo eliminar'));
             }
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+            console.error(err);
+            alert('Error de conexión.');
+            closeDeleteModal();
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
     }
 
     // Payments Logic
@@ -267,7 +361,6 @@ const RrhhModule = (function() {
         document.getElementById('pay_employee_id').value = emp.id;
         
         cancelPaymentEdit();
-        
         loadPaymentsHistory(emp.id);
         paymentsModal.classList.add('active');
     }
@@ -293,7 +386,7 @@ const RrhhModule = (function() {
         const discounts = document.getElementById('calc_discounts') ? parseFloat(document.getElementById('calc_discounts').value) || 0 : 0;
         
         const dailyRate = currentEmpSalary / 30;
-        const hourlyRate = dailyRate / 8; // asumiendo 8 horas al día
+        const hourlyRate = dailyRate / 8;
         
         document.getElementById('lbl_daily_rate').textContent = 'S/ ' + dailyRate.toFixed(2);
         document.getElementById('lbl_hourly_rate').textContent = 'S/ ' + hourlyRate.toFixed(2);
@@ -311,7 +404,7 @@ const RrhhModule = (function() {
 
     function loadPaymentsHistory(empId) {
         const tbody = document.getElementById('payments-history-tbody');
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Cargando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1.5rem;">Cargando...</td></tr>';
         
         fetch('index.php?module=admin&action=ajax_get_payments&employee_id=' + empId)
             .then(res => res.json())
@@ -319,7 +412,7 @@ const RrhhModule = (function() {
                 if(data.success) {
                     currentEmployeePayments = data.data;
                     if (data.data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay pagos registrados.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No hay pagos registrados.</td></tr>';
                         return;
                     }
                     
@@ -328,19 +421,19 @@ const RrhhModule = (function() {
                         const tr = document.createElement('tr');
                         
                         let actionsHtml = `
-                            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border-color:transparent; color: var(--primary);" onclick="RrhhModule.editPayment(${pay.id})" title="Editar"><i class="ph ph-pencil-simple"></i></button>
-                            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border-color:transparent; color: #ef4444;" onclick="RrhhModule.deletePayment(${pay.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
+                            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border-color:transparent; color: var(--primary-color);" onclick="RrhhModule.editPayment(${pay.id})" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                            <button type="button" class="btn btn-outline" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border-color:transparent; color: var(--danger-color);" onclick="RrhhModule.deletePayment(${pay.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
                         `;
 
                         let st = (pay.status || 'Pagado').toLowerCase();
-                        let badgeClass = st === 'pendiente' ? 'background: rgba(245, 158, 11, 0.1); color: var(--warning-color);' : 'background: rgba(16, 185, 129, 0.1); color: var(--secondary-color);';
+                        let badgeClass = st === 'pendiente' ? 'background: rgba(245, 158, 11, 0.15); color: #f59e0b;' : 'background: rgba(16, 185, 129, 0.15); color: #10b981;';
                         let icon = st === 'pendiente' ? 'ph-clock' : 'ph-check-circle';
                         let statusHtml = `<span style="display:inline-flex; align-items:center; gap:0.25rem; padding:0.25rem 0.6rem; border-radius:9999px; font-size:0.75rem; font-weight:600; ${badgeClass}"><i class="ph ${icon}"></i> ${pay.status || 'Pagado'}</span>`;
                         
                         tr.innerHTML = `
                             <td data-label="FECHA">${pay.payment_date}</td>
                             <td data-label="CONCEPTO">${pay.concept}</td>
-                            <td data-label="MONTO" style="font-weight:600; color:var(--text-main);">S/ ${parseFloat(pay.amount).toFixed(2)}</td>
+                            <td data-label="MONTO" style="font-weight:700; color:var(--text-main);">S/ ${parseFloat(pay.amount).toFixed(2)}</td>
                             <td data-label="ESTADO">${statusHtml}</td>
                             <td data-label="ACCIONES" style="text-align: right;">
                                 <div style="display:flex; justify-content:flex-end; gap:0.25rem;">
@@ -350,95 +443,16 @@ const RrhhModule = (function() {
                         `;
                         tbody.appendChild(tr);
                     });
-                } else {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:red;">Error al cargar pagos.</td></tr>`;
                 }
             })
             .catch(err => {
                 console.error(err);
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:red;">Error de red.</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--danger-color);">Error al cargar historial.</td></tr>';
             });
     }
 
-    function editPayment(payId) {
-        const pay = currentEmployeePayments.find(p => p.id == payId);
-        if (!pay) return;
-
-        document.getElementById('pay_id').value = pay.id;
-        document.getElementById('pay_concept').value = pay.concept;
-        document.getElementById('pay_date').value = pay.payment_date;
-        document.getElementById('pay_status').value = pay.status || 'Pagado';
-        
-        document.getElementById('calc_days').value = 0;
-        document.getElementById('calc_extra_hours').value = 0;
-        if (document.getElementById('calc_bonuses')) document.getElementById('calc_bonuses').value = 0;
-        if (document.getElementById('calc_discounts')) document.getElementById('calc_discounts').value = 0;
-        
-        let payAmount = parseFloat(pay.amount) || 0;
-        let extraAmount = parseFloat(pay.extra_payment) || 0;
-        let basePart = payAmount - extraAmount;
-        
-        let savedExtraDays = parseFloat(pay.extra_days) || 0;
-        let savedExtraHours = parseFloat(pay.extra_hours) || 0;
-        let savedBonuses = parseFloat(pay.bonuses) || 0;
-        let savedDiscounts = parseFloat(pay.discounts) || 0;
-        
-        document.getElementById('calc_days').value = savedExtraDays;
-        document.getElementById('calc_extra_hours').value = savedExtraHours;
-        if (document.getElementById('calc_bonuses')) document.getElementById('calc_bonuses').value = savedBonuses;
-        if (document.getElementById('calc_discounts')) document.getElementById('calc_discounts').value = savedDiscounts;
-        
-        if (basePart > 0) {
-            document.getElementById('calc_base_salary').value = basePart.toFixed(2);
-            currentEmpSalary = basePart;
-        }
-
-        updateCalculator();
-        
-        document.getElementById('pay_extra_amount').value = extraAmount.toFixed(2);
-        document.getElementById('pay_amount').value = payAmount.toFixed(2);
-
-        document.querySelector('#payment_form button[type="submit"]').innerHTML = '<i class="ph ph-check"></i> Actualizar Pago';
-        document.getElementById('btn-cancel-edit').style.display = 'block';
-    }
-
-    function deletePayment(payId) {
-        if (!confirm('¿Estás seguro de eliminar este pago? Esta acción también eliminará el registro contable en Finanzas.')) return;
-
-        const formData = new FormData();
-        formData.append('pay_id', payId);
-
-        fetch('index.php?module=admin&action=ajax_delete_payment', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                loadPaymentsHistory(currentEmpId);
-            } else {
-                alert('Error al eliminar: ' + data.message);
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Error de conexión');
-        });
-    }
-
     function savePayment() {
-        const form = document.getElementById('payment_form');
-        const formData = new FormData(form);
-        formData.append('extra_amount', document.getElementById('pay_extra_amount').value);
-        formData.append('extra_days', document.getElementById('calc_days').value);
-        formData.append('extra_hours', document.getElementById('calc_extra_hours').value);
-        if (document.getElementById('calc_bonuses')) formData.append('bonuses', document.getElementById('calc_bonuses').value);
-        if (document.getElementById('calc_discounts')) formData.append('discounts', document.getElementById('calc_discounts').value);
-
-        const btn = form.querySelector('button[type="submit"]');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Guardando...';
-        btn.disabled = true;
+        const formData = new FormData(document.getElementById('payment_form'));
         
         fetch('index.php?module=admin&action=ajax_save_payment', {
             method: 'POST',
@@ -446,39 +460,98 @@ const RrhhModule = (function() {
         })
         .then(res => res.json())
         .then(data => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            
-            if (data.success) {
-                loadPaymentsHistory(formData.get('employee_id'));
+            if(data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Pago registrado correctamente',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        background: 'var(--bg-surface)',
+                        color: 'var(--text-main)'
+                    });
+                }
                 cancelPaymentEdit();
+                loadPaymentsHistory(currentEmpId);
             } else {
                 alert('Error: ' + data.message);
             }
         })
-        .catch(err => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            console.error(err);
-            alert('Error de red al guardar el pago.');
-        });
+        .catch(err => console.error(err));
+    }
+
+    function editPayment(payId) {
+        const pay = currentEmployeePayments.find(p => p.id == payId);
+        if (!pay) return;
+        
+        document.getElementById('pay_id').value = pay.id;
+        document.getElementById('pay_concept').value = pay.concept;
+        document.getElementById('pay_date').value = pay.payment_date;
+        document.getElementById('pay_status').value = pay.status;
+        document.getElementById('pay_amount').value = parseFloat(pay.amount).toFixed(2);
+        
+        document.getElementById('calc_days').value = 0;
+        document.getElementById('calc_extra_hours').value = 0;
+        if (document.getElementById('calc_bonuses')) document.getElementById('calc_bonuses').value = 0;
+        if (document.getElementById('calc_discounts')) document.getElementById('calc_discounts').value = 0;
+        document.getElementById('calc_base_salary').value = parseFloat(pay.amount).toFixed(2);
+        
+        document.querySelector('#payment_form button[type="submit"]').innerHTML = '<i class="ph ph-pencil-simple"></i> Actualizar Pago';
+        document.getElementById('btn-cancel-edit').style.display = 'block';
+    }
+
+    function deletePayment(payId) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este registro de pago?')) return;
+        
+        fetch('index.php?module=admin&action=ajax_delete_payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ id: payId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Pago eliminado',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        background: 'var(--bg-surface)',
+                        color: 'var(--text-main)'
+                    });
+                }
+                loadPaymentsHistory(currentEmpId);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => console.error(err));
     }
 
     return {
-        init,
-        openModal,
-        closeModal,
-        saveEmployee,
-        confirmDelete,
-        closeDeleteModal,
-        deleteEmployee,
-        openPaymentsModal,
-        closePaymentsModal,
-        savePayment,
-        cancelPaymentEdit,
-        editPayment,
-        deletePayment
+        init: init,
+        openModal: openModal,
+        closeModal: closeModal,
+        saveEmployee: saveEmployee,
+        confirmDelete: confirmDelete,
+        closeDeleteModal: closeDeleteModal,
+        deleteEmployee: deleteEmployee,
+        openPaymentsModal: openPaymentsModal,
+        closePaymentsModal: closePaymentsModal,
+        cancelPaymentEdit: cancelPaymentEdit,
+        savePayment: savePayment,
+        editPayment: editPayment,
+        deletePayment: deletePayment
     };
 })();
 
-document.addEventListener('DOMContentLoaded', RrhhModule.init);
+document.addEventListener('DOMContentLoaded', () => {
+    RrhhModule.init();
+});

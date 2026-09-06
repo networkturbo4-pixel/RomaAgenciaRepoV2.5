@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $total = $subtotal + $tax;
 
         if ($quote_id == 0) {
-            $token = bin2hex(random_bytes(16));
+            $token = bin2hex(random_bytes(6));
             $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token]);
             $quote_id = $db->lastInsertId();

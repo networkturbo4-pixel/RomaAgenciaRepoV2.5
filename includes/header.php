@@ -281,13 +281,6 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
                 </div>
             </div>
             <?php endif; ?>
-            
-            <?php if (in_array('client_portal', $perms)): ?>
-            <a href="index.php?module=client_portal&action=index" class="nav-item <?php echo $current_module === 'client_portal' ? 'active' : ''; ?>" data-title="Portal de Cliente">
-                <i class="ph ph-app-window"></i>
-                <span>Portal de Cliente</span>
-            </a>
-            <?php endif; ?>
 
         </nav>
 

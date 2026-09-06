@@ -1,10 +1,19 @@
 <?php
 // modules/work_orders/ajax_save_order.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit();
+}
+
+if (!isset($db)) {
+    require_once __DIR__ . '/../../config/database.php';
+    $database = new Database();
+    $db = $database->getConnection();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

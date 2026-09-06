@@ -633,7 +633,42 @@ require_once 'includes/header.php';
     @media (max-width: 500px) {
       .logo-area h2 { display: none; }
     }
-    /* Dark mode is now handled by CSS variables - no separate [data-theme="dark"] overrides needed */
+    /* Dark Mode OLED */
+    [data-theme="dark"] body,
+    [data-theme="dark"] .ot-container {
+        background-color: #000000 !important;
+    }
+    [data-theme="dark"] .card-glass,
+    [data-theme="dark"] .process-card,
+    [data-theme="dark"] .os-accordion,
+    [data-theme="dark"] .budget-obs,
+    [data-theme="dark"] .floating-toolbar {
+        background: #0a0a0a !important;
+        border-color: #262626 !important;
+    }
+    [data-theme="dark"] .row-item,
+    [data-theme="dark"] .process-header,
+    [data-theme="dark"] .rows-container,
+    [data-theme="dark"] .row-field select,
+    [data-theme="dark"] .row-field textarea,
+    [data-theme="dark"] .row-field input,
+    [data-theme="dark"] .budget-box input,
+    [data-theme="dark"] .obs-box textarea,
+    [data-theme="dark"] .os-field-input,
+    [data-theme="dark"] .os-chip {
+        background: #000000 !important;
+        border-color: #262626 !important;
+        color: #f4f4f5 !important;
+    }
+    [data-theme="dark"] .btn-float {
+        background: #141414 !important;
+        border-color: #262626 !important;
+        color: #f4f4f5 !important;
+    }
+    [data-theme="dark"] .btn-primary-float {
+        background: var(--primary-color) !important;
+        color: #ffffff !important;
+    }
     [data-theme="dark"] .card-glass label input[type="checkbox"] {
         accent-color: var(--primary-color);
     }

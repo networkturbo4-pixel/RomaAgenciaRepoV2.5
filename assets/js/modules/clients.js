@@ -254,6 +254,11 @@ const ClientModule = (function() {
                         </div>
                         <div class="client-meta-pills">
                             ${client.dni ? `<span class="client-dni-badge"><i class="ph ph-identification-card"></i> ${escapeHtml(client.dni)}</span>` : ''}
+                            ${(client.portal_enabled == 1 || client.portal_enabled === '1') ? `
+                                <span class="client-portal-badge" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10.5px; font-weight: 600; color: #10b981; background: color-mix(in srgb, #10b981 12%, transparent); padding: 1px 6px; border-radius: 4px; border: 1px solid color-mix(in srgb, #10b981 25%, transparent);" title="Portal de cliente activo">
+                                    <i class="ph-fill ph-check-circle"></i> Portal Activo
+                                </span>
+                            ` : ''}
                             ${client.drive_folder_id ? `
                                 <a href="https://drive.google.com/drive/folders/${escapeHtml(client.drive_folder_id)}" target="_blank" onclick="event.stopPropagation();" class="client-drive-link" title="Abrir Google Drive">
                                     <i class="ph ph-google-drive-logo"></i> Portal Drive
@@ -338,6 +343,11 @@ const ClientModule = (function() {
                             <div class="grid-card-name">${escapeHtml(client.name)}</div>
                             <div class="grid-card-badges">
                                 ${client.dni ? `<span class="client-dni-badge"><i class="ph ph-identification-card"></i> ${escapeHtml(client.dni)}</span>` : ''}
+                                ${(client.portal_enabled == 1 || client.portal_enabled === '1') ? `
+                                    <span class="client-portal-badge" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10px; font-weight: 600; color: #10b981; background: color-mix(in srgb, #10b981 12%, transparent); padding: 1px 5px; border-radius: 4px; border: 1px solid color-mix(in srgb, #10b981 25%, transparent);" title="Portal de cliente activo">
+                                        <i class="ph-fill ph-check-circle"></i> Portal
+                                    </span>
+                                ` : ''}
                                 ${hasAnyMembership ? `<span class="membership-pill-badge"><i class="ph-fill ph-star"></i> Membresía</span>` : ''}
                             </div>
                         </div>
@@ -550,6 +560,8 @@ const ClientModule = (function() {
             document.getElementById('client_id').value = '';
             document.getElementById('client_dni').value = '';
             document.getElementById('client_drive_folder_id').value = '';
+            const portalSwitch = document.getElementById('client_portal_enabled');
+            if (portalSwitch) portalSwitch.checked = false;
             document.getElementById('clientModalTitle').innerHTML = '<i class="ph ph-user-plus"></i> <span>Nuevo Cliente</span>';
             
             const previewContainer = document.getElementById('newBrandLogoPreview');
@@ -660,6 +672,8 @@ const ClientModule = (function() {
 
             const formData = new FormData(form);
             formData.append('deleted_brands', JSON.stringify(deletedBrands));
+            const portalSwitch = document.getElementById('client_portal_enabled');
+            formData.set('portal_enabled', (portalSwitch && portalSwitch.checked) ? '1' : '0');
             
             brandsArray.forEach((brand, index) => {
                 formData.append(`brands[${index}][id]`, brand.id || '');
@@ -711,6 +725,10 @@ const ClientModule = (function() {
                     document.getElementById('client_whatsapp').value = client.whatsapp || '';
                     document.getElementById('client_email').value = client.email || '';
                     document.getElementById('client_drive_folder_id').value = client.drive_folder_id || '';
+                    const portalSwitch = document.getElementById('client_portal_enabled');
+                    if (portalSwitch) {
+                        portalSwitch.checked = (client.portal_enabled == 1 || client.portal_enabled === '1');
+                    }
                     
                     brandsArray = data.brands || [];
                     brandsArray.forEach(b => {

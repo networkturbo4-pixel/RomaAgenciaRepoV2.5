@@ -90,30 +90,47 @@ const WorkOrderModule = {
             const formData = new FormData();
             formData.append('id', id);
 
-            const response = await fetch('index.php?module=work_orders&action=ajax_delete_order', {
+            const response = await fetch('modules/work_orders/ajax_delete_order.php', {
                 method: 'POST',
                 body: formData
             });
 
             const result = await response.json();
+            document.getElementById('modal-delete-order').classList.remove('active');
 
             if (result.success) {
-                location.reload();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Orden eliminada correctamente',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        background: 'var(--bg-surface)',
+                        color: 'var(--text-main)'
+                    });
+                }
+                if (typeof loadWorkOrders === 'function') {
+                    loadWorkOrders();
+                } else {
+                    location.reload();
+                }
             } else {
                 alert(result.message || 'Error al eliminar la orden.');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
             }
         } catch (error) {
             console.error('Error:', error);
             alert('Error de conexión.');
+        } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
     },
 
     shareOrder: function(token) {
-        const url = window.location.origin + window.location.pathname + '?module=work_orders&action=public&token=' + token;
+        const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.php.*$/, '').replace(/\/$/, '');
+        const url = baseUrl + '/modules/work_orders/public.php?token=' + token;
         document.getElementById('shareLinkInput').value = url;
         document.getElementById('shareModal').classList.add('active');
     },
@@ -130,8 +147,9 @@ const WorkOrderModule = {
                 icon: 'success',
                 title: '¡Enlace copiado al portapapeles!',
                 showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
+                timer: 2500,
+                background: 'var(--bg-surface)',
+                color: 'var(--text-main)'
             });
         } else {
             alert('¡Enlace copiado al portapapeles!');
@@ -170,13 +188,15 @@ const WorkOrderModule = {
                         showConfirmButton: false,
                         timer: 2500,
                         background: 'var(--bg-surface)',
-                        color: 'var(--color-text)'
+                        color: 'var(--text-main)'
                     });
                 }
-                setTimeout(() => window.location.reload(), 1000);
+                if (typeof loadWorkOrders === 'function') {
+                    loadWorkOrders();
+                } else {
+                    location.reload();
+                }
             } else {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'error',
@@ -184,16 +204,18 @@ const WorkOrderModule = {
                         text: data.error || 'No se pudo modificar el estado.',
                         confirmButtonColor: '#0f766e',
                         background: 'var(--bg-surface)',
-                        color: 'var(--color-text)'
+                        color: 'var(--text-main)'
                     });
                 }
             }
         })
         .catch(error => {
             console.error('Error:', error);
+            document.getElementById('modal-archive-order').classList.remove('active');
+        })
+        .finally(() => {
             btn.innerHTML = originalText;
             btn.disabled = false;
-            document.getElementById('modal-archive-order').classList.remove('active');
         });
     }
 };

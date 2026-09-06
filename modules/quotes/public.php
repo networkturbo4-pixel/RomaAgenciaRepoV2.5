@@ -1,14 +1,15 @@
 <?php
 // modules/quotes/public.php
-require_once '../../config/database.php';
+if (!isset($db)) {
+    require_once __DIR__ . '/../../config/database.php';
+    $database = new Database();
+    $db = $database->getConnection();
+}
 
-$token = isset($_GET['token']) ? $_GET['token'] : '';
+$token = isset($_GET['token']) ? trim($_GET['token']) : '';
 if (!$token) {
     die("Enlace inválido o expirado.");
 }
-
-$database = new Database();
-$db = $database->getConnection();
 
 // Fetch quote
 $stmt = $db->prepare("SELECT q.*, c.name as client_name 
@@ -31,7 +32,7 @@ $sym = $quote['currency'] === 'USD' ? '$' : 'S/';
 
 // Parse bank accounts if available
 $pm_lines = [];
-if ($quote['show_payment_methods'] && !empty($quote['payment_methods_text'])) {
+if (!empty($quote['show_payment_methods']) && !empty($quote['payment_methods_text'])) {
     $pm_lines = explode("\n", trim($quote['payment_methods_text']));
 }
 
@@ -42,21 +43,31 @@ foreach ($stmtSettings->fetchAll(PDO::FETCH_ASSOC) as $row) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
 
+// Calculate clean base URL
+$is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+$protocol = $is_https ? 'https://' : 'http://';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$script_dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+$base_path = preg_replace('#/modules/quotes/?$#', '', $script_dir);
+if ($base_path === '/' || $base_path === '\\') {
+    $base_path = '';
+}
+$base_url = rtrim($protocol . $host . $base_path, '/') . '/';
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cotización #<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?> - <?php echo htmlspecialchars($quote['client_name']); ?></title>
+    <title>Cotización #<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?> - <?php echo htmlspecialchars($quote['client_name'] ?? ''); ?></title>
     <?php if(!empty($settings['favicon'])): ?>
-    <link rel="icon" href="../../<?php echo htmlspecialchars($settings['favicon']); ?>">
+    <link rel="icon" href="<?php echo htmlspecialchars($base_url . ltrim($settings['favicon'], '/')); ?>">
     <?php endif; ?>
     
     <!-- Fonts and Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <!-- Frappe Gantt -->
@@ -66,534 +77,777 @@ foreach ($stmtSettings->fetchAll(PDO::FETCH_ASSOC) as $row) {
 
     <style>
         :root {
-            --primary: <?php echo htmlspecialchars($settings['primary_color'] ?? '#2563eb'); ?>;
-            --primary-dark: #1d4ed8;
-            --bg: #f1f5f9;
+            --primary: <?php echo htmlspecialchars($settings['primary_color'] ?? '#6366f1'); ?>;
+            --primary-hover: color-mix(in srgb, var(--primary) 85%, #000000);
+            --primary-light: color-mix(in srgb, var(--primary) 12%, transparent);
+            --bg: #f8fafc;
             --surface: #ffffff;
+            --surface-elevated: #f1f5f9;
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            --border-focus: #cbd5e1;
             --header-bg: #f8fafc;
-        }
-        [data-theme="dark"] {
-            --primary: <?php echo htmlspecialchars($settings['primary_color'] ?? '#2563eb'); ?>;
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --header-bg: #1a2332;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 2rem 1rem;
-            line-height: 1.5;
-            -webkit-text-size-adjust: 100%;
-        }
-        * { box-sizing: border-box; }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        .document-card {
-            background: var(--surface);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
-            overflow: hidden;
-            border: 1px solid var(--border);
-            margin-bottom: 2rem;
-        }
-        .doc-header {
-            padding: 3rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 1px solid var(--border);
-            background: var(--header-bg);
-        }
-        .company-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        .company-logo-img {
-            max-height: 50px;
-            object-fit: contain;
-        }
-        .company-logo-img.logo-dark { display: none; }
-        [data-theme="dark"] .company-logo-img.logo-light { display: none; }
-        [data-theme="dark"] .company-logo-img.logo-dark { display: block; }
-        .company-logo-fallback {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: var(--primary);
-            letter-spacing: -0.05em;
-        }
-        .company-details {
-            display: flex;
-            flex-direction: column;
-            gap: 0.15rem;
-        }
-        .company-name {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-        .company-detail-line {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .company-detail-line i {
-            font-size: 0.9rem;
-            color: var(--primary);
-            width: 16px;
-            text-align: center;
-        }
-        .doc-title {
-            text-align: right;
-        }
-        .doc-title h1 {
-            margin: 0;
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--text-main);
-            letter-spacing: -0.02em;
-            text-transform: uppercase;
-        }
-        .doc-title p {
-            margin: 0.5rem 0 0 0;
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-        .doc-meta {
-            display: flex;
-            gap: 4rem;
-            padding: 2rem 3rem;
-            border-bottom: 1px solid var(--border);
-        }
-        .meta-block h3 {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin: 0 0 0.5rem 0;
-        }
-        .meta-block p {
-            margin: 0;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-        .doc-body {
-            padding: 3rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 2rem;
-        }
-        th, td {
-            background: var(--surface);
-        }
-        th {
-            text-align: left;
-            padding: 1rem;
-            background: #f8fafc;
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 2px solid var(--border);
-        }
-        td {
-            padding: 1.5rem 1rem;
-            border-bottom: 1px solid var(--border);
-            vertical-align: top;
-        }
-        .item-desc {
-            font-weight: 500;
-            color: var(--text-main);
-        }
-        .item-desc ul {
-            margin: 0.5rem 0 0;
-            padding-left: 1.5rem;
-            color: var(--text-muted);
-            font-weight: 400;
-            font-size: 0.95rem;
-        }
-        .totals-box {
-            width: 350px;
-            margin-left: auto;
-            background: #f8fafc;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
-            font-size: 1.1rem;
-            color: var(--text-muted);
-        }
-        .total-row.grand-total {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 0;
-        }
-        
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin: 0 0 1.5rem 0;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-bottom: 3rem;
-            background: #f8fafc;
-            padding: 2rem;
-            border-radius: 12px;
-        }
-        .info-block h4 {
-            margin: 0 0 0.5rem 0;
-            color: var(--text-main);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .info-block p {
-            margin: 0;
-            color: var(--text-muted);
-            white-space: pre-wrap;
-            font-size: 0.95rem;
+            --card-radius: 20px;
+            --inner-radius: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-card: 0 20px 40px -15px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+            --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .payment-methods {
-            margin-top: 3rem;
-            padding-top: 3rem;
-            border-top: 1px dashed var(--border);
+        [data-theme="dark"] {
+            --primary: <?php echo htmlspecialchars($settings['primary_color'] ?? '#818cf8'); ?>;
+            --primary-hover: color-mix(in srgb, var(--primary) 85%, #ffffff);
+            --primary-light: color-mix(in srgb, var(--primary) 18%, transparent);
+            --bg: #000000;
+            --surface: #0a0a0a;
+            --surface-elevated: #141414;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --border: #262626;
+            --border-focus: #3f3f46;
+            --header-bg: #000000;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+            --shadow-card: 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px #262626;
         }
-        .pm-card {
-            background: #fff;
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2.5rem 1rem;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        /* Top Action Bar */
+        .top-action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.85rem;
+            background: var(--surface);
             border: 1px solid var(--border);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand-badge i {
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .actions-right {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
         }
-        
-        .gantt-section {
-            margin-top: 3rem;
-            padding-top: 3rem;
-            border-top: 1px dashed var(--border);
-        }
-        .gantt-container {
-            border: 1px solid var(--border);
+
+        .btn-theme-switch {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
             border-radius: 12px;
-            overflow: hidden;
-            background: #fff;
-            padding: 1rem;
-            overflow-x: auto;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
         }
-        
-        .btn-print {
+
+        .btn-theme-switch:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-action-primary {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             background: var(--primary);
-            color: white;
+            color: #ffffff;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
+            padding: 0.65rem 1.35rem;
+            border-radius: 12px;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.9rem;
             cursor: pointer;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: var(--transition);
+            box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent);
             font-family: inherit;
         }
-        .btn-print:hover {
-            background: var(--primary-dark);
+
+        .btn-action-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 45%, transparent);
+            color: #ffffff;
         }
-        .btn-theme {
+
+        /* Document Wrapper Card */
+        .document-card {
+            background: var(--surface);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            transition: var(--transition);
+        }
+
+        /* Header section */
+        .doc-header {
+            padding: 2.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border);
+            background: var(--header-bg);
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .company-brand {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 440px;
+        }
+
+        .company-logo-img {
+            max-height: 48px;
+            max-width: 220px;
+            object-fit: contain;
+        }
+
+        .company-logo-img.logo-dark { display: none; }
+        [data-theme="dark"] .company-logo-img.logo-light { display: none; }
+        [data-theme="dark"] .company-logo-img.logo-dark { display: block; }
+
+        .company-fallback-logo {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.03em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .company-info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .company-name-title {
+            font-weight: 700;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .company-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .company-info-item i {
+            color: var(--primary);
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .doc-quote-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+
+        .quote-badge-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+        }
+
+        .doc-quote-number {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .status-pill {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+        }
+        .status-borrador { background: color-mix(in srgb, #71717a 15%, transparent); color: #71717a; border: 1px solid color-mix(in srgb, #71717a 25%, transparent); }
+        .status-enviada { background: color-mix(in srgb, #3b82f6 15%, transparent); color: #3b82f6; border: 1px solid color-mix(in srgb, #3b82f6 25%, transparent); }
+        .status-aceptada { background: color-mix(in srgb, #10b981 15%, transparent); color: #10b981; border: 1px solid color-mix(in srgb, #10b981 25%, transparent); }
+        .status-rechazada { background: color-mix(in srgb, #ef4444 15%, transparent); color: #ef4444; border: 1px solid color-mix(in srgb, #ef4444 25%, transparent); }
+
+        /* Meta Cards Strip */
+        .meta-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            padding: 1.75rem 3rem;
+            border-bottom: 1px solid var(--border);
+            background: color-mix(in srgb, var(--surface-elevated) 40%, var(--surface));
+        }
+
+        .meta-item-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .meta-item-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .meta-item-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .meta-item-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Document Body */
+        .doc-body {
+            padding: 2.5rem 3rem;
+        }
+
+        /* Services Table */
+        .table-responsive-wrap {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 2rem;
+        }
+
+        .services-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: var(--inner-radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .services-table th {
+            background: var(--surface-elevated);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .services-table td {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            font-size: 0.92rem;
+            color: var(--text-main);
+            background: var(--surface);
+        }
+
+        .services-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .services-table tbody tr:hover td {
+            background: color-mix(in srgb, var(--surface-elevated) 40%, var(--surface));
+        }
+
+        .service-desc-cell {
+            line-height: 1.6;
+        }
+
+        .service-desc-cell strong {
+            color: var(--text-main);
+            font-size: 0.98rem;
+        }
+
+        .service-desc-cell ul, .service-desc-cell ol {
+            margin: 0.5rem 0 0 1.25rem;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+
+        .service-desc-cell li {
+            margin-bottom: 0.25rem;
+        }
+
+        .amount-highlight {
+            font-weight: 700;
+            font-size: 0.98rem;
+            color: var(--text-main);
+        }
+
+        .discount-tag {
+            color: #ef4444;
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+
+        /* Totals Card */
+        .totals-summary-card {
+            width: 100%;
+            max-width: 380px;
+            margin-left: auto;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--inner-radius);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
+        .calc-row-val {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1rem;
+        }
+
+        .calc-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.25rem 0;
+        }
+
+        .calc-row.total-row {
+            margin-top: 0.25rem;
+            padding-top: 0.5rem;
+        }
+
+        .calc-row.total-row .calc-row-label {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.01em;
+        }
+
+        .calc-row.total-row .calc-row-val {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.02em;
+        }
+
+        /* Sections (Gantt, Payment, Notes) */
+        .section-block {
+            margin-top: 2.75rem;
+            padding-top: 2.25rem;
+            border-top: 1px dashed var(--border);
+        }
+
+        .section-header-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .section-header-title i {
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        /* Gantt Chart Container */
+        .gantt-wrapper-card {
+            border: 1px solid var(--border);
+            border-radius: var(--inner-radius);
+            background: var(--surface);
+            padding: 1.25rem;
+            overflow-x: auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Read-only Gantt bar styling */
+        .gantt-wrapper-card .bar-wrapper { cursor: default !important; pointer-events: none !important; }
+        .gantt-wrapper-card .handle-group { display: none !important; }
+        .gantt-wrapper-card .bar { cursor: default !important; }
+        .gantt-wrapper-card .bar-progress { cursor: default !important; }
+
+        /* Dark mode gantt */
+        [data-theme="dark"] .gantt .grid-header { fill: #0a0a0a; }
+        [data-theme="dark"] .gantt .grid-row { fill: #0a0a0a; }
+        [data-theme="dark"] .gantt .grid-row:nth-child(even) { fill: #141414; }
+        [data-theme="dark"] .gantt .lower-text, 
+        [data-theme="dark"] .gantt .upper-text { fill: #a1a1aa; }
+        [data-theme="dark"] .gantt .row-line,
+        [data-theme="dark"] .gantt .tick { stroke: #262626; }
+
+        /* Payment Methods Grid */
+        .payment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .payment-card {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: var(--transition);
+        }
+
+        .payment-card:hover {
+            border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+            transform: translateY(-1px);
+        }
+
+        .payment-card-left {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .payment-icon-wrap {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        .payment-text-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .payment-bank-name {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+        }
+
+        .payment-account-number {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+            font-family: monospace, sans-serif;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-copy-account {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
+            transition: var(--transition);
+        }
+
+        .btn-copy-account:hover {
+            background: var(--surface);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Notes & Terms Grid */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .note-card {
+            background: var(--surface-elevated);
             border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .note-card-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .note-card-title i {
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .note-card-body {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        .doc-footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Toast notification */
+        .copy-toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
             background: var(--surface);
             color: var(--text-main);
-            cursor: pointer;
-            font-size: 1.15rem;
-            transition: all 0.2s;
-        }
-        .btn-theme:hover {
-            background: var(--header-bg);
-        }
-
-        /* Gantt read-only: disable all dragging */
-        .gantt-container .bar-wrapper {
-            cursor: default !important;
-        }
-        .gantt-container .handle-group {
-            display: none !important;
-        }
-        .gantt-container .bar {
-            cursor: default !important;
-        }
-        .gantt-container .bar-progress {
-            cursor: default !important;
+            border: 1px solid var(--border);
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            transition: all 0.25s ease;
+            z-index: 9999;
         }
 
-        /* Dark mode overrides for Gantt */
-        [data-theme="dark"] .gantt-container {
-            background: var(--surface);
-        }
-        [data-theme="dark"] .gantt .grid-header {
-            fill: var(--surface);
-        }
-        [data-theme="dark"] .gantt .grid-row {
-            fill: var(--surface);
-        }
-        [data-theme="dark"] .gantt .grid-row:nth-child(even) {
-            fill: #253349;
-        }
-        [data-theme="dark"] .gantt .lower-text, 
-        [data-theme="dark"] .gantt .upper-text {
-            fill: var(--text-muted);
-        }
-        [data-theme="dark"] .gantt .row-line {
-            stroke: #334155;
-        }
-        [data-theme="dark"] .gantt .tick {
-            stroke: #334155;
-        }
-        [data-theme="dark"] .totals-box {
-            background: var(--header-bg);
-        }
-        [data-theme="dark"] .info-grid {
-            background: var(--header-bg);
-        }
-        [data-theme="dark"] .pm-card {
-            background: var(--surface);
-            border-color: var(--border);
-        }
-        [data-theme="dark"] th {
-            background: var(--header-bg);
+        .copy-toast.show {
+            opacity: 1;
+            transform: translateY(0);
         }
 
-        /* ========== RESPONSIVE ========== */
+        /* Responsive Styles */
         @media (max-width: 768px) {
             body {
                 padding: 1rem 0.5rem;
             }
-            .document-card {
-                border-radius: 12px;
+
+            .doc-header {
+                padding: 1.75rem 1.5rem;
+                flex-direction: column;
+                gap: 1.5rem;
             }
 
-            /* Header: stack vertically, center */
-            .doc-header {
-                flex-direction: column;
-                padding: 1.5rem;
-                gap: 1.25rem;
+            .company-brand {
+                max-width: 100%;
             }
-            .company-info {
-                align-items: center;
+
+            .doc-quote-meta {
+                align-items: flex-start;
                 width: 100%;
             }
-            .company-details {
-                align-items: center;
-                text-align: center;
-            }
-            .company-name {
-                font-size: 1rem;
-            }
-            .doc-title {
-                text-align: center;
-                width: 100%;
-            }
-            .doc-title h1 {
+
+            .doc-quote-number {
                 font-size: 1.75rem;
             }
-            .doc-title p {
-                font-size: 1rem;
-            }
 
-            /* Meta: grid layout */
-            .doc-meta {
-                flex-direction: column;
-                gap: 1rem;
+            .meta-strip {
                 padding: 1.25rem 1.5rem;
-            }
-            .meta-block {
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                padding-bottom: 0.75rem;
-                border-bottom: 1px solid var(--border);
-            }
-            .meta-block:last-child {
-                border-bottom: none;
-                padding-bottom: 0;
-            }
-            .meta-block h3 {
-                margin: 0;
-                min-width: 100px;
-            }
-            .meta-block p {
-                text-align: right;
-                font-size: 1rem;
+                grid-template-columns: 1fr;
+                gap: 1rem;
             }
 
-            /* Body padding */
             .doc-body {
-                padding: 1.25rem;
+                padding: 1.5rem;
             }
 
-            /* Table → Card layout on mobile */
-            table thead {
+            .services-table thead {
                 display: none;
             }
-            table, table tbody, table tr, table td {
+
+            .services-table, 
+            .services-table tbody, 
+            .services-table tr, 
+            .services-table td {
                 display: block;
                 width: 100%;
             }
-            table tr {
-                background: var(--surface);
+
+            .services-table {
+                border: none;
+                background: transparent;
+            }
+
+            .services-table tr {
+                background: var(--surface-elevated);
                 border: 1px solid var(--border);
-                border-radius: 10px;
+                border-radius: 12px;
                 padding: 1rem;
                 margin-bottom: 1rem;
-                position: relative;
             }
-            table td {
+
+            .services-table td {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
-                padding: 0.4rem 0;
+                padding: 0.45rem 0;
                 border-bottom: none;
-                font-size: 0.9rem;
+                background: transparent !important;
             }
-            table td::before {
+
+            .services-table td::before {
                 content: attr(data-label);
-                font-size: 0.7rem;
+                font-size: 0.72rem;
                 font-weight: 700;
                 color: var(--text-muted);
                 text-transform: uppercase;
-                letter-spacing: 0.03em;
-                min-width: 90px;
-                padding-top: 0.15rem;
+                letter-spacing: 0.04em;
+                min-width: 100px;
             }
-            table td.item-desc {
+
+            .services-table td.service-desc-cell {
                 flex-direction: column;
-                gap: 0.25rem;
+                gap: 0.35rem;
                 padding-bottom: 0.75rem;
                 margin-bottom: 0.5rem;
                 border-bottom: 1px solid var(--border);
             }
-            table td.item-desc::before {
+
+            .services-table td.service-desc-cell::before {
                 margin-bottom: 0.25rem;
             }
 
-            /* Totals */
-            .totals-box {
-                width: 100%;
-                margin-left: 0;
-            }
-            .total-row.grand-total {
-                font-size: 1.25rem;
+            .totals-summary-card {
+                max-width: 100%;
             }
 
-            /* Notes & Terms */
-            .info-grid {
-                grid-template-columns: 1fr;
-                gap: 1.25rem;
-                padding: 1.25rem;
-            }
-
-            /* Payment methods */
-            .pm-grid-responsive {
-                grid-template-columns: 1fr !important;
-            }
-
-            /* Gantt */
-            .gantt-section {
-                margin-top: 2rem;
-                padding-top: 2rem;
-            }
-            .gantt-container {
-                padding: 0.5rem;
-            }
-
-            /* Section titles */
-            .section-title {
-                font-size: 1.1rem;
-            }
-
-            /* Toolbar */
-            .toolbar-actions {
-                flex-direction: row;
-                gap: 0.5rem;
-            }
-            .btn-print {
-                font-size: 0.85rem;
-                padding: 0.6rem 1rem;
+            .calc-row.total-row .calc-row-val {
+                font-size: 1.4rem;
             }
         }
 
-        /* Even smaller phones */
-        @media (max-width: 400px) {
-            .doc-header {
-                padding: 1.25rem 1rem;
-            }
-            .doc-title h1 {
-                font-size: 1.5rem;
-            }
-            .company-logo-img {
-                max-height: 40px;
-            }
-            .doc-body {
-                padding: 1rem;
-            }
-            .totals-box {
-                padding: 1rem;
-            }
-        }
-
+        /* Print Optimization */
         @media print {
-            body { background: white; padding: 0; color: #0f172a; }
-            .container { max-width: 100%; }
-            .document-card { box-shadow: none; border: none; margin: 0; border-radius: 0; }
-            .btn-print, .btn-theme { display: none !important; }
-            .toolbar-actions { display: none !important; }
-            .gantt-container { overflow: visible; }
-            table thead { display: table-header-group; }
-            table, table tbody, table tr, table td { display: revert; }
-            table tr { border: none; border-radius: 0; padding: 0; margin: 0; }
-            table td::before { display: none; }
-            table td.item-desc { flex-direction: row; border-bottom: 1px solid #e2e8f0; margin-bottom: 0; padding-bottom: 1.5rem; }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+            }
+            .container {
+                max-width: 100% !important;
+            }
+            .top-action-bar,
+            .btn-theme-switch,
+            .btn-copy-account,
+            .copy-toast {
+                display: none !important;
+            }
+            .document-card {
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+            }
+            .doc-header, .meta-strip, .services-table th, .totals-summary-card, .note-card, .payment-card {
+                background: #f8fafc !important;
+                border-color: #e2e8f0 !important;
+            }
+            .calc-row.total-row .calc-row-val {
+                color: #000000 !important;
+            }
+            .services-table thead {
+                display: table-header-group !important;
+            }
+            .services-table, .services-table tbody, .services-table tr, .services-table td {
+                display: revert !important;
+            }
+            .services-table td::before {
+                display: none !important;
+            }
         }
     </style>
     <script>
@@ -608,171 +862,266 @@ foreach ($stmtSettings->fetchAll(PDO::FETCH_ASSOC) as $row) {
 <body>
 
 <div class="container">
-    <div class="toolbar-actions" style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1.5rem;">
-        <button class="btn-theme" id="themeToggle" title="Cambiar tema">
-            <i class="ph ph-moon" id="themeIconDark"></i>
-            <i class="ph ph-sun" id="themeIconLight" style="display:none;"></i>
-        </button>
-        <button onclick="window.print()" class="btn-print"><i class="ph ph-printer"></i> Imprimir / Descargar PDF</button>
+    <!-- Action Bar -->
+    <div class="top-action-bar">
+        <div class="brand-badge">
+            <i class="ph ph-shield-check"></i>
+            <span>Documento Oficial Verificado</span>
+        </div>
+        <div class="actions-right">
+            <button class="btn-theme-switch" id="themeToggle" title="Cambiar tema (Claro / Oscuro)">
+                <i class="ph ph-moon" id="themeIconDark"></i>
+                <i class="ph ph-sun" id="themeIconLight" style="display:none;"></i>
+            </button>
+            <button onclick="window.print()" class="btn-action-primary">
+                <i class="ph ph-printer"></i>
+                <span>Imprimir / Descargar PDF</span>
+            </button>
+        </div>
     </div>
 
+    <!-- Main Document -->
     <div class="document-card">
+        <!-- Header -->
         <div class="doc-header">
-            <div class="company-info">
+            <div class="company-brand">
                 <?php if(!empty($settings['logo_light']) && !empty($settings['logo_dark'])): ?>
-                    <img src="../../<?php echo htmlspecialchars($settings['logo_light']); ?>" class="company-logo-img logo-light" alt="Logo">
-                    <img src="../../<?php echo htmlspecialchars($settings['logo_dark']); ?>" class="company-logo-img logo-dark" alt="Logo">
+                    <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_light'], '/')); ?>" class="company-logo-img logo-light" alt="Logo">
+                    <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_dark'], '/')); ?>" class="company-logo-img logo-dark" alt="Logo">
                 <?php elseif(!empty($settings['logo_light'])): ?>
-                    <img src="../../<?php echo htmlspecialchars($settings['logo_light']); ?>" class="company-logo-img" alt="Logo">
+                    <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_light'], '/')); ?>" class="company-logo-img" alt="Logo">
                 <?php else: ?>
-                    <span class="company-logo-fallback"><?php echo htmlspecialchars($settings['site_name'] ?? 'Empresa'); ?></span>
+                    <div class="company-fallback-logo">
+                        <i class="ph ph-file-text"></i>
+                        <span><?php echo htmlspecialchars($settings['site_name'] ?? 'Empresa'); ?></span>
+                    </div>
                 <?php endif; ?>
-                <div class="company-details">
-                    <span class="company-name"><?php echo htmlspecialchars($settings['company_trade_name'] ?? $settings['site_name'] ?? ''); ?></span>
+
+                <div class="company-info-list">
+                    <span class="company-name-title"><?php echo htmlspecialchars($settings['company_trade_name'] ?? $settings['site_name'] ?? ''); ?></span>
                     <?php if(!empty($settings['company_ruc'])): ?>
-                        <span class="company-detail-line"><i class="ph ph-identification-card"></i> RUC: <?php echo htmlspecialchars($settings['company_ruc']); ?></span>
+                        <span class="company-info-item"><i class="ph ph-identification-card"></i> RUC: <?php echo htmlspecialchars($settings['company_ruc']); ?></span>
                     <?php endif; ?>
                     <?php if(!empty($settings['company_address'])): ?>
-                        <span class="company-detail-line"><i class="ph ph-map-pin"></i> <?php echo htmlspecialchars($settings['company_address']); ?></span>
+                        <span class="company-info-item"><i class="ph ph-map-pin"></i> <?php echo htmlspecialchars($settings['company_address']); ?></span>
                     <?php endif; ?>
                     <?php if(!empty($settings['company_email'])): ?>
-                        <span class="company-detail-line"><i class="ph ph-envelope"></i> <?php echo htmlspecialchars($settings['company_email']); ?></span>
+                        <span class="company-info-item"><i class="ph ph-envelope"></i> <?php echo htmlspecialchars($settings['company_email']); ?></span>
                     <?php endif; ?>
                 </div>
             </div>
-            <div class="doc-title">
-                <h1>Cotización</h1>
-                <p>#<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?></p>
+
+            <div class="doc-quote-meta">
+                <span class="quote-badge-tag">Cotización Comercial</span>
+                <div class="doc-quote-number">#<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?></div>
+                <?php if (!empty($quote['status'])): ?>
+                    <span class="status-pill status-<?php echo strtolower($quote['status']); ?>">
+                        <?php echo htmlspecialchars($quote['status']); ?>
+                    </span>
+                <?php endif; ?>
             </div>
         </div>
 
-        <div class="doc-meta">
-            <div class="meta-block" style="flex: 2;">
-                <h3>Preparado para:</h3>
-                <p><?php echo htmlspecialchars($quote['client_name']); ?></p>
-                <?php if(isset($quote['document_number']) && $quote['document_number']) echo "<span style='color:var(--text-muted); font-size:0.9rem;'>RUC/DNI: ".htmlspecialchars($quote['document_number'])."</span>"; ?>
+        <!-- Meta Details Strip -->
+        <div class="meta-strip">
+            <div class="meta-item-box">
+                <span class="meta-item-label"><i class="ph ph-user"></i> Preparado para</span>
+                <span class="meta-item-value"><?php echo htmlspecialchars($quote['client_name'] ?? 'Cliente'); ?></span>
+                <?php if(!empty($quote['document_number'])): ?>
+                    <span class="meta-item-sub">Doc: <?php echo htmlspecialchars($quote['document_number']); ?></span>
+                <?php endif; ?>
             </div>
-            <div class="meta-block" style="flex: 1;">
-                <h3>Fecha de Emisión</h3>
-                <p><?php echo date('d M, Y', strtotime($quote['issue_date'])); ?></p>
+            <div class="meta-item-box">
+                <span class="meta-item-label"><i class="ph ph-calendar-check"></i> Fecha de Emisión</span>
+                <span class="meta-item-value"><?php echo date('d M, Y', strtotime($quote['issue_date'])); ?></span>
+                <span class="meta-item-sub">Validez estándar</span>
             </div>
-            <div class="meta-block" style="flex: 1;">
-                <h3>Vencimiento</h3>
-                <p><?php echo date('d M, Y', strtotime($quote['due_date'])); ?></p>
+            <div class="meta-item-box">
+                <span class="meta-item-label"><i class="ph ph-clock"></i> Fecha de Vencimiento</span>
+                <span class="meta-item-value"><?php echo date('d M, Y', strtotime($quote['due_date'])); ?></span>
+                <span class="meta-item-sub">Válido hasta las 23:59</span>
             </div>
         </div>
 
+        <!-- Body -->
         <div class="doc-body">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 50%;">Descripción del Servicio</th>
-                        <th style="text-align: center;">Cant.</th>
-                        <th style="text-align: right;">Precio Unit.</th>
-                        <th style="text-align: right;">Desc.</th>
-                        <th style="text-align: right;">Importe</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($items as $i): ?>
-                    <tr>
-                        <td class="item-desc" data-label="Servicio"><?php echo strip_tags($i['description'], '<strong><em><b><i><u><br><ul><ol><li><p><span><font>'); ?></td>
-                        <td style="text-align: center; font-weight: 500;" data-label="Cantidad"><?php echo (float)$i['quantity']; ?></td>
-                        <td style="text-align: right;" data-label="Precio Unit."><?php echo $sym . ' ' . number_format($i['unit_price'], 2); ?></td>
-                        <td style="text-align: right; color: #ef4444;" data-label="Descuento"><?php echo $i['discount'] > 0 ? '-' . $sym . ' ' . number_format($i['discount'], 2) : '-'; ?></td>
-                        <td style="text-align: right; font-weight: 600; color: var(--text-main);" data-label="Importe"><?php echo $sym . ' ' . number_format($i['total'], 2); ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <!-- Table of Items -->
+            <div class="table-responsive-wrap">
+                <table class="services-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 52%;">Descripción del Servicio</th>
+                            <th style="text-align: center; width: 12%;">Cant.</th>
+                            <th style="text-align: right; width: 18%;">Precio Unit.</th>
+                            <th style="text-align: right; width: 18%;">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($items as $i): ?>
+                        <tr>
+                            <td class="service-desc-cell" data-label="Servicio">
+                                <?php echo strip_tags($i['description'], '<strong><em><b><i><u><br><ul><ol><li><p><span><font>'); ?>
+                            </td>
+                            <td style="text-align: center; font-weight: 600;" data-label="Cantidad">
+                                <?php echo (float)$i['quantity']; ?>
+                            </td>
+                            <td style="text-align: right;" data-label="Precio Unit.">
+                                <div><?php echo $sym . ' ' . number_format($i['unit_price'], 2); ?></div>
+                                <?php if($i['discount'] > 0): ?>
+                                    <div class="discount-tag">-<?php echo $sym . ' ' . number_format($i['discount'], 2); ?> desc.</div>
+                                <?php endif; ?>
+                            </td>
+                            <td style="text-align: right;" data-label="Importe">
+                                <span class="amount-highlight"><?php echo $sym . ' ' . number_format($i['total'], 2); ?></span>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
 
-            <div class="totals-box">
-                <div class="total-row">
-                    <span>Subtotal</span>
-                    <span style="font-weight: 600; color: var(--text-main);"><?php echo $sym . ' ' . number_format($quote['subtotal'], 2); ?></span>
+            <!-- Calculation Totals -->
+            <div class="totals-summary-card">
+                <div class="calc-row">
+                    <span class="calc-row-label">Subtotal</span>
+                    <span class="calc-row-val"><?php echo $sym . ' ' . number_format($quote['subtotal'], 2); ?></span>
                 </div>
-                <div class="total-row">
-                    <span>Impuestos (<?php echo $quote['subtotal'] > 0 ? (int)(($quote['tax']/$quote['subtotal'])*100) : 0; ?>%)</span>
-                    <span style="font-weight: 600; color: var(--text-main);"><?php echo $sym . ' ' . number_format($quote['tax'], 2); ?></span>
+                <div class="calc-row">
+                    <span class="calc-row-label">IGV / Impuestos (<?php echo $quote['subtotal'] > 0 ? (int)(($quote['tax']/$quote['subtotal'])*100) : 0; ?>%)</span>
+                    <span class="calc-row-val"><?php echo $sym . ' ' . number_format($quote['tax'], 2); ?></span>
                 </div>
-                <div class="total-row grand-total">
-                    <span>TOTAL</span>
-                    <span><?php echo $sym . ' ' . number_format($quote['total'], 2); ?></span>
+                <div class="calc-divider"></div>
+                <div class="calc-row total-row">
+                    <span class="calc-row-label">TOTAL</span>
+                    <span class="calc-row-val"><?php echo $sym . ' ' . number_format($quote['total'], 2); ?></span>
                 </div>
             </div>
 
-            <!-- Gantt Section - always visible -->
-            <div class="gantt-section" id="ganttSection">
-                <h2 class="section-title"><i class="ph ph-chart-bar"></i> Cronograma del Proyecto</h2>
-                <div class="gantt-container" id="gantt_here"></div>
-                <div id="gantt_empty_state" style="text-align: center; padding: 3rem; color: var(--text-muted); display: none;">
-                    <i class="ph ph-calendar-blank" style="font-size: 2.5rem; opacity: 0.5;"></i>
-                    <p style="margin-top: 0.75rem; font-size: 0.95rem;">Sin cronograma asignado</p>
+            <!-- Gantt Chart Section -->
+            <div class="section-block" id="ganttSection">
+                <h3 class="section-header-title">
+                    <i class="ph ph-chart-line-up"></i>
+                    Cronograma Estimado de Ejecución
+                </h3>
+                <div class="gantt-wrapper-card" id="gantt_here"></div>
+                <div id="gantt_empty_state" style="text-align: center; padding: 2.5rem; color: var(--text-muted); display: none;">
+                    <i class="ph ph-calendar-blank" style="font-size: 2rem; opacity: 0.4;"></i>
+                    <p style="margin-top: 0.5rem; font-size: 0.88rem;">Sin fases o cronograma asignado para este presupuesto.</p>
                 </div>
             </div>
 
-            <?php if($quote['show_payment_methods'] && !empty($pm_lines)): ?>
-            <div class="payment-methods">
-                <h2 class="section-title"><i class="ph ph-bank"></i> Información de Pago</h2>
-                <div class="pm-grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <?php foreach($pm_lines as $line): ?>
-                        <?php if(trim($line)): ?>
-                            <div class="pm-card">
-                                <div style="font-weight: 600; color: var(--primary);"><i class="ph ph-wallet"></i></div>
-                                <div><?php echo htmlspecialchars(trim($line)); ?></div>
+            <!-- Payment Methods Section -->
+            <?php if(!empty($quote['show_payment_methods'])): ?>
+            <div class="section-block">
+                <h3 class="section-header-title">
+                    <i class="ph ph-credit-card"></i>
+                    Cuentas y Métodos de Pago
+                </h3>
+                <div class="payment-grid">
+                    <?php if(!empty($pm_lines)): ?>
+                        <?php foreach($pm_lines as $line): ?>
+                            <?php if(trim($line)): ?>
+                                <?php 
+                                    $parts = explode(':', trim($line), 2);
+                                    $bName = count($parts) > 1 ? trim($parts[0]) : 'Cuenta';
+                                    $bNum = count($parts) > 1 ? trim($parts[1]) : trim($parts[0]);
+                                ?>
+                                <div class="payment-card">
+                                    <div class="payment-card-left">
+                                        <div class="payment-icon-wrap">
+                                            <i class="ph ph-bank"></i>
+                                        </div>
+                                        <div class="payment-text-group">
+                                            <span class="payment-bank-name"><?php echo htmlspecialchars($bName); ?></span>
+                                            <span class="payment-account-number"><?php echo htmlspecialchars($bNum); ?></span>
+                                        </div>
+                                    </div>
+                                    <button class="btn-copy-account" onclick="copyNumber('<?php echo htmlspecialchars($bNum); ?>')" title="Copiar número de cuenta">
+                                        <i class="ph ph-copy"></i>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <!-- Default Bank Accounts if none custom -->
+                        <div class="payment-card">
+                            <div class="payment-card-left">
+                                <div class="payment-icon-wrap"><i class="ph ph-bank"></i></div>
+                                <div class="payment-text-group">
+                                    <span class="payment-bank-name">BCP Soles</span>
+                                    <span class="payment-account-number">191-74092813-0-24</span>
+                                </div>
                             </div>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <?php if(trim($quote['notes']) || trim($quote['terms_conditions'])): ?>
-            <div style="margin-top: 3rem; padding-top: 3rem; border-top: 1px dashed var(--border);">
-                <div class="info-grid">
-                    <?php if(trim($quote['notes'])): ?>
-                    <div class="info-block">
-                        <h4><i class="ph ph-note"></i> Notas Adicionales</h4>
-                        <p><?php echo htmlspecialchars($quote['notes']); ?></p>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <?php if(trim($quote['terms_conditions'])): ?>
-                    <div class="info-block">
-                        <h4><i class="ph ph-shield-check"></i> Términos y Condiciones</h4>
-                        <p><?php echo htmlspecialchars($quote['terms_conditions']); ?></p>
-                    </div>
+                            <button class="btn-copy-account" onclick="copyNumber('191-74092813-0-24')" title="Copiar"><i class="ph ph-copy"></i></button>
+                        </div>
+                        <div class="payment-card">
+                            <div class="payment-card-left">
+                                <div class="payment-icon-wrap"><i class="ph ph-device-mobile"></i></div>
+                                <div class="payment-text-group">
+                                    <span class="payment-bank-name">Yape / Plin</span>
+                                    <span class="payment-account-number">998 289 752</span>
+                                </div>
+                            </div>
+                            <button class="btn-copy-account" onclick="copyNumber('998289752')" title="Copiar"><i class="ph ph-copy"></i></button>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
 
+            <!-- Notes & Terms -->
+            <?php if(!empty(trim($quote['notes'] ?? '')) || !empty(trim($quote['terms_conditions'] ?? ''))): ?>
+            <div class="section-block">
+                <div class="notes-grid">
+                    <?php if(!empty(trim($quote['notes'] ?? ''))): ?>
+                    <div class="note-card">
+                        <span class="note-card-title"><i class="ph ph-notepad"></i> Notas Adicionales</span>
+                        <div class="note-card-body"><?php echo htmlspecialchars($quote['notes']); ?></div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if(!empty(trim($quote['terms_conditions'] ?? ''))): ?>
+                    <div class="note-card">
+                        <span class="note-card-title"><i class="ph ph-file-text"></i> Términos y Condiciones</span>
+                        <div class="note-card-body"><?php echo htmlspecialchars($quote['terms_conditions']); ?></div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="doc-footer">
+            <span>Generado con tecnología RomaAgencia SaaS &bull; Confidencial</span>
         </div>
     </div>
+</div>
+
+<!-- Copy Toast Notification -->
+<div class="copy-toast" id="copyToast">
+    <i class="ph ph-check-circle" style="color:#10b981; font-size:1.2rem;"></i>
+    <span id="copyToastMsg">Copiado al portapapeles</span>
 </div>
 
 <script>
     const itemsData = <?php echo json_encode($items); ?>;
     
-    // Render Gantt if dates exist
+    // Gantt rendering
     const ganttColors = [
+        { bg: '#6366f1' },
         { bg: '#3b82f6' },
         { bg: '#8b5cf6' },
         { bg: '#06b6d4' },
-        { bg: '#f59e0b' },
         { bg: '#10b981' },
-        { bg: '#ef4444' },
+        { bg: '#f59e0b' },
         { bg: '#ec4899' },
-        { bg: '#6366f1' },
-        { bg: '#14b8a6' },
-        { bg: '#f97316' },
     ];
     const tasks = [];
     itemsData.forEach((item, index) => {
         if (item.gantt_start_date && parseInt(item.gantt_duration) > 0) {
             let div = document.createElement('div');
             div.innerHTML = item.description;
-            let text = div.textContent || div.innerText || 'Tarea ' + (index + 1);
+            let text = div.textContent || div.innerText || 'Fase ' + (index + 1);
             text = text.substring(0, 50).trim();
             
             let startDate = new Date(item.gantt_start_date + 'T00:00:00');
@@ -798,17 +1147,14 @@ foreach ($stmtSettings->fetchAll(PDO::FETCH_ASSOC) as $row) {
             language: 'es',
             readonly: true
         });
-        // Extra safety: completely disable pointer events on bars
-        document.querySelectorAll('#gantt_here .bar-wrapper').forEach(el => {
-            el.style.pointerEvents = 'none';
-        });
-        // Inject color CSS for each bar
+        
+        // CSS for custom colored bars
         let styleEl = document.createElement('style');
         let css = '';
         ganttColors.forEach((c, i) => {
-            css += `.gantt-color-${i} .bar { fill: ${c.bg} !important; }
+            css += `.gantt-color-${i} .bar { fill: ${c.bg} !important; rx: 6px; ry: 6px; }
                     .gantt-color-${i} .bar-progress { fill: ${c.bg} !important; }
-                    .gantt-color-${i} .bar-label { fill: #fff !important; }
+                    .gantt-color-${i} .bar-label { fill: #fff !important; font-weight: 600; }
 `;
         });
         styleEl.textContent = css;
@@ -818,16 +1164,18 @@ foreach ($stmtSettings->fetchAll(PDO::FETCH_ASSOC) as $row) {
         document.getElementById('gantt_empty_state').style.display = 'block';
     }
 
-    // Theme toggle
+    // Theme Switch
     const themeBtn = document.getElementById('themeToggle');
     const iconDark = document.getElementById('themeIconDark');
     const iconLight = document.getElementById('themeIconLight');
+
     function applyThemeIcons() {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         iconDark.style.display = isDark ? 'none' : 'inline';
         iconLight.style.display = isDark ? 'inline' : 'none';
     }
     applyThemeIcons();
+
     themeBtn.addEventListener('click', function() {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         if (isDark) {
@@ -839,6 +1187,25 @@ foreach ($stmtSettings->fetchAll(PDO::FETCH_ASSOC) as $row) {
         }
         applyThemeIcons();
     });
+
+    // Copy to clipboard helper
+    function copyNumber(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Cuenta copiada: ' + text);
+        }).catch(() => {
+            showToast('Error al copiar');
+        });
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('copyToast');
+        const msgEl = document.getElementById('copyToastMsg');
+        msgEl.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2500);
+    }
 </script>
 
 </body>

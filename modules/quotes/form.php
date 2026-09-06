@@ -51,12 +51,12 @@ require_once 'includes/header.php';
         align-items: center;
         flex-wrap: wrap;
         gap: 1rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
     .card-glass {
         background: var(--bg-surface);
-        border-radius: 1rem;
-        padding: 1.5rem;
+        border-radius: 16px;
+        padding: 1.75rem;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         border: 1px solid var(--border-color);
         margin-bottom: 1.5rem;
@@ -69,6 +69,40 @@ require_once 'includes/header.php';
         display: flex;
         align-items: center;
         gap: 0.5rem;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 1.1rem;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        text-decoration: none;
+        border: none;
+    }
+    .btn-primary {
+        background: var(--primary-color);
+        color: #ffffff;
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 30%, transparent);
+    }
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color) 40%, transparent);
+    }
+    .btn-outline {
+        background: transparent;
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+    }
+    .btn-outline:hover {
+        background: var(--bg-body);
+        color: var(--text-main);
     }
     
     /* New Item Card styles */
@@ -281,18 +315,18 @@ require_once 'includes/header.php';
         border-color: var(--border-color);
     }
     [data-theme="dark"] .item-editor-toolbar {
-        background: #0f172a;
+        background: #0a0a0a;
         border-bottom-color: var(--border-color);
     }
     [data-theme="dark"] .item-editor-toolbar button {
         color: #94a3b8;
     }
     [data-theme="dark"] .item-editor-toolbar button:hover {
-        background: #334155;
+        background: #262626;
         color: #f1f5f9;
     }
     [data-theme="dark"] .item-editor-toolbar select {
-        background: #0f172a;
+        background: #0a0a0a;
         color: #94a3b8;
         border-color: var(--border-color);
     }
@@ -304,7 +338,7 @@ require_once 'includes/header.php';
         color: #475569;
     }
     [data-theme="dark"] .item-input {
-        background: #0f172a;
+        background: #0a0a0a;
         border-color: var(--border-color);
         color: #e2e8f0;
     }
@@ -318,7 +352,7 @@ require_once 'includes/header.php';
         color: #f1f5f9;
     }
     [data-theme="dark"] .item-gantt-section {
-        border-top-color: #334155;
+        border-top-color: #262626;
     }
 
     /* Bank cards */
@@ -343,14 +377,14 @@ require_once 'includes/header.php';
 
     /* Totals container dark mode */
     [data-theme="dark"] .totals-container {
-        background: #0f172a;
+        background: #0a0a0a;
         border-color: var(--border-color);
     }
     [data-theme="dark"] .calc-value {
         color: #e2e8f0;
     }
     [data-theme="dark"] .totals-divider {
-        background: #334155;
+        background: #262626;
     }
 
     /* Payment methods toggle area */
@@ -373,7 +407,7 @@ require_once 'includes/header.php';
     [data-theme="dark"] .form-control,
     [data-theme="dark"] select,
     [data-theme="dark"] .quote-form-container select {
-        background: #0f172a;
+        background: #0a0a0a;
         color: #e2e8f0;
         border-color: var(--border-color);
     }
@@ -381,7 +415,7 @@ require_once 'includes/header.php';
     /* Textarea for notes */
     [data-theme="dark"] textarea.item-input,
     [data-theme="dark"] textarea.item-textarea {
-        background: #0f172a;
+        background: #0a0a0a;
         color: #e2e8f0;
         border-color: var(--border-color);
     }
@@ -406,7 +440,7 @@ require_once 'includes/header.php';
     }
     [data-theme="dark"] .item-amounts-card,
     [data-theme="dark"] .item-gantt-card {
-        background: #0f172a;
+        background: #0a0a0a;
         border-color: var(--border-color);
     }
 
@@ -422,7 +456,7 @@ require_once 'includes/header.php';
         outline: none;
     }
     [data-theme="dark"] .editor-font-select {
-        background: #0f172a;
+        background: #0a0a0a;
         color: #94a3b8;
         border-color: var(--border-color);
     }
@@ -472,7 +506,7 @@ require_once 'includes/header.php';
         fill: var(--bg-surface);
     }
     [data-theme="dark"] #gantt_here .gantt .grid-row:nth-child(even) {
-        fill: #253349;
+        fill: #262626;
     }
     [data-theme="dark"] #gantt_here .gantt .lower-text,
     [data-theme="dark"] #gantt_here .gantt .upper-text {
@@ -480,7 +514,7 @@ require_once 'includes/header.php';
     }
     [data-theme="dark"] #gantt_here .gantt .row-line,
     [data-theme="dark"] #gantt_here .gantt .tick {
-        stroke: #334155;
+        stroke: #262626;
     }
     [data-theme="dark"] #gantt_here .gantt .today-highlight {
         fill: rgba(99, 102, 241, 0.15);

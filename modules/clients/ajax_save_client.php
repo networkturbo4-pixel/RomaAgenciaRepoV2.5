@@ -14,6 +14,7 @@ $email = $_POST['email'] ?? '';
 $dni = $_POST['dni'] ?? '';
 $drive_folder_id = $_POST['drive_folder_id'] ?? null;
 if ($drive_folder_id === '') $drive_folder_id = null;
+$portal_enabled = isset($_POST['portal_enabled']) && ($_POST['portal_enabled'] == '1' || $_POST['portal_enabled'] === 'true' || $_POST['portal_enabled'] === 'on') ? 1 : 0;
 $deletedBrands = json_decode($_POST['deleted_brands'] ?? '[]', true);
 $brands = $_POST['brands'] ?? [];
 
@@ -26,12 +27,12 @@ try {
     $db->beginTransaction();
 
     if ($id) {
-        $stmt = $db->prepare("UPDATE clients SET name = ?, whatsapp = ?, email = ?, dni = ?, drive_folder_id = ? WHERE id = ?");
-        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id, $id]);
+        $stmt = $db->prepare("UPDATE clients SET name = ?, whatsapp = ?, email = ?, dni = ?, drive_folder_id = ?, portal_enabled = ? WHERE id = ?");
+        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id, $portal_enabled, $id]);
         $clientId = $id;
     } else {
-        $stmt = $db->prepare("INSERT INTO clients (name, whatsapp, email, dni, drive_folder_id) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id]);
+        $stmt = $db->prepare("INSERT INTO clients (name, whatsapp, email, dni, drive_folder_id, portal_enabled) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id, $portal_enabled]);
         $clientId = $db->lastInsertId();
     }
 

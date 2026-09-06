@@ -1,29 +1,85 @@
 <?php
 // modules/admin/ajax_get_employees.php
-// DB connection is handled by index.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+header('Content-Type: application/json');
+
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'No autorizado']);
+    exit();
+}
+
+if (!isset($db)) {
+    require_once __DIR__ . '/../../config/database.php';
+    $database = new Database();
+    $db = $database->getConnection();
+}
+
+$query = isset($_GET['q']) ? trim($_GET['q']) : '';
+$status = isset($_GET['status']) ? trim($_GET['status']) : 'Todos';
 
 try {
-    $stmt = $db->query("SELECT * FROM employees ORDER BY created_at DESC");
+    // 1. Get KPI Counts
+    $totalCount = (int)$db->query("SELECT COUNT(*) FROM employees")->fetchColumn();
+    $activeCount = (int)$db->query("SELECT COUNT(*) FROM employees WHERE status = 'Activo'")->fetchColumn();
+    $inactiveCount = (int)$db->query("SELECT COUNT(*) FROM employees WHERE status = 'Inactivo'")->fetchColumn();
+    $pendingCount = (int)$db->query("SELECT COUNT(*) FROM employees WHERE status = 'Pendiente'")->fetchColumn();
+    $totalPayroll = (float)$db->query("SELECT SUM(salary) FROM employees WHERE status = 'Activo'")->fetchColumn();
+
+    // 2. Query Employees
+    $sql = "SELECT * FROM employees WHERE 1=1";
+    $params = [];
+
+    if ($status !== 'Todos' && !empty($status)) {
+        $sql .= " AND status = ?";
+        $params[] = $status;
+    }
+
+    if ($query !== '') {
+        $sql .= " AND (name LIKE ? OR dni LIKE ? OR email LIKE ? OR role LIKE ? OR department LIKE ? OR phone LIKE ?)";
+        $wildcard = "%$query%";
+        $params[] = $wildcard;
+        $params[] = $wildcard;
+        $params[] = $wildcard;
+        $params[] = $wildcard;
+        $params[] = $wildcard;
+        $params[] = $wildcard;
+    }
+
+    $sql .= " ORDER BY created_at DESC";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
     $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Calculate initials and color dynamically
-    $colors = ['#3b82f6', '#1e40af', '#475569', '#2563eb', '#1d4ed8', '#1e3a8a', '#10b981', '#059669', '#8b5cf6'];
+    // Calculate initials and consistent color
+    $colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#0ea5e9'];
     foreach ($employees as &$emp) {
-        $parts = explode(' ', $emp['name']);
+        $parts = preg_split('/\s+/', trim($emp['name']));
         $initials = '';
         if (count($parts) >= 2) {
-            $initials = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
+            $initials = mb_strtoupper(mb_substr($parts[0], 0, 1) . mb_substr($parts[1], 0, 1));
         } else {
-            $initials = strtoupper(substr($emp['name'], 0, 2));
+            $initials = mb_strtoupper(mb_substr($emp['name'], 0, 2));
         }
         $emp['initials'] = $initials;
-        
-        // Consistent color based on ID
         $emp['color'] = $colors[$emp['id'] % count($colors)];
     }
 
-    echo json_encode(['success' => true, 'data' => $employees]);
+    echo json_encode([
+        'success' => true,
+        'counts' => [
+            'total' => $totalCount,
+            'active' => $activeCount,
+            'inactive' => $inactiveCount,
+            'pending' => $pendingCount,
+            'payroll' => $totalPayroll
+        ],
+        'data' => $employees
+    ]);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

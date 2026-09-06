@@ -1,11 +1,18 @@
 <?php
 // modules/clients/ajax_search_clients.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'No autorizado']);
     exit();
 }
+
+require_once '../../config/database.php';
+$database = new Database();
+$db = $database->getConnection();
 
 $query = trim($_GET['q'] ?? '');
 $filter = trim($_GET['filter'] ?? 'all');
@@ -27,6 +34,8 @@ try {
 
     if ($filter === 'membership') {
         $whereClauses[] = "c.id IN (SELECT client_id FROM client_brands WHERE has_membership = 1)";
+    } elseif ($filter === 'portal') {
+        $whereClauses[] = "c.portal_enabled = 1";
     } elseif ($filter === 'has_brands') {
         $whereClauses[] = "c.id IN (SELECT client_id FROM client_brands)";
     } elseif ($filter === 'no_brands') {

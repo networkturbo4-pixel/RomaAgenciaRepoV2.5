@@ -38,6 +38,7 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'admin' && $action === 'payment_note_webview' && isset($_GET['view']) && $_GET['view'] === 'public')
         && !($module === 'pizarras' && $action === 'join_invite')
         && !($module === 'pizarras' && $action === 'view')
+        && !($module === 'quotes' && $action === 'public')
         && $module !== 'public'
     ) {
         header("Location: index.php?module=auth&action=login");
@@ -50,7 +51,7 @@ if (!isset($_SESSION['user_id'])) {
     $role_id = $stmtRole->fetchColumn();
 
     $user_permissions = [];
-    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'client_portal', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager'];
+    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager'];
     
     if ($role_id) {
         if ($role_id == 1) {
@@ -73,6 +74,7 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'admin' && $action === 'payment_note_webview' && isset($_GET['view']) && $_GET['view'] === 'public')
         && !($module === 'pizarras' && $action === 'join_invite')
         && !($module === 'pizarras' && $action === 'view')
+        && !($module === 'quotes' && $action === 'public')
         && $module !== 'public'
     ) {
         if (!in_array($module, $user_permissions)) {
@@ -201,7 +203,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Map modules to their respective files
-$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'client_portal', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca'];
+$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca'];
 if (in_array($module, $allowed_modules)) {
     $module_file = "modules/{$module}/{$action}.php";
     if (file_exists($module_file)) {
