@@ -20,6 +20,7 @@ $publicUrl = $shortToken ? "f/" . urlencode($shortToken) : '';
 $settings = json_decode($formData['settings_json'] ?? '{}', true) ?: [];
 $viewStyle = $settings['view_style'] ?? 'hero_cover';
 $coverPreset = $settings['cover_image'] ?? 'nebula';
+$customAvatar = $settings['custom_avatar'] ?? '';
 $welcomeScreen = $settings['welcome_screen'] ?? false;
 $showLogo = $settings['show_logo'] ?? true;
 $reqName = $settings['require_name'] ?? true;
@@ -439,8 +440,8 @@ html, body {
 .fb-brand-avatar-float {
     position: relative;
     z-index: 5;
-    width: 58px;
-    height: 58px;
+    width: 62px;
+    height: 62px;
     border-radius: 16px;
     background: var(--app-surface);
     border: 2px solid var(--app-border);
@@ -450,17 +451,51 @@ html, body {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
     margin-bottom: -32px;
     overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.fb-brand-avatar-float:hover {
+    transform: scale(1.06);
+    border-color: var(--app-accent);
 }
 
 .fb-brand-avatar-float img {
-    max-width: 80%;
-    max-height: 80%;
+    max-width: 82%;
+    max-height: 82%;
     object-fit: contain;
 }
 
 .fb-brand-avatar-float i {
     font-size: 1.85rem;
     color: var(--app-accent);
+}
+
+.fb-avatar-overlay-badge {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(2px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    gap: 2px;
+    text-align: center;
+}
+
+.fb-brand-avatar-float:hover .fb-avatar-overlay-badge {
+    opacity: 1;
+}
+
+.fb-avatar-overlay-badge i {
+    font-size: 1.15rem !important;
+    color: #ffffff !important;
 }
 
 .fb-header-content {
@@ -1055,13 +1090,146 @@ html, body {
 
 .fb-phone-content { padding: 1.35rem; }
 
-/* Responsive */
-@media (max-width: 1040px) {
-    .fb-studio-sidebar { display: none; }
-    .fb-studio-layout { padding-top: 1.25rem; }
+/* Reorder Buttons on Cards */
+.fb-card-move-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-sub);
+    color: var(--app-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.15s ease;
+    padding: 0;
 }
-@media (max-width: 768px) {
-    .fb-viewport { padding-top: 52px; }
+.fb-card-move-btn:hover:not(:disabled) {
+    background: var(--app-accent-light);
+    border-color: var(--app-accent);
+    color: var(--app-accent);
+}
+
+/* Mobile Floating Action Dock */
+.fb-mobile-dock {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    z-index: 90;
+    background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--app-border);
+    border-radius: 20px;
+    padding: 8px 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* Responsive Styles */
+@media (max-width: 1040px) {
+    .fb-studio-layout {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem 0.75rem 6.5rem;
+        gap: 1rem;
+        max-width: 100%;
+    }
+    
+    .fb-canvas-column {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    /* Bottom Sheet Drawer for Toolbox */
+    .fb-drawer-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+    .fb-drawer-backdrop.active {
+        display: block;
+        opacity: 1;
+    }
+
+    .fb-studio-sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        max-height: 82vh;
+        overflow-y: auto;
+        z-index: 101;
+        border-radius: 24px 24px 0 0;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.45);
+        border: 1px solid var(--app-border);
+        border-bottom: none;
+        padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+    }
+    .fb-studio-sidebar.drawer-open {
+        transform: translateY(0);
+    }
+    
+    .fb-drawer-drag-handle {
+        width: 44px;
+        height: 5px;
+        border-radius: 99px;
+        background: var(--app-border);
+        margin: -0.5rem auto 0.85rem;
+        cursor: pointer;
+    }
+
+    .fb-toolbox-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.65rem;
+    }
+
+    .fb-mobile-dock {
+        display: flex;
+    }
+}
+
+@media (max-width: 640px) {
+    .fb-app-topbar {
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+    }
+    .fb-topbar-title {
+        max-width: 130px;
+        font-size: 0.85rem;
+    }
+    .fb-segmented-tabs .fb-tab-btn span {
+        display: none;
+    }
+    .fb-segmented-tabs .fb-tab-btn {
+        padding: 0.45rem 0.65rem;
+    }
+    .fb-topbar-actions .fb-btn-action:not(.fb-btn-primary) {
+        display: none;
+    }
+    .fb-toolbox-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .fb-viewport {
+        padding-top: 0;
+    }
 }
 </style>
 
@@ -1127,13 +1295,22 @@ html, body {
                                 <i class="ph-bold ph-image"></i> Cambiar Portada
                             </button>
                         </div>
-                        <div class="fb-brand-avatar-float">
-                            <?php if($logoLight): ?>
-                                <img src="<?php echo htmlspecialchars($logoLight); ?>" alt="Logo">
-                            <?php else: ?>
-                                <i class="ph-bold ph-shield-check"></i>
-                            <?php endif; ?>
+                        <div class="fb-brand-avatar-float" id="headerBrandAvatar" onclick="document.getElementById('brandAvatarFileInput').click()" title="Haz clic para subir o cambiar la imagen de marca de este formulario">
+                            <div id="brandAvatarInner" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                <?php if(!empty($customAvatar)): ?>
+                                    <img src="<?php echo htmlspecialchars($customAvatar); ?>" alt="Avatar" id="brandAvatarImg">
+                                <?php elseif($logoLight): ?>
+                                    <img src="<?php echo htmlspecialchars($logoLight); ?>" alt="Logo" id="brandAvatarImg">
+                                <?php else: ?>
+                                    <i class="ph-bold ph-shield-check" id="brandAvatarIcon"></i>
+                                <?php endif; ?>
+                            </div>
+                            <div class="fb-avatar-overlay-badge">
+                                <i class="ph-bold ph-camera"></i>
+                                <span>Cambiar</span>
+                            </div>
                         </div>
+                        <input type="file" id="brandAvatarFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;" onchange="uploadBrandAvatar(this)">
                     </div>
 
                     <div class="fb-header-content">
@@ -1204,6 +1381,30 @@ html, body {
                             <i class="ph-bold ph-image"></i> Cambiar Portada
                         </button>
                     </div>
+
+                    <div class="fb-setting-row">
+                        <div class="fb-setting-info">
+                            <h4>Avatar de Marca / Logo del Formulario</h4>
+                            <p>Sube una imagen de perfil o logo personalizado para este formulario.</p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div id="settingsAvatarPreview" style="width: 44px; height: 44px; border-radius: 12px; background: var(--app-surface-sub); border: 1px solid var(--app-border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                <?php if(!empty($customAvatar)): ?>
+                                    <img src="<?php echo htmlspecialchars($customAvatar); ?>" style="max-width: 85%; max-height: 85%; object-fit: contain;">
+                                <?php elseif($logoLight): ?>
+                                    <img src="<?php echo htmlspecialchars($logoLight); ?>" style="max-width: 85%; max-height: 85%; object-fit: contain;">
+                                <?php else: ?>
+                                    <i class="ph-bold ph-shield-check" style="color: var(--app-accent); font-size: 1.35rem;"></i>
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="fb-btn-action" onclick="document.getElementById('brandAvatarFileInput').click()">
+                                <i class="ph-bold ph-upload-simple"></i> Subir
+                            </button>
+                            <button type="button" class="fb-btn-action" id="btnResetAvatar" onclick="resetBrandAvatar()" style="<?php echo empty($customAvatar) ? 'display: none;' : ''; ?> color: #ef4444;" title="Restablecer al logo predeterminado">
+                                <i class="ph-bold ph-trash"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- General Preferences -->
@@ -1263,10 +1464,17 @@ html, body {
             </div>
         </div>
 
-        <!-- Integrated Studio Sidebar Toolbox (Desktop) -->
+        <!-- Backdrop overlay for mobile drawer -->
+        <div class="fb-drawer-backdrop" id="drawerBackdrop" onclick="closeToolboxDrawer()"></div>
+
+        <!-- Integrated Studio Sidebar Toolbox (Desktop & Mobile Bottom Sheet) -->
         <div class="fb-studio-sidebar" id="studioSidebar">
+            <div class="fb-drawer-drag-handle" onclick="closeToolboxDrawer()"></div>
             <div class="fb-toolbox-header">
                 <span class="fb-toolbox-title"><i class="ph-bold ph-wrench"></i> Herramientas</span>
+                <button type="button" class="fb-btn-action" onclick="closeToolboxDrawer()" id="btnCloseDrawer" style="display: none; padding: 4px 10px; font-size: 0.75rem; border-radius: 8px;">
+                    <i class="ph-bold ph-x"></i> Cerrar
+                </button>
             </div>
             <div class="fb-toolbox-grid">
                 <div class="fb-tool-btn" onclick="addField('text')">
@@ -1324,6 +1532,19 @@ html, body {
             </div>
         </div>
     </div>
+</div>
+
+<!-- Floating Action Dock for Mobile Devices -->
+<div class="fb-mobile-dock" id="fbMobileDock">
+    <button type="button" class="fb-btn-action fb-btn-primary" onclick="openToolboxDrawer()" style="flex: 1; justify-content: center; padding: 0.7rem 1rem; border-radius: 14px; font-weight: 700;">
+        <i class="ph-bold ph-plus-circle" style="font-size: 1.15rem;"></i> Añadir Campo
+    </button>
+    <button type="button" class="fb-btn-action" onclick="saveForm('active')" style="padding: 0.7rem 1.1rem; border-radius: 14px; font-weight: 700; background: var(--app-surface-sub);" title="Guardar Formulario">
+        <i class="ph-bold ph-floppy-disk" style="font-size: 1.15rem; color: var(--app-accent);"></i> Guardar
+    </button>
+    <button type="button" class="fb-btn-action" onclick="toggleDevicePreview()" style="padding: 0.7rem 0.85rem; border-radius: 14px;" title="Vista Previa">
+        <i class="ph-bold ph-device-mobile" style="font-size: 1.15rem;"></i>
+    </button>
 </div>
 
 <!-- Cover Selector Modal -->
@@ -1546,12 +1767,44 @@ function addField(type, atIdx = null) {
         activeIdx = fields.length - 1;
     }
     
+    closeToolboxDrawer();
     renderFields();
     
     setTimeout(() => {
         const el = document.querySelector(`[data-idx="${activeIdx}"]`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 50);
+}
+
+function moveField(index, dir) {
+    const target = index + dir;
+    if (target < 0 || target >= fields.length) return;
+    const item = fields.splice(index, 1)[0];
+    fields.splice(target, 0, item);
+    activeIdx = target;
+    renderFields();
+    setTimeout(() => {
+        const el = document.querySelector(`[data-idx="${target}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+}
+
+function openToolboxDrawer() {
+    const sidebar = document.getElementById('studioSidebar');
+    const backdrop = document.getElementById('drawerBackdrop');
+    const closeBtn = document.getElementById('btnCloseDrawer');
+    if (sidebar) sidebar.classList.add('drawer-open');
+    if (backdrop) backdrop.classList.add('active');
+    if (closeBtn) closeBtn.style.display = 'inline-flex';
+}
+
+function closeToolboxDrawer() {
+    const sidebar = document.getElementById('studioSidebar');
+    const backdrop = document.getElementById('drawerBackdrop');
+    const closeBtn = document.getElementById('btnCloseDrawer');
+    if (sidebar) sidebar.classList.remove('drawer-open');
+    if (backdrop) backdrop.classList.remove('active');
+    if (closeBtn) closeBtn.style.display = 'none';
 }
 
 function setActive(idx) {
@@ -1689,7 +1942,15 @@ function renderFields() {
         const topBarHtml = `
             <div class="fb-card-top-bar">
                 <span class="fb-card-number-badge">${f.type === 'divider' ? 'SECCIÓN' : (questionCounter < 10 ? '0' + questionCounter : questionCounter)}</span>
-                <div class="fb-card-drag-handle" title="Arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <button type="button" class="fb-card-move-btn" onclick="event.stopPropagation(); moveField(${i}, -1)" title="Subir" ${i === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
+                        <i class="ph-bold ph-caret-up"></i>
+                    </button>
+                    <button type="button" class="fb-card-move-btn" onclick="event.stopPropagation(); moveField(${i}, 1)" title="Bajar" ${i === fields.length - 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
+                        <i class="ph-bold ph-caret-down"></i>
+                    </button>
+                    <div class="fb-card-drag-handle" title="Arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
+                </div>
             </div>
         `;
 
@@ -1992,11 +2253,12 @@ async function saveForm(status) {
         multi_step: document.getElementById('settMultiStep').checked,
         view_style: document.getElementById('settViewStyle').value,
         welcome_screen: document.getElementById('settWelcomeScreen').checked,
-        cover_image: currentCover
+        cover_image: currentCover,
+        custom_avatar: customAvatarUrl
     }));
     fd.append('status', status);
 
-    const btn = event.currentTarget;
+    const btn = (typeof event !== 'undefined' && event && event.currentTarget) ? event.currentTarget : (document.querySelector('.fb-btn-primary') || document.createElement('button'));
     const orig = btn.innerHTML;
     btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Guardando...';
     btn.disabled = true;
@@ -2027,6 +2289,62 @@ async function saveForm(status) {
         btn.innerHTML = orig;
         btn.disabled = false;
     }
+}
+
+let customAvatarUrl = '<?php echo htmlspecialchars($customAvatar); ?>';
+const DEFAULT_LOGO_URL = '<?php echo htmlspecialchars($logoLight); ?>';
+
+async function uploadBrandAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+        alert('La imagen no debe superar 5MB.');
+        input.value = '';
+        return;
+    }
+    const fd = new FormData();
+    fd.append('avatar', file);
+    
+    showToast('Subiendo imagen de marca...');
+    try {
+        const res = await fetch('index.php?module=forms&action=ajax_upload_form_avatar', {
+            method: 'POST',
+            body: fd
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+            customAvatarUrl = data.url;
+            updateBrandAvatarUI(customAvatarUrl);
+            showToast('¡Avatar de formulario actualizado!');
+        } else {
+            alert(data.error || 'Error al subir imagen');
+        }
+    } catch(e) {
+        alert('Error de conexión al subir la imagen');
+    }
+    input.value = '';
+}
+
+function resetBrandAvatar() {
+    customAvatarUrl = '';
+    updateBrandAvatarUI(DEFAULT_LOGO_URL);
+    const btnReset = document.getElementById('btnResetAvatar');
+    if (btnReset) btnReset.style.display = 'none';
+    showToast('Avatar restablecido al logo del sistema');
+}
+
+function updateBrandAvatarUI(url) {
+    const headerAvatar = document.getElementById('brandAvatarInner');
+    const settingsPreview = document.getElementById('settingsAvatarPreview');
+    const btnReset = document.getElementById('btnResetAvatar');
+    if (btnReset) {
+        btnReset.style.display = customAvatarUrl ? 'inline-flex' : 'none';
+    }
+    const content = url 
+        ? `<img src="${url}" alt="Avatar" style="max-width: 85%; max-height: 85%; object-fit: contain;">`
+        : `<i class="ph-bold ph-shield-check" style="font-size: 1.6rem; color: var(--app-accent);"></i>`;
+    if (headerAvatar) headerAvatar.innerHTML = content;
+    if (settingsPreview) settingsPreview.innerHTML = content;
 }
 
 // Deselect active card on outside click

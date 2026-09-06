@@ -27,7 +27,10 @@ if ($is_public) {
                 'status' => $note['status'],
                 'due_days' => intval($note['due_days'] ?? 30),
                 'has_pin' => !empty($note['access_pin']),
-                'token' => $note['public_token']
+                'token' => $note['public_token'],
+                'voucher_url' => $note['voucher_url'] ?? null,
+                'operation_number' => $note['operation_number'] ?? null,
+                'voucher_uploaded_at' => $note['voucher_uploaded_at'] ?? null
             ];
             $public_note_data = base64_encode(json_encode($data));
         } else {
@@ -70,6 +73,7 @@ $mp_enabled = ($mp_enabled_setting === false || $mp_enabled_setting === '1');
 <script>document.body.classList.add('public-mode');</script>
 <?php endif; ?>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
     const SYSTEM_SERVICES = <?php echo json_encode($all_services); ?>;
     const MP_ENABLED = <?php echo $mp_enabled ? 'true' : 'false'; ?>;
@@ -499,6 +503,102 @@ body.public-mode {
     margin: 0 !important;
     padding: 0 !important;
     overflow-x: hidden;
+    background: #f8f9fc !important;
+}
+
+[data-theme="dark"] body.public-mode,
+[data-theme="dark"] body.public-mode .app-container,
+[data-theme="dark"] body.public-mode .main-content,
+[data-theme="dark"] body.public-mode .content-wrapper,
+[data-theme="dark"] body.public-mode .payment-notes-container {
+    background: #000000 !important;
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] body.public-mode #public-header-banner {
+    background: rgba(0, 0, 0, 0.9) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] body.public-mode .app-card,
+[data-theme="dark"] body.public-mode .app-detail-card,
+[data-theme="dark"] body.public-mode .app-pm-card,
+[data-theme="dark"] body.public-mode .app-voucher-card,
+[data-theme="dark"] body.public-mode .section-card,
+[data-theme="dark"] #modal-voucher-upload .modal-content {
+    background-color: #0b0b0e !important;
+    background: #0b0b0e !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] body.public-mode .app-detail-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] body.public-mode .app-detail-total-area {
+    background: #111116 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] body.public-mode .app-client-name,
+[data-theme="dark"] body.public-mode .app-pm-name,
+[data-theme="dark"] body.public-mode .app-detail-name,
+[data-theme="dark"] body.public-mode .app-total-value {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] body.public-mode .app-client-company,
+[data-theme="dark"] body.public-mode .app-detail-desc,
+[data-theme="dark"] body.public-mode .app-date,
+[data-theme="dark"] body.public-mode .app-pm-acc,
+[data-theme="dark"] body.public-mode .app-total-label {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] body.public-mode .app-pm-icon-wrap {
+    background: #181820 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] body.public-mode .app-pm-copy {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #10b981 !important;
+}
+
+[data-theme="dark"] body.public-mode .app-verification-seal {
+    background: #0b0b0e !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] body.public-mode .app-status-btn:not(.app-status-paid) {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+[data-theme="dark"] body.public-mode .app-status-paid {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #10b981 !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+[data-theme="dark"] #voucher-drop-zone,
+[data-theme="dark"] #voucher-preview-area {
+    background: #14141a !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] #voucher-operation-number {
+    background: #14141a !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    color: #ffffff !important;
 }
 body.public-mode .sidebar,
 body.public-mode .topbar,
@@ -1300,14 +1400,21 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
 
 <div class="payment-notes-container">
   <!-- PUBLIC HEADER BANNER -->
-  <div id="public-header-banner" style="display: none; background: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 12px 16px; margin-bottom: 8px;">
+  <div id="public-header-banner" style="display: none; padding: 14px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-surface); backdrop-filter: blur(12px);">
       <div style="max-width: 800px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between;">
-          <div>
-              <h1 style="margin: 0; font-size: 1rem; color: var(--primary-color); font-weight: 800;">NOTA DE PAGO</h1>
-              <div id="public-banner-id" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 2px;"></div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(79, 70, 229, 0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                  <i class="ph ph-receipt"></i>
+              </div>
+              <div>
+                  <h1 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--text-main); letter-spacing: 0.2px;">THE ROMA AGENCY</h1>
+                  <div id="public-banner-id" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; font-weight: 600;"></div>
+              </div>
           </div>
-          <div style="color: var(--primary-color); font-size: 1.3rem; cursor: pointer;" title="Descargar" onclick="window.print();">
-              <i class="ph ph-download-simple"></i>
+          <div style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.print()" style="border-radius: 8px; font-size: 0.8rem; padding: 6px 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                  <i class="ph ph-printer"></i> Imprimir
+              </button>
           </div>
       </div>
   </div>
@@ -1374,6 +1481,17 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
                   <input type="checkbox" id="toggle-abonos">
                   <span class="toggle-slider"></span>
               </label>
+          </div>
+
+          <div class="modern-input-group" id="admin-voucher-input-group">
+              <label style="margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 6px;"><i class="ph ph-receipt" style="font-size: 1.1rem; color: var(--primary-color);"></i> Comprobante / Voucher</label>
+              <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
+                  <input type="text" id="admin-note-op-number" placeholder="N° Operación..." style="flex: 1; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; font-size: 0.85rem;" oninput="onAdminOpNumberChange(this.value)">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="openVoucherUploadModal()" style="border-radius: 8px; white-space: nowrap; font-weight: 600; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px;">
+                      <i class="ph ph-camera"></i> Subir / OCR
+                  </button>
+                  <a id="admin-voucher-view-link" href="#" target="_blank" style="display: none; padding: 6px 8px; color: var(--primary-color); font-size: 1.2rem;" title="Ver Voucher Adjunto"><i class="ph ph-file-text"></i></a>
+              </div>
           </div>
       </div>
     </div>
@@ -1572,6 +1690,67 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
   </div> <!-- end payment-notes-inner -->
 </div>
 
+<!-- Modal: Subir Voucher y OCR -->
+<div class="modal-overlay" id="modal-voucher-upload" style="display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 10000;">
+    <div class="modal-content" style="max-width: 520px; width: 92%; border-radius: 20px; padding: 1.75rem; background: var(--bg-surface); border: 1px solid var(--border-color); box-shadow: 0 20px 50px rgba(0,0,0,0.35); animation: fadeInUp 0.3s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(79, 70, 229, 0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">
+                    <i class="ph ph-receipt"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">Subir Comprobante</h3>
+                    <p style="margin: 2px 0 0; font-size: 0.78rem; color: var(--text-muted);">Compresión ultra-rápida y lectura OCR automática</p>
+                </div>
+            </div>
+            <button type="button" class="btn-close-circular" onclick="closeVoucherUploadModal()" style="border:none; background:transparent; font-size:1.2rem; cursor:pointer; color:var(--text-muted);"><i class="ph ph-x"></i></button>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <!-- Drop area -->
+            <div id="voucher-drop-zone" onclick="document.getElementById('voucher-file-input').click()" style="border: 2px dashed var(--border-color); border-radius: 16px; padding: 2rem 1.25rem; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg-page);">
+                <i class="ph ph-cloud-arrow-up" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 8px; display: inline-block;"></i>
+                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">Seleccionar imagen o tomar foto</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Formatos soportados: JPG, PNG, WEBP o PDF</div>
+            </div>
+            <input type="file" id="voucher-file-input" accept="image/*,application/pdf" style="display: none;" onchange="handleVoucherFileSelected(this)">
+        </div>
+
+        <!-- Preview & OCR state -->
+        <div id="voucher-preview-area" style="display: none; margin-bottom: 1.25rem; background: var(--bg-page); border-radius: 14px; padding: 12px; border: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 14px; align-items: center;">
+                <div style="width: 72px; height: 72px; border-radius: 10px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img id="voucher-preview-img" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div id="voucher-file-name" style="font-weight: 700; font-size: 0.85rem; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">comprobante.jpg</div>
+                    <div id="voucher-file-size" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Comprimiendo imagen...</div>
+                    <div id="voucher-ocr-status" style="font-size: 0.78rem; font-weight: 600; color: var(--accent); margin-top: 4px;">
+                        <i class="ph ph-spinner ph-spin"></i> Escaneando número de operación (OCR)...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operation number input -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span><i class="ph ph-hash"></i> Número de Operación</span>
+                <span id="ocr-badge-detected" style="display: none; font-size: 0.7rem; color: #10b981; font-weight: 700; background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 10px;">¡Detectado por OCR!</span>
+            </label>
+            <input type="text" id="voucher-operation-number" class="form-control" placeholder="Ej: 00129482" style="font-size: 1rem; font-weight: 700; letter-spacing: 1px; padding: 10px 14px; border-radius: 10px; width: 100%; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);">
+            <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 5px;">Se rellena automáticamente mediante OCR. Puedes corregirlo si es necesario.</small>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn btn-outline" onclick="closeVoucherUploadModal()" style="border-radius: 10px; padding: 8px 16px;">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btn-submit-voucher" onclick="submitVoucherUpload()" style="border-radius: 10px; font-weight: 700; padding: 8px 20px; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="ph ph-check-circle"></i> Confirmar y Marcar Pagado
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -1593,6 +1772,265 @@ document.addEventListener('DOMContentLoaded', () => {
   let editingIndexAbono = -1;
 
   let paymentMethodsData = [];
+  
+  let currentVoucherUrl = '';
+  let currentOperationNumber = '';
+  let selectedVoucherFile = null;
+  let compressedVoucherFile = null;
+
+  // Client-Side Canvas Image Compressor
+  function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+      return new Promise((resolve) => {
+          if (!file || !file.type.startsWith('image/')) {
+              return resolve(file);
+          }
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              const img = new Image();
+              img.onload = () => {
+                  let width = img.width;
+                  let height = img.height;
+
+                  if (width > maxWidth || height > maxHeight) {
+                      if (width > height) {
+                          height = Math.round((height * maxWidth) / width);
+                          width = maxWidth;
+                      } else {
+                          width = Math.round((width * maxHeight) / height);
+                          height = maxHeight;
+                      }
+                  }
+
+                  const canvas = document.createElement('canvas');
+                  canvas.width = width;
+                  canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, 0, 0, width, height);
+
+                  canvas.toBlob((blob) => {
+                      if (!blob) {
+                          resolve(file);
+                          return;
+                      }
+                      const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                          type: 'image/jpeg',
+                          lastModified: Date.now()
+                      });
+                      resolve(compressedFile);
+                  }, 'image/jpeg', quality);
+              };
+              img.onerror = () => resolve(file);
+              img.src = e.target.result;
+          };
+          reader.onerror = () => resolve(file);
+          reader.readAsDataURL(file);
+      });
+  }
+
+  // Tesseract OCR Reader for Operation Number
+  async function extractOperationNumberFromImage(fileOrBlob) {
+      try {
+          if (!window.Tesseract) {
+              console.warn('Tesseract OCR no está disponible');
+              return null;
+          }
+          const worker = await Tesseract.createWorker('spa');
+          const ret = await worker.recognize(fileOrBlob);
+          await worker.terminate();
+
+          const text = ret.data.text || '';
+          console.log('Texto detectado por OCR:', text);
+
+          // Regex patterns for Peruvian receipts (BCP, Interbank, BBVA, Yape, Plin, Scotiabank, etc.)
+          const patterns = [
+              /(?:n[uú]mero\s*(?:de)?\s*operaci[oó]n|n[°º.]?\s*(?:de)?\s*operaci[oó]n|nro\.?\s*operaci[oó]n|c[oó]digo\s*(?:de)?\s*operaci[oó]n|operaci[oó]n|n[°º.]?\s*op\.|op\.)\s*[:#\-]?\s*([0-9]{4,14})/i,
+              /(?:ref|referencia)\s*[:#\-]?\s*([0-9]{6,12})/i,
+              /\b([0-9]{6,10})\b/
+          ];
+
+          for (const pattern of patterns) {
+              const match = text.match(pattern);
+              if (match && match[1]) {
+                  return match[1].trim();
+              }
+          }
+          return null;
+      } catch (err) {
+          console.error('Error al ejecutar OCR:', err);
+          return null;
+      }
+  }
+
+  window.openVoucherUploadModal = function() {
+      const modal = document.getElementById('modal-voucher-upload');
+      if (!modal) return;
+      const fileInput = document.getElementById('voucher-file-input');
+      if (fileInput) fileInput.value = '';
+      selectedVoucherFile = null;
+      compressedVoucherFile = null;
+
+      const previewArea = document.getElementById('voucher-preview-area');
+      const dropZone = document.getElementById('voucher-drop-zone');
+      const opInput = document.getElementById('voucher-operation-number');
+      const ocrBadge = document.getElementById('ocr-badge-detected');
+
+      if (previewArea) previewArea.style.display = 'none';
+      if (dropZone) dropZone.style.display = 'block';
+      if (opInput) opInput.value = currentOperationNumber || '';
+      if (ocrBadge) ocrBadge.style.display = 'none';
+
+      modal.style.display = 'flex';
+  };
+
+  window.closeVoucherUploadModal = function() {
+      const modal = document.getElementById('modal-voucher-upload');
+      if (modal) modal.style.display = 'none';
+  };
+
+  window.handleVoucherFileSelected = async function(input) {
+      if (!input.files || !input.files[0]) return;
+      selectedVoucherFile = input.files[0];
+
+      const previewArea = document.getElementById('voucher-preview-area');
+      const dropZone = document.getElementById('voucher-drop-zone');
+      const previewImg = document.getElementById('voucher-preview-img');
+      const fileNameEl = document.getElementById('voucher-file-name');
+      const fileSizeEl = document.getElementById('voucher-file-size');
+      const ocrStatus = document.getElementById('voucher-ocr-status');
+      const opInput = document.getElementById('voucher-operation-number');
+      const ocrBadge = document.getElementById('ocr-badge-detected');
+
+      if (previewArea) previewArea.style.display = 'block';
+      if (dropZone) dropZone.style.display = 'none';
+      if (fileNameEl) fileNameEl.textContent = selectedVoucherFile.name;
+      if (fileSizeEl) fileSizeEl.textContent = 'Comprimiendo imagen para optimizar carga...';
+      if (ocrStatus) ocrStatus.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Procesando comprobante...';
+
+      if (selectedVoucherFile.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              if (previewImg) previewImg.src = e.target.result;
+          };
+          reader.readAsDataURL(selectedVoucherFile);
+
+          // Compress image client-side
+          try {
+              compressedVoucherFile = await compressImageFile(selectedVoucherFile, 1200, 1200, 0.8);
+              const originalKb = (selectedVoucherFile.size / 1024).toFixed(1);
+              const compressedKb = (compressedVoucherFile.size / 1024).toFixed(1);
+              if (fileSizeEl) fileSizeEl.textContent = `${originalKb} KB ➔ ${compressedKb} KB (Optimizado al 100%)`;
+          } catch(e) {
+              compressedVoucherFile = selectedVoucherFile;
+          }
+
+          // Run OCR
+          if (ocrStatus) ocrStatus.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Escaneando N° de operación con OCR...';
+          const detectedOp = await extractOperationNumberFromImage(compressedVoucherFile || selectedVoucherFile);
+
+          if (detectedOp) {
+              if (opInput) opInput.value = detectedOp;
+              if (ocrBadge) ocrBadge.style.display = 'inline-block';
+              if (ocrStatus) ocrStatus.innerHTML = `<span style="color:#10b981;"><i class="ph ph-check-circle"></i> ¡Operación detectada: <strong>${detectedOp}</strong>!</span>`;
+          } else {
+              if (ocrStatus) ocrStatus.innerHTML = '<span style="color:var(--text-muted);">Listo. Ingresa el número de operación si no fue detectado.</span>';
+          }
+      } else {
+          // PDF or non-image
+          if (previewImg) previewImg.src = 'assets/img/pdf-icon.png';
+          if (fileSizeEl) fileSizeEl.textContent = `${(selectedVoucherFile.size / 1024).toFixed(1)} KB`;
+          if (ocrStatus) ocrStatus.innerHTML = '<span style="color:var(--text-muted);">Archivo adjunto listo para enviar.</span>';
+          compressedVoucherFile = selectedVoucherFile;
+      }
+  };
+
+  window.submitVoucherUpload = async function() {
+      const fileToUpload = compressedVoucherFile || selectedVoucherFile;
+      const opNumber = (document.getElementById('voucher-operation-number')?.value || '').trim();
+
+      if (!fileToUpload && !currentVoucherUrl) {
+          alert('Por favor selecciona una foto o archivo de tu comprobante.');
+          return;
+      }
+
+      const btn = document.getElementById('btn-submit-voucher');
+      const orig = btn ? btn.innerHTML : '';
+      if (btn) {
+          btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+          btn.disabled = true;
+      }
+
+      const fd = new FormData();
+      if (fileToUpload) {
+          fd.append('voucher', fileToUpload);
+      }
+      fd.append('operation_number', opNumber);
+      
+      const currentToken = (existingNote && existingNote.token) || urlParams.get('token') || '';
+      const currentCode = (existingNote && existingNote.id) || noteId || '';
+      fd.append('token', currentToken);
+      fd.append('note_code', currentCode);
+
+      try {
+          const res = await fetch('index.php?module=admin&action=ajax_upload_note_voucher', {
+              method: 'POST',
+              body: fd
+          });
+          const data = await res.json();
+          if (data.success) {
+              currentVoucherUrl = data.voucher_url;
+              currentOperationNumber = data.operation_number;
+
+              if (existingNote) {
+                  existingNote.voucher_url = data.voucher_url;
+                  existingNote.operation_number = data.operation_number;
+                  existingNote.status = 'pagado';
+                  (existingNote.cronograma || []).forEach(c => c.estado = 'pagado');
+              }
+
+              cronograma.forEach(c => c.estado = 'pagado');
+
+              setDynamicFavicon(true);
+              document.title = '✅ Pagada - Nota ' + (existingNote?.id || currentCode);
+
+              updateAdminVoucherUI();
+              closeVoucherUploadModal();
+              renderPublicPreview();
+              if (typeof showToast === 'function') {
+                  showToast('¡Comprobante verificado y nota marcada como PAGADA!', 'success');
+              } else {
+                  alert('¡Comprobante subido con éxito y nota marcada como PAGADA!');
+              }
+          } else {
+              alert(data.error || 'No se pudo registrar el comprobante.');
+          }
+      } catch (err) {
+          alert('Error de conexión al subir el comprobante.');
+      } finally {
+          if (btn) {
+              btn.innerHTML = orig;
+              btn.disabled = false;
+          }
+      }
+  };
+
+  window.onAdminOpNumberChange = function(val) {
+      currentOperationNumber = val;
+      renderPublicPreview();
+  };
+
+  function updateAdminVoucherUI() {
+      const opInput = document.getElementById('admin-note-op-number');
+      const viewLink = document.getElementById('admin-voucher-view-link');
+      if (opInput && currentOperationNumber) opInput.value = currentOperationNumber;
+      if (viewLink) {
+          if (currentVoucherUrl) {
+              viewLink.href = currentVoucherUrl;
+              viewLink.style.display = 'inline-flex';
+          } else {
+              viewLink.style.display = 'none';
+          }
+      }
+  }
   
   // Load payment methods from DB
   async function loadPaymentMethodsFromDB() {
@@ -2182,8 +2620,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    let btnClass = saldo > 0 ? "app-status-btn" : "app-status-btn app-status-paid";
-    let btnText = saldo > 0 ? `<i class="ph ph-clock"></i> PENDIENTE DE PAGO` : `<i class="ph ph-check-circle"></i> PAGADO`;
+    const currentVoucher = currentVoucherUrl || (existingNote && existingNote.voucher_url) || '';
+    const currentOpNum = currentOperationNumber || (existingNote && existingNote.operation_number) || '';
+    const isPaid = (saldo <= 0) || Boolean(currentVoucher) || (existingNote && (existingNote.status === 'pagado' || existingNote.status === 'PAGADO'));
+
+    let btnClass = !isPaid ? "app-status-btn" : "app-status-btn app-status-paid";
+    let btnText = !isPaid ? `<i class="ph ph-clock"></i> PENDIENTE DE PAGO` : `<i class="ph ph-check-circle"></i> PAGADO`;
 
     html += `
         <div class="${btnClass} app-animate app-animate-delay-5">
@@ -2191,8 +2633,49 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
+    // Voucher Card (Verified or Upload Prompt)
+    if (currentVoucher) {
+        html += `
+            <div class="app-voucher-card app-animate app-animate-delay-5" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 18px; padding: 18px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <div style="width: 46px; height: 46px; border-radius: 14px; background: rgba(16, 185, 129, 0.14); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+                            <i class="ph ph-seal-check"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 800; color: #10b981; letter-spacing: 0.5px;">Comprobante de Pago Verificado</div>
+                            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-top: 2px;">
+                                ${currentOpNum ? 'N° Operación: <span style="color:var(--accent); font-family:monospace; font-size:1.05rem;">' + escapeHtml(currentOpNum) + '</span>' : 'Comprobante Adjunto'}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="${escapeHtml(currentVoucher)}" target="_blank" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; font-weight: 600; padding: 8px 14px;">
+                            <i class="ph ph-file-text"></i> Ver Voucher
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="app-voucher-card app-animate app-animate-delay-5" style="background: var(--bg-surface); border: 1.5px dashed var(--border-color); border-radius: 18px; padding: 22px 18px; margin-top: 20px; text-align: center;">
+                <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(79, 70, 229, 0.1); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 10px;">
+                    <i class="ph ph-camera-plus"></i>
+                </div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; color: var(--text-main);">¿Ya realizaste tu transferencia o pago?</h3>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0 0 14px; max-width: 420px; margin-left: auto; margin-right: auto; line-height: 1.4;">
+                    Sube una foto de tu voucher. Nuestro sistema leerá el <strong>número de operación con OCR</strong> y marcará la nota como <strong>PAGADA</strong> automáticamente.
+                </p>
+                <button type="button" class="btn btn-primary" onclick="openVoucherUploadModal()" style="border-radius: 12px; font-weight: 700; padding: 10px 22px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+                    <i class="ph ph-camera"></i> Subir Voucher / Comprobante
+                </button>
+            </div>
+        `;
+    }
+
     // Mercado Pago payment button (only in public mode and if pending)
-    if (saldo > 0 && isPublic && MP_ENABLED) {
+    if (!isPaid && isPublic && MP_ENABLED) {
         html += `
             <div class="app-animate app-animate-delay-5" style="margin-top: 20px;">
                 <button id="btn-mp-pay" onclick="initMercadoPagoPayment()" style="
@@ -3194,7 +3677,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalGeneral = baseForIgv + igvAmount;
       
       const hasPending = cronograma.some(c => c.estado === 'pendiente') || cronograma.length === 0;
-      const status = hasPending ? 'PENDIENTE' : 'PAGADO';
+      const isActuallyPaid = Boolean(currentVoucherUrl) || (!hasPending && cronograma.length > 0);
+      const status = isActuallyPaid ? 'PAGADO' : 'PENDIENTE';
       
       let noteToSave = {};
 
@@ -3220,7 +3704,9 @@ document.addEventListener('DOMContentLoaded', () => {
               show_memberships: document.getElementById('toggle-membership') ? document.getElementById('toggle-membership').checked : true,
               show_advances: document.getElementById('toggle-abonos') ? document.getElementById('toggle-abonos').checked : false,
               due_days: parseInt(document.getElementById('note-due-days')?.value) || 30,
-              access_pin: document.getElementById('note-access-pin')?.value || null
+              access_pin: document.getElementById('note-access-pin')?.value || null,
+              voucher_url: currentVoucherUrl || null,
+              operation_number: currentOperationNumber || null
           };
       } else {
           noteToSave = existingNote;
@@ -3238,6 +3724,8 @@ document.addEventListener('DOMContentLoaded', () => {
           noteToSave.show_advances = document.getElementById('toggle-abonos') ? document.getElementById('toggle-abonos').checked : false;
           noteToSave.due_days = parseInt(document.getElementById('note-due-days')?.value) || 30;
           noteToSave.access_pin = document.getElementById('note-access-pin')?.value || null;
+          noteToSave.voucher_url = currentVoucherUrl || existingNote.voucher_url || null;
+          noteToSave.operation_number = currentOperationNumber || existingNote.operation_number || null;
       }
       
       const btn = document.getElementById('btn-guardar-nota-total');

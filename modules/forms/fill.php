@@ -34,8 +34,10 @@ $isMultiStep = !empty($settings['multi_step']);
 $viewStyle = $settings['view_style'] ?? 'hero_cover'; // 'hero_cover', 'slides', 'minimal'
 $coverPreset = $settings['cover_image'] ?? 'nebula';
 $welcomeScreen = !empty($settings['welcome_screen']);
+$customAvatar = $settings['custom_avatar'] ?? '';
 
 $logoUrl = $global_settings['logo_light'] ?? '';
+$brandAvatarUrl = !empty($customAvatar) ? $customAvatar : $logoUrl;
 $siteName = $global_settings['site_name'] ?? 'Roma Agencia';
 $primaryColor = $global_settings['primary_color'] ?? '#4f46e5';
 
@@ -94,7 +96,9 @@ $cleanDesc = !empty($form['description']) ? trim(strip_tags($form['description']
 $ogDesc = !empty($cleanDesc) ? mb_strimwidth($cleanDesc, 0, 160, '...') : ('Completa este formulario en línea con ' . $siteName);
 
 $ogImage = '';
-if (!empty($settings['cover_image']) && (str_starts_with($settings['cover_image'], 'http') || str_starts_with($settings['cover_image'], 'uploads/'))) {
+if (!empty($customAvatar)) {
+    $ogImage = str_starts_with($customAvatar, 'http') ? $customAvatar : ($baseUrl . '/' . ltrim($customAvatar, '/'));
+} elseif (!empty($settings['cover_image']) && (str_starts_with($settings['cover_image'], 'http') || str_starts_with($settings['cover_image'], 'uploads/'))) {
     $ogImage = str_starts_with($settings['cover_image'], 'http') ? $settings['cover_image'] : ($baseUrl . '/' . ltrim($settings['cover_image'], '/'));
 } elseif (!empty($global_settings['logo_light'])) {
     $ogImage = str_starts_with($global_settings['logo_light'], 'http') ? $global_settings['logo_light'] : ($baseUrl . '/' . ltrim($global_settings['logo_light'], '/'));
@@ -1216,8 +1220,8 @@ body {
         <div class="app-cover-banner" style="background: <?php echo $coverBackground; ?>;">
             <div class="app-cover-overlay"></div>
             <div class="app-brand-avatar-float">
-                <?php if($showLogo && $logoUrl): ?>
-                    <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
+                <?php if($showLogo && $brandAvatarUrl): ?>
+                    <img src="<?php echo htmlspecialchars($brandAvatarUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
                 <?php else: ?>
                     <i class="ph-bold ph-shield-check"></i>
                 <?php endif; ?>
@@ -1265,8 +1269,8 @@ body {
         <div class="app-cover-banner" id="formCoverBanner" style="background: <?php echo $coverBackground; ?>;">
             <div class="app-cover-overlay"></div>
             <div class="app-brand-avatar-float">
-                <?php if($showLogo && $logoUrl): ?>
-                    <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
+                <?php if($showLogo && $brandAvatarUrl): ?>
+                    <img src="<?php echo htmlspecialchars($brandAvatarUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
                 <?php else: ?>
                     <i class="ph-bold ph-shield-check"></i>
                 <?php endif; ?>
@@ -1279,8 +1283,8 @@ body {
             <!-- Form Hero Intro (Only if no welcome screen or in non-slides view) -->
             <?php if(!$welcomeScreen && $viewStyle !== 'slides'): ?>
             <div class="app-hero-section" id="formHero">
-                <?php if($viewStyle === 'minimal' && $showLogo && $logoUrl): ?>
-                    <img src="<?php echo htmlspecialchars($logoUrl); ?>" class="app-hero-logo" alt="<?php echo htmlspecialchars($siteName); ?>">
+                <?php if($viewStyle === 'minimal' && $showLogo && $brandAvatarUrl): ?>
+                    <img src="<?php echo htmlspecialchars($brandAvatarUrl); ?>" class="app-hero-logo" alt="<?php echo htmlspecialchars($siteName); ?>">
                 <?php endif; ?>
                 <h1 class="app-hero-title"><?php echo htmlspecialchars($form['title']); ?></h1>
                 <?php if($form['description']): ?>

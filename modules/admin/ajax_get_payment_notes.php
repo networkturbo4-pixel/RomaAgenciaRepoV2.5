@@ -39,7 +39,10 @@ try {
             'due_days' => intval($note['due_days'] ?? 30),
             'access_pin' => $note['access_pin'] ?? null,
             'view_count' => intval($note['view_count'] ?? 0),
-            'last_viewed_at' => $note['last_viewed_at'] ?? null
+            'last_viewed_at' => $note['last_viewed_at'] ?? null,
+            'voucher_url' => $note['voucher_url'] ?? null,
+            'operation_number' => $note['operation_number'] ?? null,
+            'voucher_uploaded_at' => $note['voucher_uploaded_at'] ?? null
         ];
     }
 

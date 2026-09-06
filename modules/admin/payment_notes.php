@@ -514,7 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('tab-link').style.display = 'block';
 
                 try {
-                    const publicUrl = baseUrl + '?module=admin&action=payment_note_webview&token=' + note.public_token + '&view=public';
+                    const basePath = window.location.origin + window.location.pathname.replace(/\/index\.php.*$/, '').replace(/\/+$/, '');
+                    const publicUrl = note.public_token ? `${basePath}/np/${note.public_token}` : (baseUrl + '?module=admin&action=payment_note_webview&token=' + (note.public_token || '') + '&view=public');
                     shareLinkInput.value = publicUrl;
                     activeNoteUrlForShare = publicUrl;
 

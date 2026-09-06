@@ -36,6 +36,7 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'forms' && $action === 'ajax_upload_temp')
         && !($module === 'forms' && $action === 'view_submission')
         && !($module === 'admin' && $action === 'payment_note_webview' && isset($_GET['view']) && $_GET['view'] === 'public')
+        && !($module === 'admin' && $action === 'ajax_upload_note_voucher')
         && !($module === 'pizarras' && $action === 'join_invite')
         && !($module === 'pizarras' && $action === 'view')
         && !($module === 'quotes' && $action === 'public')

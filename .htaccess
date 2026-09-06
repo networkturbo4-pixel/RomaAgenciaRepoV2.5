@@ -16,6 +16,10 @@
     RewriteRule ^f/([^/]+)/?$ index.php?module=forms&action=fill&token=$1 [QSA,L]
     RewriteRule ^form/([^/]+)/?$ index.php?module=forms&action=fill&token=$1 [QSA,L]
 
+    # Ruta amigable corta para notas de pago: /np/TOKEN o /nota/TOKEN
+    RewriteRule ^np/([^/]+)/?$ index.php?module=admin&action=payment_note_webview&view=public&token=$1 [QSA,L]
+    RewriteRule ^nota/([^/]+)/?$ index.php?module=admin&action=payment_note_webview&view=public&token=$1 [QSA,L]
+
     # Ruta amigable para chat de invitados: /m/TOKEN
     RewriteRule ^m/([^/]+)/?$ index.php?module=mensajes&action=guest&token=$1 [QSA,L]
 
