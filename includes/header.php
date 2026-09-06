@@ -178,18 +178,6 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
                 <span>Clientes</span>
             </a>
             <?php endif; ?>
-            <?php if (in_array('reuniones', $perms)): ?>
-            <a href="index.php?module=reuniones&action=index" class="nav-item <?php echo $current_module === 'reuniones' ? 'active' : ''; ?>" data-title="Reuniones">
-                <i class="ph ph-video-camera"></i>
-                <span>Reuniones</span>
-            </a>
-            <?php endif; ?>
-            <?php if (in_array('pizarras', $perms)): ?>
-            <a href="index.php?module=pizarras&action=index" class="nav-item <?php echo $current_module === 'pizarras' ? 'active' : ''; ?>" data-title="Pizarras">
-                <i class="ph ph-chalkboard"></i>
-                <span>Pizarras</span>
-            </a>
-            <?php endif; ?>
             <?php if (in_array('quotes', $perms) || in_array('services', $perms)): ?>
             <div class="nav-dropdown <?php echo in_array($current_module, ['quotes', 'services']) ? 'active' : ''; ?>">
                 <button class="nav-item dropdown-toggle" data-title="Área Comercial">
@@ -226,13 +214,6 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             <a href="index.php?module=forms&action=index" class="nav-item <?php echo $current_module === 'forms' ? 'active' : ''; ?>" data-title="Formularios">
                 <i class="ph ph-note-pencil"></i>
                 <span>Formularios</span>
-            </a>
-            <?php endif; ?>
-
-            <?php if (in_array('herramientas', $perms)): ?>
-            <a href="index.php?module=herramientas&action=index" class="nav-item <?php echo $current_module === 'herramientas' ? 'active' : ''; ?>" data-title="Herramientas">
-                <i class="ph ph-wrench"></i>
-                <span>Herramientas</span>
             </a>
             <?php endif; ?>
 

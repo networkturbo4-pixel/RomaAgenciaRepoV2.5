@@ -130,8 +130,11 @@ require_once 'includes/header.php';
 
 .icon-tasks { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
 .icon-romita { background: linear-gradient(135deg, #4f46e5, #ec4899); }
-.icon-app { background: linear-gradient(135deg, #71717a, #52525b); }
 .icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+.icon-meetings { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+.icon-whiteboard { background: linear-gradient(135deg, #10b981, #059669); }
+.icon-tools { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.icon-app { background: linear-gradient(135deg, #71717a, #52525b); }
 .icon-web { background: linear-gradient(135deg, #52525b, #3f3f46); }
 .icon-audio { background: linear-gradient(135deg, #52525b, #3f3f46); }
 
@@ -238,8 +241,35 @@ require_once 'includes/header.php';
             <p class="workspace-card-desc">Gestión de identidad visual, manuales de marca y assets corporativos.</p>
         </a>
 
+        <!-- Reuniones (Activo) -->
+        <a href="index.php?module=reuniones&action=index" class="workspace-card" style="animation-delay: 0.2s;">
+            <div class="workspace-card-icon icon-meetings">
+                <i class="ph ph-video-camera"></i>
+            </div>
+            <h3 class="workspace-card-title">Reuniones</h3>
+            <p class="workspace-card-desc">Salas de videollamadas, grabaciones y enlaces interactivos para clientes y equipo.</p>
+        </a>
+
+        <!-- Pizarras (Activo) -->
+        <a href="index.php?module=pizarras&action=index" class="workspace-card" style="animation-delay: 0.25s;">
+            <div class="workspace-card-icon icon-whiteboard">
+                <i class="ph ph-chalkboard"></i>
+            </div>
+            <h3 class="workspace-card-title">Pizarras</h3>
+            <p class="workspace-card-desc">Pizarras colaborativas infinitas, diagramas y notas visuales en tiempo real.</p>
+        </a>
+
+        <!-- Herramientas (Activo) -->
+        <a href="index.php?module=herramientas&action=index" class="workspace-card" style="animation-delay: 0.3s;">
+            <div class="workspace-card-icon icon-tools">
+                <i class="ph ph-wrench"></i>
+            </div>
+            <h3 class="workspace-card-title">Herramientas</h3>
+            <p class="workspace-card-desc">Calculadoras, generadores de enlaces, utilidades y herramientas de marketing.</p>
+        </a>
+
         <!-- App (Desactivado) -->
-        <div class="workspace-card is-disabled" style="animation-delay: 0.2s;">
+        <div class="workspace-card is-disabled" style="animation-delay: 0.35s;">
             <span class="workspace-card-badge-disabled"><i class="ph ph-lock-key"></i> Desactivado</span>
             <div class="workspace-card-icon icon-app">
                 <i class="ph ph-device-mobile"></i>
@@ -249,7 +279,7 @@ require_once 'includes/header.php';
         </div>
 
         <!-- Desarrollo Web (Desactivado) -->
-        <div class="workspace-card is-disabled" style="animation-delay: 0.25s;">
+        <div class="workspace-card is-disabled" style="animation-delay: 0.4s;">
             <span class="workspace-card-badge-disabled"><i class="ph ph-lock-key"></i> Desactivado</span>
             <div class="workspace-card-icon icon-web">
                 <i class="ph ph-browser"></i>
@@ -259,7 +289,7 @@ require_once 'includes/header.php';
         </div>
 
         <!-- Audiovisual (Desactivado) -->
-        <div class="workspace-card is-disabled" style="animation-delay: 0.3s;">
+        <div class="workspace-card is-disabled" style="animation-delay: 0.45s;">
             <span class="workspace-card-badge-disabled"><i class="ph ph-lock-key"></i> Desactivado</span>
             <div class="workspace-card-icon icon-audio">
                 <i class="ph ph-video-camera"></i>
