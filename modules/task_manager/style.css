@@ -1259,10 +1259,11 @@
 .lumio-modal {
     background: var(--bg-surface, #ffffff);
     border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: var(--tm-radius-lg);
+    border-radius: var(--tm-radius-lg, 16px);
     width: 100%;
     max-width: 680px;
     max-height: 90vh;
+    height: auto;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
@@ -1270,10 +1271,21 @@
     overflow: hidden;
 }
 
+.lumio-form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: calc(90vh - 4px);
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
 .lumio-accent-bar {
     height: 4px;
     width: 100%;
     background: linear-gradient(90deg, #4f46e5, #7c3aed);
+    flex-shrink: 0;
 }
 
 .lumio-header {
@@ -1282,6 +1294,7 @@
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border-color, #f1f5f9);
+    flex-shrink: 0;
 }
 
 .lumio-header-left {
@@ -1328,7 +1341,10 @@
 .lumio-body {
     padding: 1.25rem 1.5rem;
     overflow-y: auto;
-    flex: 1;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
 }
 
 .lumio-title {
@@ -1458,6 +1474,11 @@
     align-items: center;
     gap: 0.65rem;
     background: var(--bg-surface, #ffffff);
+    flex-shrink: 0;
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    z-index: 15;
 }
 
 .lumio-cancel-btn {
@@ -1811,10 +1832,115 @@
     color: var(--primary-color, #4f46e5);
 }
 
-/* Keyframe animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+/* ══════════════════════════════════════════════════════════
+   AIR DATEPICKER & FLATPICKR GLOBAL Z-INDEX & THEME
+   ══════════════════════════════════════════════════════════ */
+.air-datepicker-global-container,
+.air-datepicker,
+.flatpickr-calendar,
+.tagify__dropdown,
+.ql-tooltip,
+.ql-picker-options {
+    z-index: 999999 !important;
+}
+
+.air-datepicker {
+    font-family: inherit;
+    border-radius: var(--tm-radius-md, 12px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .air-datepicker {
+    --adp-bg: #0a0a0a;
+    --adp-color: #f4f4f5;
+    --adp-color-secondary: #a1a1aa;
+    --adp-accent-color: #6366f1;
+    --adp-color-current-date: #818cf8;
+    --adp-background-color-hover: #1f1f23;
+    --adp-background-color-active: #4f46e5;
+    --adp-background-color-in-range: rgba(99, 102, 241, 0.2);
+    --adp-background-color-selected-other-month-focused: #27272a;
+    --adp-border-color: #262626;
+    --adp-border-color-inner: #262626;
+    --adp-btn-color: #f4f4f5;
+    --adp-btn-color-hover: #ffffff;
+    --adp-btn-background-color-hover: #1f1f23;
+    --adp-btn-background-color-active: #27272a;
+    --adp-time-track-color: #262626;
+    --adp-time-track-color-hover: #3f3f46;
+    --adp-time-track-action-color: #6366f1;
+    background: #0a0a0a !important;
+    border: 1px solid #262626 !important;
+    color: #f4f4f5 !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .air-datepicker-nav {
+    border-bottom: 1px solid #262626 !important;
+}
+
+[data-theme="dark"] .air-datepicker-nav--title,
+[data-theme="dark"] .air-datepicker-nav--title i {
+    color: #f4f4f5 !important;
+}
+
+[data-theme="dark"] .air-datepicker-nav--action:hover {
+    background: #1f1f23 !important;
+}
+
+[data-theme="dark"] .air-datepicker-nav--action svg path {
+    stroke: #f4f4f5 !important;
+}
+
+[data-theme="dark"] .air-datepicker-body--day-name {
+    color: #a1a1aa !important;
+}
+
+[data-theme="dark"] .air-datepicker-cell.-day- {
+    color: #f4f4f5 !important;
+}
+
+[data-theme="dark"] .air-datepicker-cell.-other-month- {
+    color: #52525b !important;
+}
+
+[data-theme="dark"] .air-datepicker-cell.-current- {
+    color: #818cf8 !important;
+}
+
+[data-theme="dark"] .air-datepicker-cell.-selected- {
+    background: #4f46e5 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .air-datepicker-cell.-focus- {
+    background: #1f1f23 !important;
+}
+
+[data-theme="dark"] .air-datepicker-time {
+    border-top: 1px solid #262626 !important;
+}
+
+[data-theme="dark"] .air-datepicker-time--current-hours,
+[data-theme="dark"] .air-datepicker-time--current-minutes {
+    color: #f4f4f5 !important;
+}
+
+[data-theme="dark"] .air-datepicker-time--track {
+    background: #262626 !important;
+}
+
+[data-theme="dark"] .air-datepicker-buttons {
+    border-top: 1px solid #262626 !important;
+}
+
+[data-theme="dark"] .air-datepicker-button {
+    color: #818cf8 !important;
+}
+
+[data-theme="dark"] .air-datepicker-button:hover {
+    background: #1f1f23 !important;
+    color: #ffffff !important;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1830,8 +1956,22 @@
 [data-theme="dark"] .tm-daily-eval-card,
 [data-theme="dark"] .tm-weekly-col,
 [data-theme="dark"] .lumio-modal {
-    background: var(--bg-surface, #121212) !important;
-    border-color: var(--border-color, #27272a) !important;
+    background: var(--bg-surface, #0a0a0a) !important;
+    border-color: var(--border-color, #262626) !important;
+}
+
+[data-theme="dark"] .lumio-header {
+    background: #0a0a0a !important;
+    border-bottom-color: #262626 !important;
+}
+
+[data-theme="dark"] .lumio-body {
+    background: #0a0a0a !important;
+}
+
+[data-theme="dark"] .lumio-footer {
+    background: #0a0a0a !important;
+    border-top-color: #262626 !important;
 }
 
 [data-theme="dark"] .tm-column {

@@ -66,9 +66,11 @@ const TM = {
                 }
             };
             try {
-                if (document.getElementById('tm-due-date')) new AirDatepicker('#tm-due-date', dpConfig);
+                if (document.getElementById('tm-due-date')) {
+                    this.dpDueDate = new AirDatepicker('#tm-due-date', dpConfig);
+                }
                 if (document.getElementById('tm-daily-datepicker')) {
-                    new AirDatepicker('#tm-daily-datepicker', {
+                    this.dpDailyDate = new AirDatepicker('#tm-daily-datepicker', {
                         ...dpConfig,
                         timepicker: false,
                         onSelect: ({formattedDate}) => {
@@ -1123,6 +1125,11 @@ const TM = {
         }
 
         this.onAreaChange(document.getElementById('tm-area').value);
+        document.getElementById('tm-due-date').value = '';
+        if (this.dpDueDate) {
+            this.dpDueDate.clear();
+        }
+        document.body.style.overflow = 'hidden';
         document.getElementById('tm-modal-task').style.display = 'flex';
     },
 
@@ -1172,6 +1179,13 @@ const TM = {
         }
 
         document.getElementById('tm-due-date').value = task.due_date ? task.due_date.substring(0, 16) : '';
+        if (this.dpDueDate && task.due_date) {
+            try {
+                this.dpDueDate.selectDate(new Date(task.due_date.replace(' ', 'T')));
+            } catch(e) {}
+        } else if (this.dpDueDate) {
+            this.dpDueDate.clear();
+        }
         document.getElementById('tm-tags').value = (task.tags || []).join(', ');
 
         if (this.quillDesc) {
@@ -1211,6 +1225,7 @@ const TM = {
             }
         });
 
+        document.body.style.overflow = 'hidden';
         document.getElementById('tm-modal-task').style.display = 'flex';
     },
 
@@ -1220,6 +1235,7 @@ const TM = {
     },
 
     closeModal: function(id) {
+        document.body.style.overflow = '';
         document.getElementById(id).style.display = 'none';
     },
 
