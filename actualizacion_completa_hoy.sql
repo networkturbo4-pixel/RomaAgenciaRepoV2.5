@@ -2,12 +2,7 @@
 -- ACTUALIZACIÓN COMPLETA DE BASE DE DATOS
 -- Sistema: Roma Agencia SaaS
 -- Fecha: 06 de Septiembre 2026
--- Incluye:
---  1. Módulo de Gestor de Tareas (tm_tasks, tm_subtasks, tm_recurring_templates, tm_daily_evaluations)
---  2. Sincronización y Fases de Desarrollo de Marca (brand_task_groups, brand_tags)
---  3. Calendario y Cronómetro de Meses (project_months, month_posts)
---  4. Módulo de Proveedores (suppliers, supplier_payments, supplier_services)
---  5. Asistencias, Tardanzas y Fin de Jornada (asistencias, settings)
+-- Compatible con MySQL 5.7+, MySQL 8.0+ y MariaDB 10.2+ (phpMyAdmin / cPanel)
 -- ==============================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -120,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `brand_task_groups` (
   KEY `project_id` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Sembrar etiquetas comunes sugeridas si brand_tags está vacía
+-- Sembrar etiquetas sugeridas
 INSERT IGNORE INTO `brand_tags` (`name`, `color`) VALUES
   ('Diseño', '#f58300'),
   ('Revisión', '#eab308'),
@@ -207,39 +202,49 @@ CREATE TABLE IF NOT EXISTS `supplier_services` (
 
 
 -- ==============================================================================
--- SECCIÓN 4: MODIFICACIONES Y COLUMNAS INCREMENTALES (SI LA TABLA YA EXISTE)
+-- SECCIÓN 4: MIGRACIÓN SEGURA DE COLUMNAS (TOTALMENTE INDEPENDIENTE DE POSICIÓN)
 -- ==============================================================================
 
--- 4.1. Fases de Desarrollo de Marca: Agregar fechas a brand_task_groups si no existen
+-- 4.1. Fases de Desarrollo de Marca (brand_task_groups: color, start_date, due_date)
+SET @col_exist_bg_color = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'brand_task_groups' AND column_name = 'color');
+SET @query_bg_color = IF(@col_exist_bg_color = 0, "ALTER TABLE `brand_task_groups` ADD COLUMN `color` varchar(7) DEFAULT '#0f172a'", 'SELECT 1');
+PREPARE stmt FROM @query_bg_color; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @col_exist_bg_start = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'brand_task_groups' AND column_name = 'start_date');
-SET @query_bg_start = IF(@col_exist_bg_start = 0, 'ALTER TABLE `brand_task_groups` ADD COLUMN `start_date` date DEFAULT NULL AFTER `color`, ADD COLUMN `due_date` date DEFAULT NULL AFTER `start_date`', 'SELECT 1');
+SET @query_bg_start = IF(@col_exist_bg_start = 0, 'ALTER TABLE `brand_task_groups` ADD COLUMN `start_date` date DEFAULT NULL', 'SELECT 1');
 PREPARE stmt FROM @query_bg_start; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exist_bg_due = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'brand_task_groups' AND column_name = 'due_date');
+SET @query_bg_due = IF(@col_exist_bg_due = 0, 'ALTER TABLE `brand_task_groups` ADD COLUMN `due_date` date DEFAULT NULL', 'SELECT 1');
+PREPARE stmt FROM @query_bg_due; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 4.2. Gestor de Tareas: Agregar brand_group_id a tm_tasks si no existe
 SET @col_exist_tm_bg = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tm_tasks' AND column_name = 'brand_group_id');
-SET @query_tm_bg = IF(@col_exist_tm_bg = 0, 'ALTER TABLE `tm_tasks` ADD COLUMN `brand_group_id` int(11) NULL AFTER `brand_project_id`', 'SELECT 1');
+SET @query_tm_bg = IF(@col_exist_tm_bg = 0, 'ALTER TABLE `tm_tasks` ADD COLUMN `brand_group_id` int(11) NULL', 'SELECT 1');
 PREPARE stmt FROM @query_tm_bg; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 4.3. Calendario: Asegurar columnas de fecha y estado en project_months
 SET @col_exist_pm_start = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'project_months' AND column_name = 'start_date');
-SET @query_pm_start = IF(@col_exist_pm_start = 0, 'ALTER TABLE `project_months` ADD COLUMN `start_date` date DEFAULT NULL AFTER `year`', 'SELECT 1');
+SET @query_pm_start = IF(@col_exist_pm_start = 0, 'ALTER TABLE `project_months` ADD COLUMN `start_date` date DEFAULT NULL', 'SELECT 1');
 PREPARE stmt FROM @query_pm_start; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exist_pm_due = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'project_months' AND column_name = 'due_date');
-SET @query_pm_due = IF(@col_exist_pm_due = 0, 'ALTER TABLE `project_months` ADD COLUMN `due_date` date DEFAULT NULL AFTER `start_date`', 'SELECT 1');
+SET @query_pm_due = IF(@col_exist_pm_due = 0, 'ALTER TABLE `project_months` ADD COLUMN `due_date` date DEFAULT NULL', 'SELECT 1');
 PREPARE stmt FROM @query_pm_due; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exist_pm_status = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'project_months' AND column_name = 'status');
-SET @query_pm_status = IF(@col_exist_pm_status = 0, "ALTER TABLE `project_months` ADD COLUMN `status` varchar(50) DEFAULT 'pendiente' AFTER `due_date`", 'SELECT 1');
+SET @query_pm_status = IF(@col_exist_pm_status = 0, "ALTER TABLE `project_months` ADD COLUMN `status` varchar(50) DEFAULT 'pendiente'", 'SELECT 1');
 PREPARE stmt FROM @query_pm_status; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 4.4. Módulo de Asistencias: Columnas de tardanzas, horas extras y fin de jornada en asistencias
+-- 4.4. Módulo de Asistencias (Solo si la tabla asistencias existe en esta base de datos)
+SET @table_exist_as = (SELECT count(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'asistencias');
+
 SET @col_exist_as_sp = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'asistencias' AND column_name = 'salida_previa');
-SET @query_as_sp = IF(@col_exist_as_sp = 0, 'ALTER TABLE `asistencias` ADD COLUMN `salida_previa` DATETIME NULL AFTER `salida`', 'SELECT 1');
+SET @query_as_sp = IF(@table_exist_as > 0 AND @col_exist_as_sp = 0, 'ALTER TABLE `asistencias` ADD COLUMN `salida_previa` DATETIME NULL', 'SELECT 1');
 PREPARE stmt FROM @query_as_sp; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @col_exist_as_tard = (SELECT count(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'asistencias' AND column_name = 'es_tardanza');
-SET @query_as_tard = IF(@col_exist_as_tard = 0, 'ALTER TABLE `asistencias` ADD COLUMN `es_tardanza` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `minutos_tarde` INT NOT NULL DEFAULT 0, ADD COLUMN `hora_programada` TIME NULL, ADD COLUMN `tolerancia_minutos` INT NOT NULL DEFAULT 5, ADD COLUMN `bloqueado_por_tardanza` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `realiza_horas_extras` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `motivo_horas_extras` VARCHAR(255) NULL, ADD COLUMN `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0', 'SELECT 1');
+SET @query_as_tard = IF(@table_exist_as > 0 AND @col_exist_as_tard = 0, 'ALTER TABLE `asistencias` ADD COLUMN `es_tardanza` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `minutos_tarde` INT NOT NULL DEFAULT 0, ADD COLUMN `hora_programada` TIME NULL, ADD COLUMN `tolerancia_minutos` INT NOT NULL DEFAULT 5, ADD COLUMN `bloqueado_por_tardanza` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `realiza_horas_extras` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `motivo_horas_extras` VARCHAR(255) NULL, ADD COLUMN `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0', 'SELECT 1');
 PREPARE stmt FROM @query_as_tard; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 
