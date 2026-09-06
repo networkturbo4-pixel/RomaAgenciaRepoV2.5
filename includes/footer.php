@@ -5,10 +5,16 @@
 <!-- Profile Modal (Modern Native App Style - Matching Reference) -->
 <div class="modal-overlay" id="profile-modal">
     <div class="modal-content profile-app-modal">
-        <!-- Top Inset Cover Banner (Cobalt Blue with Geometric Glyphs) -->
+        <!-- Top Inset Cover Banner (Dynamic Style Presets) -->
         <div class="profile-banner-wrap">
-            <div class="profile-cover-banner">
-                <div class="profile-banner-symbols" aria-hidden="true">
+            <div class="profile-cover-banner" id="profile-cover-banner" data-cover-style="cobalt">
+                <!-- Cover Style Picker Trigger Button (Top Left) -->
+                <button type="button" class="profile-banner-palette-btn" id="btn-toggle-cover-picker" title="Personalizar estilo de portada">
+                    <i class="ph-bold ph-palette"></i>
+                    <span>Portada</span>
+                </button>
+
+                <div class="profile-banner-symbols" id="profile-banner-symbols" aria-hidden="true">
                     <span>↗</span>
                     <span>↘</span>
                     <span>↖</span>
@@ -17,6 +23,59 @@
                 <div class="profile-banner-grid" aria-hidden="true"></div>
                 <button type="button" class="profile-hero-close btn-close-modal" aria-label="Cerrar modal">
                     <i class="ph ph-x"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Floating Cover Style Popover -->
+        <div class="profile-cover-picker-popover" id="profile-cover-picker" style="display: none;">
+            <div class="pcp-header">
+                <div class="pcp-title">
+                    <i class="ph-bold ph-palette"></i>
+                    <span>Estilos de Portada</span>
+                </div>
+                <button type="button" class="pcp-close" id="btn-close-cover-picker" aria-label="Cerrar"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="pcp-grid">
+                <button type="button" class="pcp-item active" data-style="cobalt" title="Azul Eléctrico">
+                    <span class="pcp-swatch swatch-cobalt"><span class="pcp-glyphs">↗ ↘</span></span>
+                    <span class="pcp-label">Azul Eléctrico</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
+                </button>
+                <button type="button" class="pcp-item" data-style="system" title="Color del Sistema">
+                    <span class="pcp-swatch swatch-system"><span class="pcp-glyphs">✦ ★</span></span>
+                    <span class="pcp-label">Color Sistema</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
+                </button>
+                <button type="button" class="pcp-item" data-style="emerald" title="Esmeralda Tech">
+                    <span class="pcp-swatch swatch-emerald"><span class="pcp-glyphs">◈ ◆</span></span>
+                    <span class="pcp-label">Esmeralda</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
+                </button>
+                <button type="button" class="pcp-item" data-style="dark" title="Titanium OLED">
+                    <span class="pcp-swatch swatch-dark"><span class="pcp-glyphs">✕ ◇</span></span>
+                    <span class="pcp-label">Titanium</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
+                </button>
+                <button type="button" class="pcp-item" data-style="purple" title="Cosmic Cyber">
+                    <span class="pcp-swatch swatch-purple"><span class="pcp-glyphs">✦ ↗</span></span>
+                    <span class="pcp-label">Cosmic</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
+                </button>
+                <button type="button" class="pcp-item" data-style="sunset" title="Sunset Coral">
+                    <span class="pcp-swatch swatch-sunset"><span class="pcp-glyphs">☀ ★</span></span>
+                    <span class="pcp-label">Sunset</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
+                </button>
+                <button type="button" class="pcp-item" data-style="ocean" title="Océano Deep">
+                    <span class="pcp-swatch swatch-ocean"><span class="pcp-glyphs">≋ ↗</span></span>
+                    <span class="pcp-label">Océano</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
+                </button>
+                <button type="button" class="pcp-item" data-style="mesh" title="Aurora Mesh">
+                    <span class="pcp-swatch swatch-mesh"><span class="pcp-glyphs">▲ ▼</span></span>
+                    <span class="pcp-label">Aurora</span>
+                    <span class="pcp-check"><i class="ph-bold ph-check"></i></span>
                 </button>
             </div>
         </div>
@@ -102,6 +161,23 @@
                     </div>
                 </div>
             </div>
+            <!-- Cover Style Selector inside Info Tab -->
+            <div class="pm-cover-selection">
+                <div class="pm-cover-label-row">
+                    <label>Estilo de portada</label>
+                    <span class="pm-cover-current-name" id="pm-cover-current-name">Azul Eléctrico</span>
+                </div>
+                <div class="pm-cover-swatches" id="pm-cover-swatches">
+                    <button type="button" class="pm-swatch-btn swatch-cobalt active" data-style="cobalt" title="Azul Eléctrico"></button>
+                    <button type="button" class="pm-swatch-btn swatch-system" data-style="system" title="Color del Sistema"></button>
+                    <button type="button" class="pm-swatch-btn swatch-emerald" data-style="emerald" title="Esmeralda Tech"></button>
+                    <button type="button" class="pm-swatch-btn swatch-dark" data-style="dark" title="Titanium OLED"></button>
+                    <button type="button" class="pm-swatch-btn swatch-purple" data-style="purple" title="Cosmic Cyber"></button>
+                    <button type="button" class="pm-swatch-btn swatch-sunset" data-style="sunset" title="Sunset Coral"></button>
+                    <button type="button" class="pm-swatch-btn swatch-ocean" data-style="ocean" title="Océano Deep"></button>
+                    <button type="button" class="pm-swatch-btn swatch-mesh" data-style="mesh" title="Aurora Mesh"></button>
+                </div>
+            </div>
             <button type="button" class="pm-save-btn" id="btn-save-profile">
                 <i class="ph ph-check-circle"></i>
                 <span>Guardar cambios</span>
@@ -168,10 +244,66 @@
 <script>
 <?php if (isset($_SESSION['user_id'])): ?>
 // Profile Modal Logic
+const PROFILE_COVER_STYLES = {
+    cobalt: { name: 'Azul Eléctrico', symbols: '<span>↗</span><span>↘</span><span>↖</span><span>↙</span>' },
+    system: { name: 'Color del Sistema', symbols: '<span>✦</span><span>★</span><span>★</span><span>✦</span>' },
+    emerald: { name: 'Esmeralda Tech', symbols: '<span>◈</span><span>◆</span><span>◆</span><span>◈</span>' },
+    dark: { name: 'Titanium OLED', symbols: '<span>✕</span><span>◇</span><span>◇</span><span>✕</span>' },
+    purple: { name: 'Cosmic Cyber', symbols: '<span>✦</span><span>↗</span><span>↖</span><span>✦</span>' },
+    sunset: { name: 'Sunset Coral', symbols: '<span>☀</span><span>★</span><span>★</span><span>☀</span>' },
+    ocean: { name: 'Océano Deep', symbols: '<span>≋</span><span>↗</span><span>↖</span><span>≋</span>' },
+    mesh: { name: 'Aurora Mesh', symbols: '<span>▲</span><span>▼</span><span>▲</span><span>▼</span>' }
+};
+
+let currentProfileCoverStyle = 'cobalt';
+try {
+    currentProfileCoverStyle = localStorage.getItem('profile_cover_style') || 'cobalt';
+} catch(e) {}
+
+function applyProfileCoverStyle(styleKey, saveToServer = true) {
+    if (!PROFILE_COVER_STYLES[styleKey]) styleKey = 'cobalt';
+    currentProfileCoverStyle = styleKey;
+    const banner = document.getElementById('profile-cover-banner');
+    if (banner) {
+        banner.setAttribute('data-cover-style', styleKey);
+        const symbols = document.getElementById('profile-banner-symbols');
+        if (symbols && PROFILE_COVER_STYLES[styleKey]) {
+            symbols.innerHTML = PROFILE_COVER_STYLES[styleKey].symbols;
+        }
+    }
+    const currentNameEl = document.getElementById('pm-cover-current-name');
+    if (currentNameEl && PROFILE_COVER_STYLES[styleKey]) {
+        currentNameEl.textContent = PROFILE_COVER_STYLES[styleKey].name;
+    }
+    document.querySelectorAll('.pcp-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.style === styleKey);
+    });
+    document.querySelectorAll('.pm-swatch-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.style === styleKey);
+    });
+    try {
+        localStorage.setItem('profile_cover_style', styleKey);
+    } catch(e) {}
+
+    if (saveToServer) {
+        fetch('modules/config/ajax_update_profile.php', {
+            method: 'POST',
+            body: new URLSearchParams({ action: 'save_cover_style', cover_style: styleKey })
+        }).catch(() => {});
+    }
+}
+
+// Immediate initial application
+applyProfileCoverStyle(currentProfileCoverStyle, false);
+
 async function openProfileModal() {
     const modal = document.getElementById('profile-modal');
     if (!modal) return;
     modal.classList.add('active');
+    // Close cover picker popover if open
+    const picker = document.getElementById('profile-cover-picker');
+    if (picker) picker.style.display = 'none';
+
     // Reset to first tab
     document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.profile-tab-pane').forEach(p => p.classList.remove('active'));
@@ -201,6 +333,10 @@ async function openProfileModal() {
             dispSub.textContent = `${role} | Roma Agencia`;
         }
 
+        // Apply saved cover style from DB or fallback to localStorage
+        const userCover = u.profile_cover_style || currentProfileCoverStyle;
+        applyProfileCoverStyle(userCover, false);
+
         const preview = document.getElementById('profile-avatar-preview');
         if (preview) {
             if (u.avatar) {
@@ -213,6 +349,44 @@ async function openProfileModal() {
         console.error('Error al cargar perfil:', err);
     }
 }
+
+// Cover Picker Toggle and Swatch Selection Events
+document.getElementById('btn-toggle-cover-picker')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const p = document.getElementById('profile-cover-picker');
+    if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('btn-close-cover-picker')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const p = document.getElementById('profile-cover-picker');
+    if (p) p.style.display = 'none';
+});
+
+// Click inside style popover items
+document.querySelectorAll('.pcp-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+        applyProfileCoverStyle(btn.dataset.style, true);
+    });
+});
+
+// Click inside Info tab swatches
+document.querySelectorAll('.pm-swatch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        applyProfileCoverStyle(btn.dataset.style, true);
+    });
+});
+
+// Close popover when clicking elsewhere inside modal
+document.querySelector('#profile-modal .profile-app-modal')?.addEventListener('click', (e) => {
+    const picker = document.getElementById('profile-cover-picker');
+    const trigger = document.getElementById('btn-toggle-cover-picker');
+    if (picker && picker.style.display !== 'none') {
+        if (!picker.contains(e.target) && !trigger?.contains(e.target)) {
+            picker.style.display = 'none';
+        }
+    }
+});
 
 // Tab Switching
 document.querySelectorAll('.profile-tab-btn').forEach(btn => {
@@ -294,7 +468,8 @@ document.getElementById('btn-save-profile').addEventListener('click', async () =
         name: document.getElementById('profile-name').value,
         username: document.getElementById('profile-username').value,
         email: document.getElementById('profile-email').value,
-        phone: document.getElementById('profile-phone').value
+        phone: document.getElementById('profile-phone').value,
+        cover_style: currentProfileCoverStyle
     });
     const res = await fetch('modules/config/ajax_update_profile.php', { method:'POST', body: fd });
     const data = await res.json();

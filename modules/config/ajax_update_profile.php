@@ -1,7 +1,9 @@
 <?php
 // modules/config/ajax_update_profile.php
-session_start();
-require_once '../../config/database.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../../config/database.php';
 
 header('Content-Type: application/json');
 
@@ -19,7 +21,7 @@ try {
     switch ($action) {
         case 'get_profile':
             try {
-                $stmt = $db->prepare("SELECT u.id, u.name, u.username, u.email, u.phone, u.avatar, r.name as role_name 
+                $stmt = $db->prepare("SELECT u.id, u.name, u.username, u.email, u.phone, u.avatar, u.profile_cover_style, r.name as role_name 
                                       FROM users u 
                                       LEFT JOIN roles r ON u.role_id = r.id 
                                       WHERE u.id = ?");
@@ -29,7 +31,7 @@ try {
                 $user = null;
             }
             if (!$user) {
-                $stmt = $db->prepare("SELECT id, name, username, email, phone, avatar FROM users WHERE id = ?");
+                $stmt = $db->prepare("SELECT id, name, username, email, phone, avatar, profile_cover_style FROM users WHERE id = ?");
                 $stmt->execute([$userId]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
             }
@@ -41,11 +43,27 @@ try {
             echo json_encode(['success' => true, 'user' => $user]);
             break;
 
+        case 'save_cover_style':
+            $coverStyle = trim($_POST['cover_style'] ?? 'cobalt');
+            $validStyles = ['cobalt', 'system', 'emerald', 'dark', 'purple', 'sunset', 'ocean', 'mesh'];
+            if (!in_array($coverStyle, $validStyles)) {
+                $coverStyle = 'cobalt';
+            }
+            try {
+                $stmt = $db->prepare("UPDATE users SET profile_cover_style = ? WHERE id = ?");
+                $stmt->execute([$coverStyle, $userId]);
+                echo json_encode(['success' => true, 'cover_style' => $coverStyle]);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            }
+            break;
+
         case 'update_profile':
             $name = trim($_POST['name'] ?? '');
             $username = trim($_POST['username'] ?? '');
             $email = trim($_POST['email'] ?? '');
             $phone = trim($_POST['phone'] ?? '');
+            $coverStyle = trim($_POST['cover_style'] ?? '');
 
             if (empty($name)) {
                 echo json_encode(['success' => false, 'error' => 'El nombre es obligatorio']);
@@ -72,8 +90,19 @@ try {
                 }
             }
 
-            $stmt = $db->prepare("UPDATE users SET name = ?, username = ?, email = ?, phone = ? WHERE id = ?");
-            $stmt->execute([$name, $username ?: null, $email, $phone ?: null, $userId]);
+            if (!empty($coverStyle)) {
+                $validStyles = ['cobalt', 'system', 'emerald', 'dark', 'purple', 'sunset', 'ocean', 'mesh'];
+                if (in_array($coverStyle, $validStyles)) {
+                    $stmt = $db->prepare("UPDATE users SET name = ?, username = ?, email = ?, phone = ?, profile_cover_style = ? WHERE id = ?");
+                    $stmt->execute([$name, $username ?: null, $email, $phone ?: null, $coverStyle, $userId]);
+                } else {
+                    $stmt = $db->prepare("UPDATE users SET name = ?, username = ?, email = ?, phone = ? WHERE id = ?");
+                    $stmt->execute([$name, $username ?: null, $email, $phone ?: null, $userId]);
+                }
+            } else {
+                $stmt = $db->prepare("UPDATE users SET name = ?, username = ?, email = ?, phone = ? WHERE id = ?");
+                $stmt->execute([$name, $username ?: null, $email, $phone ?: null, $userId]);
+            }
 
             // Update session name
             $_SESSION['user_name'] = $name;
