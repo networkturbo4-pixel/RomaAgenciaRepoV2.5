@@ -89,6 +89,22 @@ html, body {
     overflow-x: hidden !important;
 }
 
+/* Offset content-wrapper below fixed mobile header on mobile devices (<=768px) */
+@media (max-width: 768px) {
+    .content-wrapper {
+        margin-top: 52px !important;
+        height: calc(100vh - 52px) !important;
+        height: calc(100dvh - 52px) !important;
+        max-height: calc(100vh - 52px) !important;
+        max-height: calc(100dvh - 52px) !important;
+    }
+
+    .mobile-topbar {
+        background: var(--app-surface) !important;
+        border-bottom: 1px solid var(--app-border) !important;
+    }
+}
+
 /* Scrollbar estilizada y discreta */
 .content-wrapper::-webkit-scrollbar {
     width: 6px;
@@ -1206,29 +1222,64 @@ html, body {
     }
 }
 
-@media (max-width: 640px) {
+.fb-tab-label-short {
+    display: none;
+}
+
+@media (max-width: 768px) {
     .fb-app-topbar {
-        padding: 0.5rem 0.75rem;
+        padding: 0.5rem 0.85rem;
         gap: 0.5rem;
+        top: 0;
+        z-index: 85;
+    }
+    .fb-topbar-left {
+        gap: 0.5rem;
+        min-width: 0;
+        flex: 1;
     }
     .fb-topbar-title {
-        max-width: 130px;
+        max-width: 140px;
         font-size: 0.85rem;
     }
-    .fb-segmented-tabs .fb-tab-btn span {
-        display: none;
+    .fb-status-pill {
+        display: none !important;
+    }
+    .fb-topbar-actions {
+        display: none !important;
+    }
+    .fb-segmented-tabs {
+        padding: 2px;
+        gap: 2px;
+        flex-shrink: 0;
     }
     .fb-segmented-tabs .fb-tab-btn {
-        padding: 0.45rem 0.65rem;
-    }
-    .fb-topbar-actions .fb-btn-action:not(.fb-btn-primary) {
-        display: none;
-    }
-    .fb-toolbox-grid {
-        grid-template-columns: repeat(3, 1fr);
+        padding: 0.42rem 0.75rem;
+        font-size: 0.8rem;
+        gap: 0.35rem;
     }
     .fb-viewport {
         padding-top: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .fb-topbar-title {
+        max-width: 110px;
+        font-size: 0.82rem;
+    }
+    .fb-tab-label-full {
+        display: none !important;
+    }
+    .fb-tab-label-short {
+        display: inline !important;
+    }
+    .fb-segmented-tabs .fb-tab-btn {
+        padding: 0.38rem 0.6rem;
+        font-size: 0.76rem;
+    }
+    .fb-toolbox-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 </style>
@@ -1252,11 +1303,11 @@ html, body {
 
         <!-- Segmented Tab Switcher -->
         <div class="fb-segmented-tabs">
-            <button type="button" class="fb-tab-btn active" id="tabBtnEditor" onclick="switchTab('editor')">
-                <i class="ph-bold ph-faders"></i> Editor
+            <button type="button" class="fb-tab-btn active" id="tabBtnEditor" onclick="switchTab('editor')" title="Editor de preguntas">
+                <i class="ph-bold ph-faders"></i> <span>Editor</span>
             </button>
-            <button type="button" class="fb-tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">
-                <i class="ph-bold ph-gear"></i> Configuración
+            <button type="button" class="fb-tab-btn" id="tabBtnSettings" onclick="switchTab('settings')" title="Configuración del formulario">
+                <i class="ph-bold ph-gear"></i> <span class="fb-tab-label-full">Configuración</span><span class="fb-tab-label-short">Ajustes</span>
             </button>
         </div>
 
@@ -1460,6 +1511,33 @@ html, body {
                             <span class="app-switch-slider"></span>
                         </label>
                     </div>
+                </div>
+
+                <?php if($publicUrl): ?>
+                <!-- Share / Link Card -->
+                <div class="fb-setting-card">
+                    <div class="fb-setting-header">
+                        <div class="fb-setting-icon"><i class="ph-bold ph-share-network"></i></div>
+                        <div>
+                            <h3 style="margin:0; font-size:0.95rem; font-weight:700;">Compartir Formulario</h3>
+                            <p style="margin:2px 0 0; font-size:0.75rem; color:var(--app-text-muted);">Enlace corto optimizado para enviar a clientes</p>
+                        </div>
+                    </div>
+                    <div class="fb-setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                        <div style="display: flex; gap: 8px; width: 100%;">
+                            <input type="text" readonly value="<?php echo htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']==='on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/' . ltrim($publicUrl, '/')); ?>" id="inputShareLinkSettings" style="flex: 1; padding: 8px 12px; border: 1px solid var(--app-border); border-radius: 10px; background: var(--app-surface-sub); color: var(--app-text); font-size: 0.85rem; font-family: monospace;" />
+                            <button type="button" class="fb-btn-action fb-btn-primary" onclick="copyPublicLink()" style="flex-shrink: 0;">
+                                <i class="ph-bold ph-copy"></i> Copiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <div style="text-align: center; margin: 2rem 0 1.5rem;">
+                    <button type="button" class="fb-btn-action fb-btn-primary" onclick="saveForm()" style="padding: 0.85rem 2rem; border-radius: 14px; font-weight: 700; width: 100%; max-width: 320px; justify-content: center; margin: 0 auto; box-shadow: 0 4px 16px var(--app-accent-glow);">
+                        <i class="ph-bold ph-floppy-disk" style="font-size: 1.15rem;"></i> Guardar Configuración
+                    </button>
                 </div>
             </div>
         </div>
@@ -1790,10 +1868,14 @@ function moveField(index, dir) {
 }
 
 function openToolboxDrawer() {
+    switchTab('editor');
     const sidebar = document.getElementById('studioSidebar');
     const backdrop = document.getElementById('drawerBackdrop');
     const closeBtn = document.getElementById('btnCloseDrawer');
-    if (sidebar) sidebar.classList.add('drawer-open');
+    if (sidebar) {
+        sidebar.style.display = 'flex';
+        sidebar.classList.add('drawer-open');
+    }
     if (backdrop) backdrop.classList.add('active');
     if (closeBtn) closeBtn.style.display = 'inline-flex';
 }
