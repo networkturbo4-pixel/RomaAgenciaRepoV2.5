@@ -5,15 +5,15 @@
 
 -- 1. Agregar columnas para tardanzas, bloqueo y horas extras en la tabla `asistencias`
 ALTER TABLE `asistencias`
-  ADD COLUMN IF NOT EXISTS `salida_previa` DATETIME NULL AFTER `salida`,
-  ADD COLUMN IF NOT EXISTS `es_tardanza` TINYINT(1) NOT NULL DEFAULT 0 AFTER `salida_previa`,
-  ADD COLUMN IF NOT EXISTS `minutos_tarde` INT NOT NULL DEFAULT 0 AFTER `es_tardanza`,
-  ADD COLUMN IF NOT EXISTS `hora_programada` TIME NULL AFTER `minutos_tarde`,
-  ADD COLUMN IF NOT EXISTS `tolerancia_minutos` INT NOT NULL DEFAULT 5 AFTER `hora_programada`,
-  ADD COLUMN IF NOT EXISTS `bloqueado_por_tardanza` TINYINT(1) NOT NULL DEFAULT 0 AFTER `tolerancia_minutos`,
-  ADD COLUMN IF NOT EXISTS `realiza_horas_extras` TINYINT(1) NOT NULL DEFAULT 0 AFTER `bloqueado_por_tardanza`,
-  ADD COLUMN IF NOT EXISTS `motivo_horas_extras` VARCHAR(255) NULL AFTER `realiza_horas_extras`,
-  ADD COLUMN IF NOT EXISTS `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0 AFTER `motivo_horas_extras`;
+  ADD `salida_previa` DATETIME NULL AFTER `salida`,
+  ADD `es_tardanza` TINYINT(1) NOT NULL DEFAULT 0,
+  ADD `minutos_tarde` INT NOT NULL DEFAULT 0,
+  ADD `hora_programada` TIME NULL,
+  ADD `tolerancia_minutos` INT NOT NULL DEFAULT 5,
+  ADD `bloqueado_por_tardanza` TINYINT(1) NOT NULL DEFAULT 0,
+  ADD `realiza_horas_extras` TINYINT(1) NOT NULL DEFAULT 0,
+  ADD `motivo_horas_extras` VARCHAR(255) NULL,
+  ADD `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0;
 
 -- 2. Parámetros de configuración general en la tabla `settings`
 INSERT INTO `settings` (`setting_key`, `setting_value`) 

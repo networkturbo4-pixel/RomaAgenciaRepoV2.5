@@ -13,6 +13,48 @@ require_once '../includes/GoogleAuthenticator.php';
 $dbClass = new Database();
 $db = $dbClass->getConnection();
 
+// Función de autocorrección / migración transparente de columnas en la tabla asistencias
+function ensureAsistenciaSchema($db) {
+    static $checked = false;
+    if ($checked || !$db) return;
+    try {
+        $cols = $db->query("SHOW COLUMNS FROM `asistencias`")->fetchAll(PDO::FETCH_COLUMN);
+        if ($cols && count($cols) > 0) {
+            if (!in_array('salida_previa', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `salida_previa` DATETIME NULL AFTER `salida`");
+            }
+            if (!in_array('es_tardanza', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `es_tardanza` TINYINT(1) NOT NULL DEFAULT 0");
+            }
+            if (!in_array('minutos_tarde', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `minutos_tarde` INT NOT NULL DEFAULT 0");
+            }
+            if (!in_array('hora_programada', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `hora_programada` TIME NULL");
+            }
+            if (!in_array('tolerancia_minutos', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `tolerancia_minutos` INT NOT NULL DEFAULT 5");
+            }
+            if (!in_array('bloqueado_por_tardanza', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `bloqueado_por_tardanza` TINYINT(1) NOT NULL DEFAULT 0");
+            }
+            if (!in_array('realiza_horas_extras', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `realiza_horas_extras` TINYINT(1) NOT NULL DEFAULT 0");
+            }
+            if (!in_array('motivo_horas_extras', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `motivo_horas_extras` VARCHAR(255) NULL");
+            }
+            if (!in_array('desbloqueado_fin_jornada', $cols)) {
+                $db->exec("ALTER TABLE `asistencias` ADD COLUMN `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0");
+            }
+        }
+        $checked = true;
+    } catch (Throwable $e) {
+        // Ignorar excepciones de esquema si no hay permisos de ALTER
+    }
+}
+ensureAsistenciaSchema($db);
+
 $user_id = $_SESSION['user_id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 

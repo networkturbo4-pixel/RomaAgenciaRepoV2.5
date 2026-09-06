@@ -5,8 +5,8 @@
 
 -- 1. Agregar columnas para la salida previa y el desbloqueo de fin de jornada
 ALTER TABLE `asistencias`
-  ADD COLUMN IF NOT EXISTS `salida_previa` DATETIME NULL AFTER `salida`,
-  ADD COLUMN IF NOT EXISTS `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0 AFTER `motivo_horas_extras`;
+  ADD `salida_previa` DATETIME NULL AFTER `salida`,
+  ADD `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0;
 
 -- 2. Asegurar parámetros de configuración de fin de jornada en `settings`
 INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
