@@ -164,28 +164,6 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             </a>
             <?php endif; ?>
 
-            <?php if (in_array('task_manager', $perms) || in_array('workspace', $perms) || in_array('dashboard', $perms)): ?>
-            <a href="index.php?module=task_manager&action=index" class="nav-item <?php echo $current_module === 'task_manager' ? 'active' : ''; ?>" data-title="Tareas">
-                <i class="ph ph-check-square-offset"></i>
-                <span>Tareas</span>
-            </a>
-            <?php endif; ?>
-
-
-            <?php if (in_array('desarrollo_marca', $perms) || in_array('dashboard', $perms)): ?>
-            <a href="index.php?module=desarrollo_marca&action=index" class="nav-item <?php echo $current_module === 'desarrollo_marca' ? 'active' : ''; ?>" data-title="Desarrollo de Marca">
-                <i class="ph ph-paint-brush-broad"></i>
-                <span>Desarrollo de Marca</span>
-            </a>
-            <?php endif; ?>
-            
-            <?php if (in_array('romita', $perms)): ?>
-            <a href="index.php?module=romita&action=index" class="nav-item <?php echo $current_module === 'romita' ? 'active' : ''; ?>" data-title="Romita IA">
-                <i class="ph ph-sparkle"></i>
-                <span style="background: linear-gradient(90deg, #4f46e5, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;">Romita IA</span>
-            </a>
-            <?php endif; ?>
-            
             <?php if (in_array('mensajes', $perms)): ?>
             <a href="index.php?module=mensajes&action=index" class="nav-item <?php echo $current_module === 'mensajes' ? 'active' : ''; ?>" style="display:flex; justify-content:space-between; align-items:center;" data-title="Mensajes">
                 <div style="display:flex; align-items:center; gap:8px;">

@@ -62,11 +62,9 @@ require_once 'includes/header.php';
 }
 
 [data-theme="dark"] .workspace-card {
-    background: rgba(30, 41, 59, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    background: #0a0a0a;
+    border: 1px solid #262626;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .workspace-card::before {
@@ -76,21 +74,22 @@ require_once 'includes/header.php';
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 100%);
     z-index: -1;
     opacity: 0;
     transition: opacity 0.4s ease;
 }
 
 .workspace-card:hover {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     border-color: var(--primary-color);
 }
 
 [data-theme="dark"] .workspace-card:hover {
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    border-color: rgba(99, 102, 241, 0.5); /* indigo-500 approx */
+    background: #111111;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    border-color: rgba(99, 102, 241, 0.6);
 }
 
 .workspace-card:hover::before {
@@ -130,6 +129,7 @@ require_once 'includes/header.php';
 }
 
 .icon-tasks { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.icon-romita { background: linear-gradient(135deg, #4f46e5, #ec4899); }
 .icon-app { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
 .icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
 .icon-web { background: linear-gradient(135deg, #43e97b, #38f9d7); }
@@ -171,8 +171,17 @@ require_once 'includes/header.php';
             <p class="workspace-card-desc">Control de tareas diarias, semanales, evaluación de objetivos y proyectos activos.</p>
         </a>
 
+        <!-- Romita IA -->
+        <a href="index.php?module=romita&action=index" class="workspace-card" style="animation-delay: 0.1s;">
+            <div class="workspace-card-icon icon-romita">
+                <i class="ph ph-sparkle"></i>
+            </div>
+            <h3 class="workspace-card-title" style="background: linear-gradient(90deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">Romita IA</h3>
+            <p class="workspace-card-desc">Asistente inteligente con IA para creación de contenidos, estrategias y automatización.</p>
+        </a>
+
         <!-- App -->
-        <a href="index.php?module=app&action=index" class="workspace-card" style="animation-delay: 0.1s;">
+        <a href="index.php?module=app&action=index" class="workspace-card" style="animation-delay: 0.15s;">
             <div class="workspace-card-icon icon-app">
                 <i class="ph ph-device-mobile"></i>
             </div>
