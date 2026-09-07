@@ -246,20 +246,20 @@ try {
     <!-- Dashboard Grid -->
     <div class="dashboard-grid modern-grid" id="dashboardGrid">
         
-        <!-- Widget 1: Biometric -->
-        <div class="widget widget-biometric-premium modern-card" data-id="widget-biometric" style="animation-delay: 0s;">
-            <div class="badge-beta-premium">BETA</div>
-            <div class="bio-premium-bg"></div>
-            <div class="bio-premium-content">
-                <div class="bio-premium-header">
-                    <div class="icon-circle bio-premium-icon"><i class="ph ph-fingerprint"></i></div>
-                    <h3>Biometría</h3>
+        <!-- Widget 1: Workspace -->
+        <div class="widget widget-workspace-premium modern-card" data-id="widget-workspace" style="animation-delay: 0s;">
+            <div class="badge-workspace-premium">HUB</div>
+            <div class="workspace-premium-bg"></div>
+            <div class="workspace-premium-content">
+                <div class="workspace-premium-header">
+                    <div class="icon-circle workspace-premium-icon"><i class="ph ph-briefcase"></i></div>
+                    <h3>Workspace</h3>
                 </div>
-                <div class="bio-premium-body">
-                    <p>Ingresa seguro y rápido usando tu huella dactilar.</p>
-                    <button onclick="registerBiometrics()" class="btn-glass-bio">
-                        <span>Activar ahora</span> <i class="ph ph-arrow-right"></i>
-                    </button>
+                <div class="workspace-premium-body">
+                    <p>Gestiona tus proyectos, marcas y herramientas de trabajo.</p>
+                    <a href="index.php?module=workspace&action=index" class="btn-glass-workspace">
+                        <span>Entrar al Workspace</span> <i class="ph ph-arrow-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -718,6 +718,7 @@ body.system-locked-late header {
         if (savedLayout && savedLayout.length > 0) {
             const widgets = Array.from(grid.children);
             savedLayout.forEach(id => {
+                if (id === 'widget-biometric') id = 'widget-workspace';
                 const widget = widgets.find(w => w.getAttribute('data-id') === id);
                 if (widget) grid.appendChild(widget);
             });
