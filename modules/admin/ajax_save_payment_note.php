@@ -19,6 +19,37 @@ if (!$data || !isset($data['id'])) {
 
 $db = (new Database())->getConnection();
 
+// Auto-migrate: ensure all columns exist in payment_notes so production never fails with Unknown column
+try {
+    $stmtCols = $db->query("SHOW COLUMNS FROM payment_notes");
+    $existingCols = $stmtCols ? $stmtCols->fetchAll(PDO::FETCH_COLUMN) : [];
+    $needed = [
+        'abonos_json' => "ALTER TABLE `payment_notes` ADD `abonos_json` text DEFAULT NULL",
+        'apply_igv' => "ALTER TABLE `payment_notes` ADD `apply_igv` tinyint(1) DEFAULT 0",
+        'discount_percent' => "ALTER TABLE `payment_notes` ADD `discount_percent` decimal(5,2) DEFAULT 0.00",
+        'show_memberships' => "ALTER TABLE `payment_notes` ADD `show_memberships` tinyint(1) DEFAULT 1",
+        'show_advances' => "ALTER TABLE `payment_notes` ADD `show_advances` tinyint(1) DEFAULT 0",
+        'view_count' => "ALTER TABLE `payment_notes` ADD `view_count` int(11) DEFAULT 0",
+        'last_viewed_at' => "ALTER TABLE `payment_notes` ADD `last_viewed_at` timestamp NULL DEFAULT NULL",
+        'due_days' => "ALTER TABLE `payment_notes` ADD `due_days` int(11) DEFAULT 30",
+        'access_pin' => "ALTER TABLE `payment_notes` ADD `access_pin` varchar(4) DEFAULT NULL",
+        'mp_preference_id' => "ALTER TABLE `payment_notes` ADD `mp_preference_id` varchar(100) DEFAULT NULL",
+        'mp_payment_id' => "ALTER TABLE `payment_notes` ADD `mp_payment_id` varchar(100) DEFAULT NULL",
+        'mp_payment_status' => "ALTER TABLE `payment_notes` ADD `mp_payment_status` varchar(50) DEFAULT NULL",
+        'mp_paid_at' => "ALTER TABLE `payment_notes` ADD `mp_paid_at` timestamp NULL DEFAULT NULL",
+        'voucher_url' => "ALTER TABLE `payment_notes` ADD `voucher_url` varchar(255) DEFAULT NULL",
+        'operation_number' => "ALTER TABLE `payment_notes` ADD `operation_number` varchar(100) DEFAULT NULL",
+        'voucher_uploaded_at' => "ALTER TABLE `payment_notes` ADD `voucher_uploaded_at` datetime DEFAULT NULL"
+    ];
+    foreach ($needed as $col => $sql) {
+        if (!in_array($col, $existingCols)) {
+            @$db->exec($sql);
+        }
+    }
+} catch (Exception $e) {
+    // Continue even if SHOW COLUMNS or ALTER fails
+}
+
 $perms = $_SESSION['user_permissions'] ?? [];
 
 if (!in_array('admin', $perms)) {
