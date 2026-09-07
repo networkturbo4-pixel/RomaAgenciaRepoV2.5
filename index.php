@@ -67,6 +67,19 @@ if (!isset($_SESSION['user_id'])) {
         $_SESSION['user_permissions'] = $user_permissions;
     }
 
+    // Auto-migrate essential columns once per user session
+    if (empty($_SESSION['_db_profile_cover_migrated'])) {
+        try {
+            $stmtCols = $db->query("SHOW COLUMNS FROM `users` LIKE 'profile_cover_style'");
+            if ($stmtCols && $stmtCols->rowCount() === 0) {
+                @$db->exec("ALTER TABLE `users` ADD `profile_cover_style` VARCHAR(50) DEFAULT 'cobalt'");
+            }
+            $_SESSION['_db_profile_cover_migrated'] = true;
+        } catch (Exception $e) {
+            // Ignore if already exists or no permissions
+        }
+    }
+
     // Enforce permission
     if ($module !== 'auth' 
         && !($module === 'work_orders' && $action === 'public')

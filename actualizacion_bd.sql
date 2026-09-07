@@ -20,3 +20,6 @@ CREATE TABLE IF NOT EXISTS `employee_payments` (
   KEY `employee_id` (`employee_id`),
   CONSTRAINT `employee_payments_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Actualización para Estilos de Portada en Perfil de Usuario
+ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `profile_cover_style` varchar(50) DEFAULT 'cobalt';

@@ -17,23 +17,57 @@ $db = $database->getConnection();
 $userId = $_SESSION['user_id'];
 $action = $_POST['action'] ?? '';
 
+// Auto-migrate: ensure profile_cover_style column exists in users table
+$hasCoverStyleCol = false;
+try {
+    $stmtCols = $db->query("SHOW COLUMNS FROM users LIKE 'profile_cover_style'");
+    if ($stmtCols && $stmtCols->rowCount() > 0) {
+        $hasCoverStyleCol = true;
+    } else {
+        @$db->exec("ALTER TABLE `users` ADD `profile_cover_style` VARCHAR(50) DEFAULT 'cobalt'");
+        $stmtCols2 = $db->query("SHOW COLUMNS FROM users LIKE 'profile_cover_style'");
+        $hasCoverStyleCol = ($stmtCols2 && $stmtCols2->rowCount() > 0);
+    }
+} catch (Exception $e) {
+    $hasCoverStyleCol = false;
+}
+
 try {
     switch ($action) {
         case 'get_profile':
-            try {
-                $stmt = $db->prepare("SELECT u.id, u.name, u.username, u.email, u.phone, u.avatar, u.profile_cover_style, r.name as role_name 
-                                      FROM users u 
-                                      LEFT JOIN roles r ON u.role_id = r.id 
-                                      WHERE u.id = ?");
-                $stmt->execute([$userId]);
-                $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            } catch (Exception $e) {
-                $user = null;
+            $user = null;
+            if ($hasCoverStyleCol) {
+                try {
+                    $stmt = $db->prepare("SELECT u.id, u.name, u.username, u.email, u.phone, u.avatar, u.profile_cover_style, r.name as role_name 
+                                          FROM users u 
+                                          LEFT JOIN roles r ON u.role_id = r.id 
+                                          WHERE u.id = ?");
+                    $stmt->execute([$userId]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                } catch (Exception $e) {
+                    $user = null;
+                }
             }
             if (!$user) {
-                $stmt = $db->prepare("SELECT id, name, username, email, phone, avatar, profile_cover_style FROM users WHERE id = ?");
-                $stmt->execute([$userId]);
-                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                try {
+                    $stmt = $db->prepare("SELECT u.id, u.name, u.username, u.email, u.phone, u.avatar, r.name as role_name 
+                                          FROM users u 
+                                          LEFT JOIN roles r ON u.role_id = r.id 
+                                          WHERE u.id = ?");
+                    $stmt->execute([$userId]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                } catch (Exception $e) {
+                    $stmt = $db->prepare("SELECT id, name, username, email, phone, avatar FROM users WHERE id = ?");
+                    $stmt->execute([$userId]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                }
+            }
+            if (!$user) {
+                echo json_encode(['success' => false, 'error' => 'Usuario no encontrado']);
+                exit();
+            }
+            if (!isset($user['profile_cover_style'])) {
+                $user['profile_cover_style'] = 'cobalt';
             }
             $roleName = !empty($user['role_name']) ? $user['role_name'] : ($_SESSION['user_role'] ?? 'Usuario');
             if ($roleName === '1' || strtolower($roleName) === 'admin') {
@@ -49,13 +83,15 @@ try {
             if (!in_array($coverStyle, $validStyles)) {
                 $coverStyle = 'cobalt';
             }
-            try {
-                $stmt = $db->prepare("UPDATE users SET profile_cover_style = ? WHERE id = ?");
-                $stmt->execute([$coverStyle, $userId]);
-                echo json_encode(['success' => true, 'cover_style' => $coverStyle]);
-            } catch (Exception $e) {
-                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            if ($hasCoverStyleCol) {
+                try {
+                    $stmt = $db->prepare("UPDATE users SET profile_cover_style = ? WHERE id = ?");
+                    $stmt->execute([$coverStyle, $userId]);
+                } catch (Exception $e) {
+                    // Fail silently to avoid interrupting UI
+                }
             }
+            echo json_encode(['success' => true, 'cover_style' => $coverStyle]);
             break;
 
         case 'update_profile':
@@ -90,16 +126,21 @@ try {
                 }
             }
 
-            if (!empty($coverStyle)) {
-                $validStyles = ['cobalt', 'system', 'emerald', 'dark', 'purple', 'sunset', 'ocean', 'mesh'];
-                if (in_array($coverStyle, $validStyles)) {
+            $validStyles = ['cobalt', 'system', 'emerald', 'dark', 'purple', 'sunset', 'ocean', 'mesh'];
+            $wantsCover = !empty($coverStyle) && in_array($coverStyle, $validStyles);
+
+            $profileUpdated = false;
+            if ($hasCoverStyleCol && $wantsCover) {
+                try {
                     $stmt = $db->prepare("UPDATE users SET name = ?, username = ?, email = ?, phone = ?, profile_cover_style = ? WHERE id = ?");
                     $stmt->execute([$name, $username ?: null, $email, $phone ?: null, $coverStyle, $userId]);
-                } else {
-                    $stmt = $db->prepare("UPDATE users SET name = ?, username = ?, email = ?, phone = ? WHERE id = ?");
-                    $stmt->execute([$name, $username ?: null, $email, $phone ?: null, $userId]);
+                    $profileUpdated = true;
+                } catch (Exception $e) {
+                    $profileUpdated = false;
                 }
-            } else {
+            }
+
+            if (!$profileUpdated) {
                 $stmt = $db->prepare("UPDATE users SET name = ?, username = ?, email = ?, phone = ? WHERE id = ?");
                 $stmt->execute([$name, $username ?: null, $email, $phone ?: null, $userId]);
             }
