@@ -132,6 +132,7 @@ require_once 'includes/header.php';
 .icon-projects { background: linear-gradient(135deg, #ec4899, #f43f5e); }
 .icon-community { background: linear-gradient(135deg, #8b5cf6, #d946ef); }
 .icon-drive { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
+.icon-whatsapp { background: linear-gradient(135deg, #25D366, #128C7E); }
 .icon-romita { background: linear-gradient(135deg, #4f46e5, #ec4899); }
 .icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
 .icon-meetings { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
@@ -247,6 +248,17 @@ require_once 'includes/header.php';
             </div>
             <h3 class="workspace-card-title">Community Manager</h3>
             <p class="workspace-card-desc">Calendario dinámico de contenidos, publicaciones y planificación para marcas.</p>
+        </a>
+        <?php endif; ?>
+
+        <!-- WhatsApp (Activo) -->
+        <?php if (in_array('whatsapp', $perms)): ?>
+        <a href="index.php?module=whatsapp&action=index" class="workspace-card" style="animation-delay: 0.11s;">
+            <div class="workspace-card-icon icon-whatsapp">
+                <i class="ph ph-whatsapp-logo"></i>
+            </div>
+            <h3 class="workspace-card-title">WhatsApp</h3>
+            <p class="workspace-card-desc">Bandeja de entrada multicanal y sincronización de mensajes de WhatsApp.</p>
         </a>
         <?php endif; ?>
 
