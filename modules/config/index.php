@@ -1,29 +1,48 @@
 <?php
 // modules/config/index.php
-require_once 'includes/header.php';
+global $db;
 
-$success = '';
-$error = '';
-$active_tab = 'tab-personalization'; // Default tab
+// Handle AJAX requests immediately before any HTML output from header.php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && strpos($_POST['action_type'], 'ajax_') === 0) {
+    while (ob_get_level()) { ob_end_clean(); }
+    header('Content-Type: application/json; charset=utf-8');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    global $db;
-    $action_type = $_POST['action_type'] ?? '';
+    $action_type = $_POST['action_type'];
 
     try {
-        $stmt_admin_check = $db->prepare("SELECT role_id FROM users WHERE id = ?");
-        $stmt_admin_check->execute([$_SESSION['user_id']]);
-        if ($stmt_admin_check->fetchColumn() != 1) {
-            if (strpos($action_type, 'ajax_') === 0) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => 'Acceso denegado.']);
-                exit();
-            }
-            throw new Exception('Acceso Denegado: Solo el Administrador principal puede realizar modificaciones.');
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'error' => 'Sesión expirada.']);
+            exit();
         }
 
+        $stmt_admin_check = $db->prepare("
+            SELECT u.role_id, r.name as role_name 
+            FROM users u 
+            LEFT JOIN roles r ON u.role_id = r.id 
+            WHERE u.id = ?
+        ");
+        $stmt_admin_check->execute([$_SESSION['user_id']]);
+        $curr_user = $stmt_admin_check->fetch(PDO::FETCH_ASSOC);
+
+        $has_permission = ($curr_user && ($curr_user['role_id'] == 1 || $curr_user['role_name'] === 'Administrador' || in_array('config', $_SESSION['user_permissions'] ?? [])));
+        if (!$has_permission) {
+            echo json_encode(['success' => false, 'error' => 'Acceso Denegado: Solo el Administrador puede modificar configuraciones.']);
+            exit();
+        }
+
+        // Asegurar columnas en base de datos si aún no existen
+        try {
+            $rCols = $db->query("SHOW COLUMNS FROM `roles` LIKE 'requires_attendance'");
+            if ($rCols && $rCols->rowCount() === 0) {
+                @$db->exec("ALTER TABLE `roles` ADD `requires_attendance` TINYINT(1) DEFAULT 1");
+            }
+            $uCols = $db->query("SHOW COLUMNS FROM `users` LIKE 'requires_attendance'");
+            if ($uCols && $uCols->rowCount() === 0) {
+                @$db->exec("ALTER TABLE `users` ADD `requires_attendance` TINYINT(1) DEFAULT 1");
+            }
+        } catch (Throwable $ign) {}
+
         if ($action_type === 'ajax_toggle_role_attendance') {
-            header('Content-Type: application/json');
             $role_id = (int)($_POST['role_id'] ?? 0);
             $status = (int)($_POST['status'] ?? 1);
             if ($role_id == 1) {
@@ -35,13 +54,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['success' => true, 'status' => $status]);
             exit();
         } elseif ($action_type === 'ajax_toggle_user_attendance') {
-            header('Content-Type: application/json');
             $user_id = (int)($_POST['user_id'] ?? 0);
             $status = (int)($_POST['status'] ?? 1);
             $stmt = $db->prepare("UPDATE users SET requires_attendance = ? WHERE id = ?");
             $stmt->execute([$status, $user_id]);
             echo json_encode(['success' => true, 'status' => $status]);
             exit();
+        }
+    } catch (Throwable $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        exit();
+    }
+
+    echo json_encode(['success' => false, 'error' => 'Acción no reconocida.']);
+    exit();
+}
+
+require_once 'includes/header.php';
+
+$success = '';
+$error = '';
+$active_tab = 'tab-personalization'; // Default tab
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    global $db;
+    $action_type = $_POST['action_type'] ?? '';
+
+    try {
+        $stmt_admin_check = $db->prepare("
+            SELECT u.role_id, r.name as role_name 
+            FROM users u 
+            LEFT JOIN roles r ON u.role_id = r.id 
+            WHERE u.id = ?
+        ");
+        $stmt_admin_check->execute([$_SESSION['user_id']]);
+        $curr_user = $stmt_admin_check->fetch(PDO::FETCH_ASSOC);
+        $has_permission = ($curr_user && ($curr_user['role_id'] == 1 || $curr_user['role_name'] === 'Administrador' || in_array('config', $_SESSION['user_permissions'] ?? [])));
+        if (!$has_permission) {
+            throw new Exception('Acceso Denegado: Solo el Administrador principal puede realizar modificaciones.');
         }
 
         if (in_array($action_type, ['personalization', 'company', 'drive', 'backups', 'updates', 'mercadopago', 'google_workspace', 'ia'])) {

@@ -364,11 +364,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     alert(data.error || 'Error al actualizar asistencia.');
                     this.checked = !this.checked;
+                    if (labelEl) {
+                        labelEl.className = `attendance-text-state ${this.checked ? 'is-fixed' : 'is-free'}`;
+                        labelEl.innerHTML = this.checked 
+                            ? '<i class="ph ph-clock"></i> Horario Fijo' 
+                            : '<i class="ph ph-infinity"></i> Sin Asistencia';
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error de conexión al actualizar.');
+                alert(err.message || 'Error al conectar con el servidor.');
                 this.checked = !this.checked;
+                if (labelEl) {
+                    labelEl.className = `attendance-text-state ${this.checked ? 'is-fixed' : 'is-free'}`;
+                    labelEl.innerHTML = this.checked 
+                        ? '<i class="ph ph-clock"></i> Horario Fijo' 
+                        : '<i class="ph ph-infinity"></i> Sin Asistencia';
+                }
             }
         });
     });
