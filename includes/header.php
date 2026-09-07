@@ -172,13 +172,6 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             </a>
             <?php endif; ?>
 
-            <?php if (in_array('task_manager', $perms)): ?>
-            <a href="index.php?module=task_manager&action=index" class="nav-item <?php echo $current_module === 'task_manager' ? 'active' : ''; ?>" data-title="Tareas & Objetivos">
-                <i class="ph ph-check-square-offset"></i>
-                <span>Tareas</span>
-            </a>
-            <?php endif; ?>
-
             <?php if (in_array('mensajes', $perms)): ?>
             <a href="index.php?module=mensajes&action=index" class="nav-item <?php echo $current_module === 'mensajes' ? 'active' : ''; ?>" style="display:flex; justify-content:space-between; align-items:center;" data-title="Mensajes">
                 <div style="display:flex; align-items:center; gap:8px;">

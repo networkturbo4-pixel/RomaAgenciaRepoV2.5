@@ -129,10 +129,6 @@ require_once 'includes/header.php';
 }
 
 .icon-tasks { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-.icon-projects { background: linear-gradient(135deg, #ec4899, #f43f5e); }
-.icon-community { background: linear-gradient(135deg, #8b5cf6, #d946ef); }
-.icon-drive { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
-.icon-whatsapp { background: linear-gradient(135deg, #25D366, #128C7E); }
 .icon-romita { background: linear-gradient(135deg, #4f46e5, #ec4899); }
 .icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
 .icon-meetings { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
@@ -229,42 +225,9 @@ require_once 'includes/header.php';
         </a>
         <?php endif; ?>
 
-        <!-- Proyectos (Activo) -->
-        <?php if (in_array('projects', $perms)): ?>
-        <a href="index.php?module=projects&action=index" class="workspace-card" style="animation-delay: 0.08s;">
-            <div class="workspace-card-icon icon-projects">
-                <i class="ph ph-kanban"></i>
-            </div>
-            <h3 class="workspace-card-title">Proyectos</h3>
-            <p class="workspace-card-desc">Gestión integral de proyectos activos, entregables, servicios y control de avances.</p>
-        </a>
-        <?php endif; ?>
-
-        <!-- Community Manager (Activo) -->
-        <?php if (in_array('community', $perms)): ?>
-        <a href="index.php?module=community&action=index" class="workspace-card" style="animation-delay: 0.1s;">
-            <div class="workspace-card-icon icon-community">
-                <i class="ph ph-share-network"></i>
-            </div>
-            <h3 class="workspace-card-title">Community Manager</h3>
-            <p class="workspace-card-desc">Calendario dinámico de contenidos, publicaciones y planificación para marcas.</p>
-        </a>
-        <?php endif; ?>
-
-        <!-- WhatsApp (Activo) -->
-        <?php if (in_array('whatsapp', $perms)): ?>
-        <a href="index.php?module=whatsapp&action=index" class="workspace-card" style="animation-delay: 0.11s;">
-            <div class="workspace-card-icon icon-whatsapp">
-                <i class="ph ph-whatsapp-logo"></i>
-            </div>
-            <h3 class="workspace-card-title">WhatsApp</h3>
-            <p class="workspace-card-desc">Bandeja de entrada multicanal y sincronización de mensajes de WhatsApp.</p>
-        </a>
-        <?php endif; ?>
-
         <!-- Romita IA (Activo) -->
         <?php if (in_array('romita', $perms)): ?>
-        <a href="index.php?module=romita&action=index" class="workspace-card" style="animation-delay: 0.12s;">
+        <a href="index.php?module=romita&action=index" class="workspace-card" style="animation-delay: 0.1s;">
             <div class="workspace-card-icon icon-romita">
                 <i class="ph ph-sparkle"></i>
             </div>
@@ -286,7 +249,7 @@ require_once 'includes/header.php';
 
         <!-- Reuniones (Activo) -->
         <?php if (in_array('reuniones', $perms)): ?>
-        <a href="index.php?module=reuniones&action=index" class="workspace-card" style="animation-delay: 0.18s;">
+        <a href="index.php?module=reuniones&action=index" class="workspace-card" style="animation-delay: 0.2s;">
             <div class="workspace-card-icon icon-meetings">
                 <i class="ph ph-video-camera"></i>
             </div>
@@ -297,7 +260,7 @@ require_once 'includes/header.php';
 
         <!-- Pizarras (Activo) -->
         <?php if (in_array('pizarras', $perms)): ?>
-        <a href="index.php?module=pizarras&action=index" class="workspace-card" style="animation-delay: 0.22s;">
+        <a href="index.php?module=pizarras&action=index" class="workspace-card" style="animation-delay: 0.25s;">
             <div class="workspace-card-icon icon-whiteboard">
                 <i class="ph ph-chalkboard"></i>
             </div>
@@ -306,20 +269,9 @@ require_once 'includes/header.php';
         </a>
         <?php endif; ?>
 
-        <!-- Google Drive (Activo) -->
-        <?php if (in_array('drive', $perms)): ?>
-        <a href="index.php?module=drive&action=index" class="workspace-card" style="animation-delay: 0.25s;">
-            <div class="workspace-card-icon icon-drive">
-                <i class="ph ph-hard-drives"></i>
-            </div>
-            <h3 class="workspace-card-title">Google Drive</h3>
-            <p class="workspace-card-desc">Explorador y almacenamiento corporativo en la nube para recursos del equipo.</p>
-        </a>
-        <?php endif; ?>
-
         <!-- Herramientas (Activo) -->
         <?php if (in_array('herramientas', $perms)): ?>
-        <a href="index.php?module=herramientas&action=index" class="workspace-card" style="animation-delay: 0.28s;">
+        <a href="index.php?module=herramientas&action=index" class="workspace-card" style="animation-delay: 0.3s;">
             <div class="workspace-card-icon icon-tools">
                 <i class="ph ph-wrench"></i>
             </div>
