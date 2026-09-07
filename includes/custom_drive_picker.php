@@ -7,7 +7,7 @@
     top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(4px);
-    z-index: 9999;
+    z-index: 100500;
     display: none;
     align-items: center;
     justify-content: center;
@@ -648,4 +648,22 @@ async function cdCreateFolder() {
         alert('Error de red al crear la carpeta.');
     }
 }
+
+// Cerrar al hacer clic fuera del modal (en el overlay)
+document.getElementById('customDriveModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        cdClosePicker();
+    }
+});
+
+// Cerrar con tecla Escape sin cerrar los modales inferiores
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('customDriveModal');
+        if (modal && modal.classList.contains('active')) {
+            e.stopImmediatePropagation();
+            cdClosePicker();
+        }
+    }
+}, true);
 </script>

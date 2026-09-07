@@ -1589,7 +1589,7 @@ if ($roleName === 'Invitado') {
                             <button type="button" class="wb-card-btn" onclick="openShareWhiteboardModal('edit', <?php echo $w['id']; ?>)" title="Compartir / Editar">
                                 <i class="ph ph-pencil-simple"></i>
                             </button>
-                            <button type="button" class="wb-card-btn danger" onclick="deleteWhiteboard(${w.id})" title="Eliminar">
+                            <button type="button" class="wb-card-btn danger" onclick="deleteWhiteboard(<?php echo $w['id']; ?>)" title="Eliminar">
                                 <i class="ph ph-trash"></i>
                             </button>
                             <?php endif; ?>
