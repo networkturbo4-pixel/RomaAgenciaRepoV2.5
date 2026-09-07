@@ -16,17 +16,19 @@ if (!isset($db)) {
     $database = new Database();
     $db = $database->getConnection();
 }
-$name = $_POST['name'] ?? '';
-$dni = $_POST['dni'] ?? '';
-$email = $_POST['email'] ?? '';
-$phone = $_POST['phone'] ?? '';
-$role = $_POST['role'] ?? '';
-$department = $_POST['department'] ?? '';
-$status = $_POST['status'] ?? 'Activo';
-$salary = isset($_POST['salary']) ? floatval($_POST['salary']) : 0;
-$hire_date = $_POST['hire_date'] ?? '';
-$work_start = !empty($_POST['work_start']) ? $_POST['work_start'] : null;
-$work_end = !empty($_POST['work_end']) ? $_POST['work_end'] : null;
+$data = json_decode(file_get_contents('php://input'), true) ?: [];
+$id = intval($_POST['id'] ?? $data['id'] ?? 0);
+$name = $_POST['name'] ?? $data['name'] ?? '';
+$dni = $_POST['dni'] ?? $data['dni'] ?? '';
+$email = $_POST['email'] ?? $data['email'] ?? '';
+$phone = $_POST['phone'] ?? $data['phone'] ?? '';
+$role = $_POST['role'] ?? $data['role'] ?? '';
+$department = $_POST['department'] ?? $data['department'] ?? '';
+$status = $_POST['status'] ?? $data['status'] ?? 'Activo';
+$salary = isset($_POST['salary']) ? floatval($_POST['salary']) : (isset($data['salary']) ? floatval($data['salary']) : 0);
+$hire_date = $_POST['hire_date'] ?? $data['hire_date'] ?? '';
+$work_start = !empty($_POST['work_start']) ? $_POST['work_start'] : (!empty($data['work_start']) ? $data['work_start'] : null);
+$work_end = !empty($_POST['work_end']) ? $_POST['work_end'] : (!empty($data['work_end']) ? $data['work_end'] : null);
 
 if (empty($name) || empty($email) || empty($role) || empty($department) || empty($hire_date)) {
     http_response_code(400);

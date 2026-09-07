@@ -1323,12 +1323,65 @@ input:checked + .toggle-slider:before {
     margin-top: 6px;
     display: block;
 }
+.pn-pin-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.pn-pin-header-row label {
+    margin: 0 !important;
+}
+.btn-pn-pin-gen {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(224, 75, 43, 0.1);
+    color: var(--primary-color, #e04b2b);
+    border: 1px solid rgba(224, 75, 43, 0.25);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-pn-pin-gen:hover {
+    background: var(--primary-color, #e04b2b);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(224, 75, 43, 0.3);
+    transform: translateY(-1px);
+}
+.pn-pin-input-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
 .pn-pin-input {
     letter-spacing: 8px;
     font-weight: 800;
     font-size: 1.2rem;
     text-align: center;
     max-width: 140px;
+}
+.btn-pn-pin-clear {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.15s ease;
+}
+.btn-pn-pin-clear:hover {
+    color: var(--danger-color, #ef4444);
+    background: rgba(239, 68, 68, 0.1);
 }
 
 /* --- FLOATING BOTTOM BAR --- */
@@ -2214,10 +2267,20 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
           <small>Días desde la fecha de inicio para considerar la nota como vencida.</small>
         </div>
         <div class="pn-config-item">
-          <label>
-            <i class="ph ph-lock-key"></i> PIN de Acceso (opcional)
-          </label>
-          <input type="text" id="note-access-pin" class="inline-input pn-pin-input" maxlength="4" pattern="[0-9]{4}" placeholder="••••">
+          <div class="pn-pin-header-row">
+            <label for="note-access-pin">
+              <i class="ph ph-lock-key"></i> PIN de Acceso (opcional)
+            </label>
+            <button type="button" class="btn-pn-pin-gen" onclick="generateRandomPin()" title="Generar un PIN aleatorio de 4 dígitos">
+              <i class="ph ph-sparkle"></i> Generar PIN
+            </button>
+          </div>
+          <div class="pn-pin-input-group">
+            <input type="text" id="note-access-pin" class="inline-input pn-pin-input" maxlength="4" pattern="[0-9]{4}" placeholder="••••" oninput="onPinInputChange(this)">
+            <button type="button" class="btn-pn-pin-clear" id="btn-clear-pin" onclick="clearPinInput()" title="Quitar PIN" style="display: none;">
+              <i class="ph ph-x-circle"></i>
+            </button>
+          </div>
           <small>Si se define un PIN de 4 dígitos, el cliente deberá ingresarlo para ver la nota.</small>
         </div>
       </div>
@@ -2304,6 +2367,9 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
                     <div id="voucher-ocr-status" style="font-size: 0.78rem; font-weight: 600; color: var(--accent); margin-top: 4px;">
                         <i class="ph ph-spinner ph-spin"></i> Escaneando número de operación (OCR)...
                     </div>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('voucher-file-input').click()" style="margin-top: 6px; padding: 2px 10px; font-size: 0.72rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="ph ph-arrows-clockwise"></i> Cambiar imagen
+                    </button>
                 </div>
             </div>
         </div>
@@ -2406,25 +2472,33 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // Tesseract OCR Reader for Operation Number
+  // Tesseract OCR Reader for Operation Number with safety timeout
   async function extractOperationNumberFromImage(fileOrBlob) {
       try {
           if (!window.Tesseract) {
               console.warn('Tesseract OCR no está disponible');
               return null;
           }
-          const worker = await Tesseract.createWorker('spa');
-          const ret = await worker.recognize(fileOrBlob);
-          await worker.terminate();
+          
+          const ocrTask = (async () => {
+              const worker = await Tesseract.createWorker('spa');
+              const ret = await worker.recognize(fileOrBlob);
+              await worker.terminate();
+              return ret.data.text || '';
+          })();
 
-          const text = ret.data.text || '';
+          // 12-second timeout to avoid locking the UI
+          const timeoutTask = new Promise((resolve) => setTimeout(() => resolve(''), 12000));
+          const text = await Promise.race([ocrTask, timeoutTask]);
+
+          if (!text) return null;
           console.log('Texto detectado por OCR:', text);
 
           // Regex patterns for Peruvian receipts (BCP, Interbank, BBVA, Yape, Plin, Scotiabank, etc.)
           const patterns = [
-              /(?:n[uú]mero\s*(?:de)?\s*operaci[oó]n|n[°º.]?\s*(?:de)?\s*operaci[oó]n|nro\.?\s*operaci[oó]n|c[oó]digo\s*(?:de)?\s*operaci[oó]n|operaci[oó]n|n[°º.]?\s*op\.|op\.)\s*[:#\-]?\s*([0-9]{4,14})/i,
-              /(?:ref|referencia)\s*[:#\-]?\s*([0-9]{6,12})/i,
-              /\b([0-9]{6,10})\b/
+              /(?:n[uú]mero\s*(?:de)?\s*operaci[oó]n|n[°º.]?\s*(?:de)?\s*operaci[oó]n|nro\.?\s*operaci[oó]n|c[oó]digo\s*(?:de)?\s*operaci[oó]n|operaci[oó]n|n[°º.]?\s*op\.|op\.)\s*[:#\-.]?\s*([0-9]{4,16})/i,
+              /(?:constancia|transacci[oó]n|ref(?:erencia)?)\s*[:#\-.]?\s*([0-9]{5,16})/i,
+              /\b([0-9]{6,12})\b/
           ];
 
           for (const pattern of patterns) {
@@ -2435,7 +2509,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return null;
       } catch (err) {
-          console.error('Error al ejecutar OCR:', err);
+          console.warn('OCR error or timeout:', err);
           return null;
       }
   }
@@ -2564,8 +2638,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       fd.append('operation_number', opNumber);
       
-      const currentToken = (existingNote && existingNote.token) || urlParams.get('token') || '';
-      const currentCode = (existingNote && existingNote.id) || noteId || '';
+      const currentToken = (existingNote && (existingNote.public_token || existingNote.token)) || urlParams.get('token') || '';
+      const currentCode = (existingNote && (existingNote.id || existingNote.note_code)) || noteId || '';
       fd.append('token', currentToken);
       fd.append('note_code', currentCode);
 
@@ -2623,13 +2697,49 @@ document.addEventListener('DOMContentLoaded', () => {
       if (opInput && currentOperationNumber) opInput.value = currentOperationNumber;
       if (viewLink) {
           if (currentVoucherUrl) {
-              viewLink.href = currentVoucherUrl;
+              const fullUrl = currentVoucherUrl.startsWith('http') ? currentVoucherUrl : (APP_BASE_URL + currentVoucherUrl.replace(/^\//, ''));
+              viewLink.href = fullUrl;
               viewLink.style.display = 'inline-flex';
           } else {
               viewLink.style.display = 'none';
           }
       }
   }
+
+  // --- PIN GENERATOR & CONTROLLER ---
+  window.generateRandomPin = function() {
+      const pin = Math.floor(1000 + Math.random() * 9000).toString();
+      const pinInput = document.getElementById('note-access-pin');
+      if (pinInput) {
+          pinInput.value = pin;
+          window.onPinInputChange(pinInput);
+          pinInput.focus();
+          if (typeof showToast === 'function') {
+              showToast('PIN ' + pin + ' generado con éxito', 'info');
+          }
+      }
+  };
+
+  window.clearPinInput = function() {
+      const pinInput = document.getElementById('note-access-pin');
+      if (pinInput) {
+          pinInput.value = '';
+          window.onPinInputChange(pinInput);
+          pinInput.focus();
+      }
+  };
+
+  window.onPinInputChange = function(input) {
+      if (!input) return;
+      input.value = (input.value || '').replace(/[^0-9]/g, '').slice(0, 4);
+      const clearBtn = document.getElementById('btn-clear-pin');
+      if (clearBtn) {
+          clearBtn.style.display = input.value.length > 0 ? 'inline-flex' : 'none';
+      }
+      if (typeof renderPublicPreview === 'function') {
+          renderPublicPreview();
+      }
+  };
   
   // Load payment methods from DB
   async function loadPaymentMethodsFromDB() {
@@ -2886,7 +2996,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const pinInput = document.getElementById('note-access-pin');
       if (pinInput && existingNote.access_pin) {
           pinInput.value = existingNote.access_pin;
+          const clearBtn = document.getElementById('btn-clear-pin');
+          if (clearBtn) clearBtn.style.display = 'inline-flex';
       }
+      if (existingNote.voucher_url) {
+          currentVoucherUrl = existingNote.voucher_url;
+      }
+      if (existingNote.operation_number) {
+          currentOperationNumber = existingNote.operation_number;
+      }
+      updateAdminVoucherUI();
   }
 
   // Force re-render of cards and totals after loading existingNote

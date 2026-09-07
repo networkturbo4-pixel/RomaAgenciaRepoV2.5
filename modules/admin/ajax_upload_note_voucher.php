@@ -22,37 +22,45 @@ if (empty($token) && empty($note_code)) {
     exit();
 }
 
+$targetDir = __DIR__ . '/../../uploads/vouchers/';
+if (!is_dir($targetDir)) {
+    @mkdir($targetDir, 0755, true);
+}
+
 // Find note
-$stmt = null;
+$note = null;
 if (!empty($token)) {
-    $stmt = $db->prepare("SELECT * FROM payment_notes WHERE public_token = ? LIMIT 1");
-    $stmt->execute([$token]);
-} else {
+    $stmt = $db->prepare("SELECT * FROM payment_notes WHERE public_token = ? OR LEFT(public_token, 8) = ? LIMIT 1");
+    $stmt->execute([$token, $token]);
+    $note = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+if (!$note && !empty($note_code) && $note_code !== 'NEW') {
     $stmt = $db->prepare("SELECT * FROM payment_notes WHERE note_code = ? OR id = ? LIMIT 1");
     $stmt->execute([$note_code, $note_code]);
+    $note = $stmt->fetch(PDO::FETCH_ASSOC);
 }
-$note = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$note) {
-    // If not found in DB but user is authenticated admin creating note on the fly, permit temporary voucher upload
-    if (isset($_SESSION['user_id']) && !empty($_FILES['voucher'])) {
-        // Upload temporary voucher
+    // If not found in DB (e.g. creating note on the fly or new note), permit voucher upload
+    if (!empty($_FILES['voucher']) && $_FILES['voucher']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['voucher'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'pdf'])) $ext = 'jpg';
         $filename = 'voucher_temp_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $targetPath = $targetDir . $filename;
         $saved = is_uploaded_file($file['tmp_name']) ? move_uploaded_file($file['tmp_name'], $targetPath) : copy($file['tmp_name'], $targetPath);
         if ($saved) {
             echo json_encode([
                 'success' => true,
                 'voucher_url' => 'uploads/vouchers/' . $filename,
                 'operation_number' => $operation_number,
-                'status' => 'pagado'
+                'status' => 'pagado',
+                'message' => 'Comprobante guardado temporalmente'
             ]);
             exit();
         }
     }
-    echo json_encode(['success' => false, 'error' => 'Nota de pago no encontrada']);
+    echo json_encode(['success' => false, 'error' => 'Nota de pago no encontrada y no se subió ningún archivo']);
     exit();
 }
 

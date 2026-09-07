@@ -16,7 +16,13 @@ if (!isset($db)) {
     $database = new Database();
     $db = $database->getConnection();
 }
-$id = isset($data['id']) ? intval($data['id']) : 0;
+
+$rawInput = file_get_contents('php://input');
+if (empty($rawInput)) {
+    $rawInput = @file_get_contents('php://stdin');
+}
+$data = json_decode($rawInput, true) ?: [];
+$id = intval($data['id'] ?? $_POST['id'] ?? $_GET['id'] ?? 0);
 
 if ($id <= 0) {
     http_response_code(400);

@@ -1,8 +1,24 @@
 <?php
 // modules/admin/ajax_delete_payment.php
-// DB connection is handled by index.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+header('Content-Type: application/json');
 
-$pay_id = isset($_POST['pay_id']) ? intval($_POST['pay_id']) : 0;
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    exit();
+}
+
+if (!isset($db)) {
+    require_once __DIR__ . '/../../config/database.php';
+    $database = new Database();
+    $db = $database->getConnection();
+}
+
+$data = json_decode(file_get_contents('php://input'), true) ?: [];
+$pay_id = intval($_POST['pay_id'] ?? $data['pay_id'] ?? $data['id'] ?? 0);
 
 if ($pay_id <= 0) {
     http_response_code(400);
