@@ -4,7 +4,13 @@ $roles_raw = $db->query("SELECT r.*, rp.module_name FROM roles r LEFT JOIN role_
 $roles = [];
 foreach($roles_raw as $row) {
     if (!isset($roles[$row['id']])) {
-        $roles[$row['id']] = ['id' => $row['id'], 'name' => $row['name'], 'description' => $row['description'], 'perms' => []];
+        $roles[$row['id']] = [
+            'id' => $row['id'],
+            'name' => $row['name'],
+            'description' => $row['description'],
+            'requires_attendance' => (int)($row['requires_attendance'] ?? 1),
+            'perms' => []
+        ];
     }
     if ($row['module_name']) {
         $roles[$row['id']]['perms'][] = $row['module_name'];
@@ -17,7 +23,7 @@ foreach($roles_raw as $row) {
         <h2 class="pane-header-title">
             <i class="ph ph-shield-check"></i> Roles y Permisos de Acceso
         </h2>
-        <p class="pane-header-desc">Define los niveles de seguridad y autorizaciones por módulo para cada miembro del equipo.</p>
+        <p class="pane-header-desc">Define los niveles de seguridad, módulos autorizados y control de asistencia para cada rol.</p>
     </div>
     <?php if ($is_admin): ?>
     <button type="button" class="btn btn-primary" data-modal-target="modal-create-role" style="display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 10px; padding: 0.55rem 1.15rem; font-weight: 600;">
@@ -30,11 +36,12 @@ foreach($roles_raw as $row) {
     <table class="app-table">
         <thead>
             <tr>
-                <th style="width: 60px;">ID</th>
-                <th style="width: 200px;">Nombre del Rol</th>
+                <th style="width: 50px;">ID</th>
+                <th style="width: 170px;">Nombre del Rol</th>
                 <th>Descripción</th>
-                <th style="width: 180px;">Módulos Asignados</th>
-                <th style="width: 120px; text-align: right;">Acciones</th>
+                <th style="width: 130px;">Módulos</th>
+                <th style="width: 190px;">Control Asistencia</th>
+                <th style="width: 90px; text-align: right;">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -58,6 +65,30 @@ foreach($roles_raw as $row) {
                         <?php echo count($role['perms']); ?> módulos
                     </span>
                 </td>
+                <td>
+                    <?php if ($role['id'] == 1 || $role['name'] === 'Administrador'): ?>
+                        <span class="badge-attendance-exempt" title="Administrador exento de control de asistencia">
+                            <i class="ph ph-shield-check"></i> Exento (Admin)
+                        </span>
+                    <?php else: ?>
+                        <label class="attendance-toggle-pill" title="Clic para alternar entre Horario Fijo y Sin Asistencia">
+                            <span class="modern-switch-ios">
+                                <input type="checkbox" class="role-attendance-toggle" 
+                                       data-role-id="<?php echo $role['id']; ?>" 
+                                       <?php echo $role['requires_attendance'] == 1 ? 'checked' : ''; ?>
+                                       <?php echo !$is_admin ? 'disabled' : ''; ?>>
+                                <span class="slider-ios"></span>
+                            </span>
+                            <span class="attendance-text-state <?php echo $role['requires_attendance'] == 1 ? 'is-fixed' : 'is-free'; ?>" id="role-att-label-<?php echo $role['id']; ?>">
+                                <?php if ($role['requires_attendance'] == 1): ?>
+                                    <i class="ph ph-clock"></i> Horario Fijo
+                                <?php else: ?>
+                                    <i class="ph ph-infinity"></i> Sin Asistencia
+                                <?php endif; ?>
+                            </span>
+                        </label>
+                    <?php endif; ?>
+                </td>
                 <td style="text-align: right;">
                     <div style="display: inline-flex; gap: 0.4rem; justify-content: flex-end;">
                         <?php if ($is_admin): ?>
@@ -66,6 +97,7 @@ foreach($roles_raw as $row) {
                                 data-id="<?php echo $role['id']; ?>" 
                                 data-name="<?php echo htmlspecialchars($role['name']); ?>" 
                                 data-desc="<?php echo htmlspecialchars($role['description']); ?>" 
+                                data-attendance="<?php echo $role['requires_attendance']; ?>"
                                 data-perms='<?php echo json_encode($role['perms']); ?>'
                                 title="Editar Rol">
                             <i class="ph ph-pencil-simple"></i>
@@ -195,6 +227,21 @@ $all_modules = [
                         <?php endforeach; ?>
                     </div>
                 </div>
+                <!-- Control de Asistencia Switcher -->
+                <div class="attendance-setting-card">
+                    <div class="attendance-setting-info">
+                        <div class="attendance-setting-title">
+                            <i class="ph ph-clock-user" style="color: var(--primary-color);"></i> Control de Asistencia y Horario Fijo
+                        </div>
+                        <div class="attendance-setting-desc">
+                            Activa para exigir horario laboral y marcación obligatoria. Desactiva para permitir acceso libre sin asistencia.
+                        </div>
+                    </div>
+                    <label class="modern-switch-ios">
+                        <input type="checkbox" name="requires_attendance" id="create_role_attendance" value="1" checked>
+                        <span class="slider-ios"></span>
+                    </label>
+                </div>
             </div>
 
             <div class="modal-footer" style="padding: 1rem 1.5rem;">
@@ -254,6 +301,22 @@ $all_modules = [
                         </label>
                         <?php endforeach; ?>
                     </div>
+                </div>
+
+                <!-- Control de Asistencia Switcher en Edición -->
+                <div class="attendance-setting-card" id="edit-role-attendance-box">
+                    <div class="attendance-setting-info">
+                        <div class="attendance-setting-title">
+                            <i class="ph ph-clock-user" style="color: var(--primary-color);"></i> Control de Asistencia y Horario Fijo
+                        </div>
+                        <div class="attendance-setting-desc">
+                            Activa para exigir horario laboral y marcación obligatoria. Desactiva para permitir acceso libre sin asistencia.
+                        </div>
+                    </div>
+                    <label class="modern-switch-ios">
+                        <input type="checkbox" name="requires_attendance" id="edit_role_attendance" value="1">
+                        <span class="slider-ios"></span>
+                    </label>
                 </div>
             </div>
 
@@ -327,16 +390,65 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = btn.getAttribute('data-id');
             const name = btn.getAttribute('data-name');
             const desc = btn.getAttribute('data-desc');
+            const att = btn.getAttribute('data-attendance') || '1';
             const perms = JSON.parse(btn.getAttribute('data-perms') || '[]');
             
             document.getElementById('edit_role_id').value = id;
             document.getElementById('edit_role_name').value = name;
             document.getElementById('edit_role_desc').value = desc;
             
+            const attSwitch = document.getElementById('edit_role_attendance');
+            const attBox = document.getElementById('edit-role-attendance-box');
+            if (attSwitch) {
+                attSwitch.checked = (att == '1');
+            }
+            if (attBox) {
+                attBox.style.display = (id == '1') ? 'none' : 'flex';
+            }
+            
             const checkboxes = document.querySelectorAll('.edit-perm-cb');
             checkboxes.forEach(cb => {
                 cb.checked = perms.includes(cb.value);
             });
+        });
+    });
+
+    // AJAX Switcher en la Tabla de Roles
+    document.querySelectorAll('.role-attendance-toggle').forEach(toggle => {
+        toggle.addEventListener('change', async function() {
+            const roleId = this.getAttribute('data-role-id');
+            const isChecked = this.checked ? 1 : 0;
+            const labelEl = document.getElementById(`role-att-label-${roleId}`);
+            
+            if (labelEl) {
+                labelEl.className = `attendance-text-state ${isChecked ? 'is-fixed' : 'is-free'}`;
+                labelEl.innerHTML = isChecked 
+                    ? '<i class="ph ph-clock"></i> Horario Fijo' 
+                    : '<i class="ph ph-infinity"></i> Sin Asistencia';
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('action_type', 'ajax_toggle_role_attendance');
+                formData.append('role_id', roleId);
+                formData.append('status', isChecked);
+                
+                const res = await fetch('index.php?module=config', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showConfigToast(isChecked ? 'Rol configurado: Horario Fijo' : 'Rol configurado: Sin Asistencia (Libre)');
+                } else {
+                    alert(data.error || 'Error al actualizar asistencia.');
+                    this.checked = !this.checked;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error de conexión al actualizar.');
+                this.checked = !this.checked;
+            }
         });
     });
 
@@ -348,4 +460,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+function showConfigToast(msg) {
+    let toast = document.getElementById('configToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'configToast';
+        toast.className = 'config-toast-msg';
+        document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<i class="ph ph-check-circle" style="color:#10b981; font-size:16px;"></i> ${msg}`;
+    toast.classList.add('show');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2500);
+}
 </script>

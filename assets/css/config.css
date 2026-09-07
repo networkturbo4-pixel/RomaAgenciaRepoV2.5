@@ -1093,3 +1093,172 @@
         align-items: stretch;
     }
 }
+
+/* --- MODERN ATTENDANCE TOGGLE SWITCHER (HORARIO FIJO VS SIN ASISTENCIA) --- */
+.attendance-toggle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.35rem 0.75rem 0.35rem 0.45rem;
+    border-radius: 9999px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.attendance-toggle-pill:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 40%, var(--border-color));
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+[data-theme="dark"] .attendance-toggle-pill {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+[data-theme="dark"] .attendance-toggle-pill:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.modern-switch-ios {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+    display: inline-block;
+}
+.modern-switch-ios input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.modern-switch-ios .slider-ios {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #64748b;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 20px;
+}
+.modern-switch-ios .slider-ios::before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+}
+.modern-switch-ios input:checked + .slider-ios {
+    background-color: #2563eb;
+}
+[data-theme="dark"] .modern-switch-ios input:checked + .slider-ios {
+    background-color: #3b82f6;
+}
+.modern-switch-ios input:checked + .slider-ios::before {
+    transform: translateX(16px);
+}
+
+.attendance-text-state {
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+.attendance-text-state.is-fixed {
+    color: #2563eb;
+}
+[data-theme="dark"] .attendance-text-state.is-fixed {
+    color: #60a5fa;
+}
+.attendance-text-state.is-free {
+    color: #8b5cf6;
+}
+[data-theme="dark"] .attendance-text-state.is-free {
+    color: #c084fc;
+}
+
+.badge-attendance-exempt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.attendance-setting-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1.15rem;
+    border-radius: 12px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+[data-theme="dark"] .attendance-setting-card {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.attendance-setting-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.attendance-setting-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-title, var(--text-main));
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.attendance-setting-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Toast feedback */
+.config-toast-msg {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: rgba(15, 23, 42, 0.95);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    z-index: 99999;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+.config-toast-msg.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+

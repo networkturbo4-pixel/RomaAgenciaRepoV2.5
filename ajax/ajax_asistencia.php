@@ -48,6 +48,14 @@ function ensureAsistenciaSchema($db) {
                 $db->exec("ALTER TABLE `asistencias` ADD COLUMN `desbloqueado_fin_jornada` TINYINT(1) NOT NULL DEFAULT 0");
             }
         }
+        $rCols = $db->query("SHOW COLUMNS FROM `roles` LIKE 'requires_attendance'");
+        if ($rCols && $rCols->rowCount() === 0) {
+            @$db->exec("ALTER TABLE `roles` ADD `requires_attendance` TINYINT(1) DEFAULT 1");
+        }
+        $uCols = $db->query("SHOW COLUMNS FROM `users` LIKE 'requires_attendance'");
+        if ($uCols && $uCols->rowCount() === 0) {
+            @$db->exec("ALTER TABLE `users` ADD `requires_attendance` TINYINT(1) DEFAULT 1");
+        }
         $checked = true;
     } catch (Throwable $e) {
         // Ignorar excepciones de esquema si no hay permisos de ALTER
@@ -69,10 +77,22 @@ if (!in_array($action, $valid_actions)) {
     exit();
 }
 
-// Helper para verificar si es admin
-$stmt_admin = $db->prepare("SELECT role_id FROM users WHERE id = ?");
+// Helper para verificar rol y requerimiento de asistencia
+$stmt_admin = $db->prepare("
+    SELECT u.role_id, u.requires_attendance as user_req, r.name as role_name, r.requires_attendance as role_req 
+    FROM users u 
+    LEFT JOIN roles r ON u.role_id = r.id 
+    WHERE u.id = ?
+");
 $stmt_admin->execute([$user_id]);
-$is_admin = ($stmt_admin->fetchColumn() == 1);
+$current_u_info = $stmt_admin->fetch(PDO::FETCH_ASSOC);
+
+$is_admin = ($current_u_info && ($current_u_info['role_id'] == 1 || $current_u_info['role_name'] === 'Administrador'));
+$is_attendance_exempt = ($is_admin || 
+    ($current_u_info && ($current_u_info['role_name'] === 'Cliente' || $current_u_info['role_name'] === 'Invitado')) ||
+    (isset($current_u_info['role_req']) && (int)$current_u_info['role_req'] === 0) ||
+    (isset($current_u_info['user_req']) && (int)$current_u_info['user_req'] === 0)
+);
 
 try {
     // Check if there's a record for today
@@ -88,7 +108,7 @@ try {
         $shift_end_info = null;
         $before_shift_info = null;
 
-        if (!$is_admin) {
+        if (!$is_attendance_exempt) {
             $stmt_set = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN (
                 'asistencia_hora_entrada_default', 'asistencia_bloqueo_minutos', 'asistencia_bloqueo_activo',
                 'asistencia_hora_salida_default', 'asistencia_salida_bloqueo_activo', 'asistencia_salida_gracia_minutos',
@@ -175,6 +195,7 @@ try {
         echo json_encode([
             'success' => true, 
             'data' => $asistencia,
+            'is_attendance_exempt' => $is_attendance_exempt,
             'is_blocked_late' => $is_blocked_late,
             'bloqueo_info' => $bloqueo_info,
             'is_shift_ended' => $is_shift_ended,
@@ -226,7 +247,7 @@ try {
         $hora_programada_str = substr($hora_programada, 0, 5);
 
         // BLOQUEO POR EXCESO DE TARDANZA (ej. 20 a 30 min)
-        if ($bloqueo_activo && !$is_admin && $es_tardanza === 1 && $minutos_tarde >= $bloqueo_minutos) {
+        if ($bloqueo_activo && !$is_attendance_exempt && $es_tardanza === 1 && $minutos_tarde >= $bloqueo_minutos) {
             echo json_encode([
                 'success' => false,
                 'requires_unlock' => true,
@@ -553,16 +574,20 @@ try {
         // Obtener usuarios con su estado de asistencia de hoy
         $query = "
             SELECT u.id, u.name, u.email, 
+                   u.requires_attendance as user_requires_attendance,
+                   r.requires_attendance as role_requires_attendance,
+                   r.name as role_name,
                    a.entrada, a.inicio_refrigerio, a.fin_refrigerio, a.salida,
                    a.es_tardanza, a.minutos_tarde, a.hora_programada,
                    a.bloqueado_por_tardanza, a.realiza_horas_extras, a.motivo_horas_extras,
                    e.work_start, e.work_end,
                    p.estado as estado_permiso, p.motivo as motivo_permiso
             FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
             LEFT JOIN employees e ON LOWER(TRIM(u.email)) = LOWER(TRIM(e.email))
             LEFT JOIN asistencias a ON u.id = a.user_id AND a.fecha = CURDATE()
             LEFT JOIN asistencia_permisos p ON u.id = p.user_id AND DATE(p.created_at) = CURDATE()
-            WHERE a.id IS NOT NULL OR p.id IS NOT NULL
+            WHERE a.id IS NOT NULL OR p.id IS NOT NULL OR (u.status = 'active' AND (r.id IS NULL OR r.id != 1))
             ORDER BY u.name ASC
         ";
         $stmt = $db->query($query);

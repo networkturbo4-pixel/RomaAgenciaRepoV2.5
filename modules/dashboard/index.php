@@ -1260,6 +1260,8 @@ body.system-locked-late header {
 
                         let extraBadges = tardanzaTag + otpTag + heTag;
 
+                        const isExempt = (u.user_requires_attendance === '0' || u.user_requires_attendance === 0 || u.role_requires_attendance === '0' || u.role_requires_attendance === 0 || u.role_name === 'Cliente' || u.role_name === 'Invitado');
+
                         let estadoHtml = '';
                         if(u.salida) estadoHtml = '<span class="badge-status badge-completed">Salida</span>' + extraBadges;
                         else if(u.fin_refrigerio) estadoHtml = '<span class="badge-status badge-pending">En Jornada (Ref. Terminado)</span>' + extraBadges;
@@ -1268,6 +1270,9 @@ body.system-locked-late header {
                         else if(u.estado_permiso) {
                             let color = u.estado_permiso === 'Aprobado' ? '#10b981' : (u.estado_permiso === 'Rechazado' ? '#ef4444' : '#f59e0b');
                             estadoHtml = `<span class="badge-status" style="background: ${color}; color: white;">Permiso: ${u.estado_permiso}</span> <br><small>${u.motivo_permiso}</small>`;
+                        }
+                        else if (isExempt) {
+                            estadoHtml = '<span class="badge-status" style="background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.25);"><i class="ph ph-shield-check"></i> Horario Libre / Sin Asistencia</span>';
                         }
                         else estadoHtml = '<span class="badge-status" style="background: var(--border-color); color: var(--text-muted);">Sin Asistencia</span>';
 

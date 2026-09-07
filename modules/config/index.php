@@ -14,7 +14,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_admin_check = $db->prepare("SELECT role_id FROM users WHERE id = ?");
         $stmt_admin_check->execute([$_SESSION['user_id']]);
         if ($stmt_admin_check->fetchColumn() != 1) {
+            if (strpos($action_type, 'ajax_') === 0) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Acceso denegado.']);
+                exit();
+            }
             throw new Exception('Acceso Denegado: Solo el Administrador principal puede realizar modificaciones.');
+        }
+
+        if ($action_type === 'ajax_toggle_role_attendance') {
+            header('Content-Type: application/json');
+            $role_id = (int)($_POST['role_id'] ?? 0);
+            $status = (int)($_POST['status'] ?? 1);
+            if ($role_id == 1) {
+                echo json_encode(['success' => false, 'error' => 'El Administrador siempre está exento de asistencia.']);
+                exit();
+            }
+            $stmt = $db->prepare("UPDATE roles SET requires_attendance = ? WHERE id = ?");
+            $stmt->execute([$status, $role_id]);
+            echo json_encode(['success' => true, 'status' => $status]);
+            exit();
+        } elseif ($action_type === 'ajax_toggle_user_attendance') {
+            header('Content-Type: application/json');
+            $user_id = (int)($_POST['user_id'] ?? 0);
+            $status = (int)($_POST['status'] ?? 1);
+            $stmt = $db->prepare("UPDATE users SET requires_attendance = ? WHERE id = ?");
+            $stmt->execute([$status, $user_id]);
+            echo json_encode(['success' => true, 'status' => $status]);
+            exit();
         }
 
         if (in_array($action_type, ['personalization', 'company', 'drive', 'backups', 'updates', 'mercadopago', 'google_workspace', 'ia'])) {
@@ -59,10 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $active_tab = 'tab-roles';
             $name = $_POST['role_name'] ?? '';
             $desc = $_POST['role_desc'] ?? '';
+            $requires_attendance = isset($_POST['requires_attendance']) ? 1 : 0;
             $modules = $_POST['modules'] ?? [];
             
-            $stmt = $db->prepare("INSERT INTO roles (name, description) VALUES (?, ?)");
-            $stmt->execute([$name, $desc]);
+            $stmt = $db->prepare("INSERT INTO roles (name, description, requires_attendance) VALUES (?, ?, ?)");
+            $stmt->execute([$name, $desc, $requires_attendance]);
             $role_id = $db->lastInsertId();
             
             $stmt_perm = $db->prepare("INSERT INTO role_permissions (role_id, module_name) VALUES (?, ?)");
@@ -75,11 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $role_id = $_POST['role_id'] ?? 0;
             $name = $_POST['role_name'] ?? '';
             $desc = $_POST['role_desc'] ?? '';
+            $requires_attendance = ($role_id == 1) ? 0 : (isset($_POST['requires_attendance']) ? 1 : 0);
             $modules = $_POST['modules'] ?? [];
             
             // Cannot edit admin role id 1 name usually, but we'll allow it or just update
-            $stmt = $db->prepare("UPDATE roles SET name = ?, description = ? WHERE id = ?");
-            $stmt->execute([$name, $desc, $role_id]);
+            $stmt = $db->prepare("UPDATE roles SET name = ?, description = ?, requires_attendance = ? WHERE id = ?");
+            $stmt->execute([$name, $desc, $requires_attendance, $role_id]);
             
             // Update permissions: delete old, insert new
             $stmt_del = $db->prepare("DELETE FROM role_permissions WHERE role_id = ?");
@@ -106,14 +135,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = $_POST['user_email'] ?? '';
             $password = !empty($_POST['user_password']) ? password_hash($_POST['user_password'], PASSWORD_DEFAULT) : null;
             $role_id = $_POST['user_role'] ?? 1;
+            $requires_attendance = ($role_id == 1) ? 0 : (isset($_POST['requires_attendance']) ? 1 : 0);
             
             $stmt_check = $db->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
             $stmt_check->execute([$email]);
             if ($stmt_check->fetchColumn() > 0) {
                 $error = 'El correo electrónico ya está registrado por otro usuario.';
             } else {
-                $stmt = $db->prepare("INSERT INTO users (name, email, password, role_id) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$name, $email, $password, $role_id]);
+                $stmt = $db->prepare("INSERT INTO users (name, email, password, role_id, requires_attendance) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$name, $email, $password, $role_id, $requires_attendance]);
                 $success = 'Usuario creado exitosamente.';
             }
         } elseif ($action_type === 'user_edit') {
@@ -122,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = $_POST['user_name'] ?? '';
             $email = $_POST['user_email'] ?? '';
             $role_id = $_POST['user_role'] ?? 1;
+            $requires_attendance = ($role_id == 1) ? 0 : (isset($_POST['requires_attendance']) ? 1 : 0);
             
             $stmt_check = $db->prepare("SELECT COUNT(*) FROM users WHERE email = ? AND id != ?");
             $stmt_check->execute([$email, $user_id]);
@@ -130,11 +161,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 if (!empty($_POST['user_password'])) {
                     $password = password_hash($_POST['user_password'], PASSWORD_DEFAULT);
-                    $stmt = $db->prepare("UPDATE users SET name = ?, email = ?, role_id = ?, password = ? WHERE id = ?");
-                    $stmt->execute([$name, $email, $role_id, $password, $user_id]);
+                    $stmt = $db->prepare("UPDATE users SET name = ?, email = ?, role_id = ?, password = ?, requires_attendance = ? WHERE id = ?");
+                    $stmt->execute([$name, $email, $role_id, $password, $requires_attendance, $user_id]);
                 } else {
-                    $stmt = $db->prepare("UPDATE users SET name = ?, email = ?, role_id = ? WHERE id = ?");
-                    $stmt->execute([$name, $email, $role_id, $user_id]);
+                    $stmt = $db->prepare("UPDATE users SET name = ?, email = ?, role_id = ?, requires_attendance = ? WHERE id = ?");
+                    $stmt->execute([$name, $email, $role_id, $requires_attendance, $user_id]);
                 }
                 $success = 'Usuario actualizado exitosamente.';
             }

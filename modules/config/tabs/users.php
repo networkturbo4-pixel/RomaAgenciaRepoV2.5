@@ -1,6 +1,6 @@
 <?php
 global $db;
-$users = $db->query("SELECT u.id, u.name, u.email, u.created_at, r.name as role_name, u.role_id, u.password FROM users u LEFT JOIN roles r ON u.role_id = r.id ORDER BY u.id ASC")->fetchAll();
+$users = $db->query("SELECT u.id, u.name, u.email, u.created_at, r.name as role_name, u.role_id, u.password, u.requires_attendance FROM users u LEFT JOIN roles r ON u.role_id = r.id ORDER BY u.id ASC")->fetchAll();
 $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
 ?>
 
@@ -9,7 +9,7 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
         <h2 class="pane-header-title">
             <i class="ph ph-users"></i> Gestión de Usuarios
         </h2>
-        <p class="pane-header-desc">Administra los usuarios con acceso al sistema, sus credenciales y roles asignados.</p>
+        <p class="pane-header-desc">Administra los usuarios con acceso al sistema, credenciales, roles y asignación de asistencia laboral.</p>
     </div>
     <?php if ($is_admin): ?>
     <button type="button" class="btn btn-primary" data-modal-target="modal-create-user" style="display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 10px; padding: 0.55rem 1.15rem; font-weight: 600;">
@@ -24,10 +24,11 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
             <tr>
                 <th style="width: 50px;">ID</th>
                 <th>Usuario</th>
-                <th style="width: 170px;">Rol Asignado</th>
-                <th style="width: 150px;">Método de Acceso</th>
-                <th style="width: 130px;">Fecha Alta</th>
-                <th style="width: 120px; text-align: right;">Acciones</th>
+                <th style="width: 150px;">Rol Asignado</th>
+                <th style="width: 190px;">Control Asistencia</th>
+                <th style="width: 130px;">Método de Acceso</th>
+                <th style="width: 110px;">Fecha Alta</th>
+                <th style="width: 90px; text-align: right;">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -54,6 +55,30 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
                     </span>
                 </td>
                 <td>
+                    <?php if ($user['role_id'] == 1): ?>
+                        <span class="badge-attendance-exempt" title="Administrador exento de control de asistencia">
+                            <i class="ph ph-shield-check"></i> Exento (Admin)
+                        </span>
+                    <?php else: ?>
+                        <label class="attendance-toggle-pill" title="Clic para alternar entre Horario Fijo y Sin Asistencia">
+                            <span class="modern-switch-ios">
+                                <input type="checkbox" class="user-attendance-toggle" 
+                                       data-user-id="<?php echo $user['id']; ?>" 
+                                       <?php echo ($user['requires_attendance'] ?? 1) == 1 ? 'checked' : ''; ?>
+                                       <?php echo !$is_admin ? 'disabled' : ''; ?>>
+                                <span class="slider-ios"></span>
+                            </span>
+                            <span class="attendance-text-state <?php echo ($user['requires_attendance'] ?? 1) == 1 ? 'is-fixed' : 'is-free'; ?>" id="user-att-label-<?php echo $user['id']; ?>">
+                                <?php if (($user['requires_attendance'] ?? 1) == 1): ?>
+                                    <i class="ph ph-clock"></i> Horario Fijo
+                                <?php else: ?>
+                                    <i class="ph ph-infinity"></i> Sin Asistencia
+                                <?php endif; ?>
+                            </span>
+                        </label>
+                    <?php endif; ?>
+                </td>
+                <td>
                     <?php if($user['password']): ?>
                         <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; color: #10b981; font-weight: 500;">
                             <i class="ph ph-lock-key"></i> Contraseña
@@ -76,6 +101,7 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
                                 data-name="<?php echo htmlspecialchars($user['name']); ?>" 
                                 data-email="<?php echo htmlspecialchars($user['email']); ?>" 
                                 data-role="<?php echo $user['role_id'] ?? 1; ?>"
+                                data-attendance="<?php echo $user['requires_attendance'] ?? 1; ?>"
                                 title="Editar Usuario">
                             <i class="ph ph-pencil-simple"></i>
                         </button>
@@ -149,6 +175,21 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
                         </div>
                     </div>
                 </div>
+                <!-- Control de Asistencia Switcher -->
+                <div class="attendance-setting-card">
+                    <div class="attendance-setting-info">
+                        <div class="attendance-setting-title">
+                            <i class="ph ph-clock-user" style="color: var(--primary-color);"></i> Control de Asistencia y Horario Fijo
+                        </div>
+                        <div class="attendance-setting-desc">
+                            Activa para exigir horario laboral y marcación de entrada/salida. Desactiva para permitir acceso libre sin asistencia a este usuario.
+                        </div>
+                    </div>
+                    <label class="modern-switch-ios">
+                        <input type="checkbox" name="requires_attendance" id="create_user_attendance" value="1" checked>
+                        <span class="slider-ios"></span>
+                    </label>
+                </div>
             </div>
 
             <div class="modal-footer" style="padding: 1rem 1.5rem;">
@@ -211,6 +252,22 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
                         </div>
                     </div>
                 </div>
+
+                <!-- Control de Asistencia Switcher en Edición -->
+                <div class="attendance-setting-card" id="edit-user-attendance-box">
+                    <div class="attendance-setting-info">
+                        <div class="attendance-setting-title">
+                            <i class="ph ph-clock-user" style="color: var(--primary-color);"></i> Control de Asistencia y Horario Fijo
+                        </div>
+                        <div class="attendance-setting-desc">
+                            Activa para exigir horario laboral y marcación de entrada/salida. Desactiva para permitir acceso libre sin asistencia a este usuario.
+                        </div>
+                    </div>
+                    <label class="modern-switch-ios">
+                        <input type="checkbox" name="requires_attendance" id="edit_user_attendance" value="1">
+                        <span class="slider-ios"></span>
+                    </label>
+                </div>
             </div>
 
             <div class="modal-footer" style="padding: 1rem 1.5rem;">
@@ -252,11 +309,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const editUserBtns = document.querySelectorAll('.edit-user-btn');
     editUserBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            document.getElementById('edit_user_id').value = btn.getAttribute('data-id');
-            document.getElementById('edit_user_name').value = btn.getAttribute('data-name');
-            document.getElementById('edit_user_email').value = btn.getAttribute('data-email');
-            document.getElementById('edit_user_role').value = btn.getAttribute('data-role');
+            const id = btn.getAttribute('data-id');
+            const name = btn.getAttribute('data-name');
+            const email = btn.getAttribute('data-email');
+            const role = btn.getAttribute('data-role');
+            const att = btn.getAttribute('data-attendance') || '1';
+            
+            document.getElementById('edit_user_id').value = id;
+            document.getElementById('edit_user_name').value = name;
+            document.getElementById('edit_user_email').value = email;
+            document.getElementById('edit_user_role').value = role;
             document.getElementById('edit_user_password').value = '';
+            
+            const attSwitch = document.getElementById('edit_user_attendance');
+            const attBox = document.getElementById('edit-user-attendance-box');
+            if (attSwitch) {
+                attSwitch.checked = (att == '1');
+            }
+            if (attBox) {
+                attBox.style.display = (role == '1') ? 'none' : 'flex';
+            }
+        });
+    });
+
+    // AJAX Switcher en la Tabla de Usuarios
+    document.querySelectorAll('.user-attendance-toggle').forEach(toggle => {
+        toggle.addEventListener('change', async function() {
+            const userId = this.getAttribute('data-user-id');
+            const isChecked = this.checked ? 1 : 0;
+            const labelEl = document.getElementById(`user-att-label-${userId}`);
+            
+            if (labelEl) {
+                labelEl.className = `attendance-text-state ${isChecked ? 'is-fixed' : 'is-free'}`;
+                labelEl.innerHTML = isChecked 
+                    ? '<i class="ph ph-clock"></i> Horario Fijo' 
+                    : '<i class="ph ph-infinity"></i> Sin Asistencia';
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('action_type', 'ajax_toggle_user_attendance');
+                formData.append('user_id', userId);
+                formData.append('status', isChecked);
+                
+                const res = await fetch('index.php?module=config', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (typeof showConfigToast === 'function') {
+                        showConfigToast(isChecked ? 'Usuario configurado: Horario Fijo' : 'Usuario configurado: Sin Asistencia (Libre)');
+                    }
+                } else {
+                    alert(data.error || 'Error al actualizar asistencia.');
+                    this.checked = !this.checked;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error de conexión al actualizar.');
+                this.checked = !this.checked;
+            }
         });
     });
 
@@ -268,4 +381,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+if (typeof showConfigToast !== 'function') {
+    function showConfigToast(msg) {
+        let toast = document.getElementById('configToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'configToast';
+            toast.className = 'config-toast-msg';
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = `<i class="ph ph-check-circle" style="color:#10b981; font-size:16px;"></i> ${msg}`;
+        toast.classList.add('show');
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2500);
+    }
+}
 </script>

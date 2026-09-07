@@ -47,19 +47,24 @@ if (!isset($_SESSION['user_id'])) {
         exit();
     }
 } else {
-    // User is logged in, fetch permissions
-    $stmtRole = $db->prepare("SELECT role_id FROM users WHERE id = ?");
-    $stmtRole->execute([$_SESSION['user_id']]);
-    $role_id = $stmtRole->fetchColumn();
+    // User is logged in, fetch permissions and attendance settings
+    $stmtUser = $db->prepare("SELECT role_id, requires_attendance FROM users WHERE id = ?");
+    $stmtUser->execute([$_SESSION['user_id']]);
+    $currentUserData = $stmtUser->fetch(PDO::FETCH_ASSOC);
+    $role_id = $currentUserData['role_id'] ?? null;
+    $user_requires_attendance = isset($currentUserData['requires_attendance']) ? (int)$currentUserData['requires_attendance'] : 1;
 
     $user_permissions = [];
     $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat'];
     
     $role_name = '';
+    $role_requires_attendance = 1;
     if ($role_id) {
-        $stmtRoleName = $db->prepare("SELECT name FROM roles WHERE id = ?");
+        $stmtRoleName = $db->prepare("SELECT name, requires_attendance FROM roles WHERE id = ?");
         $stmtRoleName->execute([$role_id]);
-        $role_name = (string)$stmtRoleName->fetchColumn();
+        $currentRoleData = $stmtRoleName->fetch(PDO::FETCH_ASSOC);
+        $role_name = (string)($currentRoleData['name'] ?? '');
+        $role_requires_attendance = isset($currentRoleData['requires_attendance']) ? (int)$currentRoleData['requires_attendance'] : 1;
 
         if ($role_id == 1 || $role_name === 'Administrador') {
             // Administrador role gets all permissions by default
@@ -85,6 +90,14 @@ if (!isset($_SESSION['user_id'])) {
             $stmtCols = $db->query("SHOW COLUMNS FROM `users` LIKE 'profile_cover_style'");
             if ($stmtCols && $stmtCols->rowCount() === 0) {
                 @$db->exec("ALTER TABLE `users` ADD `profile_cover_style` VARCHAR(50) DEFAULT 'cobalt'");
+            }
+            $stmtRoleAtt = $db->query("SHOW COLUMNS FROM `roles` LIKE 'requires_attendance'");
+            if ($stmtRoleAtt && $stmtRoleAtt->rowCount() === 0) {
+                @$db->exec("ALTER TABLE `roles` ADD `requires_attendance` TINYINT(1) DEFAULT 1");
+            }
+            $stmtUserAtt = $db->query("SHOW COLUMNS FROM `users` LIKE 'requires_attendance'");
+            if ($stmtUserAtt && $stmtUserAtt->rowCount() === 0) {
+                @$db->exec("ALTER TABLE `users` ADD `requires_attendance` TINYINT(1) DEFAULT 1");
             }
             $_SESSION['_db_profile_cover_migrated'] = true;
         } catch (Exception $e) {
@@ -119,7 +132,7 @@ if (!isset($_SESSION['user_id'])) {
         }
     }
 
-    // Control estricto de asistencia y horarios laborales (Solo aplica a empleados internos; no aplica a Administradores, Clientes ni Invitados)
+    // Control estricto de asistencia y horarios laborales (Solo aplica a personal con horario fijo; no aplica a Administradores, Clientes, Invitados ni a roles/usuarios exentos)
     $is_user_blocked_late = false;
     $is_user_shift_ended = false;
     $is_user_before_shift = false;
@@ -127,7 +140,9 @@ if (!isset($_SESSION['user_id'])) {
     $shift_end_info = null;
     $before_shift_info = null;
 
-    if ($role_id != 1 && $role_name !== 'Administrador' && $role_name !== 'Cliente' && $role_name !== 'Invitado') {
+    $attendance_exempt = ($role_id == 1 || $role_name === 'Administrador' || $role_name === 'Cliente' || $role_name === 'Invitado' || $role_requires_attendance === 0 || $user_requires_attendance === 0);
+
+    if (!$attendance_exempt) {
         $stmt_set = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN (
             'asistencia_hora_entrada_default', 'asistencia_tolerancia_minutos', 'asistencia_bloqueo_minutos', 
             'asistencia_bloqueo_activo', 'asistencia_hora_salida_default', 'asistencia_salida_bloqueo_activo',
