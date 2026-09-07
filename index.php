@@ -55,8 +55,13 @@ if (!isset($_SESSION['user_id'])) {
     $user_permissions = [];
     $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat'];
     
+    $role_name = '';
     if ($role_id) {
-        if ($role_id == 1) {
+        $stmtRoleName = $db->prepare("SELECT name FROM roles WHERE id = ?");
+        $stmtRoleName->execute([$role_id]);
+        $role_name = (string)$stmtRoleName->fetchColumn();
+
+        if ($role_id == 1 || $role_name === 'Administrador') {
             // Administrador role gets all permissions by default
             $user_permissions = $allowed_modules;
         } else {
@@ -64,6 +69,13 @@ if (!isset($_SESSION['user_id'])) {
             $stmtPerms->execute([$role_id]);
             $user_permissions = $stmtPerms->fetchAll(PDO::FETCH_COLUMN);
         }
+
+        // El Dashboard es el núcleo de alertas, bienvenida y bloqueos para todos los usuarios autenticados.
+        // Debe estar siempre habilitado para prevenir bucles de redirección con el sistema de asistencia.
+        if (!in_array('dashboard', $user_permissions)) {
+            $user_permissions[] = 'dashboard';
+        }
+
         $_SESSION['user_permissions'] = $user_permissions;
     }
 
@@ -95,9 +107,11 @@ if (!isset($_SESSION['user_id'])) {
     ) {
         if (!in_array($module, $user_permissions)) {
             if (!empty($user_permissions)) {
-                $first = $user_permissions[0];
-                header("Location: index.php?module={$first}&action=index");
-                exit();
+                $first = in_array('dashboard', $user_permissions) ? 'dashboard' : $user_permissions[0];
+                if ($module !== $first) {
+                    header("Location: index.php?module={$first}&action=index");
+                    exit();
+                }
             } else {
                 echo "<div style='padding:2rem; font-family:sans-serif;'><h2>403 - Acceso Denegado</h2><p>No tienes permisos para ningún módulo.</p><a href='index.php?module=auth&action=logout'>Cerrar sesión</a></div>";
                 exit();
@@ -105,7 +119,7 @@ if (!isset($_SESSION['user_id'])) {
         }
     }
 
-    // Control estricto de asistencia y horarios laborales (Entrada programada y Salida programada por empleado)
+    // Control estricto de asistencia y horarios laborales (Solo aplica a empleados internos; no aplica a Administradores, Clientes ni Invitados)
     $is_user_blocked_late = false;
     $is_user_shift_ended = false;
     $is_user_before_shift = false;
@@ -113,7 +127,7 @@ if (!isset($_SESSION['user_id'])) {
     $shift_end_info = null;
     $before_shift_info = null;
 
-    if ($role_id != 1) {
+    if ($role_id != 1 && $role_name !== 'Administrador' && $role_name !== 'Cliente' && $role_name !== 'Invitado') {
         $stmt_set = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN (
             'asistencia_hora_entrada_default', 'asistencia_tolerancia_minutos', 'asistencia_bloqueo_minutos', 
             'asistencia_bloqueo_activo', 'asistencia_hora_salida_default', 'asistencia_salida_bloqueo_activo',
