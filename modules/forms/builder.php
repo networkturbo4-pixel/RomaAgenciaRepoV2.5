@@ -2423,7 +2423,7 @@ function updateBrandAvatarUI(url) {
         btnReset.style.display = customAvatarUrl ? 'inline-flex' : 'none';
     }
     const content = url 
-        ? `<img src="${url}" alt="Avatar" style="max-width: 85%; max-height: 85%; object-fit: contain;">`
+        ? `<img src="${url}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block;">`
         : `<i class="ph-bold ph-shield-check" style="font-size: 1.6rem; color: var(--app-accent);"></i>`;
     if (headerAvatar) headerAvatar.innerHTML = content;
     if (settingsPreview) settingsPreview.innerHTML = content;

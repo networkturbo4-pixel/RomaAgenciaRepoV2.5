@@ -36,10 +36,39 @@ $coverPreset = $settings['cover_image'] ?? 'nebula';
 $welcomeScreen = !empty($settings['welcome_screen']);
 $customAvatar = $settings['custom_avatar'] ?? '';
 
-$logoUrl = $global_settings['logo_light'] ?? '';
-$brandAvatarUrl = !empty($customAvatar) ? $customAvatar : $logoUrl;
+// Determine Base URL early for absolute paths
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+$baseUrl = (!empty($global_settings['site_url'])) ? rtrim($global_settings['site_url'], '/') : ($protocol . '://' . $host . ($scriptDir ? $scriptDir : ''));
+
+function toAbsoluteAssetUrl($path, $base) {
+    if (empty($path)) return '';
+    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, 'data:')) {
+        return $path;
+    }
+    return rtrim($base, '/') . '/' . ltrim($path, '/');
+}
+
+$logoUrl = $global_settings['logo_light'] ?? ($global_settings['logo_dark'] ?? '');
+$rawAvatar = !empty($customAvatar) ? $customAvatar : $logoUrl;
+$brandAvatarUrl = toAbsoluteAssetUrl($rawAvatar, $baseUrl);
 $siteName = $global_settings['site_name'] ?? 'Roma Agencia';
 $primaryColor = $global_settings['primary_color'] ?? '#4f46e5';
+
+// Determine favicon: Prioritize custom avatar, then site favicon, then logos
+$faviconUrl = '';
+if (!empty($customAvatar)) {
+    $faviconUrl = toAbsoluteAssetUrl($customAvatar, $baseUrl);
+} elseif (!empty($global_settings['favicon'])) {
+    $faviconUrl = toAbsoluteAssetUrl($global_settings['favicon'], $baseUrl);
+} elseif (!empty($global_settings['logo_light'])) {
+    $faviconUrl = toAbsoluteAssetUrl($global_settings['logo_light'], $baseUrl);
+} elseif (!empty($global_settings['logo_dark'])) {
+    $faviconUrl = toAbsoluteAssetUrl($global_settings['logo_dark'], $baseUrl);
+} else {
+    $faviconUrl = toAbsoluteAssetUrl('assets/img/icon-512x512.png', $baseUrl);
+}
 
 $coverStyles = [
     'nebula' => 'radial-gradient(circle at 20% 20%, #4338ca 0%, transparent 40%), radial-gradient(circle at 80% 80%, #7c3aed 0%, transparent 40%), radial-gradient(circle at 50% 50%, #1e1b4b 0%, #09090b 100%)',
@@ -84,11 +113,6 @@ if (empty($steps)) $steps[] = [];
 $totalSteps = count($steps);
 
 // Configuración y Generación de Open Graph
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
-$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
-$baseUrl = (!empty($global_settings['site_url'])) ? rtrim($global_settings['site_url'], '/') : ($protocol . '://' . $host . ($scriptDir ? $scriptDir : ''));
-
 $shortToken = substr($form['public_token'], 0, 8);
 $ogUrl = $baseUrl . '/f/' . $shortToken;
 $ogTitle = !empty($form['title']) ? $form['title'] : 'Formulario';
@@ -97,15 +121,15 @@ $ogDesc = !empty($cleanDesc) ? mb_strimwidth($cleanDesc, 0, 160, '...') : ('Comp
 
 $ogImage = '';
 if (!empty($customAvatar)) {
-    $ogImage = str_starts_with($customAvatar, 'http') ? $customAvatar : ($baseUrl . '/' . ltrim($customAvatar, '/'));
+    $ogImage = toAbsoluteAssetUrl($customAvatar, $baseUrl);
 } elseif (!empty($settings['cover_image']) && (str_starts_with($settings['cover_image'], 'http') || str_starts_with($settings['cover_image'], 'uploads/'))) {
-    $ogImage = str_starts_with($settings['cover_image'], 'http') ? $settings['cover_image'] : ($baseUrl . '/' . ltrim($settings['cover_image'], '/'));
+    $ogImage = toAbsoluteAssetUrl($settings['cover_image'], $baseUrl);
 } elseif (!empty($global_settings['logo_light'])) {
-    $ogImage = str_starts_with($global_settings['logo_light'], 'http') ? $global_settings['logo_light'] : ($baseUrl . '/' . ltrim($global_settings['logo_light'], '/'));
+    $ogImage = toAbsoluteAssetUrl($global_settings['logo_light'], $baseUrl);
 } elseif (!empty($global_settings['logo_dark'])) {
-    $ogImage = str_starts_with($global_settings['logo_dark'], 'http') ? $global_settings['logo_dark'] : ($baseUrl . '/' . ltrim($global_settings['logo_dark'], '/'));
+    $ogImage = toAbsoluteAssetUrl($global_settings['logo_dark'], $baseUrl);
 } else {
-    $ogImage = $baseUrl . '/assets/img/icon-512x512.png';
+    $ogImage = toAbsoluteAssetUrl('assets/img/icon-512x512.png', $baseUrl);
 }
 ?>
 <!DOCTYPE html>
@@ -113,6 +137,12 @@ if (!empty($customAvatar)) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<base href="<?php echo htmlspecialchars(rtrim($baseUrl, '/') . '/'); ?>">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="<?php echo htmlspecialchars($faviconUrl); ?>">
+<link rel="shortcut icon" href="<?php echo htmlspecialchars($faviconUrl); ?>">
+<link rel="apple-touch-icon" href="<?php echo htmlspecialchars($faviconUrl); ?>">
 
 <!-- Primary Meta Tags -->
 <title><?php echo htmlspecialchars($ogTitle); ?> | <?php echo htmlspecialchars($siteName); ?></title>
@@ -330,13 +360,10 @@ body {
 }
 
 .app-brand-avatar-float img {
-    max-width: 80%;
-    max-height: 80%;
-    object-fit: contain;
-}
-
-[data-theme="dark"] .app-brand-avatar-float img {
-    filter: brightness(0) invert(1);
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .app-brand-avatar-float i {
@@ -1221,7 +1248,8 @@ body {
             <div class="app-cover-overlay"></div>
             <div class="app-brand-avatar-float">
                 <?php if($showLogo && $brandAvatarUrl): ?>
-                    <img src="<?php echo htmlspecialchars($brandAvatarUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
+                    <img src="<?php echo htmlspecialchars($brandAvatarUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                    <i class="ph-bold ph-shield-check" style="display: none;"></i>
                 <?php else: ?>
                     <i class="ph-bold ph-shield-check"></i>
                 <?php endif; ?>
@@ -1270,7 +1298,8 @@ body {
             <div class="app-cover-overlay"></div>
             <div class="app-brand-avatar-float">
                 <?php if($showLogo && $brandAvatarUrl): ?>
-                    <img src="<?php echo htmlspecialchars($brandAvatarUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>">
+                    <img src="<?php echo htmlspecialchars($brandAvatarUrl); ?>" alt="<?php echo htmlspecialchars($siteName); ?>" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                    <i class="ph-bold ph-shield-check" style="display: none;"></i>
                 <?php else: ?>
                     <i class="ph-bold ph-shield-check"></i>
                 <?php endif; ?>
