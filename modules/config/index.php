@@ -167,122 +167,254 @@ foreach ($settings_raw as $row) {
 $stmt_admin = $db->prepare("SELECT role_id FROM users WHERE id = ?");
 $stmt_admin->execute([$_SESSION['user_id']]);
 $is_admin = ($stmt_admin->fetchColumn() == 1);
+
+// Counters and badges for master sidebar
+$total_roles = 0;
+$total_users = 0;
+try {
+    $total_roles = (int)$db->query("SELECT COUNT(*) FROM roles")->fetchColumn();
+    $total_users = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+} catch (Exception $e) {}
 ?>
 
-<link rel="stylesheet" href="assets/css/config.css">
+<link rel="stylesheet" href="assets/css/config.css?v=<?php echo file_exists('assets/css/config.css') ? filemtime('assets/css/config.css') : '1'; ?>">
 
-<div class="settings-header">
-    <div style="display: flex; align-items: center; gap: 1.5rem; position: relative; z-index: 1;">
-        <div class="settings-header-icon">
-            <i class="ph ph-sliders-horizontal"></i>
+<div class="settings-app-container">
+    <!-- Modern App Header -->
+    <div class="settings-header">
+        <div class="settings-header-left">
+            <div class="settings-header-icon">
+                <i class="ph ph-sliders-horizontal"></i>
+            </div>
+            <div>
+                <h1 class="settings-header-title">
+                    Configuración del Sistema
+                    <span class="settings-header-badge">Centro de Control</span>
+                </h1>
+                <p class="settings-header-desc">Administra la personalización de marca, roles de acceso, integraciones en la nube y mantenimiento general de la plataforma.</p>
+            </div>
         </div>
-        <div>
-            <h1 style="margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--color-title);">Configuración del Sistema</h1>
-            <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 13px; max-width: 500px;">Administra la personalización de la plataforma, roles, integraciones y parámetros generales para ajustar la experiencia a tu medida.</p>
+        <div class="settings-header-right">
+            <div class="settings-status-chip">
+                <span class="status-dot"></span>
+                <span>Plataforma Operativa</span>
+            </div>
         </div>
+    </div>
+
+    <?php if ($success): ?>
+        <div class="settings-alert success">
+            <i class="ph ph-check-circle-fill"></i>
+            <div><?php echo htmlspecialchars($success); ?></div>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($error): ?>
+        <div class="settings-alert error">
+            <i class="ph ph-warning-circle-fill"></i>
+            <div><?php echo htmlspecialchars($error); ?></div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Master-Detail Layout -->
+    <div class="settings-layout">
+        <!-- Master Sidebar -->
+        <aside class="settings-sidebar">
+            <div class="settings-search-box">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="settings-search-input" class="settings-search-input" placeholder="Buscar ajuste..." autocomplete="off">
+                <button type="button" id="settings-search-clear" class="settings-search-clear" title="Limpiar búsqueda"><i class="ph ph-x"></i></button>
+            </div>
+
+            <!-- Group 1: Apariencia & Marca -->
+            <div class="settings-nav-group">
+                <div class="settings-nav-heading">Apariencia & Marca</div>
+                <div class="settings-nav-list">
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>" data-tab="tab-personalization">
+                        <span class="tab-icon-wrap"><i class="ph ph-palette"></i></span>
+                        <span class="tab-label">Personalización</span>
+                        <span class="nav-badge">Marca</span>
+                    </button>
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>" data-tab="tab-company">
+                        <span class="tab-icon-wrap"><i class="ph ph-buildings"></i></span>
+                        <span class="tab-label">Datos de la Empresa</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Group 2: Accesos & Seguridad -->
+            <div class="settings-nav-group">
+                <div class="settings-nav-heading">Accesos & Seguridad</div>
+                <div class="settings-nav-list">
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>" data-tab="tab-users">
+                        <span class="tab-icon-wrap"><i class="ph ph-users"></i></span>
+                        <span class="tab-label">Usuarios</span>
+                        <span class="nav-badge"><?php echo $total_users; ?></span>
+                    </button>
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>" data-tab="tab-roles">
+                        <span class="tab-icon-wrap"><i class="ph ph-shield-check"></i></span>
+                        <span class="tab-label">Roles y Permisos</span>
+                        <span class="nav-badge"><?php echo $total_roles; ?></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Group 3: Integraciones -->
+            <div class="settings-nav-group">
+                <div class="settings-nav-heading">Integraciones & Servicios</div>
+                <div class="settings-nav-list">
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>" data-tab="tab-drive">
+                        <span class="tab-icon-wrap"><i class="ph ph-google-drive-logo"></i></span>
+                        <span class="tab-label">Google Drive</span>
+                        <span class="nav-badge">Cloud</span>
+                    </button>
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-google_workspace' ? 'active' : ''; ?>" data-tab="tab-google_workspace">
+                        <span class="tab-icon-wrap"><i class="ph ph-google-logo"></i></span>
+                        <span class="tab-label">Google Workspace</span>
+                        <span class="nav-badge">Meet</span>
+                    </button>
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-mercadopago' ? 'active' : ''; ?>" data-tab="tab-mercadopago">
+                        <span class="tab-icon-wrap"><i class="ph ph-credit-card"></i></span>
+                        <span class="tab-label">Mercado Pago</span>
+                        <span class="nav-badge">Pagos</span>
+                    </button>
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-ia' ? 'active' : ''; ?>" data-tab="tab-ia">
+                        <span class="tab-icon-wrap"><i class="ph ph-sparkle"></i></span>
+                        <span class="tab-label">Romita IA (Gemini)</span>
+                        <span class="nav-badge">IA</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Group 4: Mantenimiento & Sistema -->
+            <div class="settings-nav-group">
+                <div class="settings-nav-heading">Mantenimiento & Sistema</div>
+                <div class="settings-nav-list">
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>" data-tab="tab-backups">
+                        <span class="tab-icon-wrap"><i class="ph ph-database"></i></span>
+                        <span class="tab-label">Copias de Seguridad</span>
+                        <span class="nav-badge">ZIP</span>
+                    </button>
+                    <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-updates' ? 'active' : ''; ?>" data-tab="tab-updates">
+                        <span class="tab-icon-wrap"><i class="ph ph-rocket-launch"></i></span>
+                        <span class="tab-label">Actualizaciones</span>
+                        <span class="nav-badge">1 Clic</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Detail Contents -->
+        <main class="settings-main">
+            <!-- Tab 1: Personalization -->
+            <div id="tab-personalization" class="settings-pane tab-pane <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/personalization.php'; ?>
+            </div>
+
+            <!-- Tab 2: Company Data -->
+            <div id="tab-company" class="settings-pane tab-pane <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/company.php'; ?>
+            </div>
+
+            <!-- Tab 3: Roles -->
+            <div id="tab-roles" class="settings-pane tab-pane <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/roles.php'; ?>
+            </div>
+
+            <!-- Tab 4: Users -->
+            <div id="tab-users" class="settings-pane tab-pane <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/users.php'; ?>
+            </div>
+
+            <!-- Tab 5: Drive -->
+            <div id="tab-drive" class="settings-pane tab-pane <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/drive.php'; ?>
+            </div>
+
+            <!-- Tab 5b: Google Workspace -->
+            <div id="tab-google_workspace" class="settings-pane tab-pane <?php echo $active_tab === 'tab-google_workspace' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/google_workspace.php'; ?>
+            </div>
+
+            <!-- Tab 6: Backups -->
+            <div id="tab-backups" class="settings-pane tab-pane <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/backups.php'; ?>
+            </div>
+
+            <!-- Tab 6b: System Updates -->
+            <div id="tab-updates" class="settings-pane tab-pane <?php echo $active_tab === 'tab-updates' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/updates.php'; ?>
+            </div>
+
+            <!-- Tab 7: Mercado Pago -->
+            <div id="tab-mercadopago" class="settings-pane tab-pane <?php echo $active_tab === 'tab-mercadopago' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/mercadopago.php'; ?>
+            </div>
+
+            <!-- Tab 9: Inteligencia Artificial (Gemini) -->
+            <div id="tab-ia" class="settings-pane tab-pane <?php echo $active_tab === 'tab-ia' ? 'active' : ''; ?>">
+                <?php include 'modules/config/tabs/ia.php'; ?>
+            </div>
+        </main>
     </div>
 </div>
 
-<?php if ($success): ?>
-    <div class="settings-alert success">
-        <i class="ph ph-check-circle-fill"></i>
-        <div><?php echo htmlspecialchars($success); ?></div>
-    </div>
-<?php endif; ?>
+<script>
+// Settings App Interactivity: Search, Tab Sync and State
+document.addEventListener('DOMContentLoaded', () => {
+    // Search filter logic
+    const searchInput = document.getElementById('settings-search-input');
+    const searchClear = document.getElementById('settings-search-clear');
+    const navItems = document.querySelectorAll('.settings-sidebar .tab-btn');
+    const navGroups = document.querySelectorAll('.settings-nav-group');
 
-<?php if ($error): ?>
-    <div class="settings-alert error">
-        <i class="ph ph-warning-circle-fill"></i>
-        <div><?php echo htmlspecialchars($error); ?></div>
-    </div>
-<?php endif; ?>
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            if (searchClear) searchClear.style.display = query ? 'block' : 'none';
 
-<div class="settings-layout">
-    <div class="settings-sidebar">
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>" data-tab="tab-personalization">
-            <i class="ph ph-palette"></i> Personalización
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>" data-tab="tab-company">
-            <i class="ph ph-buildings"></i> Datos de la Empresa
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>" data-tab="tab-roles">
-            <i class="ph ph-shield-check"></i> Roles y Permisos
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>" data-tab="tab-users">
-            <i class="ph ph-users"></i> Usuarios
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>" data-tab="tab-drive">
-            <i class="ph ph-google-drive-logo"></i> Google Drive
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-google_workspace' ? 'active' : ''; ?>" data-tab="tab-google_workspace">
-            <i class="ph ph-google-logo"></i> Google Workspace
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>" data-tab="tab-backups">
-            <i class="ph ph-database"></i> Copias de Seguridad
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-updates' ? 'active' : ''; ?>" data-tab="tab-updates">
-            <i class="ph ph-rocket-launch"></i> Actualizaciones
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-mercadopago' ? 'active' : ''; ?>" data-tab="tab-mercadopago">
-            <i class="ph ph-credit-card"></i> Mercado Pago
-        </button>
-        <button class="settings-tab tab-btn <?php echo $active_tab === 'tab-ia' ? 'active' : ''; ?>" data-tab="tab-ia">
-            <i class="ph ph-sparkle"></i> Inteligencia Artificial
-        </button>
-    </div>
+            navGroups.forEach(group => {
+                let groupHasVisible = false;
+                const items = group.querySelectorAll('.tab-btn');
+                items.forEach(item => {
+                    const label = item.querySelector('.tab-label')?.textContent.toLowerCase() || '';
+                    const badge = item.querySelector('.nav-badge')?.textContent.toLowerCase() || '';
+                    const matches = label.includes(query) || badge.includes(query);
+                    item.style.display = matches ? 'flex' : 'none';
+                    if (matches) groupHasVisible = true;
+                });
+                group.style.display = groupHasVisible ? 'block' : 'none';
+            });
+        });
 
-    <!-- Tab Contents -->
-    <div class="settings-main">
-        <!-- Tab 1: Personalization -->
-        <div id="tab-personalization" class="settings-pane tab-pane <?php echo $active_tab === 'tab-personalization' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/personalization.php'; ?>
-        </div>
+        if (searchClear) {
+            searchClear.addEventListener('click', () => {
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('input'));
+                searchInput.focus();
+            });
+        }
+    }
 
-        <!-- Tab 2: Company Data -->
-        <div id="tab-company" class="settings-pane tab-pane <?php echo $active_tab === 'tab-company' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/company.php'; ?>
-        </div>
+    // URL Hash support for tabs
+    if (window.location.hash) {
+        const hashTab = window.location.hash.replace('#', '');
+        const targetBtn = document.querySelector(`.settings-sidebar .tab-btn[data-tab="${hashTab}"]`);
+        if (targetBtn) {
+            targetBtn.click();
+        }
+    }
 
-        <!-- Tab 3: Roles -->
-        <div id="tab-roles" class="settings-pane tab-pane <?php echo $active_tab === 'tab-roles' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/roles.php'; ?>
-        </div>
-
-        <!-- Tab 4: Users -->
-        <div id="tab-users" class="settings-pane tab-pane <?php echo $active_tab === 'tab-users' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/users.php'; ?>
-        </div>
-
-        <!-- Tab 5: Drive -->
-        <div id="tab-drive" class="settings-pane tab-pane <?php echo $active_tab === 'tab-drive' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/drive.php'; ?>
-        </div>
-
-        <!-- Tab 5b: Google Workspace -->
-        <div id="tab-google_workspace" class="settings-pane tab-pane <?php echo $active_tab === 'tab-google_workspace' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/google_workspace.php'; ?>
-        </div>
-
-        <!-- Tab 6: Backups -->
-        <div id="tab-backups" class="settings-pane tab-pane <?php echo $active_tab === 'tab-backups' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/backups.php'; ?>
-        </div>
-
-        <!-- Tab 6b: System Updates -->
-        <div id="tab-updates" class="settings-pane tab-pane <?php echo $active_tab === 'tab-updates' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/updates.php'; ?>
-        </div>
-
-        <!-- Tab 7: Mercado Pago -->
-        <div id="tab-mercadopago" class="settings-pane tab-pane <?php echo $active_tab === 'tab-mercadopago' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/mercadopago.php'; ?>
-        </div>
-
-        <!-- Tab 9: Inteligencia Artificial (Gemini) -->
-        <div id="tab-ia" class="settings-pane tab-pane <?php echo $active_tab === 'tab-ia' ? 'active' : ''; ?>">
-            <?php include 'modules/config/tabs/ia.php'; ?>
-        </div>
-    </div>
-</div>
+    // Update URL Hash on tab switch
+    navItems.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            if (tabId && history.pushState) {
+                history.pushState(null, null, '#' + tabId);
+            }
+        });
+    });
+});
+</script>
 
 <?php require_once 'includes/footer.php'; ?>

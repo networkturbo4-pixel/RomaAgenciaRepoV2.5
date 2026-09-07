@@ -1,88 +1,126 @@
-<div class="card-section" style="padding: 1.5rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
-    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: #3b82f6; display: flex; align-items: center; gap: 0.5rem;">
-        <i class="ph ph-google-drive-logo"></i> Integración de Google Drive
-    </h2>
-    <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">
-        Configura las credenciales de Google Cloud para habilitar la subida automática de archivos, creación de carpetas y el selector de interfaz (Google Picker).
-    </p>
+<?php
+$isConnected = !empty($settings['drive_refresh_token']); 
+$hasCredentials = !empty($settings['drive_client_id']) && !empty($settings['drive_client_secret']);
 
-    <form method="POST" action="index.php?module=config">
-        <input type="hidden" name="action_type" value="drive">
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-            <!-- UI / Picker Credentials -->
-            <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                <h3 style="font-size: 1rem; margin-bottom: 1rem;"><i class="ph ph-browser"></i> Credenciales Frontend (Picker UI)</h3>
-                
-                <div class="form-group">
-                    <label>Developer API Key</label>
-                    <input type="text" name="drive_api_key" class="form-control" value="<?php echo htmlspecialchars($settings['drive_api_key'] ?? ''); ?>" placeholder="AIzaSyA...">
-                    <small class="text-muted" style="display:block; margin-top:0.25rem;">Requerida para que el Picker funcione.</small>
-                </div>
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'];
+$basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['PHP_SELF'])), '/');
+$exactRedirectUri = $protocol . "://" . $host . $basePath . "/modules/config/drive_oauth_callback.php";
+?>
 
-                <div class="form-group">
-                    <label>OAuth Client ID</label>
-                    <input type="text" name="drive_client_id" class="form-control" value="<?php echo htmlspecialchars($settings['drive_client_id'] ?? ''); ?>" placeholder="123456789-abc.apps.googleusercontent.com">
-                    <small class="text-muted" style="display:block; margin-top:0.25rem;">Para identificar tu aplicación frente a los usuarios.</small>
-                </div>
-                
-                <div class="form-group">
-                    <label>App ID (Opcional)</label>
-                    <input type="text" name="drive_app_id" class="form-control" value="<?php echo htmlspecialchars($settings['drive_app_id'] ?? ''); ?>" placeholder="123456789012">
-                </div>
-            </div>
-
-            <!-- Backend / OAuth 2.0 Credentials -->
-            <div style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-                <h3 style="font-size: 1rem; margin-bottom: 1rem;"><i class="ph ph-server"></i> Conexión Backend (OAuth 2.0)</h3>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Para automatizar la subida de recursos y creación de carpetas, conecta tu cuenta de Google.</p>
-                
-                <div class="form-group">
-                    <label>OAuth Client Secret</label>
-                    <input type="password" name="drive_client_secret" class="form-control" value="<?php echo htmlspecialchars($settings['drive_client_secret'] ?? ''); ?>" placeholder="GOCSPX-...">
-                    <small class="text-muted" style="display:block; margin-top:0.25rem;">Lo obtienes junto con tu Client ID.</small>
-                </div>
-
-                <?php 
-                $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-                $host = $_SERVER['HTTP_HOST'];
-                $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['PHP_SELF'])), '/');
-                $exactRedirectUri = $protocol . "://" . $host . $basePath . "/modules/config/drive_oauth_callback.php";
-                ?>
-                <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 0.75rem; margin-top: 1rem; border-radius: 0 4px 4px 0;">
-                    <strong style="font-size: 0.8rem; color: #3b82f6;">URI de redireccionamiento autorizados:</strong><br>
-                    <code style="font-size: 0.75rem; user-select: all; cursor: pointer;"><?php echo htmlspecialchars($exactRedirectUri); ?></code>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Copia esta URL exacta y pégala en tu Google Cloud Console para evitar el error "redirect_uri_mismatch".</div>
-                </div>
-
-                <?php 
-                $isConnected = !empty($settings['drive_refresh_token']); 
-                $hasCredentials = !empty($settings['drive_client_id']) && !empty($settings['drive_client_secret']);
-                ?>
-                
-                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <span style="font-size: 0.85rem; font-weight: 600;">Estado:</span>
-                        <?php if ($isConnected): ?>
-                            <span style="color: #10b981; font-size: 0.85rem; font-weight: 700; background: rgba(16,185,129,0.1); padding: 0.2rem 0.5rem; border-radius: 4px; margin-left: 0.5rem;"><i class="ph ph-check-circle"></i> Conectado</span>
-                        <?php else: ?>
-                            <span style="color: #ef4444; font-size: 0.85rem; font-weight: 700; background: rgba(239,68,68,0.1); padding: 0.2rem 0.5rem; border-radius: 4px; margin-left: 0.5rem;"><i class="ph ph-x-circle"></i> Desconectado</span>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <?php if ($hasCredentials): ?>
-                        <a href="modules/config/drive_oauth_callback.php?action=login" class="btn btn-outline" style="border-color: #3b82f6; color: #3b82f6;">
-                            <i class="ph ph-link"></i> <?php echo $isConnected ? 'Reconectar' : 'Conectar con Drive'; ?>
-                        </a>
-                    <?php else: ?>
-                        <button type="button" class="btn btn-outline" disabled title="Guarda el Client ID y Client Secret primero"><i class="ph ph-link"></i> Conectar con Drive</button>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <div style="text-align: right;">
-            <button type="submit" class="btn btn-primary"><i class="ph ph-floppy-disk"></i> Guardar Credenciales</button>
-        </div>
-    </form>
+<div class="pane-header">
+    <div>
+        <h2 class="pane-header-title">
+            <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i> Integración de Google Drive
+        </h2>
+        <p class="pane-header-desc">Sincronización en la nube para adjuntos, respaldos automáticos y selector de archivos Google Picker.</p>
+    </div>
+    <div>
+        <?php if ($isConnected): ?>
+            <span class="integration-status-chip connected">
+                <i class="ph ph-check-circle-fill"></i> Conectado con Google
+            </span>
+        <?php else: ?>
+            <span class="integration-status-chip disconnected">
+                <i class="ph ph-x-circle-fill"></i> No Conectado
+            </span>
+        <?php endif; ?>
+    </div>
 </div>
+
+<form method="POST" action="index.php?module=config">
+    <input type="hidden" name="action_type" value="drive">
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+        <!-- Card 1: Frontend Picker Credentials -->
+        <div class="settings-card" style="margin-bottom: 0;">
+            <div class="settings-card-header">
+                <div>
+                    <h3 class="settings-card-title"><i class="ph ph-browser"></i> Credenciales Frontend (Picker UI)</h3>
+                    <p class="settings-card-desc">Permite a los usuarios seleccionar archivos desde su Drive directamente en las tareas.</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="drive_api_key">Developer API Key</label>
+                <div class="input-with-icon">
+                    <i class="ph ph-key"></i>
+                    <input type="text" id="drive_api_key" name="drive_api_key" class="form-control" value="<?php echo htmlspecialchars($settings['drive_api_key'] ?? ''); ?>" placeholder="AIzaSyA...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="drive_client_id">OAuth Client ID</label>
+                <div class="input-with-icon">
+                    <i class="ph ph-identification-badge"></i>
+                    <input type="text" id="drive_client_id" name="drive_client_id" class="form-control" value="<?php echo htmlspecialchars($settings['drive_client_id'] ?? ''); ?>" placeholder="123456789-abc.apps.googleusercontent.com">
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="drive_app_id">App ID <small class="text-muted">(Opcional)</small></label>
+                <div class="input-with-icon">
+                    <i class="ph ph-app-window"></i>
+                    <input type="text" id="drive_app_id" name="drive_app_id" class="form-control" value="<?php echo htmlspecialchars($settings['drive_app_id'] ?? ''); ?>" placeholder="123456789012">
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Backend OAuth Connection -->
+        <div class="settings-card" style="margin-bottom: 0;">
+            <div class="settings-card-header">
+                <div>
+                    <h3 class="settings-card-title"><i class="ph ph-server"></i> Conexión Backend (OAuth 2.0)</h3>
+                    <p class="settings-card-desc">Para automatizar la subida de respaldos y creación de carpetas en segundo plano.</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="drive_client_secret">OAuth Client Secret</label>
+                <div class="input-with-icon">
+                    <i class="ph ph-lock-key"></i>
+                    <input type="password" id="drive_client_secret" name="drive_client_secret" class="form-control" value="<?php echo htmlspecialchars($settings['drive_client_secret'] ?? ''); ?>" placeholder="GOCSPX-...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>URI de Redireccionamiento Autorizado</label>
+                <div class="code-copy-box">
+                    <code><?php echo htmlspecialchars($exactRedirectUri); ?></code>
+                    <button type="button" onclick="navigator.clipboard.writeText('<?php echo htmlspecialchars($exactRedirectUri); ?>'); this.innerHTML='<i class=\'ph ph-check\'></i> Copiado'; setTimeout(()=>this.innerHTML='<i class=\'ph ph-copy\'></i> Copiar', 1500);" title="Copiar URL">
+                        <i class="ph ph-copy"></i> Copiar
+                    </button>
+                </div>
+                <small class="text-muted" style="font-size: 11px; display: block; margin-top: 0.35rem;">Pega esta URL en tu Google Cloud Console (Pantalla de consentimiento OAuth).</small>
+            </div>
+
+            <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <span style="font-size: 12px; color: var(--text-muted);">Estado del Token:</span>
+                    <strong style="margin-left: 0.35rem; font-size: 12.5px;"><?php echo $isConnected ? 'Activo' : 'Inactivo'; ?></strong>
+                </div>
+
+                <?php if ($hasCredentials): ?>
+                    <a href="modules/config/drive_oauth_callback.php?action=login" class="btn btn-outline btn-sm" style="border-radius: 8px; border-color: #3b82f6; color: #3b82f6; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <i class="ph ph-link"></i> <?php echo $isConnected ? 'Reconectar Cuenta' : 'Conectar con Drive'; ?>
+                    </a>
+                <?php else: ?>
+                    <button type="button" class="btn btn-outline btn-sm" disabled style="border-radius: 8px;" title="Guarda el Client ID y Client Secret primero">
+                        <i class="ph ph-link"></i> Conectar con Drive
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="settings-action-bar">
+        <div class="settings-action-bar-info">
+            <i class="ph ph-info"></i>
+            <span>Guarda las credenciales antes de iniciar la vinculación con tu cuenta de Google.</span>
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 10px;">
+            <i class="ph ph-floppy-disk"></i> Guardar Credenciales Drive
+        </button>
+    </div>
+</form>

@@ -78,3 +78,17 @@
 - **Desktop (>= 1024px):** Historial lateral visible o colapsable con un clic, chat centrado con ancho óptimo de lectura (max 880px para mensaje), layout fluido sin doble scroll.
 - **Tablet (768px - 1023px):** Barra superior simplificada, historial en drawer off-canvas.
 - **Mobile (< 768px):** Drawer flotante lateral para historial, inputs compactos pero accesibles con el pulgar, tarjetas de sugerencia en carrusel deslizable horizontal.
+
+---
+
+## 5. Módulo de Configuración (Estilo App Nativa / Master-Detail)
+- **Estructura:** Master-Detail de 2 columnas en Desktop (`>= 992px`):
+  - **Master Panel (Navegación Lateral):** Ancho fijo de `260px - 280px`, organizado en categorías con títulos a `11px` uppercase (`letter-spacing: 0.05em`). Botones con iconos Phosphor, indicador activo tipo pill con acento y badges de estado.
+  - **Buscador Integrado:** Campo de búsqueda rápido para filtrar tabs y configuraciones al instante.
+  - **Detail Panel (Área de Contenido):** Tarjetas `.app-settings-card` con bordes redondeados (`14px` - `18px`), fondos con gradiente sutil y títulos con icono temático.
+- **Componentes de Configuración:**
+  - **Color Pickers Modernos:** Muestra de color circular/rectangular estilizada con código HEX editable y previsualización en tiempo real.
+  - **Dropzones de Marca:** Tarjetas con drag-and-drop visual, previsualización de imágenes, y contraste garantizado para logotipos claros y oscuros.
+  - **Badges de Integración:** Indicadores tipo pill (`Conectado`, `Desconectado`, `OAuth`, `1 Clic`, `Gemini`) con colores de estado suaves (verde/rojo/azul/púrpura).
+  - **Botones de Guardado:** Barra de acciones destacada con micro-interacción y feedback de confirmación claro.
+

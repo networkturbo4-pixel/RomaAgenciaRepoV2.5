@@ -7,24 +7,20 @@ $updater = new SystemUpdater($db ?? null);
 $localInfo = $updater->getLocalInfo();
 ?>
 
-<div class="content-section">
-    <div class="section-header" style="margin-bottom: 1.5rem;">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--color-title); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="ph ph-rocket-launch" style="color: var(--primary-color);"></i> Actualización del Sistema a 1 Clic
-                </h2>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
-                    Actualiza la plataforma desde GitHub con total seguridad: respaldo preventivo automático y preservación íntegra de tu base de datos y archivos.
-                </p>
-            </div>
-            <div>
-                <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.85rem; border-radius: 9999px; background: color-mix(in srgb, #10b981 12%, transparent); color: #10b981; font-weight: 600; font-size: 0.8rem; border: 1px solid color-mix(in srgb, #10b981 30%, transparent);">
-                    <i class="ph ph-shield-check"></i> Base de Datos Protegida
-                </span>
-            </div>
-        </div>
+<div class="pane-header">
+    <div>
+        <h2 class="pane-header-title">
+            <i class="ph ph-rocket-launch"></i> Actualización del Sistema a 1 Clic
+        </h2>
+        <p class="pane-header-desc">Actualiza la plataforma desde GitHub con respaldo preventivo automático y preservación íntegra de la base de datos.</p>
     </div>
+    <div>
+        <span class="integration-status-chip connected">
+            <i class="ph ph-shield-check"></i> Base de Datos Protegida
+        </span>
+    </div>
+</div>
+
 
     <!-- ROW 1: INFO ACTUAL & CONFIGURACIÓN REPOSITORIO -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
@@ -171,8 +167,6 @@ $localInfo = $updater->getLocalInfo();
             </div>
         </div>
     </div>
-
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

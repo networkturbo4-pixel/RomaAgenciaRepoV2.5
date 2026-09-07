@@ -1,12 +1,12 @@
-<div class="content-section">
-    <div class="section-header" style="margin-bottom: 1.5rem;">
-        <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--color-title); margin: 0;">
-            <i class="ph ph-database" style="color: var(--primary-color);"></i> Copias de Seguridad y Restauración
+<div class="pane-header">
+    <div>
+        <h2 class="pane-header-title">
+            <i class="ph ph-database"></i> Copias de Seguridad y Restauración
         </h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
-            Descarga copias de seguridad en formato ZIP al instante, sube archivos para restaurar tu base de datos o sincroniza automáticamente con Google Drive.
-        </p>
+        <p class="pane-header-desc">Descarga copias de seguridad en formato ZIP al instante, restaura tu base de datos o sincroniza automáticamente con Google Drive.</p>
     </div>
+</div>
+
 
     <!-- ROW 1: DESCARGA DIRECTA & SUBIR/RESTAURAR -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
@@ -193,8 +193,6 @@
             </table>
         </div>
     </div>
-
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
