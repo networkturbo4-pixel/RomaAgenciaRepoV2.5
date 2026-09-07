@@ -172,6 +172,27 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             </a>
             <?php endif; ?>
 
+            <?php if (in_array('task_manager', $perms)): ?>
+            <a href="index.php?module=task_manager&action=index" class="nav-item <?php echo $current_module === 'task_manager' ? 'active' : ''; ?>" data-title="Tareas & Objetivos">
+                <i class="ph ph-check-square-offset"></i>
+                <span>Tareas</span>
+            </a>
+            <?php endif; ?>
+
+            <?php if (in_array('projects', $perms)): ?>
+            <a href="index.php?module=projects&action=index" class="nav-item <?php echo $current_module === 'projects' ? 'active' : ''; ?>" data-title="Proyectos">
+                <i class="ph ph-kanban"></i>
+                <span>Proyectos</span>
+            </a>
+            <?php endif; ?>
+
+            <?php if (in_array('community', $perms)): ?>
+            <a href="index.php?module=community&action=index" class="nav-item <?php echo $current_module === 'community' ? 'active' : ''; ?>" data-title="Community">
+                <i class="ph ph-share-network"></i>
+                <span>Community</span>
+            </a>
+            <?php endif; ?>
+
             <?php if (in_array('mensajes', $perms)): ?>
             <a href="index.php?module=mensajes&action=index" class="nav-item <?php echo $current_module === 'mensajes' ? 'active' : ''; ?>" style="display:flex; justify-content:space-between; align-items:center;" data-title="Mensajes">
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -180,18 +201,28 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
                 <span id="globalMsgBadge" style="display:none; align-items:center; justify-content:center; background:var(--msg-primary, #e83f6f); color:white; font-size:10px; font-weight:bold; width:18px; height:18px; min-width:18px; min-height:18px; flex:0 0 18px; border-radius:50%;">0</span>
             </a>
             <?php endif; ?>
+
+            <?php if (in_array('whatsapp', $perms)): ?>
+            <a href="index.php?module=whatsapp&action=index" class="nav-item <?php echo $current_module === 'whatsapp' ? 'active' : ''; ?>" data-title="WhatsApp">
+                <i class="ph ph-whatsapp-logo"></i>
+                <span>WhatsApp</span>
+            </a>
+            <?php endif; ?>
+
             <?php if (in_array('clients', $perms)): ?>
             <a href="index.php?module=clients&action=index" class="nav-item <?php echo $current_module === 'clients' ? 'active' : ''; ?>" data-title="Clientes">
                 <i class="ph ph-users"></i>
                 <span>Clientes</span>
             </a>
             <?php endif; ?>
+
             <?php if (in_array('suppliers', $perms)): ?>
             <a href="index.php?module=suppliers&action=index" class="nav-item <?php echo $current_module === 'suppliers' ? 'active' : ''; ?>" data-title="Proveedores">
                 <i class="ph ph-buildings"></i>
                 <span>Proveedores</span>
             </a>
             <?php endif; ?>
+
             <?php if (in_array('quotes', $perms)): ?>
             <a href="index.php?module=quotes&action=index" class="nav-item <?php echo $current_module === 'quotes' ? 'active' : ''; ?>" data-title="Cotizaciones">
                 <i class="ph ph-file-text"></i>
@@ -231,6 +262,13 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             <a href="index.php?module=contracts&action=index" class="nav-item <?php echo $current_module === 'contracts' ? 'active' : ''; ?>" data-title="Contratos">
                 <i class="ph ph-signature"></i>
                 <span>Contratos</span>
+            </a>
+            <?php endif; ?>
+
+            <?php if (in_array('drive', $perms)): ?>
+            <a href="index.php?module=drive&action=index" class="nav-item <?php echo $current_module === 'drive' ? 'active' : ''; ?>" data-title="Google Drive">
+                <i class="ph ph-hard-drives"></i>
+                <span>Google Drive</span>
             </a>
             <?php endif; ?>
 

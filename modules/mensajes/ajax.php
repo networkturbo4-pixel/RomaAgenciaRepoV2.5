@@ -248,10 +248,18 @@ switch ($action) {
             ];
             
             // Override chat name and avatar for direct chats
-            if ($chat_type === 'direct' && $user_id && $m['user_id'] != $user_id) {
-                $chat_name = $m['uname'];
-                $chat_avatar = $m['uavatar'];
+            if ($chat_type === 'direct') {
+                if ($user_id && $m['user_id'] != $user_id) {
+                    $chat_name = $m['uname'] ?? $m['gname'] ?? 'Usuario Desconocido';
+                    $chat_avatar = $m['uavatar'] ?? null;
+                } else if ($guest_id && $m['guest_id'] != $guest_id) {
+                    $chat_name = $m['uname'] ?? $m['gname'] ?? 'Usuario';
+                    $chat_avatar = $m['uavatar'] ?? null;
+                }
             }
+        }
+        if ($chat_type === 'direct' && (empty($chat_name) || $chat_name === 'Chat')) {
+            $chat_name = 'Usuario Desconocido';
         }
         
         echo json_encode(['type' => $chat_type, 'drive_folder_id' => $folder_id, 'name' => $chat_name, 'avatar' => $chat_avatar, 'members' => $members]);

@@ -53,7 +53,7 @@ if (!isset($_SESSION['user_id'])) {
     $role_id = $stmtRole->fetchColumn();
 
     $user_permissions = [];
-    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager'];
+    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat'];
     
     if ($role_id) {
         if ($role_id == 1) {
@@ -219,7 +219,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Map modules to their respective files
-$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca'];
+$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca', 'client_portal', 'design_tasks', 'tasks', 'chat'];
 if (in_array($module, $allowed_modules)) {
     $module_file = "modules/{$module}/{$action}.php";
     if (file_exists($module_file)) {

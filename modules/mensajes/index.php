@@ -40,45 +40,73 @@ include 'includes/header.php';
     <!-- Sidebar -->
     <aside class="msg-sidebar" id="msgSidebar">
         <div class="msg-sidebar-header">
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div class="msg-brand-wrap">
                 <h2>Mensajes</h2>
-                <span style="background: var(--msg-primary-light); color: var(--msg-primary); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px;">BETA</span>
+                <span class="msg-badge-status" id="msgTotalUnreadBadge" style="display:none;">0</span>
             </div>
-            <div style="display:flex; gap:0.25rem;">
-                <button class="msg-icon-btn" onclick="openSettingsModal()" title="Configuración">
-                    <i class="ph ph-gear"></i>
-                </button>
+            <div class="msg-sidebar-actions">
                 <button class="msg-icon-btn" onclick="openDirectMessageModal()" title="Directorio de Usuarios">
                     <i class="ph ph-users"></i>
                 </button>
                 <button class="msg-icon-btn" onclick="openNewChatModal()" title="Nuevo Chat Grupal">
                     <i class="ph ph-plus"></i>
                 </button>
+                <button class="msg-icon-btn" onclick="openSettingsModal()" title="Configuración y Apariencia">
+                    <i class="ph ph-gear"></i>
+                </button>
             </div>
         </div>
         
         <div class="msg-search">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" id="chatSearchInput" placeholder="Buscar chats..." onkeyup="filterChats()">
+            <input type="text" id="chatSearchInput" placeholder="Buscar conversaciones..." onkeyup="filterChats()" autocomplete="off">
+            <button class="msg-search-clear" id="msgSearchClear" onclick="clearChatSearch()" title="Limpiar búsqueda" style="display:none;">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+
+        <!-- Filter Segmented Tabs -->
+        <div class="msg-filter-tabs">
+            <button class="msg-filter-pill active" data-filter="all" onclick="setChatFilter('all')">Todos</button>
+            <button class="msg-filter-pill" data-filter="unread" onclick="setChatFilter('unread')">No leídos</button>
+            <button class="msg-filter-pill" data-filter="direct" onclick="setChatFilter('direct')">Directos</button>
+            <button class="msg-filter-pill" data-filter="group" onclick="setChatFilter('group')">Grupos</button>
         </div>
         
         <div class="msg-chat-list" id="msgChatList">
             <!-- Chats loaded via JS -->
             <div style="text-align:center; padding: 2rem; color: var(--msg-text-muted);">Cargando...</div>
         </div>
+
+        <!-- Mobile Floating Action Button for New Chat -->
+        <button class="msg-mobile-fab" onclick="openDirectMessageModal()" title="Nuevo Mensaje">
+            <i class="ph ph-note-pencil"></i>
+        </button>
     </aside>
 
     <!-- Main Chat Area -->
-    <main class="msg-main">
+    <main class="msg-main" id="msgMain">
         <!-- Empty State -->
         <div class="msg-empty" id="msgEmptyState">
-            <div class="msg-empty-illustration">
-                <i class="ph ph-chat-teardrop-dots"></i>
-                <div class="msg-empty-circle msg-empty-circle-1"></div>
-                <div class="msg-empty-circle msg-empty-circle-2"></div>
+            <div class="msg-empty-card">
+                <div class="msg-empty-illustration">
+                    <div class="msg-empty-icon-box">
+                        <i class="ph ph-chat-circle-dots"></i>
+                    </div>
+                    <div class="msg-empty-circle msg-empty-circle-1"></div>
+                    <div class="msg-empty-circle msg-empty-circle-2"></div>
+                </div>
+                <h3>Tus Conversaciones</h3>
+                <p>Selecciona un chat de la lista para leer y enviar mensajes en tiempo real, o inicia una nueva conversación con tu equipo.</p>
+                <div class="msg-empty-actions">
+                    <button class="msg-btn-primary" onclick="openDirectMessageModal()">
+                        <i class="ph ph-paper-plane-tilt"></i> Nuevo Mensaje
+                    </button>
+                    <button class="msg-btn-secondary" onclick="openNewChatModal()">
+                        <i class="ph ph-users-three"></i> Crear Grupo
+                    </button>
+                </div>
             </div>
-            <h3>Bienvenido a Mensajes</h3>
-            <p>Selecciona una conversación para empezar a chatear</p>
         </div>
 
         <!-- Chat View -->
@@ -91,25 +119,29 @@ include 'includes/header.php';
             </div>
 
             <header class="msg-header">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <!-- Back button for mobile -->
-                    <button class="msg-icon-btn d-lg-none" onclick="document.getElementById('msgSidebar').classList.remove('hidden')" title="Volver" style="margin-right:-8px;"><i class="ph ph-arrow-left"></i></button>
-                    <div class="msg-header-info" onclick="toggleInfoPanel()" style="padding-left:4px;">
-                        <div class="msg-chat-avatar" id="msgHeaderAvatar">#</div>
+                <div class="msg-header-left">
+                    <!-- Dedicated Mobile Back button -->
+                    <button class="msg-icon-btn msg-back-btn" onclick="goBackToChatList()" title="Volver a chats">
+                        <i class="ph ph-arrow-left"></i>
+                    </button>
+                    <div class="msg-header-info" onclick="toggleInfoPanel()">
+                        <div class="msg-avatar-wrapper">
+                            <div class="msg-chat-avatar" id="msgHeaderAvatar">#</div>
+                            <span class="msg-status-dot" id="msgHeaderStatusDot"></span>
+                        </div>
                         <div class="msg-header-title">
-                            <h3 id="msgHeaderName">Chat Name</h3>
-                            <div id="msgHeaderTypingIndicator" style="font-size:11px; color: var(--msg-primary); display:none; font-weight:bold;"></div>
-                            <div class="msg-header-meta" id="msgHeaderStatus">...</div>
+                            <h3 id="msgHeaderName">Chat</h3>
+                            <div id="msgHeaderTypingIndicator" class="msg-header-typing" style="display:none;"></div>
+                            <div class="msg-header-meta" id="msgHeaderStatus">Directo</div>
                         </div>
                     </div>
                 </div>
                 <div class="msg-header-actions">
                     <?php if (!$is_popup): ?>
-                    <button class="msg-icon-btn d-none d-md-flex" onclick="openChatPopup()" title="Abrir en nueva ventana"><i class="ph ph-app-window"></i></button>
+                    <button class="msg-icon-btn msg-btn-desktop-only" onclick="openChatPopup()" title="Abrir en ventana flotante"><i class="ph ph-arrow-square-out"></i></button>
                     <?php endif; ?>
-                    <button class="msg-icon-btn" onclick="toggleSearch()" title="Buscar"><i class="ph ph-magnifying-glass"></i></button>
-                    <button class="msg-icon-btn" onclick="toggleInfoPanel()" title="Info del Chat"><i class="ph ph-info"></i></button>
-                    <button class="msg-icon-btn" onclick="toggleInfoPanel()" title="Configuración"><i class="ph ph-gear"></i></button>
+                    <button class="msg-icon-btn" onclick="toggleSearch()" title="Buscar en mensajes"><i class="ph ph-magnifying-glass"></i></button>
+                    <button class="msg-icon-btn" onclick="toggleInfoPanel()" title="Detalles del Chat"><i class="ph ph-info"></i></button>
                 </div>
             </header>
             
@@ -173,7 +205,7 @@ include 'includes/header.php';
                 </div>
                 
                     <div class="msg-input-wrapper" id="msgInputWrapper">
-                        <button class="msg-icon-btn" title="Emoticonos" style="color: #94a3b8;" onclick="document.getElementById('msgEmojiMenu').classList.toggle('active')">
+                        <button class="msg-icon-btn msg-input-tool-btn" id="msgBtnEmoji" title="Emoticonos" onclick="document.getElementById('msgEmojiMenu').classList.toggle('active')">
                             <i class="ph ph-smiley"></i>
                         </button>
                         
@@ -181,8 +213,8 @@ include 'includes/header.php';
                         <div class="msg-emoji-popover" id="msgEmojiMenu">
                             <emoji-picker class="light"></emoji-picker>
                         </div>
-                        <button class="msg-icon-btn" id="msgBtnAttach" onclick="document.getElementById('msgAttachMenu').classList.toggle('active')" title="Adjuntar" style="color: #94a3b8;">
-                            <i class="ph ph-image"></i>
+                        <button class="msg-icon-btn msg-input-tool-btn" id="msgBtnAttach" onclick="document.getElementById('msgAttachMenu').classList.toggle('active')" title="Adjuntar contenido">
+                            <i class="ph ph-paperclip"></i>
                         </button>
                     <div id="msgMarkdownPreview" class="msg-markdown-preview" style="display:none; padding:10px; background:var(--msg-bubble-own); color:var(--msg-bubble-own-text); border-radius:8px; margin-bottom:8px; font-size:14px; max-height:100px; overflow-y:auto;"></div>
                     <div id="msgCommandMenu" class="msg-command-menu" style="display:none; position:absolute; bottom:100%; left:20px; background:var(--msg-surface); border:1px solid var(--msg-border); border-radius:12px; box-shadow:0 -4px 15px rgba(0,0,0,0.1); width:250px; z-index:1000; overflow:hidden; margin-bottom:10px;"></div>
@@ -196,7 +228,7 @@ include 'includes/header.php';
                         <button class="msg-icon-btn" onclick="cancelRecording()" style="color:#ef4444;" title="Cancelar"><i class="ph ph-trash"></i></button>
                     </div>
 
-                    <button class="msg-btn-send" id="msgBtnAction" onclick="handleActionBtn()">
+                    <button class="msg-btn-send" id="msgBtnAction" onclick="handleActionBtn()" title="Enviar mensaje">
                         <i id="actionBtnIcon" class="ph-fill ph-microphone"></i>
                     </button>
                 </div>

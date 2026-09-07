@@ -1,5 +1,16 @@
 // modules/mensajes/mensajes.js
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 let currentChatId = null;
 let pollInterval = null;
 let lastMessageId = 0;
@@ -140,11 +151,20 @@ function closeChat() {
     // For mobile
     const sidebar = document.getElementById('msgSidebar');
     const main = document.getElementById('msgMain');
-    if (sidebar && main) {
-        sidebar.classList.remove('hidden');
-        main.classList.remove('active');
+    if (sidebar) sidebar.classList.remove('hidden');
+    if (main) main.classList.remove('active');
+}
+window.goBackToChatList = closeChat;
+
+function sendGreeting(name) {
+    const input = document.getElementById('msgInput');
+    if (input) {
+        input.value = `¡Hola! ¿Cómo estás? 👋`;
+        input.focus();
+        if (typeof handleInputState === 'function') handleInputState();
     }
 }
+window.sendGreeting = sendGreeting;
 
 let scrollObserver = null;
 function initVirtualScroller() {
@@ -202,49 +222,119 @@ function updateScrollBadge() {
     }
 }
 
+let allLoadedChats = [];
+let currentChatFilter = 'all';
+
+function setChatFilter(filter) {
+    currentChatFilter = filter;
+    document.querySelectorAll('.msg-filter-pill').forEach(btn => {
+        if (btn.dataset.filter === filter) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    renderFilteredChats();
+}
+window.setChatFilter = setChatFilter;
+
+function clearChatSearch() {
+    const input = document.getElementById('chatSearchInput');
+    const clearBtn = document.getElementById('msgSearchClear');
+    if (input) input.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    renderFilteredChats();
+}
+window.clearChatSearch = clearChatSearch;
+
+function renderFilteredChats() {
+    const list = document.getElementById('msgChatList');
+    if (!list) return;
+    
+    const searchInput = document.getElementById('chatSearchInput');
+    const searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
+    
+    const clearBtn = document.getElementById('msgSearchClear');
+    if (clearBtn) clearBtn.style.display = searchVal ? 'flex' : 'none';
+    
+    let filtered = allLoadedChats.filter(c => {
+        if (currentChatFilter === 'unread' && !(parseInt(c.unread_count) > 0)) return false;
+        if (currentChatFilter === 'direct' && c.type !== 'direct') return false;
+        if (currentChatFilter === 'group' && c.type !== 'group') return false;
+        if (searchVal) {
+            const name = (c.name || '').toLowerCase();
+            const lastMsg = (c.last_message || '').toLowerCase();
+            if (!name.includes(searchVal) && !lastMsg.includes(searchVal)) return false;
+        }
+        return true;
+    });
+    
+    list.innerHTML = '';
+    if (filtered.length > 0) {
+        filtered.forEach(c => {
+            const isActive = c.id === currentChatId ? 'active' : '';
+            let avatar = c.name ? c.name.charAt(0).toUpperCase() : '#';
+            let avatarStyle = c.avatar ? `background-image:url('${c.avatar}'); background-size:cover; background-position:center;` : '';
+            let avatarText = c.avatar ? '' : avatar;
+            let unreadBadge = '';
+            if (c.unread_count > 0 && c.id !== currentChatId) {
+                unreadBadge = `<div class="msg-chat-badge">${c.unread_count}</div>`;
+            }
+            const isGroup = c.type === 'group';
+            const groupIcon = isGroup ? '<i class="ph ph-users-three" style="font-size:11px; margin-right:4px; opacity:0.6;"></i>' : '';
+            
+            list.insertAdjacentHTML('beforeend', `
+                <div id="chat-item-${c.id}" class="msg-chat-item ${isActive}" onclick="openChat(${c.id}, '${(c.name || 'Chat').replace(/'/g, "\\'")}', '${c.public_link || ''}')" oncontextmenu="handleChatContext(event, ${c.id}, '${(c.name || '').replace(/'/g, "\\'")}')">
+                    <div class="msg-chat-avatar" style="${avatarStyle}">${avatarText}</div>
+                    <div class="msg-chat-info">
+                        <div class="msg-chat-top">
+                            <div class="msg-chat-name">${groupIcon}${escapeHtml(c.name || 'Chat ' + c.id)}</div>
+                            ${unreadBadge}
+                        </div>
+                        <div class="msg-chat-preview">${escapeHtml(c.last_message || 'Sin mensajes')}</div>
+                    </div>
+                </div>
+            `);
+        });
+    } else {
+        let msg = 'No hay conversaciones disponibles';
+        if (currentChatFilter === 'unread') msg = 'No tienes mensajes sin leer 🎉';
+        else if (currentChatFilter === 'direct') msg = 'No hay chats directos';
+        else if (currentChatFilter === 'group') msg = 'No hay chats grupales';
+        else if (searchVal) msg = 'No se encontraron resultados para "' + escapeHtml(searchVal) + '"';
+        list.innerHTML = `<div style="text-align:center; padding: 2.5rem 1rem; color: var(--msg-text-muted); font-size:12.5px;">${msg}</div>`;
+    }
+}
+window.renderFilteredChats = renderFilteredChats;
+
 function loadChats() {
     fetch('modules/mensajes/ajax.php?action=get_chats')
         .then(res => res.json())
         .then(data => {
-            const list = document.getElementById('msgChatList');
-            if (!list) return; // Not in admin view
-            list.innerHTML = '';
-            if (data.chats && data.chats.length > 0) {
-                let totalUnread = 0;
-                data.chats.forEach(c => {
-                    const isActive = c.id === currentChatId ? 'active' : '';
-                    let avatar = c.name ? c.name.charAt(0).toUpperCase() : '#';
-                    let avatarStyle = c.avatar ? `background-image:url('${c.avatar}'); background-size:cover; background-position:center;` : '';
-                    let avatarText = c.avatar ? '' : avatar;
-                    let unreadBadge = '';
-                    if (c.unread_count > 0 && c.id !== currentChatId) {
-                        totalUnread += parseInt(c.unread_count);
-                        unreadBadge = `<div style="background:var(--msg-primary); color:white; border-radius:10px; padding:2px 6px; font-size:10px; font-weight:bold;">${c.unread_count}</div>`;
-                    }
-                    
-                    list.insertAdjacentHTML('beforeend', `
-                        <div id="chat-item-${c.id}" class="msg-chat-item ${isActive}" onclick="openChat(${c.id}, '${(c.name || 'Chat').replace(/'/g, "\\'")}', '${c.public_link || ''}')" oncontextmenu="handleChatContext(event, ${c.id}, '${(c.name || '').replace(/'/g, "\\'")}')">
-                            <div class="msg-chat-avatar" style="${avatarStyle}">${avatarText}</div>
-                            <div class="msg-chat-info">
-                                <div class="msg-chat-top">
-                                    <div class="msg-chat-name">${c.name || 'Chat ' + c.id}</div>
-                                    ${unreadBadge}
-                                </div>
-                                <div class="msg-chat-preview">${c.last_message || 'Sin mensajes'}</div>
-                            </div>
-                        </div>
-                    `);
-                });
-                
-                // Update document title with unread badge
-                if (totalUnread > 0) {
-                    document.title = `(${totalUnread}) Mensajes`;
-                } else {
-                    document.title = 'Mensajes';
+            allLoadedChats = data.chats || [];
+            let totalUnread = 0;
+            allLoadedChats.forEach(c => {
+                if (c.unread_count > 0 && c.id !== currentChatId) {
+                    totalUnread += parseInt(c.unread_count);
                 }
-            } else {
-                list.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--msg-text-muted);">No hay chats</div>';
+            });
+            
+            const totalBadge = document.getElementById('msgTotalUnreadBadge');
+            if (totalBadge) {
+                if (totalUnread > 0) {
+                    totalBadge.innerText = totalUnread;
+                    totalBadge.style.display = 'inline-block';
+                } else {
+                    totalBadge.style.display = 'none';
+                }
             }
+            
+            if (totalUnread > 0) {
+                document.title = `(${totalUnread}) Mensajes`;
+            } else {
+                document.title = 'Mensajes';
+            }
+            renderFilteredChats();
         });
 }
 
@@ -252,28 +342,24 @@ function pollChats() {
     fetch('modules/mensajes/ajax.php?action=get_chats')
         .then(res => res.json())
         .then(data => {
-            if (data.chats && data.chats.length > 0) {
+            if (data.chats) {
+                allLoadedChats = data.chats;
                 let totalUnread = 0;
                 data.chats.forEach(c => {
-                    const item = document.getElementById('chat-item-' + c.id);
                     if (c.unread_count > 0 && c.id !== currentChatId) {
                         totalUnread += parseInt(c.unread_count);
                     }
+                    const item = document.getElementById('chat-item-' + c.id);
                     if (item) {
                         const topDiv = item.querySelector('.msg-chat-top');
                         const previewDiv = item.querySelector('.msg-chat-preview');
-                        
-                        // Update preview
                         if (previewDiv) previewDiv.innerText = c.last_message || 'Sin mensajes';
-                        
-                        // Update badge
                         if (topDiv) {
                             let badge = topDiv.querySelector('.msg-chat-badge');
                             if (c.unread_count > 0 && c.id !== currentChatId) {
                                 if (!badge) {
                                     badge = document.createElement('div');
                                     badge.className = 'msg-chat-badge';
-                                    badge.style.cssText = 'background:var(--msg-primary); color:white; border-radius:10px; padding:2px 6px; font-size:10px; font-weight:bold; margin-left:8px;';
                                     topDiv.appendChild(badge);
                                 }
                                 badge.innerText = c.unread_count;
@@ -283,6 +369,16 @@ function pollChats() {
                         }
                     }
                 });
+                
+                const totalBadge = document.getElementById('msgTotalUnreadBadge');
+                if (totalBadge) {
+                    if (totalUnread > 0) {
+                        totalBadge.innerText = totalUnread;
+                        totalBadge.style.display = 'inline-block';
+                    } else {
+                        totalBadge.style.display = 'none';
+                    }
+                }
                 
                 if (totalUnread > 0) {
                     document.title = `(${totalUnread}) Mensajes`;
@@ -319,6 +415,7 @@ function handleChatContext(e, chatId, chatName) {
 
 function openChat(chatId, name, publicLink) {
     currentChatId = chatId;
+    window.currentChatName = name || 'Chat ' + chatId;
     lastMessageId = 0;
     
     hidePinnedBanner();
@@ -331,10 +428,18 @@ function openChat(chatId, name, publicLink) {
     if (chatView) chatView.style.display = 'flex';
     
     const headerName = document.getElementById('msgHeaderName');
-    if (headerName) headerName.innerText = name || 'Chat ' + chatId;
+    if (headerName) headerName.innerText = window.currentChatName;
     
     const headerAvatar = document.getElementById('msgHeaderAvatar');
-    if (headerAvatar) headerAvatar.innerText = (name || '#').charAt(0).toUpperCase();
+    if (headerAvatar) headerAvatar.innerText = window.currentChatName.charAt(0).toUpperCase();
+
+    const headerStatus = document.getElementById('msgHeaderStatus');
+    if (headerStatus) {
+        headerStatus.innerText = 'Cargando...';
+        headerStatus.className = 'msg-header-meta';
+    }
+    const headerDot = document.getElementById('msgHeaderStatusDot');
+    if (headerDot) headerDot.classList.remove('online');
     
     const msgArea = document.getElementById('msgArea');
     if (msgArea) {
@@ -365,8 +470,12 @@ function openChat(chatId, name, publicLink) {
     if (activeItem) activeItem.classList.add('active');
 
     const sidebar = document.getElementById('msgSidebar');
+    const main = document.getElementById('msgMain');
     if (sidebar && window.innerWidth <= 992) {
         sidebar.classList.add('hidden');
+    }
+    if (main && window.innerWidth <= 992) {
+        main.classList.add('active');
     }
 
     if (pollInterval) clearInterval(pollInterval);
@@ -400,6 +509,10 @@ function loadChatInfo(chatId) {
     fetch('modules/mensajes/ajax.php?action=get_info&chat_id=' + chatId)
         .then(r => r.json())
         .then(data => {
+            const finalName = (data.name && data.name !== 'Chat' && data.name !== 'Chat ' + chatId) 
+                ? data.name 
+                : (window.currentChatName || 'Chat');
+            
             // Group header avatar & name
             const avatarEl = document.getElementById('msgInfoAvatar');
             const nameEl = document.getElementById('msgInfoName');
@@ -409,14 +522,14 @@ function loadChatInfo(chatId) {
                     avatarEl.innerText = '';
                 } else {
                     avatarEl.style.backgroundImage = '';
-                    avatarEl.innerText = data.name ? data.name.charAt(0).toUpperCase() : '#';
+                    avatarEl.innerText = finalName.charAt(0).toUpperCase();
                 }
-                nameEl.innerText = data.name || 'Chat';
+                nameEl.innerText = finalName;
             }
 
             // Update header too
             const headerNameEl = document.getElementById('msgHeaderName');
-            if (headerNameEl) headerNameEl.innerText = data.name || 'Chat';
+            if (headerNameEl) headerNameEl.innerText = finalName;
             
             const headerAvEl = document.getElementById('msgHeaderAvatar');
             if (headerAvEl) {
@@ -427,7 +540,23 @@ function loadChatInfo(chatId) {
                     headerAvEl.innerText = '';
                 } else {
                     headerAvEl.style.backgroundImage = '';
-                    headerAvEl.innerText = data.name ? data.name.charAt(0).toUpperCase() : '#';
+                    headerAvEl.innerText = finalName.charAt(0).toUpperCase();
+                }
+            }
+
+            // Update real-time status in chat header
+            const headerStatusEl = document.getElementById('msgHeaderStatus');
+            const headerDot = document.getElementById('msgHeaderStatusDot');
+            if (headerStatusEl) {
+                if (data.type === 'direct') {
+                    headerStatusEl.innerText = 'En línea';
+                    headerStatusEl.className = 'msg-header-meta online';
+                    if (headerDot) headerDot.classList.add('online');
+                } else {
+                    const count = data.members ? data.members.length : 0;
+                    headerStatusEl.innerText = `${count} miembros`;
+                    headerStatusEl.className = 'msg-header-meta';
+                    if (headerDot) headerDot.classList.remove('online');
                 }
             }
             
@@ -601,11 +730,31 @@ function pollMessages(fullRender) {
             } else if (fullRender) {
                 const area = document.getElementById('msgArea');
                 if (area) {
+                    const chatName = document.getElementById('msgHeaderName') ? document.getElementById('msgHeaderName').innerText : 'este chat';
+                    const avatarLetter = (chatName || 'C').charAt(0).toUpperCase();
                     area.innerHTML = `
-                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--msg-text-muted); opacity:0; animation: msgIn 0.5s forwards;">
-                            <i class="ph ph-hand-waving" style="font-size: 48px; color: var(--msg-primary); margin-bottom: 16px; animation: floatIcon 3s ease-in-out infinite;"></i>
-                            <h3 style="margin:0 0 8px 0; color:var(--msg-text-main); font-weight:600;">¡Este chat es nuevo!</h3>
-                            <p style="font-size:13px; text-align:center;">Envía tu primer mensaje para iniciar la conversación.</p>
+                        <div class="msg-welcome-card">
+                            <div class="msg-welcome-avatar">${avatarLetter}</div>
+                            <h3>¡Comienza una conversación!</h3>
+                            <p>Envía tu primer mensaje a <strong>${escapeHtml(chatName)}</strong> o comparte contenido para iniciar.</p>
+                            <div class="msg-starter-chips">
+                                <button class="msg-starter-chip" onclick="sendGreeting('${escapeHtml(chatName).replace(/'/g, "\\'")}')">
+                                    <i class="ph ph-hand-waving"></i>
+                                    <span>Saludar: "¡Hola! ¿Cómo estás? 👋"</span>
+                                </button>
+                                <button class="msg-starter-chip" onclick="triggerFileInput('*/*')">
+                                    <i class="ph ph-paperclip"></i>
+                                    <span>Compartir un archivo o foto</span>
+                                </button>
+                                <button class="msg-starter-chip" onclick="openTaskModal()">
+                                    <i class="ph ph-check-square"></i>
+                                    <span>Crear una tarea o pendiente</span>
+                                </button>
+                            </div>
+                            <div class="msg-security-badge">
+                                <i class="ph ph-lock-key"></i>
+                                <span>Canal de comunicación seguro</span>
+                            </div>
                         </div>
                     `;
                 }
@@ -2589,10 +2738,12 @@ function handleInputState() {
     }
 
     const actionBtnIcon = document.getElementById('actionBtnIcon');
-    if (actionBtnIcon) {
-        if (input.trim().length > 0) {
+    const actionBtn = document.getElementById('msgBtnAction');
+    const hasContent = input.trim().length > 0 || (typeof selectedFiles !== 'undefined' && selectedFiles && selectedFiles.length > 0);
+    if (actionBtnIcon && actionBtn) {
+        if (hasContent) {
             actionBtnIcon.className = 'ph-fill ph-paper-plane-right';
-            document.getElementById('msgBtnAction').style.backgroundColor = '';
+            actionBtn.title = 'Enviar mensaje';
             
             // Send typing event
             if (!window.typingTimeout) {
@@ -2607,7 +2758,7 @@ function handleInputState() {
             
         } else {
             actionBtnIcon.className = 'ph-fill ph-microphone';
-            document.getElementById('msgBtnAction').style.backgroundColor = '';
+            actionBtn.title = 'Grabar nota de voz';
         }
     }
     
@@ -3085,24 +3236,10 @@ let filterChatsTimeout = null;
 function filterChats() {
     clearTimeout(filterChatsTimeout);
     filterChatsTimeout = setTimeout(() => {
-        const input = document.getElementById('chatSearchInput');
-        if (!input) return;
-        const filter = input.value.toLowerCase();
-        const chatItems = document.querySelectorAll('.msg-chat-item');
-        
-        chatItems.forEach(item => {
-            const titleEl = item.querySelector('.msg-chat-name') || item.querySelector('.msg-chat-title');
-            if (titleEl) {
-                const title = titleEl.innerText.toLowerCase();
-                if (title.includes(filter)) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            }
-        });
-    }, 300);
+        renderFilteredChats();
+    }, 150);
 }
+window.filterChats = filterChats;
 
 // ============================
 // SETTINGS (Phase 1)
