@@ -92,3 +92,23 @@
   - **Badges de Integración:** Indicadores tipo pill (`Conectado`, `Desconectado`, `OAuth`, `1 Clic`, `Gemini`) con colores de estado suaves (verde/rojo/azul/púrpura).
   - **Botones de Guardado:** Barra de acciones destacada con micro-interacción y feedback de confirmación claro.
 
+---
+
+## 6. Módulo de Cotizaciones (Editor Moderno y Responsive)
+- **Fondo en Modo Oscuro:** Negro puro (`#000000`) de contraste OLED. Tarjetas en `#0a0a0a` / `#0e0e0e` con bordes ultra-finos en `#1f1f1f` (`rgba(255, 255, 255, 0.08)`).
+- **Tipografía Base:** `13px` para alta densidad de datos. Títulos en `14px - 16px`, badges en `11px` y totales en `18px - 22px`.
+- **Barra de Acciones Flotante (Sticky Header):**
+  - Mantiene botones de acción ("Volver" y "Guardar Cotización") siempre accesibles.
+  - En móviles se adapta a un diseño compacto táctil con altura mínima de toque de 44px.
+- **Tarjetas de Partida (Items):**
+  - Header con badge de partida (`Partida #1`), selector de icono Phosphor y botón de eliminación contextual con confirmación visual.
+  - Editor WYSIWYG con barra de herramientas horizontal con desplazamiento táctil (`overflow-x: auto`) para que nunca se desborde ni se corte en smartphones.
+  - Desglose financiero (Cant, Precio, Desc, Importe) adaptable a cuadrícula 2x2 en móviles y 4 columnas fluidas en desktop.
+  - Sub-tarjeta de cronograma Gantt (Fecha Inicio + Días) 100% responsiva.
+- **Cronograma Interactivo Gantt:**
+  - Visualización Frappe Gantt dentro de un contenedor con scroll suave horizontal y scrollbar estilizado.
+  - Tema adaptado a modo oscuro con fondo negro y barras de tareas de colores vivos.
+- **Métodos de Pago y Bancos:**
+  - Selector switch moderno iOS para alternar visualización.
+  - Grid de cuentas bancarias (BCP, Yape, Interbank, Scotiabank) en tarjetas compactas responsivas (`repeat(auto-fit, minmax(260px, 1fr))`).
+
