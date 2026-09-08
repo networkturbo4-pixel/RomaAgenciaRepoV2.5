@@ -584,10 +584,10 @@ try {
                    p.estado as estado_permiso, p.motivo as motivo_permiso
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
-            LEFT JOIN employees e ON LOWER(TRIM(u.email)) = LOWER(TRIM(e.email))
+            LEFT JOIN employees e ON (LOWER(TRIM(u.email)) = LOWER(TRIM(e.email)) OR LOWER(TRIM(u.name)) = LOWER(TRIM(e.name)))
             LEFT JOIN asistencias a ON u.id = a.user_id AND a.fecha = CURDATE()
             LEFT JOIN asistencia_permisos p ON u.id = p.user_id AND DATE(p.created_at) = CURDATE()
-            WHERE a.id IS NOT NULL OR p.id IS NOT NULL OR (u.status = 'active' AND (r.id IS NULL OR r.id != 1))
+            WHERE a.id IS NOT NULL OR p.id IS NOT NULL OR ((r.id IS NULL OR r.id != 1) AND (e.status IS NULL OR e.status != 'Inactivo'))
             ORDER BY u.name ASC
         ";
         $stmt = $db->query($query);

@@ -1296,6 +1296,17 @@ body.system-locked-late header {
                         `;
                         tbody.appendChild(tr);
                     });
+                } else {
+                    const tbody = document.getElementById('admin-asistencia-tbody');
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444;"><i class="ph ph-warning-circle"></i> ${res.message || 'Error al cargar asistencia'}</td></tr>`;
+                    }
+                }
+            })
+            .catch(err => {
+                const tbody = document.getElementById('admin-asistencia-tbody');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444;"><i class="ph ph-warning-circle"></i> Error de conexión al cargar asistencia</td></tr>`;
                 }
             });
         },
