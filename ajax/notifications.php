@@ -1,6 +1,8 @@
 <?php
 // ajax/notifications.php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -115,6 +117,27 @@ try {
             echo json_encode([
                 'success'      => true,
                 'unread_count' => $unreadCount
+            ]);
+            break;
+
+        case 'send_test':
+            NotificationHelper::send([
+                'user_id' => $userId,
+                'title'   => 'Notificación de Prueba 🔔',
+                'message' => '¡Excelente! El sistema de notificaciones en tiempo real funciona correctamente.',
+                'link'    => 'index.php',
+                'type'    => 'general',
+                'icon'    => 'ph-bell-ringing'
+            ], $db);
+
+            $countStmt = $db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
+            $countStmt->execute([$userId]);
+            $unreadCount = (int)$countStmt->fetchColumn();
+
+            echo json_encode([
+                'success'      => true,
+                'unread_count' => $unreadCount,
+                'message'      => 'Notificación de prueba enviada con éxito'
             ]);
             break;
 

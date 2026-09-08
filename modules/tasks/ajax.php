@@ -317,6 +317,9 @@ if ($action === 'update_status') {
                     $assigned = json_decode($row['assigned_to']??'[]',true)?:[];
                     $statusLabel = ['completed'=>'Completada','in_review'=>'En Revisión'][$newStatus]??$newStatus;
                     $assignedIds = array_values(array_diff($assigned, [$userId]));
+                    if (empty($assignedIds) && !empty($assigned)) {
+                        $assignedIds = array_values(array_map('intval', $assigned));
+                    }
                     if (!empty($assignedIds)) {
                         require_once __DIR__ . '/../../includes/NotificationHelper.php';
                         NotificationHelper::send([
@@ -385,6 +388,9 @@ if ($action === 'update_assigned') {
         
         // Notify newly assigned users
         $assignedIds = array_values(array_diff($userIds, [$userId]));
+        if (empty($assignedIds) && !empty($userIds)) {
+            $assignedIds = array_values(array_map('intval', $userIds));
+        }
         if (!empty($assignedIds)) {
             require_once __DIR__ . '/../../includes/NotificationHelper.php';
             NotificationHelper::send([

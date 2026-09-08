@@ -8,7 +8,7 @@
     let isFetching = false;
 
     // Elementos del DOM
-    let desktopBtn, mobileBtn, popover, badgeDesktop, badgeMobile, notifList, notifCountText, markAllBtn, pushBanner;
+    let desktopBtn, mobileBtn, popover, badgeDesktop, badgeMobile, notifList, notifCountText, markAllBtn, testBtn, pushBanner;
 
     function init() {
         desktopBtn     = document.getElementById('desktopNotifBtn');
@@ -19,6 +19,7 @@
         notifList      = document.getElementById('notifList');
         notifCountText = document.getElementById('notifCountText');
         markAllBtn     = document.getElementById('notifMarkAllBtn');
+        testBtn        = document.getElementById('notifSendTestBtn');
         pushBanner     = document.getElementById('notifPushBanner');
 
         if (!popover) return;
@@ -35,6 +36,14 @@
             mobileBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 togglePopover('mobile');
+            });
+        }
+
+        // Enviar notificación de prueba
+        if (testBtn) {
+            testBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sendTestNotification();
             });
         }
 
@@ -190,9 +199,12 @@
 
         if (!items || items.length === 0) {
             notifList.innerHTML = `
-                <div class="notif-empty">
-                    <i class="ph ph-bell-simple-slash"></i>
-                    <p>No tienes notificaciones pendientes</p>
+                <div class="notif-empty" style="padding: 2.5rem 1.5rem; text-align: center; color: var(--text-muted, #64748b);">
+                    <i class="ph ph-bell-simple-slash" style="font-size: 2.2rem; opacity: 0.6; margin-bottom: 0.5rem; display: inline-block;"></i>
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem;">No tienes notificaciones pendientes</p>
+                    <button type="button" onclick="window.sendTestNotification && window.sendTestNotification()" style="background: var(--primary-color, #6366f1); color: #fff; border: none; padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(99,102,241,0.25);">
+                        <i class="ph ph-paper-plane-tilt"></i> Enviar Notificación de Prueba
+                    </button>
                 </div>
             `;
             return;
@@ -278,6 +290,44 @@
         })
         .catch(err => console.debug('Error marking all as read:', err));
     }
+
+    function sendTestNotification() {
+        const testBtnHeader = document.getElementById('notifSendTestBtn');
+        if (testBtnHeader) {
+            testBtnHeader.disabled = true;
+            testBtnHeader.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Enviando...';
+        }
+
+        fetch('ajax/notifications.php?action=send_test')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('¡Notificación de prueba enviada con éxito!', 'success');
+                    }
+                    fetchNotifications();
+                } else {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(data.error || 'Error al enviar prueba', 'error');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error sending test notification:', err);
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Error de conexión al enviar prueba', 'error');
+                }
+            })
+            .finally(() => {
+                if (testBtnHeader) {
+                    testBtnHeader.disabled = false;
+                    testBtnHeader.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Probar';
+                }
+            });
+    }
+
+    // Exponer globalmente para pruebas
+    window.sendTestNotification = sendTestNotification;
 
     // Pusher WebSocket en tiempo real
     function initPusher() {

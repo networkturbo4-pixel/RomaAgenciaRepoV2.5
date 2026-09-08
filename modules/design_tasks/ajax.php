@@ -150,8 +150,11 @@ try {
                 $stmt->execute([$title, $description, $priority, $status, $due_date, $assigned_to, $drive_folder_id, $external_links, $linked_form_id, $client_id, $id]);
                 $taskId = $id;
                 
-                $assignedIds = json_decode($assigned_to, true) ?: [];
-                $assignedIds = array_values(array_diff($assignedIds, [$user_id])); 
+                $assignedRaw = json_decode($assigned_to, true) ?: [];
+                $assignedIds = array_values(array_diff($assignedRaw, [$user_id])); 
+                if (empty($assignedIds) && !empty($assignedRaw)) {
+                    $assignedIds = array_values(array_map('intval', $assignedRaw));
+                }
                 if (!empty($assignedIds)) {
                     require_once __DIR__ . '/../../includes/NotificationHelper.php';
                     NotificationHelper::send([
@@ -167,8 +170,11 @@ try {
                 $stmt->execute([$title, $description, $priority, $status, $due_date, $assigned_to, $drive_folder_id, $external_links, $linked_form_id, $client_id, $user_id]);
                 $taskId = $db->lastInsertId();
                 
-                $assignedIds = json_decode($assigned_to, true) ?: [];
-                $assignedIds = array_values(array_diff($assignedIds, [$user_id])); 
+                $assignedRaw = json_decode($assigned_to, true) ?: [];
+                $assignedIds = array_values(array_diff($assignedRaw, [$user_id])); 
+                if (empty($assignedIds) && !empty($assignedRaw)) {
+                    $assignedIds = array_values(array_map('intval', $assignedRaw));
+                }
                 if (!empty($assignedIds)) {
                     require_once __DIR__ . '/../../includes/NotificationHelper.php';
                     NotificationHelper::send([
@@ -340,8 +346,11 @@ try {
                 $stmt->execute([$id]);
                 $task = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($task) {
-                    $assignedIds = json_decode($task['assigned_to'], true) ?: [];
-                    $assignedIds = array_values(array_diff($assignedIds, [$user_id]));
+                    $assignedRaw = json_decode($task['assigned_to'], true) ?: [];
+                    $assignedIds = array_values(array_diff($assignedRaw, [$user_id]));
+                    if (empty($assignedIds) && !empty($assignedRaw)) {
+                        $assignedIds = array_values(array_map('intval', $assignedRaw));
+                    }
                     if (!empty($assignedIds)) {
                         require_once __DIR__ . '/../../includes/NotificationHelper.php';
                         NotificationHelper::send([
@@ -551,8 +560,11 @@ try {
                     $stmtTask->execute([$att['design_task_id']]);
                     $task = $stmtTask->fetch();
                     if ($task) {
-                        $assignedIds = json_decode($task['assigned_to'], true) ?: [];
-                        $assignedIds = array_values(array_diff($assignedIds, [$user_id]));
+                        $assignedRaw = json_decode($task['assigned_to'], true) ?: [];
+                        $assignedIds = array_values(array_diff($assignedRaw, [$user_id]));
+                        if (empty($assignedIds) && !empty($assignedRaw)) {
+                            $assignedIds = array_values(array_map('intval', $assignedRaw));
+                        }
                         if (!empty($assignedIds)) {
                             require_once __DIR__ . '/../../includes/NotificationHelper.php';
                             NotificationHelper::send([

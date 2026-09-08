@@ -691,20 +691,24 @@ if ($action === 'create_task') {
             }
         }
 
-        // Push notification to assigned users
+        // In-app and push notifications to assigned users
         try {
             $assigned = json_decode($assignedUsers, true) ?: [];
             $assignedIds = array_values(array_diff($assigned, [$userId]));
-            if (!empty($assignedIds) && class_exists('PushHelper')) {
-                PushHelper::sendPushNotification(
-                    $db, 
-                    $assignedIds, 
-                    "Nueva Tarea Asignada", 
-                    "\"{$title}\" ha sido asignada para ti.", 
-                    "index.php?module=task_manager", 
-                    "task_manager", 
-                    ['module' => 'task_manager', 'task_id' => $taskId]
-                );
+            if (empty($assignedIds) && !empty($assigned)) {
+                $assignedIds = array_values(array_map('intval', $assigned));
+            }
+            if (!empty($assignedIds)) {
+                require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                NotificationHelper::send([
+                    'user_id' => $assignedIds,
+                    'title'   => 'Nueva Tarea Asignada',
+                    'message' => "\"{$title}\" ha sido asignada.",
+                    'link'    => 'index.php?module=task_manager',
+                    'type'    => 'task',
+                    'icon'    => 'ph-check-square',
+                    'extra'   => ['module' => 'task_manager', 'task_id' => $taskId]
+                ], $db);
             }
         } catch(Throwable $e) {}
 
@@ -976,6 +980,40 @@ if ($action === 'update_status') {
                 }
             }
         }
+
+        // Enviar notificación a usuarios asignados
+        try {
+            $tInfo = $db->prepare("SELECT title, assigned_users FROM tm_tasks WHERE id = ?");
+            $tInfo->execute([$taskId]);
+            $tData = $tInfo->fetch(PDO::FETCH_ASSOC);
+            if ($tData) {
+                $assigned = json_decode($tData['assigned_users'] ?? '[]', true) ?: [];
+                $assignedIds = array_values(array_diff($assigned, [$userId]));
+                if (empty($assignedIds) && !empty($assigned)) {
+                    $assignedIds = array_values(array_map('intval', $assigned));
+                }
+                if (!empty($assignedIds)) {
+                    $statusLabels = [
+                        'new'         => 'Nueva',
+                        'in_progress' => 'En Progreso',
+                        'in_review'   => 'En Revisión',
+                        'completed'   => 'Completada',
+                        'approved'    => 'Aprobada',
+                        'cancelled'   => 'Cancelada'
+                    ];
+                    $lbl = $statusLabels[$newStatus] ?? $newStatus;
+                    require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                    NotificationHelper::send([
+                        'user_id' => $assignedIds,
+                        'title'   => 'Tarea actualizada',
+                        'message' => "\"{$tData['title']}\" cambió a {$lbl}.",
+                        'link'    => 'index.php?module=task_manager',
+                        'type'    => 'task',
+                        'icon'    => 'ph-check-square'
+                    ], $db);
+                }
+            }
+        } catch(Throwable $e) {}
 
         echo json_encode(['success'=>true, 'completion_notice' => $completionNotice]);
     } catch(Throwable $e) {

@@ -460,9 +460,14 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                     <span>Notificaciones</span>
                     <span class="notif-header-count" id="notifCountText">0 nuevas</span>
                 </div>
-                <button class="notif-mark-all-btn" id="notifMarkAllBtn" type="button" title="Marcar todas como leídas">
-                    Marcar leídas
-                </button>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="notif-test-btn" id="notifSendTestBtn" type="button" title="Enviar notificación de prueba" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); color: var(--primary-color, #6366f1); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                        <i class="ph ph-paper-plane-tilt"></i> Probar
+                    </button>
+                    <button class="notif-mark-all-btn" id="notifMarkAllBtn" type="button" title="Marcar todas como leídas">
+                        Marcar leídas
+                    </button>
+                </div>
             </div>
 
             <!-- Web Push Opt-in Banner (Visible only if not yet allowed) -->
