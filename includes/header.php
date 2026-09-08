@@ -406,9 +406,11 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             </script>
         </div>
     </aside>
+    <?php endif; ?>
 
     <!-- Main Content -->
     <main class="main-content">
+        <?php if (!$is_popup): ?>
         <!-- Fixed Mobile Header -->
         <div class="mobile-topbar d-md-none">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -436,11 +438,9 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             </div>
         </div>
 
-        <!-- Desktop sidebar collapse toggle removed -->
-
         <!-- Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
-    <?php endif; ?>
+        <?php endif; ?>
 
         <!-- Global Toast Container -->
         <div id="global-toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>

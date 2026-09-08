@@ -175,8 +175,15 @@ $embed_url = $has_video ? kb_get_youtube_embed($article['video_id']) : null;
     animation: kbReaderFadeIn 0.25s ease-out;
 }
 
+/* Public / Free Access Reader Canvas Optimization */
+body.is-popup .content-wrapper {
+    padding: 0 !important;
+    padding-top: 0 !important;
+}
+
 .kb-reader-container.is-public-reader {
-    padding-top: 2.25rem;
+    max-width: 1280px;
+    padding: 1.25rem 1.25rem 4rem;
 }
 
 @keyframes kbReaderFadeIn {
@@ -740,6 +747,46 @@ $embed_url = $has_video ? kb_get_youtube_embed($article['video_id']) : null;
 
     .btn-reader-text {
         display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    body.is-popup .content-wrapper {
+        padding: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    .kb-reader-container.is-public-reader {
+        padding: 0.5rem 0.45rem 2.5rem !important;
+    }
+
+    .kb-reader-container.is-public-reader .kb-reader-hero-card {
+        padding: 1.15rem 0.95rem !important;
+        border-radius: 14px;
+        margin-bottom: 0.65rem;
+    }
+
+    .kb-reader-container.is-public-reader .kb-reader-body-card {
+        padding: 1.2rem 0.95rem !important;
+        border-radius: 14px;
+    }
+
+    .kb-reader-container.is-public-reader .kb-inspector-card {
+        padding: 1rem 0.85rem !important;
+        border-radius: 14px;
+    }
+
+    .kb-reader-container.is-public-reader .kb-reader-title {
+        font-size: 1.4rem !important;
+        line-height: 1.28;
+    }
+
+    .kb-reader-container.is-public-reader .kb-hero-author-bar {
+        margin-top: 0.85rem !important;
+        padding-top: 0.75rem !important;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 }
 

@@ -280,6 +280,11 @@ html:not([data-theme="dark"]) .brand-logo-dark { display: none !important; }
         overflow-x: hidden;
     }
 
+    body.is-popup .content-wrapper {
+        padding: 0 !important;
+        padding-top: 0 !important;
+    }
+
     .sidebar {
         position: fixed;
         top: 0;
