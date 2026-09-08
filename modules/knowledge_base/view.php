@@ -426,11 +426,36 @@ body.is-popup .content-wrapper {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 2.75rem;
+    padding: 1.6rem 2.25rem 2.25rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
     font-size: 1.02rem;
     line-height: 1.85;
     color: var(--color-title);
+}
+
+.kb-reader-body-card.ql-editor {
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* Eliminate excessive top gap from the first element inside content container */
+.kb-reader-body-card > :first-child,
+#kbArticleBody > :first-child,
+.kb-reader-body-card.ql-editor > :first-child,
+.kb-reader-body-card > h1:first-child,
+.kb-reader-body-card > h2:first-child,
+.kb-reader-body-card > h3:first-child,
+.kb-reader-body-card > h4:first-child,
+.kb-reader-body-card > h5:first-child,
+.kb-reader-body-card > h6:first-child,
+.kb-reader-body-card > p:first-child,
+.kb-reader-body-card > ol:first-child,
+.kb-reader-body-card > ul:first-child,
+.kb-reader-body-card > div:first-child,
+.kb-reader-body-card > blockquote:first-child,
+.kb-reader-body-card > pre:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 
 .kb-reader-body-card h1,
@@ -457,8 +482,13 @@ body.is-popup .content-wrapper {
 }
 
 .kb-reader-body-card p {
+    margin-top: 0;
     margin-bottom: 1.35rem;
     color: var(--color-title);
+}
+
+.kb-reader-body-card > p:empty {
+    display: none !important;
 }
 
 .kb-reader-body-card ul, 
@@ -734,7 +764,7 @@ body.is-popup .content-wrapper {
     }
 
     .kb-reader-body-card {
-        padding: 1.75rem;
+        padding: 1.35rem 1.65rem 1.75rem;
     }
 
     .kb-reader-hero-card {
@@ -756,6 +786,10 @@ body.is-popup .content-wrapper {
         padding-top: 0 !important;
     }
 
+    .kb-reader-main {
+        gap: 0.85rem !important;
+    }
+
     .kb-reader-container.is-public-reader {
         padding: 0.5rem 0.45rem 2.5rem !important;
     }
@@ -763,11 +797,13 @@ body.is-popup .content-wrapper {
     .kb-reader-container.is-public-reader .kb-reader-hero-card {
         padding: 1.15rem 0.95rem !important;
         border-radius: 14px;
-        margin-bottom: 0.65rem;
+        margin-bottom: 0 !important;
     }
 
+    .kb-reader-container .kb-reader-body-card,
     .kb-reader-container.is-public-reader .kb-reader-body-card {
-        padding: 1.2rem 0.95rem !important;
+        padding: 0.85rem 0.95rem 1.35rem !important;
+        padding-top: 0.75rem !important;
         border-radius: 14px;
     }
 
@@ -963,8 +999,12 @@ body.is-popup .content-wrapper {
             <?php endif; ?>
 
             <!-- Article Content Canvas -->
+            <?php
+            $clean_article_body = preg_replace('/^(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+/i', '', trim($article['content'] ?? ''));
+            $clean_article_body = preg_replace('/(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i', '', $clean_article_body);
+            ?>
             <article class="kb-reader-body-card ql-editor" id="kbArticleBody">
-                <?php echo $article['content']; ?>
+                <?php echo $clean_article_body; ?>
             </article>
 
             <!-- Feedback & Rating -->
@@ -1138,6 +1178,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleBody = document.getElementById('kbArticleBody');
     const tocNav = document.getElementById('kbTocNav');
     const tocCard = document.getElementById('kbTocCard');
+
+    if (articleBody) {
+        // Strip leading empty paragraphs or line breaks dynamically
+        while (articleBody.firstElementChild && 
+               articleBody.firstElementChild.tagName === 'P' && 
+               (articleBody.firstElementChild.innerHTML.trim() === '<br>' || 
+                articleBody.firstElementChild.innerHTML.trim() === '' || 
+                articleBody.firstElementChild.textContent.trim() === '')) {
+            articleBody.firstElementChild.remove();
+        }
+    }
 
     if (articleBody && tocNav) {
         const headings = articleBody.querySelectorAll('h1, h2, h3');
