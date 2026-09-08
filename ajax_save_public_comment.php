@@ -4,7 +4,7 @@ ob_start();
 header('Content-Type: application/json');
 
 try {
-    require_once 'config/database.php';
+    require_once __DIR__ . '/config/database.php';
     $db = (new Database())->getConnection();
 
     $post_id = isset($_POST['post_id']) ? (int)$_POST['post_id'] : 0;
@@ -128,34 +128,67 @@ try {
         error_log("Error updating post status: " . $eUpdate->getMessage());
     }
 
-    // Notify team members (opcional y seguro)
-    if (file_exists('includes/PushHelper.php') || file_exists('includes/NotificationHelper.php')) {
+    // Notify team members and agency admins
+    $notificationHelperFile = __DIR__ . '/includes/NotificationHelper.php';
+    if (file_exists($notificationHelperFile)) {
         try {
+            require_once $notificationHelperFile;
+
             $stmtProj = $db->prepare("
-                SELECT p.team_members, mp.concept, mp.month_id 
+                SELECT p.team_members, mp.concept, mp.month_id, w.brand_name 
                 FROM month_posts mp 
                 JOIN project_months pm ON mp.month_id = pm.id 
                 JOIN projects p ON pm.project_id = p.id 
+                LEFT JOIN work_orders w ON p.work_order_id = w.id 
                 WHERE mp.id = ?
             ");
             $stmtProj->execute([$post_id]);
-            $proj = $stmtProj->fetch();
+            $proj = $stmtProj->fetch(PDO::FETCH_ASSOC);
+
+            $recipientIds = [];
             if ($proj && !empty($proj['team_members'])) {
-                $assignedIds = json_decode($proj['team_members'], true) ?: [];
-                if (!empty($assignedIds)) {
-                    require_once 'includes/NotificationHelper.php';
-                    $link = "index.php?module=month_board&id=" . (int)$proj['month_id'] . "&open_post=" . (int)$post_id . "&tab=comments";
-                    NotificationHelper::send([
-                        'user_id' => $assignedIds,
-                        'title'   => 'Comentario de Cliente',
-                        'message' => "El cliente dejó un comentario en '{$proj['concept']}': {$comment_text}",
-                        'link'    => $link,
-                        'type'    => 'comment'
-                    ], $db);
+                $team = json_decode($proj['team_members'], true) ?: [];
+                $recipientIds = array_map('intval', $team);
+            }
+
+            // Always notify administrators so agency leadership is immediately aware of client comments
+            $adminStmt = $db->query("SELECT id FROM users WHERE role_id = 1");
+            if ($adminStmt) {
+                $adminIds = $adminStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+                foreach ($adminIds as $aid) {
+                    $recipientIds[] = (int)$aid;
                 }
             }
+
+            $recipientIds = array_values(array_unique(array_filter($recipientIds)));
+
+            if (!empty($recipientIds)) {
+                $concept = !empty($proj['concept']) ? $proj['concept'] : 'Publicación';
+                $brandSuffix = !empty($proj['brand_name']) ? " ({$proj['brand_name']})" : '';
+                
+                $previewComment = trim(strip_tags($comment_text));
+                if (empty($previewComment) && !empty($image_link)) {
+                    $previewComment = 'Adjuntó una captura';
+                } elseif (empty($previewComment) && !empty($audio_link)) {
+                    $previewComment = 'Dejó una nota de voz';
+                }
+                $shortComment = mb_substr($previewComment, 0, 80);
+                if (mb_strlen($previewComment) > 80) $shortComment .= '...';
+
+                $monthTargetId = (int)($proj['month_id'] ?? $month_id);
+                $link = "index.php?module=month_board&id={$monthTargetId}&open_post={$post_id}&tab=comments";
+
+                NotificationHelper::send([
+                    'user_id' => $recipientIds,
+                    'title'   => "Comentario de Cliente{$brandSuffix}",
+                    'message' => "En '{$concept}': \"{$shortComment}\"",
+                    'link'    => $link,
+                    'type'    => 'comment',
+                    'icon'    => 'ph-chat-circle-dots'
+                ], $db);
+            }
         } catch (Throwable $ePush) {
-            error_log("Push error: " . $ePush->getMessage());
+            error_log("NotificationHelper comment error: " . $ePush->getMessage());
         }
     }
 

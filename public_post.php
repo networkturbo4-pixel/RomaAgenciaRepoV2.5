@@ -45,6 +45,9 @@ $post = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$post) {
     die("La publicación solicitada no existe.");
 }
+if (!empty($post['month_id'])) {
+    $_SESSION['public_auth_' . $post['month_id']] = true;
+}
 
 $monthNames = [
     1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 

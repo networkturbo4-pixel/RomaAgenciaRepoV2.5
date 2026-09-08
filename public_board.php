@@ -41,6 +41,9 @@ $title = htmlspecialchars($monthData['brand_name']) . " - " . $monthNames[$month
 
 // Comprobar si requiere PIN
 $isProtected = !empty($monthData['pin']);
+if (!$isProtected) {
+    $_SESSION['public_auth_' . $id] = true;
+}
 $isAuthenticated = isset($_SESSION['public_auth_' . $id]) && $_SESSION['public_auth_' . $id] === true;
 
 if ($isProtected && !$isAuthenticated) {

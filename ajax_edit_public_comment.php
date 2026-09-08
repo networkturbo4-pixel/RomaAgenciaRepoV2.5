@@ -1,6 +1,8 @@
 <?php
 // ajax_edit_public_comment.php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
 require_once __DIR__ . '/config/database.php';
 
@@ -14,14 +16,25 @@ try {
         exit();
     }
 
-    // Verificar autorización: Usuario autenticado, Portal de cliente o PIN de tablero público
+    // Verificar autorización: Usuario autenticado, Portal de cliente o Acceso al tablero público
     $is_authorized = isset($_SESSION['user_id']) || !empty($_SESSION['client_portal_id']);
     if (!$is_authorized) {
-        $stmtM = $db->prepare("SELECT mp.month_id FROM post_comments c JOIN month_posts mp ON c.post_id = mp.id WHERE c.id = ?");
+        $stmtM = $db->prepare("
+            SELECT mp.month_id, pm.pin 
+            FROM post_comments c 
+            JOIN month_posts mp ON c.post_id = mp.id 
+            JOIN project_months pm ON mp.month_id = pm.id 
+            WHERE c.id = ?
+        ");
         $stmtM->execute([$id]);
-        $month_id = $stmtM->fetchColumn();
-        if ($month_id && !empty($_SESSION['public_auth_' . $month_id])) {
-            $is_authorized = true;
+        $boardInfo = $stmtM->fetch(PDO::FETCH_ASSOC);
+        if ($boardInfo) {
+            $month_id = (int)$boardInfo['month_id'];
+            $boardPin = trim($boardInfo['pin'] ?? '');
+            // Si el tablero no tiene PIN (acceso libre) o la sesión tiene la clave validada
+            if (empty($boardPin) || !empty($_SESSION['public_auth_' . $month_id])) {
+                $is_authorized = true;
+            }
         }
     }
 
