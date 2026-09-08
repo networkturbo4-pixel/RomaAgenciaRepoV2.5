@@ -160,6 +160,7 @@ $all_modules = [
     
     // Creatividad & Herramientas
     'desarrollo_marca'  => ['name' => 'Desarrollo de Marca', 'icon' => 'ph-paint-brush-broad'],
+    'knowledge_base'    => ['name' => 'Base de Conocimiento', 'icon' => 'ph-book-open'],
     'romita'            => ['name' => 'Romita IA', 'icon' => 'ph-sparkle'],
     'pizarras'          => ['name' => 'Pizarras', 'icon' => 'ph-chalkboard'],
     'reuniones'         => ['name' => 'Reuniones', 'icon' => 'ph-video-camera'],

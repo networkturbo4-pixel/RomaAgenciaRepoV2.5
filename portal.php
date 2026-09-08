@@ -40,6 +40,8 @@ if (!$client_id) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/variables.css">
     <link rel="stylesheet" href="assets/css/drive.css?v=<?php echo filemtime('assets/css/drive.css'); ?>">
+    <!-- Fancybox CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css"/>
     <style>
         :root {
             --portal-primary: <?php echo $primary_color; ?>;
@@ -333,6 +335,117 @@ if (!$client_id) {
             border-radius: 8px;
             border: none;
         }
+
+        /* Knowledge Base Article & Gallery Styling in Portal */
+        .kb-rendered-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin: 1.25rem 0;
+            cursor: zoom-in;
+            transition: transform 0.2s ease;
+        }
+        .kb-rendered-content img:hover {
+            transform: scale(1.015);
+        }
+        .kb-gallery-del-btn {
+            display: none !important;
+        }
+        .kb-gallery-block {
+            margin: 1.75rem 0;
+            background: var(--portal-bg);
+            border: 1px solid var(--portal-border);
+            border-radius: 18px;
+            padding: 1.25rem;
+        }
+        .kb-gallery-block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .kb-gallery-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--portal-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .kb-gallery-grid {
+            display: grid;
+            gap: 0.85rem;
+        }
+        .kb-gallery-grid.cols-2 {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+        .kb-gallery-grid.cols-3 {
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+        .kb-gallery-grid.cols-4 {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        .kb-gallery-item {
+            position: relative;
+            display: block;
+            aspect-ratio: 4 / 3;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0f172a;
+            border: 1px solid var(--portal-border);
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .kb-gallery-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .kb-gallery-item img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+            display: block;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            transition: transform 0.3s ease;
+        }
+        .kb-gallery-item:hover img {
+            transform: scale(1.06);
+        }
+        .kb-gallery-zoom-badge {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+        blockquote.kb-callout-tip {
+            border-left: 4px solid #10b981 !important;
+            background: rgba(16, 185, 129, 0.08) !important;
+            color: var(--portal-text) !important;
+            border-radius: 0 12px 12px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            font-style: normal;
+        }
+        blockquote.kb-callout-warning {
+            border-left: 4px solid #f59e0b !important;
+            background: rgba(245, 158, 11, 0.08) !important;
+            color: var(--portal-text) !important;
+            border-radius: 0 12px 12px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            font-style: normal;
+        }
     </style>
 </head>
 <body>
@@ -459,6 +572,14 @@ if (!$client_id) {
                 </div>
                 <div style="font-weight: 700; color: var(--portal-text); font-size: 1.05rem; margin-bottom: 0.25rem;">Soporte</div>
                 <div style="color: var(--portal-muted); font-size: 0.85rem;">Obtén ayuda experta</div>
+            </div>
+
+            <div class="card" style="margin-bottom: 0; cursor: pointer; transition: transform 0.2s; padding: 1.25rem;" onclick="switchView('kb')" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(139, 92, 246, 0.12); color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1rem;">
+                    <i class="ph ph-book-open"></i>
+                </div>
+                <div style="font-weight: 700; color: var(--portal-text); font-size: 1.05rem; margin-bottom: 0.25rem;">Guías & Videos</div>
+                <div style="color: var(--portal-muted); font-size: 0.85rem;">Procesos de diseño y tutoriales</div>
             </div>
 
         </div>
@@ -770,6 +891,41 @@ if (!$client_id) {
     </div>
 </div>
 
+<!-- Knowledge Base / Guides View -->
+<div id="view-kb" class="view">
+    <div class="portal-header" style="align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="btn-icon" onclick="switchView('home')" style="background: none; border: none; font-size: 1.5rem; color: var(--portal-text); cursor: pointer; padding: 0;">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <h1 class="portal-title" style="margin: 0; font-size: 1.35rem;" id="kb-top-title">Guías & Tutoriales</h1>
+        </div>
+    </div>
+    <div class="content-padding" style="margin-top: 1rem;">
+        <!-- List View -->
+        <div id="kb-client-list-view">
+            <p style="color: var(--portal-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                Aprende a navegar en tu portal, revisar propuestas de diseño y resolver dudas frecuentes.
+            </p>
+            <div id="kb-client-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
+                <div style="text-align: center; padding: 2rem; grid-column: 1/-1;"><div class="loader" style="margin: 0 auto;"></div></div>
+            </div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="kb-client-detail-view" style="display: none;">
+            <button class="btn" style="width: auto; padding: 0.5rem 1rem; margin-bottom: 1.5rem; background: var(--portal-surface); color: var(--portal-text); border: 1px solid var(--portal-border); font-size: 0.85rem;" onclick="backToKbList()">
+                <i class="ph ph-arrow-left"></i> Volver a todas las guías
+            </button>
+
+            <!-- Detail container -->
+            <div id="kb-client-detail-content" class="card" style="padding: 1.75rem;">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Bottom Navigation -->
 <div class="bottom-nav" id="bottom-nav" style="display: flex;">
     <div class="nav-item active" onclick="switchView('home')" data-target="home">
@@ -864,6 +1020,128 @@ function switchView(viewName) {
     if (viewName === 'projects') loadProjects();
     if (viewName === 'designs') loadDesigns();
     if (viewName === 'drive') loadDrive();
+    if (viewName === 'kb') loadKbArticles();
+}
+
+function loadKbArticles() {
+    const grid = document.getElementById('kb-client-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="text-align: center; padding: 2rem; grid-column: 1/-1;"><div class="loader" style="margin: 0 auto;"></div></div>';
+    backToKbList();
+
+    fetch('ajax_portal.php?action=get_kb_articles')
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success || !data.articles || data.articles.length === 0) {
+            grid.innerHTML = '<div class="card" style="text-align: center; padding: 2rem; grid-column: 1/-1; color: var(--portal-muted);">No hay guías disponibles en este momento.</div>';
+            return;
+        }
+        grid.innerHTML = data.articles.map(art => `
+            <div class="card" style="cursor: pointer; padding: 1.25rem; display: flex; flex-direction: column; transition: transform 0.2s;" onclick="openKbArticle(${art.id})" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                ${art.video_id ? `
+                    <div style="position: relative; width: 100%; padding-top: 56.25%; border-radius: 12px; overflow: hidden; margin-bottom: 1rem; background: #000;">
+                        <img src="https://img.youtube.com/vi/${art.video_id}/hqdefault.jpg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
+                        <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: #ff0000; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                                <i class="ph-fill ph-play"></i>
+                            </div>
+                        </div>
+                        <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                            ${art.duration_minutes} min
+                        </span>
+                    </div>
+                ` : `
+                    <div style="width: 40px; height: 40px; border-radius: 10px; background: color-mix(in srgb, ${art.category_color} 12%, transparent); color: ${art.category_color}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1rem;">
+                        <i class="ph ${art.category_icon || 'ph-book-open'}"></i>
+                    </div>
+                `}
+                <span style="font-size: 0.72rem; font-weight: 700; color: ${art.category_color}; text-transform: uppercase; margin-bottom: 4px;">
+                    ${art.category_name}
+                </span>
+                <div style="font-weight: 700; color: var(--portal-text); font-size: 1.05rem; margin-bottom: 0.5rem; line-height: 1.35;">
+                    ${art.title}
+                </div>
+                <div style="color: var(--portal-muted); font-size: 0.85rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 1rem;">
+                    ${art.summary || 'Haz clic para ver el tutorial completo.'}
+                </div>
+                <div style="margin-top: auto; padding-top: 0.75rem; border-top: 1px solid var(--portal-border); font-size: 0.78rem; color: var(--portal-primary-contrast); font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                    Ver tutorial completo <i class="ph ph-arrow-right"></i>
+                </div>
+            </div>
+        `).join('');
+    })
+    .catch(err => {
+        grid.innerHTML = '<div class="card" style="text-align: center; padding: 2rem; grid-column: 1/-1; color: var(--portal-muted);">Error al cargar las guías.</div>';
+    });
+}
+
+function openKbArticle(id) {
+    const detailBox = document.getElementById('kb-client-detail-content');
+    detailBox.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="loader" style="margin: 0 auto;"></div></div>';
+    document.getElementById('kb-client-list-view').style.display = 'none';
+    document.getElementById('kb-client-detail-view').style.display = 'block';
+
+    fetch('ajax_portal.php?action=get_kb_article_detail&id=' + id)
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success || !data.article) {
+            detailBox.innerHTML = '<p>No se pudo cargar el artículo.</p>';
+            return;
+        }
+        const art = data.article;
+        detailBox.innerHTML = `
+            <div style="margin-bottom: 1rem;">
+                <span style="background: color-mix(in srgb, ${art.category_color} 15%, transparent); color: ${art.category_color}; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem;">
+                    ${art.category_name}
+                </span>
+            </div>
+            <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--portal-text); margin-bottom: 0.75rem; line-height: 1.3;">
+                ${art.title}
+            </h1>
+            ${art.summary ? `<p style="color: var(--portal-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">${art.summary}</p>` : ''}
+            
+            ${art.video_id ? `
+                <div style="position: relative; width: 100%; padding-top: 56.25%; border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem; background: #000;">
+                    <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
+                            src="https://www.youtube-nocookie.com/embed/${art.video_id}?rel=0&modestbranding=1" 
+                            allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                    </iframe>
+                </div>
+            ` : ''}
+
+            <div style="font-size: 1rem; line-height: 1.7; color: var(--portal-text);" class="kb-rendered-content">
+                ${art.content}
+            </div>
+        `;
+
+        // Bind Fancybox for all article images and galleries
+        if (window.Fancybox) {
+            detailBox.querySelectorAll('.kb-rendered-content img').forEach((img) => {
+                const parentA = img.closest('a');
+                if (parentA && parentA.hasAttribute('data-fancybox')) return;
+                img.style.cursor = 'zoom-in';
+                img.setAttribute('title', 'Haz clic para ampliar');
+                img.addEventListener('click', () => {
+                    Fancybox.show([{
+                        src: img.src,
+                        type: 'image',
+                        caption: img.alt || 'Imagen del artículo'
+                    }]);
+                });
+            });
+
+            Fancybox.bind('#kb-client-detail-content [data-fancybox]', {
+                Thumbs: { autoStart: true }
+            });
+        }
+    });
+}
+
+function backToKbList() {
+    const d = document.getElementById('kb-client-detail-view');
+    const l = document.getElementById('kb-client-list-view');
+    if (d) d.style.display = 'none';
+    if (l) l.style.display = 'block';
 }
 
 function logout() {
@@ -1816,5 +2094,7 @@ function copyShareLink() {
     });
 }
 </script>
+<!-- Fancybox JS for Client Portal -->
+<script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
 </body>
 </html>

@@ -338,6 +338,45 @@ try {
             echo json_encode(['success' => true, 'folders' => $rootFolders]);
             break;
 
+        case 'get_kb_articles':
+            if (!isset($_SESSION['client_portal_id'])) {
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit();
+            }
+            $stmt = $db->query("
+                SELECT a.id, a.title, a.summary, a.video_url, a.video_id, a.duration_minutes, a.created_at,
+                       c.name as category_name, c.color as category_color, c.icon as category_icon
+                FROM kb_articles a
+                JOIN kb_categories c ON a.category_id = c.id
+                WHERE a.audience IN ('public', 'all', 'clients') AND a.status = 'published'
+                ORDER BY a.created_at DESC
+            ");
+            $kbArticles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(['success' => true, 'articles' => $kbArticles]);
+            break;
+
+        case 'get_kb_article_detail':
+            if (!isset($_SESSION['client_portal_id'])) {
+                echo json_encode(['success' => false, 'error' => 'No autorizado']);
+                exit();
+            }
+            $art_id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+            $stmt = $db->prepare("
+                SELECT a.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+                FROM kb_articles a
+                JOIN kb_categories c ON a.category_id = c.id
+                WHERE a.id = ? AND a.audience IN ('public', 'all', 'clients') AND a.status = 'published'
+                LIMIT 1
+            ");
+            $stmt->execute([$art_id]);
+            $art = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($art) {
+                $db->prepare("UPDATE kb_articles SET views_count = views_count + 1 WHERE id = ?")->execute([$art_id]);
+                echo json_encode(['success' => true, 'article' => $art]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Artículo no encontrado']);
+            }
+            break;
 
         default:
             echo json_encode(['success' => false, 'error' => 'Acción no válida']);

@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) && empty($is_public)) {
 
 $current_module = $_GET['module'] ?? 'dashboard';
 $current_action = $_GET['action'] ?? ($action ?? 'index');
-$is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
+$is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -237,6 +237,13 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
             </a>
             <?php endif; ?>
 
+            <?php if (in_array('knowledge_base', $perms)): ?>
+            <a href="index.php?module=knowledge_base&action=index" class="nav-item <?php echo $current_module === 'knowledge_base' ? 'active' : ''; ?>" data-title="Base de Conocimiento">
+                <i class="ph ph-book-open"></i>
+                <span>Base de Conocimiento</span>
+            </a>
+            <?php endif; ?>
+
             <?php if (in_array('admin', $perms)): ?>
             <a href="index.php?module=admin&action=finances" class="nav-item <?php echo ($current_module === 'admin' && $current_action === 'finances') ? 'active' : ''; ?>" data-title="Finanzas">
                 <i class="ph ph-chart-line-up"></i>
@@ -449,4 +456,4 @@ $is_popup = isset($_GET['popup']) && $_GET['popup'] == '1';
         </script>
 
         <!-- Dynamic Content -->
-        <div class="content-wrapper" <?php if($is_popup) echo 'style="padding:0; height:100vh; overflow:hidden;"'; ?>>
+        <div class="content-wrapper" <?php if($is_popup && empty($allow_scroll)) echo 'style="padding:0; height:100vh; overflow:hidden;"'; elseif($is_popup) echo 'style="padding:0; min-height:100vh;"'; ?>>

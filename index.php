@@ -22,8 +22,19 @@ foreach ($global_settings_raw as $row) {
 }
 
 // Basic Routing
-$module = !empty($_GET['module']) ? $_GET['module'] : 'dashboard';
-$action = !empty($_GET['action']) ? $_GET['action'] : 'index';
+// Short link for knowledge base: ?k={id} or ?kb={id}
+if (!empty($_GET['k']) && is_numeric($_GET['k'])) {
+    $module = 'knowledge_base';
+    $action = 'view';
+    $_GET['id'] = (int)$_GET['k'];
+} elseif (!empty($_GET['kb']) && is_numeric($_GET['kb'])) {
+    $module = 'knowledge_base';
+    $action = 'view';
+    $_GET['id'] = (int)$_GET['kb'];
+} else {
+    $module = !empty($_GET['module']) ? $_GET['module'] : 'dashboard';
+    $action = !empty($_GET['action']) ? $_GET['action'] : 'index';
+}
 
 // Check Authentication
 if (!isset($_SESSION['user_id'])) {
@@ -41,6 +52,7 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'pizarras' && $action === 'view')
         && !($module === 'quotes' && $action === 'public')
         && !($module === 'suppliers' && $action === 'public')
+        && !($module === 'knowledge_base' && (!empty($_SESSION['client_portal_id']) || $action === 'view'))
         && $module !== 'public'
     ) {
         header("Location: index.php?module=auth&action=login");
@@ -55,7 +67,7 @@ if (!isset($_SESSION['user_id'])) {
     $user_requires_attendance = isset($currentUserData['requires_attendance']) ? (int)$currentUserData['requires_attendance'] : 1;
 
     $user_permissions = [];
-    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat'];
+    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
     
     $role_name = '';
     $role_requires_attendance = 1;
@@ -116,6 +128,7 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'pizarras' && $action === 'view')
         && !($module === 'quotes' && $action === 'public')
         && !($module === 'suppliers' && $action === 'public')
+        && !($module === 'knowledge_base' && (!empty($_SESSION['client_portal_id']) || $action === 'view'))
         && $module !== 'public'
     ) {
         if (!in_array($module, $user_permissions)) {
@@ -248,7 +261,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Map modules to their respective files
-$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca', 'client_portal', 'design_tasks', 'tasks', 'chat'];
+$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
 if (in_array($module, $allowed_modules)) {
     $module_file = "modules/{$module}/{$action}.php";
     if (file_exists($module_file)) {

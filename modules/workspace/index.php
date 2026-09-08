@@ -131,6 +131,7 @@ require_once 'includes/header.php';
 .icon-tasks { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
 .icon-romita { background: linear-gradient(135deg, #4f46e5, #ec4899); }
 .icon-brand { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+.icon-kb { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
 .icon-meetings { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
 .icon-whiteboard { background: linear-gradient(135deg, #10b981, #059669); }
 .icon-tools { background: linear-gradient(135deg, #f59e0b, #d97706); }
@@ -244,6 +245,17 @@ require_once 'includes/header.php';
             </div>
             <h3 class="workspace-card-title">Desarrollo de Marca</h3>
             <p class="workspace-card-desc">Gestión de identidad visual, manuales de marca y assets corporativos.</p>
+        </a>
+        <?php endif; ?>
+
+        <!-- Base de Conocimiento (Activo) -->
+        <?php if (in_array('knowledge_base', $perms)): ?>
+        <a href="index.php?module=knowledge_base&action=index" class="workspace-card" style="animation-delay: 0.18s;">
+            <div class="workspace-card-icon icon-kb">
+                <i class="ph ph-book-open"></i>
+            </div>
+            <h3 class="workspace-card-title">Base de Conocimiento</h3>
+            <p class="workspace-card-desc">Manuales de procesos, tutoriales en video de YouTube, guías para clientes y estandarización.</p>
         </a>
         <?php endif; ?>
 
