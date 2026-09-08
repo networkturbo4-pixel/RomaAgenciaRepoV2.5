@@ -1,0 +1,28 @@
+﻿# Deshabilitar la ejecución de cualquier script en la carpeta de subidas
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Bloquear ejecución directa de archivos de script y ejecutables
+<FilesMatch "(?i)\.(php|phtml|php3|php4|php5|php7|php8|phar|inc|pl|py|cgi|sh|bash|exe|bat|cmd|vbs|msi)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Servir todos los archivos como estáticos / descarga
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .cgi .pl .py
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .cgi .pl .py
+
+# Prohibir listado de directorios
+Options -Indexes -ExecCGI

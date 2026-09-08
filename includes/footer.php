@@ -237,6 +237,7 @@
 
 <script src="assets/js/app.js?v=<?php echo filemtime('assets/js/app.js'); ?>"></script>
 <script src="assets/js/push_notifications.js?v=<?php echo filemtime('assets/js/push_notifications.js'); ?>"></script>
+<script src="assets/js/notifications.js?v=<?php echo file_exists('assets/js/notifications.js') ? filemtime('assets/js/notifications.js') : '1'; ?>"></script>
 <?php if (file_exists('assets/js/collaboration.js')): ?>
 <script src="assets/js/collaboration.js?v=<?php echo filemtime('assets/js/collaboration.js'); ?>"></script>
 <?php endif; ?>

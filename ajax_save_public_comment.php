@@ -129,18 +129,29 @@ try {
     }
 
     // Notify team members (opcional y seguro)
-    if (file_exists('includes/PushHelper.php')) {
+    if (file_exists('includes/PushHelper.php') || file_exists('includes/NotificationHelper.php')) {
         try {
-            $stmtProj = $db->prepare("SELECT p.team_members, mp.concept FROM month_posts mp JOIN project_months pm ON mp.month_id = pm.id JOIN projects p ON pm.project_id = p.id WHERE mp.id = ?");
+            $stmtProj = $db->prepare("
+                SELECT p.team_members, mp.concept, mp.month_id 
+                FROM month_posts mp 
+                JOIN project_months pm ON mp.month_id = pm.id 
+                JOIN projects p ON pm.project_id = p.id 
+                WHERE mp.id = ?
+            ");
             $stmtProj->execute([$post_id]);
             $proj = $stmtProj->fetch();
             if ($proj && !empty($proj['team_members'])) {
                 $assignedIds = json_decode($proj['team_members'], true) ?: [];
                 if (!empty($assignedIds)) {
-                    require_once 'includes/PushHelper.php';
-                    if (class_exists('PushHelper')) {
-                        PushHelper::sendPushNotification($db, $assignedIds, "Comentario de Cliente", "El cliente dejó un comentario en '{$proj['concept']}': {$comment_text}", "index.php?module=calendar", "calendar", ['module' => 'calendar']);
-                    }
+                    require_once 'includes/NotificationHelper.php';
+                    $link = "index.php?module=month_board&id=" . (int)$proj['month_id'] . "&open_post=" . (int)$post_id . "&tab=comments";
+                    NotificationHelper::send([
+                        'user_id' => $assignedIds,
+                        'title'   => 'Comentario de Cliente',
+                        'message' => "El cliente dejó un comentario en '{$proj['concept']}': {$comment_text}",
+                        'link'    => $link,
+                        'type'    => 'comment'
+                    ], $db);
                 }
             }
         } catch (Throwable $ePush) {

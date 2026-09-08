@@ -44,7 +44,14 @@ try {
             $userId = $_SESSION['user_id'] ?? 0;
             $assignedIds = array_values(array_diff($assignedIds, [$userId]));
             if (!empty($assignedIds)) {
-                PushHelper::sendPushNotification($db, $assignedIds, "Estado de Post Actualizado", "El post '{$proj['concept']}' cambió a: {$status}", "index.php?module=calendar", "calendar", ['module' => 'calendar']);
+                require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                NotificationHelper::send([
+                    'user_id' => $assignedIds,
+                    'title'   => 'Estado de Post Actualizado',
+                    'message' => "El post '{$proj['concept']}' cambió a: {$status}",
+                    'link'    => 'index.php?module=calendar',
+                    'type'    => 'calendar'
+                ], $db);
             }
         }
     } catch (Throwable $ePush) {

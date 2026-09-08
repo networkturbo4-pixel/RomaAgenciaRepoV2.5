@@ -1,0 +1,384 @@
+/* assets/css/notifications.css */
+
+/* --- BOTÓN DE CAMPANA Y BADGE --- */
+.notif-bell-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.notif-bell-btn:hover {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--primary-color);
+}
+
+[data-theme="dark"] .notif-bell-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.notif-bell-btn i {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.notif-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 9999px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.35);
+    pointer-events: none;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.notif-badge.pulse {
+    animation: notifPulse 1.2s infinite;
+}
+
+@keyframes notifPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 0 7px rgba(239, 68, 68, 0);
+        transform: scale(1.15);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        transform: scale(1);
+    }
+}
+
+/* Integración nativa con Sidebar */
+.sidebar .notif-bell-btn.nav-item {
+    width: 60px !important;
+    height: auto !important;
+    margin: 0.25rem 0.75rem !important;
+    padding: 0.75rem 0 !important;
+    border-radius: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted);
+    position: relative !important;
+    cursor: pointer;
+    box-shadow: none !important;
+    transition: all var(--transition-fast, 0.2s);
+}
+
+.sidebar .notif-bell-btn.nav-item:hover {
+    color: var(--primary-color) !important;
+    background-color: color-mix(in srgb, var(--primary-color) 10%, transparent) !important;
+}
+
+.sidebar .notif-bell-btn.nav-item i {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.sidebar .notif-bell-btn.nav-item .notif-badge {
+    position: absolute !important;
+    top: 5px !important;
+    right: 14px !important;
+}
+
+/* --- POPOVER / PANEL DE NOTIFICACIONES --- */
+.notif-popover {
+    position: fixed;
+    width: 360px;
+    max-width: calc(100vw - 24px);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.14);
+    z-index: 1060;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.notif-popover.active {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Posicionamiento Desktop: Al lado de la barra lateral izquierda */
+@media (min-width: 768px) {
+    .notif-popover.desktop-mode {
+        left: 80px;
+        bottom: 30px;
+        max-height: 520px;
+    }
+}
+
+/* Posicionamiento Móvil: Debajo del topbar superior derecho */
+@media (max-width: 767px) {
+    .notif-popover {
+        top: 60px;
+        right: 12px;
+        max-height: calc(100vh - 80px);
+    }
+}
+
+/* Encabezado del Popover */
+.notif-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.15rem 0.75rem 1.15rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-surface);
+}
+
+.notif-header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-title, var(--text-main));
+}
+
+.notif-header-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 12px;
+    background: var(--primary-bg, rgba(79, 70, 229, 0.1));
+    color: var(--primary-color);
+}
+
+.notif-mark-all-btn {
+    border: none;
+    background: transparent;
+    color: var(--primary-color);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.notif-mark-all-btn:hover {
+    background: var(--primary-bg, rgba(79, 70, 229, 0.1));
+    text-decoration: underline;
+}
+
+/* Banner para activar Web Push si está pendiente */
+.notif-push-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1rem;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    color: var(--text-main);
+    gap: 0.5rem;
+}
+
+.notif-push-banner button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 3px 9px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Lista de Notificaciones con scroll */
+.notif-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 380px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.notif-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.notif-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+/* Elemento individual de Notificación */
+.notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid var(--border-color);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-item:hover {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.025));
+}
+
+[data-theme="dark"] .notif-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Notificación no leída: resalta ligeramente */
+.notif-item.unread {
+    background: color-mix(in srgb, var(--primary-color) 5%, transparent);
+}
+
+.notif-item.unread::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--primary-color);
+}
+
+/* Icono del tipo de notificación */
+.notif-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.15rem;
+}
+
+.notif-icon-task {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.notif-icon-comment {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+}
+
+.notif-icon-meeting {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+.notif-icon-mention {
+    background: rgba(236, 72, 153, 0.12);
+    color: #ec4899;
+}
+
+.notif-icon-calendar {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.notif-icon-quote {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0ea5e9;
+}
+
+.notif-icon-general {
+    background: var(--primary-bg, rgba(79, 70, 229, 0.12));
+    color: var(--primary-color);
+}
+
+/* Contenido de texto */
+.notif-content {
+    flex: 1;
+    min-width: 0;
+    padding-right: 0.5rem;
+}
+
+.notif-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--color-title, var(--text-main));
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notif-body {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.notif-time {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+    display: block;
+    opacity: 0.85;
+}
+
+/* Estado Vacío */
+.notif-empty {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.notif-empty i {
+    font-size: 2.5rem;
+    color: var(--text-muted);
+    opacity: 0.4;
+}
+
+.notif-empty p {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+}

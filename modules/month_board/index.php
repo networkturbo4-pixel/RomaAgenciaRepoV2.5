@@ -1265,7 +1265,7 @@ setInterval(updateMonthBoardTimer, 1000);
                 $postDeadline = $monthData['due_date'];
             }
             ?>
-            <div class="post-card" style="background: <?php echo $sColor['bg']; ?>; border: 1px solid <?php echo $sColor['color']; ?>22;" onclick="editPost(<?php echo htmlspecialchars(json_encode($p) ?: '{}'); ?>)">
+            <div class="post-card" id="post-card-<?php echo $p['id']; ?>" data-post-id="<?php echo $p['id']; ?>" style="background: <?php echo $sColor['bg']; ?>; border: 1px solid <?php echo $sColor['color']; ?>22;" onclick="editPost(<?php echo htmlspecialchars(json_encode($p) ?: '{}'); ?>)">
                 <!-- Header Section -->
                 <div class="post-card-header">
                     <div class="post-order-badge" style="color: <?php echo $sColor['color']; ?>;">
@@ -7937,13 +7937,29 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 <?php endif; ?>
 
-<?php if (isset($_GET['open_post'])): ?>
+<?php if (isset($_GET['open_post']) || isset($_GET['post_id'])): ?>
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-        const postId = <?php echo (int)$_GET['open_post']; ?>;
-        const postObj = studioPosts.find(p => p.id == postId);
-        if(postObj) openPostModal(postObj);
-    }, 500);
+        const postId = <?php echo (int)($_GET['open_post'] ?? $_GET['post_id']); ?>;
+        const postObj = (typeof studioPosts !== 'undefined' ? studioPosts : []).find(p => p.id == postId);
+        if (postObj && typeof editPost === 'function') {
+            editPost(postObj);
+
+            <?php if (isset($_GET['tab']) && $_GET['tab'] === 'comments'): ?>
+            setTimeout(() => {
+                const commentTab = document.querySelector('.crm-tab[onclick*="tab-comentarios"]');
+                if (commentTab && typeof switchCrmTab === 'function') {
+                    switchCrmTab(commentTab, 'tab-comentarios');
+                }
+            }, 200);
+            <?php endif; ?>
+
+            const card = document.querySelector(`[data-post-id="${postId}"]`) || document.getElementById(`post-card-${postId}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }, 400);
 });
 <?php endif; ?>
 

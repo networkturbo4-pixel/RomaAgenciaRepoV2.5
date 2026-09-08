@@ -1,6 +1,12 @@
 <?php
 error_reporting(0);
 header('Content-Type: application/json');
+session_start();
+
+if (!isset($_SESSION['user_id']) && empty($_SESSION['client_portal_id'])) {
+    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    exit;
+}
 
 $data = json_decode(file_get_contents("php://input"));
 $url = $data->url ?? '';
@@ -10,7 +16,24 @@ if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
     exit;
 }
 
+$scheme = strtolower(parse_url($url, PHP_URL_SCHEME) ?? '');
+if (!in_array($scheme, ['http', 'https'])) {
+    echo json_encode(['success' => false, 'message' => 'Protocolo no permitido']);
+    exit;
+}
+
 $domain = parse_url($url, PHP_URL_HOST);
+if (!$domain) {
+    echo json_encode(['success' => false, 'message' => 'Host inválido']);
+    exit;
+}
+
+// Mitigación SSRF: Bloquear localhost, IPs privadas y servicios de metadatos
+$ip = gethostbyname($domain);
+if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false || $ip === '169.254.169.254' || strpos($ip, '127.') === 0) {
+    echo json_encode(['success' => false, 'message' => 'Destino no permitido']);
+    exit;
+}
 
 // Fetch favicon from Google's service (server-side, no CORS issues)
 $faviconB64 = '';

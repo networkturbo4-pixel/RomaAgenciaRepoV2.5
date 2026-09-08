@@ -35,4 +35,19 @@ if (!empty($user['avatar'])) {
     $presence_data['avatar'] = $user['avatar'];
 }
 
-echo $pusher->presence_auth($channelName, $socketId, $user['id'], $presence_data);
+if (strpos($channelName, 'presence-') === 0) {
+    echo $pusher->presence_auth($channelName, $socketId, $user['id'], $presence_data);
+} elseif (strpos($channelName, 'private-') === 0) {
+    if (strpos($channelName, 'private-user-') === 0) {
+        $targetUserId = (int)str_replace('private-user-', '', $channelName);
+        if ($targetUserId !== (int)$_SESSION['user_id']) {
+            header('HTTP/1.0 403 Forbidden');
+            echo 'Forbidden channel';
+            exit;
+        }
+    }
+    echo $pusher->authorizeChannel($channelName, $socketId);
+} else {
+    header('HTTP/1.0 400 Bad Request');
+    echo 'Invalid channel type';
+}

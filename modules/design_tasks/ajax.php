@@ -153,7 +153,14 @@ try {
                 $assignedIds = json_decode($assigned_to, true) ?: [];
                 $assignedIds = array_values(array_diff($assignedIds, [$user_id])); 
                 if (!empty($assignedIds)) {
-                    PushHelper::sendPushNotification($db, $assignedIds, "Tarea Actualizada", "Se ha actualizado la tarea: " . $title, "index.php?module=design_tasks", "design_task", ['module' => 'design_tasks']);
+                    require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                    NotificationHelper::send([
+                        'user_id' => $assignedIds,
+                        'title'   => 'Tarea Actualizada',
+                        'message' => "Se ha actualizado la tarea: " . $title,
+                        'link'    => 'index.php?module=design_tasks',
+                        'type'    => 'task'
+                    ], $db);
                 }
             } else {
                 $stmt = $db->prepare("INSERT INTO design_tasks (title, description, priority, status, due_date, assigned_to, drive_folder_id, external_links, linked_submission_id, client_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -163,7 +170,14 @@ try {
                 $assignedIds = json_decode($assigned_to, true) ?: [];
                 $assignedIds = array_values(array_diff($assignedIds, [$user_id])); 
                 if (!empty($assignedIds)) {
-                    PushHelper::sendPushNotification($db, $assignedIds, "Nueva Tarea de Diseño", "Te han asignado a: " . $title, "index.php?module=design_tasks", "design_task", ['module' => 'design_tasks']);
+                    require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                    NotificationHelper::send([
+                        'user_id' => $assignedIds,
+                        'title'   => 'Nueva Tarea de Diseño',
+                        'message' => "Te han asignado a: " . $title,
+                        'link'    => 'index.php?module=design_tasks',
+                        'type'    => 'task'
+                    ], $db);
                 }
             }
 
@@ -329,7 +343,14 @@ try {
                     $assignedIds = json_decode($task['assigned_to'], true) ?: [];
                     $assignedIds = array_values(array_diff($assignedIds, [$user_id]));
                     if (!empty($assignedIds)) {
-                        PushHelper::sendPushNotification($db, $assignedIds, "Estado de tarea actualizado", "La tarea '{$task['title']}' ahora está: {$status}", "index.php?module=design_tasks", "design_task", ['module' => 'design_tasks']);
+                        require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                        NotificationHelper::send([
+                            'user_id' => $assignedIds,
+                            'title'   => 'Estado de tarea actualizado',
+                            'message' => "La tarea '{$task['title']}' ahora está: {$status}",
+                            'link'    => 'index.php?module=design_tasks',
+                            'type'    => 'task'
+                        ], $db);
                     }
                 }
                 
@@ -533,7 +554,14 @@ try {
                         $assignedIds = json_decode($task['assigned_to'], true) ?: [];
                         $assignedIds = array_values(array_diff($assignedIds, [$user_id]));
                         if (!empty($assignedIds)) {
-                            PushHelper::sendPushNotification($db, $assignedIds, "Nuevo comentario en diseño", "En la tarea '{$task['title']}': {$comment}", "index.php?module=design_tasks", "design_task", ['module' => 'design_tasks']);
+                            require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                            NotificationHelper::send([
+                                'user_id' => $assignedIds,
+                                'title'   => 'Nuevo comentario en diseño',
+                                'message' => "En la tarea '{$task['title']}': {$comment}",
+                                'link'    => 'index.php?module=design_tasks',
+                                'type'    => 'comment'
+                            ], $db);
                         }
                     }
                 }

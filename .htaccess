@@ -1,5 +1,42 @@
+# 1. Prohibir el listado de directorios
+Options -Indexes
+
+# 2. Cabeceras de seguridad HTTP
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# 3. Bloquear archivos y extensiones confidenciales
+<FilesMatch "(?i)\.(sql|env|log|git|bak|backup|ini|sh|md|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<FilesMatch "^(composer\.json|composer\.lock|notas_migracion\.json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Bloquear acceso a carpetas de control de versiones y tokens
+    RewriteRule ^\.git - [F,L]
+    RewriteRule ^whatsapp_service/tokens - [F,L]
+    RewriteRule ^scratch - [F,L]
 
     # Ignorar archivos o carpetas reales
     RewriteCond %{REQUEST_FILENAME} !-f

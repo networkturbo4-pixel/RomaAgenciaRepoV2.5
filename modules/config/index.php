@@ -117,7 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $files_to_handle = ['favicon', 'logo_light', 'logo_dark', 'logo_collapsed'];
             foreach ($files_to_handle as $file_input) {
                 if (isset($_FILES[$file_input]) && $_FILES[$file_input]['error'] === UPLOAD_ERR_OK) {
-                    $ext = pathinfo($_FILES[$file_input]['name'], PATHINFO_EXTENSION);
+                    $ext = strtolower(pathinfo($_FILES[$file_input]['name'], PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'ico', 'svg'])) {
+                        continue;
+                    }
                     $filename = $file_input . '_' . time() . '.' . $ext;
                     $target_path = $upload_dir . $filename;
                     if (move_uploaded_file($_FILES[$file_input]['tmp_name'], $target_path)) {

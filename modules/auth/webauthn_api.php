@@ -140,6 +140,7 @@ try {
         } catch (\Throwable $t) {}
         
         // Success login!
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $cred['user_id'];
         // Fetch user data
         $ustmt = $db->prepare("SELECT id, name, email, role FROM users WHERE id = ?");

@@ -489,6 +489,12 @@ switch ($action) {
         if (isset($_FILES['file']) && $_FILES['file']['error'] == 0) {
             $file = $_FILES['file'];
             $file_name = $file['name'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            $dangerousExtensions = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phar', 'inc', 'pl', 'py', 'cgi', 'sh', 'bash', 'exe', 'bat', 'cmd', 'js', 'html', 'htm'];
+            if (in_array($file_ext, $dangerousExtensions)) {
+                echo json_encode(['error' => 'Tipo de archivo no permitido por razones de seguridad']);
+                exit;
+            }
             $file_type = mime_content_type($file['tmp_name']);
             
             if (strpos($file_type, 'image/') === 0) {
@@ -548,6 +554,10 @@ switch ($action) {
                 for ($i = 0; $i < $file_count; $i++) {
                     if ($_FILES['references']['error'][$i] == 0) {
                         $ref_name = $_FILES['references']['name'][$i];
+                        $ref_ext = strtolower(pathinfo($ref_name, PATHINFO_EXTENSION));
+                        if (in_array($ref_ext, $dangerousExtensions)) {
+                            continue;
+                        }
                         $ref_tmp = $_FILES['references']['tmp_name'][$i];
                         $ref_path = 'uploads/mensajes/referencias/' . time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9.\-_]/', '', $ref_name);
                         if (move_uploaded_file($ref_tmp, __DIR__ . '/../../' . $ref_path)) {

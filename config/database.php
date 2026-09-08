@@ -18,7 +18,17 @@ class Database {
             $is_local = true;
         }
 
-        if ($is_local) {
+        $env_db = getenv('DB_NAME');
+        $env_user = getenv('DB_USER');
+        $env_pass = getenv('DB_PASS');
+        $env_host = getenv('DB_HOST');
+
+        if ($env_db !== false && $env_user !== false) {
+            $this->host = $env_host ?: "localhost";
+            $this->db_name = $env_db;
+            $this->username = $env_user;
+            $this->password = $env_pass !== false ? $env_pass : "";
+        } elseif ($is_local) {
             // Credenciales Locales
             $this->db_name = "saas_cesar_db";
             $this->username = "root";
@@ -42,7 +52,7 @@ class Database {
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
+            error_log("Database connection error: " . $exception->getMessage());
         }
 
         return $this->conn;

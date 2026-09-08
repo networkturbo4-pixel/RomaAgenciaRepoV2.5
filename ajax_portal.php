@@ -180,39 +180,29 @@ try {
                 exit();
             }
             $client_id = $_SESSION['client_portal_id'];
+            $stmtClient = $db->prepare("SELECT drive_folder_id FROM clients WHERE id = ?");
+            $stmtClient->execute([$client_id]);
+            $clientInfo = $stmtClient->fetch(PDO::FETCH_ASSOC);
+            $clientRootFolder = $clientInfo['drive_folder_id'] ?? null;
 
             $targetFolderId = $_POST['folder_id'] ?? $_GET['folder_id'] ?? null;
             $allFiles = [];
 
-            if ($targetFolderId) {
-                $drive = new GoogleDriveHelper();
-                if (!$drive->isConfigured()) {
-                    echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
-                    exit();
-                }
-                // Fetch specific subfolder
-                $files = $drive->listFiles($targetFolderId);
-                if ($files) $allFiles = $files;
-            } else {
-                // Fetch the client's assigned drive folder
-                $stmt = $db->prepare("SELECT drive_folder_id FROM clients WHERE id = ?");
-                $stmt->execute([$client_id]);
-                $clientInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                if ($clientInfo && !empty($clientInfo['drive_folder_id'])) {
-                    $drive = new GoogleDriveHelper();
-                    if ($drive->isConfigured()) {
-                        $files = $drive->listFiles($clientInfo['drive_folder_id']);
-                        if ($files) $allFiles = $files;
-                    } else {
-                        echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
-                        exit();
-                    }
-                } else {
-                    // No folder assigned to client
-                    $allFiles = [];
-                }
+            if (empty($clientRootFolder)) {
+                echo json_encode(['success' => true, 'files' => []]);
+                exit();
             }
+
+            $drive = new GoogleDriveHelper();
+            if (!$drive->isConfigured()) {
+                echo json_encode(['success' => false, 'error' => 'Drive no configurado']);
+                exit();
+            }
+
+            // Si solicita una subcarpeta específica o su carpeta raíz
+            $folderToFetch = $targetFolderId ?: $clientRootFolder;
+            $files = $drive->listFiles($folderToFetch);
+            if ($files) $allFiles = $files;
 
             echo json_encode(['success' => true, 'files' => $allFiles]);
             break;
@@ -222,6 +212,15 @@ try {
                 echo json_encode(['success' => false, 'error' => 'No autorizado']);
                 exit();
             }
+            $client_id = $_SESSION['client_portal_id'];
+            $stmtFolder = $db->prepare("SELECT drive_folder_id FROM clients WHERE id = ?");
+            $stmtFolder->execute([$client_id]);
+            $clientFolderId = $stmtFolder->fetchColumn();
+            if (empty($clientFolderId)) {
+                echo json_encode(['success' => false, 'error' => 'Operación no permitida']);
+                exit();
+            }
+
             $itemIds = json_decode($_POST['item_ids'] ?? '[]');
             $drive = new GoogleDriveHelper();
             if (!$drive->isConfigured()) {

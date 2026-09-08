@@ -10,6 +10,20 @@ ini_set('memory_limit', '512M');
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/GoogleDriveHelper.php';
 
+// Control de seguridad: solo ejecutable por CLI o con token secreto o administrador autenticado
+$is_cli = (php_sapi_name() === 'cli');
+if (session_status() === PHP_SESSION_NONE) session_start();
+$is_admin = isset($_SESSION['user_id']) && (($_SESSION['user_role'] ?? 0) == 1 || in_array('admin', $_SESSION['user_permissions'] ?? []));
+
+$cron_token = $_GET['token'] ?? $_POST['token'] ?? '';
+$valid_token = 'roma_cron_backup_secure_key';
+
+if (!$is_cli && !$is_admin && ($cron_token === '' || !hash_equals($valid_token, $cron_token))) {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    die(json_encode(['success' => false, 'error' => 'Acceso denegado: Se requiere ejecución CLI o privilegios de Administrador.']));
+}
+
 $log = [];
 function addLog($msg) {
     global $log;
@@ -209,5 +223,5 @@ if (file_exists($tempDbFile)) unlink($tempDbFile);
 if (file_exists($tempZipFile)) unlink($tempZipFile);
 
 addLog("Proceso de backup completado con éxito.");
-echo json_encode(['success' => true, 'log' => $log, 'link' => $uploadResult['webViewLink'] ?? '']);
+echo json_encode(['success' => true, 'message' => 'Proceso de backup finalizado.']);
 ?>

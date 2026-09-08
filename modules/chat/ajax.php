@@ -183,9 +183,15 @@ try {
             $attachment = null;
             $attachmentName = null;
             if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
+                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip', 'mp4', 'mov', 'mp3', 'wav', 'ogg'];
+                if (!in_array($ext, $allowedExtensions)) {
+                    echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido']);
+                    exit();
+                }
+
                 $uploadDir = '../../uploads/chat/';
                 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-                $ext = pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION);
                 $filename = 'chat_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
                 $targetPath = $uploadDir . $filename;
                 move_uploaded_file($_FILES['attachment']['tmp_name'], $targetPath);

@@ -163,7 +163,11 @@ switch ($action) {
             $uploaded_urls = [];
             foreach ($_FILES['cover_files']['tmp_name'] as $key => $tmp_name) {
                 if ($_FILES['cover_files']['error'][$key] === UPLOAD_ERR_OK) {
-                    $filename = time() . '_' . basename($_FILES['cover_files']['name'][$key]);
+                    $ext = strtolower(pathinfo($_FILES['cover_files']['name'][$key], PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'])) {
+                        continue;
+                    }
+                    $filename = time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
                     $target = $upload_dir . $filename;
                     if (move_uploaded_file($tmp_name, $target)) {
                         $uploaded_urls[] = 'uploads/brand/' . $filename;
@@ -435,6 +439,12 @@ switch ($action) {
         $fileSize = $file['size'];
         $fileTmp = $file['tmp_name'];
         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        $dangerousExtensions = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phar', 'inc', 'pl', 'py', 'cgi', 'sh', 'bash', 'exe', 'bat', 'cmd', 'js', 'html', 'htm'];
+        if (in_array($ext, $dangerousExtensions)) {
+            echo json_encode(['success' => false, 'message' => 'Tipo de archivo no permitido por razones de seguridad.']);
+            exit;
+        }
 
         // Get project drive folder ID if exists
         $stmt = $db->prepare("SELECT drive_folder_id, drive_folder_url FROM brand_projects WHERE id = ?");

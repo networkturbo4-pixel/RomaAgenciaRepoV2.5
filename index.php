@@ -1,6 +1,18 @@
 <?php
 // index.php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.use_strict_mode', '1');
+    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $is_https,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
 
 // PREVENT CACHING: Force the browser to always fetch the latest version of the CRM
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
@@ -21,7 +33,7 @@ foreach ($global_settings_raw as $row) {
     $global_settings[$row['setting_key']] = $row['setting_value'];
 }
 
-// Basic Routing
+// Basic Routing & Sanitization
 // Short link for knowledge base: ?k={id} or ?kb={id}
 if (!empty($_GET['k']) && is_numeric($_GET['k'])) {
     $module = 'knowledge_base';
@@ -32,9 +44,12 @@ if (!empty($_GET['k']) && is_numeric($_GET['k'])) {
     $action = 'view';
     $_GET['id'] = (int)$_GET['kb'];
 } else {
-    $module = !empty($_GET['module']) ? $_GET['module'] : 'dashboard';
-    $action = !empty($_GET['action']) ? $_GET['action'] : 'index';
+    $module = !empty($_GET['module']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['module']) : 'dashboard';
+    $action = !empty($_GET['action']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['action']) : 'index';
 }
+
+if (empty($module)) $module = 'dashboard';
+if (empty($action)) $action = 'index';
 
 // Check Authentication
 if (!isset($_SESSION['user_id'])) {

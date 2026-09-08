@@ -110,6 +110,10 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     <link rel="stylesheet" href="assets/css/global.css?v=<?php echo file_exists('assets/css/global.css') ? filemtime('assets/css/global.css') : '1'; ?>">
     <link rel="stylesheet" href="assets/css/components.css?v=<?php echo file_exists('assets/css/components.css') ? filemtime('assets/css/components.css') : '1'; ?>">
     <link rel="stylesheet" href="assets/css/profile-modal.css?v=<?php echo file_exists('assets/css/profile-modal.css') ? filemtime('assets/css/profile-modal.css') : '1'; ?>">
+    <link rel="stylesheet" href="assets/css/notifications.css?v=<?php echo file_exists('assets/css/notifications.css') ? filemtime('assets/css/notifications.css') : '1'; ?>">
+    <script>
+        window.CURRENT_USER_ID = <?php echo (int)($_SESSION['user_id'] ?? 0); ?>;
+    </script>
     <style>
         :root {
             --primary-color: <?php echo htmlspecialchars($global_settings['primary_color'] ?? '#4f46e5'); ?>;
@@ -309,6 +313,12 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                 [data-theme="dark"] .theme-switch-knob { left: 16px !important; background: var(--primary-color) !important; }
             </style>
 
+            <!-- Notification Bell (Aligned with collapsed sidebar) -->
+            <button class="nav-item notif-bell-btn" id="desktopNotifBtn" data-title="Notificaciones" type="button" style="border: none; background: transparent; cursor: pointer;">
+                <i class="ph ph-bell"></i>
+                <span class="notif-badge" id="notifBadgeDesktop" style="display: none;">0</span>
+            </button>
+
             <!-- User Info Card -->
             <div class="sidebar-profile-card" id="profileCardToggle" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); padding: 0.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); cursor: pointer; margin: 0.5rem var(--space-3) 0 var(--space-3); border: 1px solid var(--border-color);">
                 <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; width: 100%;">
@@ -432,14 +442,43 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                 <button class="btn-icon" onclick="if(typeof DriveExplorer !== 'undefined') DriveExplorer.openGlobalModal()" title="Archivos" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.1rem;">
                     <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i>
                 </button>
-                <button class="btn-icon push-subscribe-btn" onclick="if(window.subscribeToPush) subscribeToPush(); else alert('Notificaciones no soportadas');" title="Notificaciones" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.1rem;">
+                <button class="notif-bell-btn" id="mobileNotifBtn" title="Notificaciones" type="button">
                     <i class="ph ph-bell"></i>
+                    <span class="notif-badge" id="notifBadgeMobile" style="display: none;">0</span>
                 </button>
             </div>
         </div>
 
         <!-- Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Notification Popover Panel -->
+        <div class="notif-popover" id="notifPopover">
+            <div class="notif-header">
+                <div class="notif-header-title">
+                    <i class="ph ph-bell-simple" style="color: var(--primary-color); font-size: 1.15rem;"></i>
+                    <span>Notificaciones</span>
+                    <span class="notif-header-count" id="notifCountText">0 nuevas</span>
+                </div>
+                <button class="notif-mark-all-btn" id="notifMarkAllBtn" type="button" title="Marcar todas como leídas">
+                    Marcar leídas
+                </button>
+            </div>
+
+            <!-- Web Push Opt-in Banner (Visible only if not yet allowed) -->
+            <div class="notif-push-banner" id="notifPushBanner" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <i class="ph ph-broadcast" style="color: var(--primary-color); font-size: 1.1rem;"></i>
+                    <span>¿Recibir alertas en este dispositivo?</span>
+                </div>
+                <button type="button" onclick="requestPushFromBanner()">Activar</button>
+            </div>
+
+            <!-- Scrollable Notification List -->
+            <ul class="notif-list" id="notifList">
+                <!-- Rendered dynamically by notifications.js -->
+            </ul>
+        </div>
         <?php endif; ?>
 
         <!-- Global Toast Container -->

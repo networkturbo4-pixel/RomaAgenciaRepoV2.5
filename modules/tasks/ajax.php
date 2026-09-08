@@ -318,7 +318,14 @@ if ($action === 'update_status') {
                     $statusLabel = ['completed'=>'Completada','in_review'=>'En Revisión'][$newStatus]??$newStatus;
                     $assignedIds = array_values(array_diff($assigned, [$userId]));
                     if (!empty($assignedIds)) {
-                        PushHelper::sendPushNotification($db, $assignedIds, "Tarea actualizada", "\"{$row['title']}\" ahora está {$statusLabel}", "index.php?module=tasks", "task_center", ['module' => 'tasks']);
+                        require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                        NotificationHelper::send([
+                            'user_id' => $assignedIds,
+                            'title'   => 'Tarea actualizada',
+                            'message' => "\"{$row['title']}\" ahora está {$statusLabel}",
+                            'link'    => 'index.php?module=tasks',
+                            'type'    => 'task'
+                        ], $db);
                     }
                 }
             } catch(Throwable $e) {}
@@ -379,7 +386,14 @@ if ($action === 'update_assigned') {
         // Notify newly assigned users
         $assignedIds = array_values(array_diff($userIds, [$userId]));
         if (!empty($assignedIds)) {
-            PushHelper::sendPushNotification($db, $assignedIds, "Nueva asignación", "Se te ha asignado una tarea", "index.php?module=tasks", "task_center", ['module' => 'tasks']);
+            require_once __DIR__ . '/../../includes/NotificationHelper.php';
+            NotificationHelper::send([
+                'user_id' => $assignedIds,
+                'title'   => 'Nueva asignación',
+                'message' => 'Se te ha asignado una tarea en el centro de tareas',
+                'link'    => 'index.php?module=tasks',
+                'type'    => 'task'
+            ], $db);
         }
         
         echo json_encode(['success'=>true]);

@@ -140,7 +140,14 @@ try {
             $assignedIds = json_decode($proj['team_members'], true) ?: [];
             $assignedIds = array_values(array_diff($assignedIds, [$_SESSION['user_id']]));
             if (!empty($assignedIds)) {
-                PushHelper::sendPushNotification($db, $assignedIds, $actionTitle, $actionBody, "index.php?module=calendar", "calendar", ['module' => 'calendar']);
+                require_once __DIR__ . '/../../includes/NotificationHelper.php';
+                NotificationHelper::send([
+                    'user_id' => $assignedIds,
+                    'title'   => $actionTitle,
+                    'message' => $actionBody,
+                    'link'    => 'index.php?module=calendar',
+                    'type'    => 'calendar'
+                ], $db);
             }
         }
     } catch(Throwable $e) {}
