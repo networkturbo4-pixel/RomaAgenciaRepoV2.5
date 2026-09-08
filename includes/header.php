@@ -25,7 +25,46 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     ?>
     <base href="<?php echo htmlspecialchars(rtrim($sys_base_url, '/') . '/'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($global_settings['site_name'] ?? 'ROMA SaaS'); ?></title>
+    <?php
+        $site_name_display = $global_settings['site_name'] ?? 'ROMA SaaS';
+        $final_page_title = !empty($page_title) ? $page_title : $site_name_display;
+        $meta_description = !empty($og_tags['description']) ? $og_tags['description'] : ($global_settings['site_description'] ?? '');
+    ?>
+    <title><?php echo htmlspecialchars($final_page_title); ?></title>
+    <?php if (!empty($meta_description)): ?>
+    <meta name="description" content="<?php echo htmlspecialchars($meta_description); ?>">
+    <?php endif; ?>
+
+    <!-- Open Graph / WhatsApp / Facebook / Telegram Meta Tags -->
+    <?php if (!empty($og_tags)): ?>
+    <meta property="og:title" content="<?php echo htmlspecialchars($og_tags['title'] ?? $final_page_title); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($og_tags['description'] ?? ''); ?>">
+    <meta property="og:type" content="<?php echo htmlspecialchars($og_tags['type'] ?? 'website'); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars($og_tags['url'] ?? $sys_base_url); ?>">
+    <meta property="og:site_name" content="<?php echo htmlspecialchars($site_name_display); ?>">
+    <?php if (!empty($og_tags['image'])): ?>
+    <meta property="og:image" content="<?php echo htmlspecialchars($og_tags['image']); ?>">
+    <meta property="og:image:secure_url" content="<?php echo htmlspecialchars($og_tags['image']); ?>">
+    <meta property="og:image:alt" content="<?php echo htmlspecialchars($og_tags['title'] ?? $final_page_title); ?>">
+    <?php endif; ?>
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="<?php echo !empty($og_tags['image']) ? 'summary_large_image' : 'summary'; ?>">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($og_tags['title'] ?? $final_page_title); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($og_tags['description'] ?? ''); ?>">
+    <?php if (!empty($og_tags['image'])): ?>
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($og_tags['image']); ?>">
+    <?php endif; ?>
+    <?php else: ?>
+    <meta property="og:title" content="<?php echo htmlspecialchars($site_name_display); ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="<?php echo htmlspecialchars($site_name_display); ?>">
+    <?php if (!empty($global_settings['logo_light'])): ?>
+        <?php $default_og_logo = (strpos($global_settings['logo_light'], 'http') === 0) ? $global_settings['logo_light'] : rtrim($sys_base_url, '/') . '/' . ltrim($global_settings['logo_light'], '/'); ?>
+        <meta property="og:image" content="<?php echo htmlspecialchars($default_og_logo); ?>">
+        <meta property="og:image:secure_url" content="<?php echo htmlspecialchars($default_og_logo); ?>">
+    <?php endif; ?>
+    <?php endif; ?>
     <!-- Anti-FOUC Script for Dark Mode -->
     <script>
         (function() {

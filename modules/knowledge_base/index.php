@@ -1,6 +1,5 @@
 <?php
 // modules/knowledge_base/index.php
-require_once 'includes/header.php';
 require_once 'modules/knowledge_base/helpers.php';
 
 // Check permissions
@@ -44,6 +43,23 @@ foreach ($articles as $art) {
         $total_videos++;
     }
 }
+
+// Compute base URL for absolute Open Graph assets
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+$sys_base_url = (!empty($global_settings['site_url'])) ? rtrim($global_settings['site_url'], '/') : ($protocol . '://' . $host . ($scriptDir ? $scriptDir : ''));
+
+$page_title = 'Base de Conocimiento | ' . ($global_settings['site_name'] ?? 'Roma Agencia');
+$og_tags = [
+    'title'       => 'Base de Conocimiento y Procedimientos | ' . ($global_settings['site_name'] ?? 'Roma Agencia'),
+    'description' => 'Explora guías paso a paso, procedimientos operativos, recursos visuales y videos tutoriales.',
+    'image'       => !empty($global_settings['logo_light']) ? ((strpos($global_settings['logo_light'], 'http') === 0) ? $global_settings['logo_light'] : rtrim($sys_base_url, '/') . '/' . ltrim($global_settings['logo_light'], '/')) : '',
+    'url'         => rtrim($sys_base_url, '/') . '/index.php?module=knowledge_base&action=index',
+    'type'        => 'website'
+];
+
+require_once 'includes/header.php';
 ?>
 
 <style>

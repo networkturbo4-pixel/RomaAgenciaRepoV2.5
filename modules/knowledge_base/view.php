@@ -77,6 +77,44 @@ if ($article['audience'] === 'public') {
     }
 }
 
+// Compute base URL for absolute Open Graph assets (WhatsApp/Facebook)
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+$sys_base_url = (!empty($global_settings['site_url'])) ? rtrim($global_settings['site_url'], '/') : ($protocol . '://' . $host . ($scriptDir ? $scriptDir : ''));
+
+// Open Graph Title & Description
+$page_title = $article['title'] . ' | ' . ($global_settings['site_name'] ?? 'Roma Agencia');
+$og_desc = !empty($article['summary']) ? $article['summary'] : '';
+if (empty($og_desc) && !empty($article['content'])) {
+    $plain_content = trim(preg_replace('/\s+/', ' ', strip_tags($article['content'])));
+    $og_desc = mb_substr($plain_content, 0, 180);
+    if (mb_strlen($plain_content) > 180) $og_desc .= '...';
+}
+if (empty($og_desc)) {
+    $og_desc = 'Consulta el procedimiento y detalles de esta guía en ' . ($global_settings['site_name'] ?? 'Roma Agencia') . '.';
+}
+
+// Open Graph Image (YouTube thumbnail, first image in content, or agency logo)
+$og_image = '';
+if (!empty($article['video_id'])) {
+    $og_image = 'https://img.youtube.com/vi/' . $article['video_id'] . '/hqdefault.jpg';
+} elseif (!empty($article['content']) && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $article['content'], $img_match)) {
+    $found_src = $img_match[1];
+    $og_image = (strpos($found_src, 'http') === 0) ? $found_src : rtrim($sys_base_url, '/') . '/' . ltrim($found_src, '/');
+} elseif (!empty($global_settings['logo_light'])) {
+    $logo_src = $global_settings['logo_light'];
+    $og_image = (strpos($logo_src, 'http') === 0) ? $logo_src : rtrim($sys_base_url, '/') . '/' . ltrim($logo_src, '/');
+}
+
+$og_tags = [
+    'title'       => $article['title'],
+    'description' => $og_desc,
+    'image'       => $og_image,
+    'url'         => rtrim($sys_base_url, '/') . '/?k=' . $article['id'],
+    'type'        => 'article'
+];
+
 require_once 'includes/header.php';
 
 // Check role for actions (edit, admin)
