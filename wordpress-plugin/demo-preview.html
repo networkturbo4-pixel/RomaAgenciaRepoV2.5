@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Roma Chat & Portal de Clientes</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Plugin CSS -->
+    <link rel="stylesheet" href="roma-chat-portal/assets/css/roma-widget.css">
+    <link rel="stylesheet" href="roma-chat-portal/assets/css/roma-shortcode.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+            padding: 40px 20px;
+            color: #1e293b;
+        }
+        .demo-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .demo-nav {
+            background: #ffffff;
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .demo-logo {
+            font-weight: 800;
+            font-size: 18px;
+            color: #4f46e5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .demo-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="demo-container">
+    <header class="demo-nav">
+        <div class="demo-logo">
+            <i class="ph ph-sparkle"></i> Roma Agencia | Demo Plugin WordPress
+        </div>
+        <div class="demo-badge">
+            Vista Previa de Componentes
+        </div>
+    </header>
+
+    <!-- Shortcode Component Simulated -->
+    <div class="roma-portal-wrapper" id="roma-portal">
+        <div class="roma-portal-card">
+            
+            <div class="roma-portal-header">
+                <div class="roma-portal-badge">
+                    <i class="ph ph-shield-check"></i> Roma CRM Conectado
+                </div>
+                <h2 class="roma-portal-title">Portal de Clientes & Servicios</h2>
+                <p class="roma-portal-subtitle">Consulta tus marcas y proyectos activos o solicita una nueva cotización en segundos.</p>
+            </div>
+
+            <div class="roma-portal-tabs" role="tablist">
+                <button type="button" class="roma-tab-btn active" data-tab="soporte">
+                    <i class="ph ph-headset"></i>
+                    <span>Soporte & Mis Servicios</span>
+                </button>
+                <button type="button" class="roma-tab-btn" data-tab="cotizar">
+                    <i class="ph ph-lightning"></i>
+                    <span>Cotizar Nuevo Servicio</span>
+                </button>
+            </div>
+
+            <div class="roma-portal-content">
+                
+                <!-- TAB 1: SOPORTE -->
+                <div id="roma-tab-soporte" class="roma-tab-pane active">
+                    <div class="roma-soporte-search-box">
+                        <div class="roma-search-instructions">
+                            <i class="ph ph-info"></i>
+                            <span>Ingresa tu <strong>DNI</strong> o <strong>número de WhatsApp</strong> registrado para consultar tu estado, marcas y servicios.</span>
+                        </div>
+                        
+                        <form id="roma-lookup-form" class="roma-search-form">
+                            <div class="roma-search-input-group">
+                                <i class="ph ph-magnifying-glass"></i>
+                                <input type="text" id="roma-lookup-query" name="query" placeholder="Ej: 72345678 o 987654321" required autocomplete="off">
+                                <button type="submit" id="roma-lookup-submit" class="roma-btn-search">
+                                    <span>Consultar</span>
+                                    <i class="ph ph-arrow-right"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="roma-lookup-loading" class="roma-lookup-state" style="display: none;">
+                        <div class="roma-spinner"></div>
+                        <p>Buscando tus datos en Roma CRM...</p>
+                    </div>
+
+                    <div id="roma-lookup-error" class="roma-lookup-state roma-state-error" style="display: none;">
+                        <div class="roma-error-icon"><i class="ph ph-warning-circle"></i></div>
+                        <h4 id="roma-error-title">No encontrado</h4>
+                        <p id="roma-error-desc">No encontramos registros asociados con los datos ingresados.</p>
+                        <button type="button" class="roma-btn-inline-quote" onclick="document.querySelector('[data-tab=\'cotizar\']').click();">
+                            <i class="ph ph-plus-circle"></i> Solicitar cotización como nuevo cliente
+                        </button>
+                    </div>
+
+                    <div id="roma-lookup-results" class="roma-lookup-results" style="display: none;">
+                        <div class="roma-client-profile-card">
+                            <div class="roma-client-avatar">
+                                <i class="ph ph-user"></i>
+                            </div>
+                            <div class="roma-client-info">
+                                <h3 id="res-client-name" class="roma-client-name">-</h3>
+                                <div class="roma-client-meta">
+                                    <span id="res-client-dni"><i class="ph ph-identification-card"></i> DNI: <strong>-</strong></span>
+                                    <span id="res-client-phone"><i class="ph ph-whatsapp-logo"></i> <strong>-</strong></span>
+                                </div>
+                            </div>
+                            <div class="roma-client-action">
+                                <button type="button" id="roma-btn-direct-support" class="roma-btn-primary">
+                                    <i class="ph ph-chat-teardrop-text"></i>
+                                    <span>Contactar a Soporte</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="roma-section-box">
+                            <h4 class="roma-section-title">
+                                <i class="ph ph-buildings"></i>
+                                <span>Tus Marcas Registradas</span>
+                                <span id="res-brands-count" class="roma-count-badge">0</span>
+                            </h4>
+                            <div id="res-brands-list" class="roma-brands-grid"></div>
+                        </div>
+
+                        <div class="roma-section-box" id="res-project-services-section">
+                            <h4 class="roma-section-title">
+                                <i class="ph ph-briefcase"></i>
+                                <span>Servicios y Proyectos en Curso</span>
+                                <span id="res-services-count" class="roma-count-badge">0</span>
+                            </h4>
+                            <div id="res-services-list" class="roma-services-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: COTIZAR -->
+                <div id="roma-tab-cotizar" class="roma-tab-pane">
+                    <div class="roma-quote-intro">
+                        <div class="roma-quote-icon"><i class="ph ph-sparkle"></i></div>
+                        <div>
+                            <h3>Solicita una cotización personalizada</h3>
+                            <p>Selecciona el servicio que necesitas y nuestro equipo se contactará al instante por WhatsApp o chat en vivo.</p>
+                        </div>
+                    </div>
+
+                    <form id="roma-quote-form" class="roma-portal-form">
+                        <div class="roma-form-grid">
+                            <div class="roma-form-group">
+                                <label for="quote-name">Nombre completo o Empresa <span class="required">*</span></label>
+                                <div class="roma-input-icon">
+                                    <i class="ph ph-user"></i>
+                                    <input type="text" id="quote-name" name="name" placeholder="Ej. Alex Rodríguez" required>
+                                </div>
+                            </div>
+                            <div class="roma-form-group">
+                                <label for="quote-dni">DNI o RUC</label>
+                                <div class="roma-input-icon">
+                                    <i class="ph ph-identification-card"></i>
+                                    <input type="text" id="quote-dni" name="dni" placeholder="Ej. 10456789123">
+                                </div>
+                            </div>
+                            <div class="roma-form-group">
+                                <label for="quote-phone">WhatsApp / Teléfono <span class="required">*</span></label>
+                                <div class="roma-input-icon">
+                                    <i class="ph ph-whatsapp-logo"></i>
+                                    <input type="tel" id="quote-phone" name="phone" placeholder="Ej. 987654321" required>
+                                </div>
+                            </div>
+                            <div class="roma-form-group">
+                                <label for="quote-email">Correo Electrónico</label>
+                                <div class="roma-input-icon">
+                                    <i class="ph ph-envelope-simple"></i>
+                                    <input type="email" id="quote-email" name="email" placeholder="correo@ejemplo.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="roma-form-group">
+                            <label for="quote-service">Servicio de Interés <span class="required">*</span></label>
+                            <div class="roma-input-icon">
+                                <i class="ph ph-stack"></i>
+                                <select id="quote-service" name="service_id" required>
+                                    <option value="">Cargando catálogo de servicios desde Roma CRM...</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="quote-service-name" name="service_name" value="">
+                        </div>
+
+                        <div class="roma-form-group">
+                            <label for="quote-message">Detalles o Requerimientos del Proyecto</label>
+                            <textarea id="quote-message" name="message" rows="3" placeholder="Cuéntanos brevemente sobre tu proyecto, objetivos, plazos o especificaciones..."></textarea>
+                        </div>
+
+                        <div class="roma-form-submit-row">
+                            <button type="submit" id="quote-submit-btn" class="roma-btn-submit-quote">
+                                <i class="ph ph-paper-plane-tilt"></i>
+                                <span>Enviar Solicitud y Abrir Chat</span>
+                            </button>
+                            <span class="roma-privacy-hint">🔒 Tus datos están protegidos y solo se usarán para contactarte.</span>
+                        </div>
+                    </form>
+
+                    <div id="roma-quote-success" class="roma-quote-success-view" style="display: none;">
+                        <div class="roma-success-icon"><i class="ph ph-check-circle"></i></div>
+                        <h3>¡Solicitud Enviada con Éxito!</h3>
+                        <p id="roma-quote-success-msg">Hemos registrado tu requerimiento y asignado un asesor comercial.</p>
+                        
+                        <div class="roma-success-actions">
+                            <button type="button" id="roma-btn-open-quote-chat" class="roma-btn-primary">
+                                <i class="ph ph-chat-circle-dots"></i>
+                                <span>Continuar en el Chat en Vivo</span>
+                            </button>
+                            <button type="button" id="roma-btn-new-quote" class="roma-btn-outline">
+                                <i class="ph ph-arrow-counter-clockwise"></i>
+                                <span>Nueva Cotización</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="roma-portal-footer">
+                <span>Desarrollado con Roma CRM</span>
+                <div class="roma-portal-footer-links">
+                    <span><i class="ph ph-lock-key"></i> Conexión Segura</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Widget HTML -->
+<div id="roma-chat-widget" class="roma-widget-container" style="right: 24px; bottom: 24px;">
+    <div id="roma-chat-window" class="roma-chat-window" aria-hidden="true">
+        <div class="roma-chat-header">
+            <div class="roma-chat-header-info">
+                <div class="roma-chat-avatar">
+                    <i class="ph ph-chat-circle-dots"></i>
+                    <span class="roma-status-indicator" title="En línea"></span>
+                </div>
+                <div class="roma-chat-titles">
+                    <h4 class="roma-chat-title">Roma Soporte & Ventas</h4>
+                    <p class="roma-chat-status">
+                        <span class="roma-pulse-dot"></span>
+                        Normalmente respondemos en minutos
+                    </p>
+                </div>
+            </div>
+            <div class="roma-chat-actions">
+                <button type="button" id="roma-btn-expand" class="roma-btn-action" title="Abrir chat en pestaña nueva">
+                    <i class="ph ph-arrow-square-out"></i>
+                </button>
+                <button type="button" id="roma-btn-close" class="roma-btn-action" title="Cerrar chat">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="roma-chat-body">
+            <div id="roma-screen-welcome" class="roma-chat-screen">
+                <div class="roma-welcome-hero">
+                    <div class="roma-welcome-icon">👋</div>
+                    <h3>¡Bienvenido al chat!</h3>
+                    <p>Déjanos tus datos para brindarte una atención personalizada de inmediato.</p>
+                </div>
+                <form id="roma-start-chat-form" class="roma-chat-form">
+                    <div class="roma-form-group">
+                        <label for="roma-input-name">Nombre completo</label>
+                        <input type="text" id="roma-input-name" placeholder="Ej. Juan Pérez" required autocomplete="name">
+                    </div>
+                    <div class="roma-form-group">
+                        <label for="roma-input-phone">WhatsApp / Teléfono</label>
+                        <input type="tel" id="roma-input-phone" placeholder="Ej. +51 987 654 321" required autocomplete="tel">
+                    </div>
+                    <div class="roma-form-group">
+                        <label for="roma-input-email">Correo (opcional)</label>
+                        <input type="email" id="roma-input-email" placeholder="correo@ejemplo.com" autocomplete="email">
+                    </div>
+                    <button type="submit" id="roma-btn-start" class="roma-btn-submit">
+                        <span>Iniciar Chat</span>
+                        <i class="ph ph-paper-plane-right"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div id="roma-screen-messages" class="roma-chat-screen" style="display: none;">
+                <div id="roma-messages-list" class="roma-messages-container"></div>
+                <div id="roma-typing-indicator" class="roma-typing" style="display: none;">
+                    <span class="roma-typing-dot"></span>
+                    <span class="roma-typing-dot"></span>
+                    <span class="roma-typing-dot"></span>
+                    <span>Un asesor está respondiendo...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="roma-chat-footer" class="roma-chat-footer" style="display: none;">
+            <form id="roma-send-message-form" class="roma-send-box">
+                <textarea id="roma-message-input" placeholder="Escribe tu mensaje aquí..." rows="1"></textarea>
+                <button type="submit" id="roma-btn-send" class="roma-btn-send" aria-label="Enviar mensaje">
+                    <i class="ph ph-paper-plane-right-fill"></i>
+                </button>
+            </form>
+            <div class="roma-chat-credit">
+                Conectado con <strong>Roma CRM</strong>
+            </div>
+        </div>
+    </div>
+
+    <button type="button" id="roma-chat-bubble" class="roma-chat-bubble" aria-label="Abrir chat">
+        <i class="ph ph-chat-circle-dots roma-icon-open"></i>
+        <i class="ph ph-x roma-icon-close" style="display: none;"></i>
+        <span id="roma-unread-badge" class="roma-unread-badge" style="display: none;">1</span>
+    </button>
+</div>
+
+<!-- Global Config Setup for Demo -->
+<script>
+    window.RomaWidgetConfig = {
+        crmUrl: window.location.origin + '/CESARMENDOZA',
+        apiUrl: window.location.origin + '/CESARMENDOZA/modules/mensajes/api_widget.php',
+        guestUrl: window.location.origin + '/CESARMENDOZA/index.php?module=mensajes&action=guest',
+        pusherKey: 'b31f38612d61b0285c78',
+        pusherCluster: 'us2',
+        welcomeMsg: '¡Hola! 👋 ¿En qué podemos ayudarte hoy? Escríbenos y un asesor te atenderá al instante.',
+        widgetTitle: 'Roma Soporte & Ventas',
+        widgetSubtitle: 'Normalmente respondemos en minutos'
+    };
+
+    window.RomaPortalConfig = {
+        crmUrl: window.location.origin + '/CESARMENDOZA',
+        apiUrl: window.location.origin + '/CESARMENDOZA/modules/mensajes/api_widget.php',
+        guestUrl: window.location.origin + '/CESARMENDOZA/index.php?module=mensajes&action=guest'
+    };
+</script>
+
+<script src="roma-chat-portal/assets/js/roma-widget.js"></script>
+<script src="roma-chat-portal/assets/js/roma-shortcode.js"></script>
+
+</body>
+</html>

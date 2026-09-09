@@ -95,6 +95,70 @@
     box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
 }
 
+.drive-btn-success {
+    background: #10b981;
+    color: white;
+}
+.drive-btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+.drive-btn-secondary {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-main, #f8fafc);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+.drive-btn-secondary:hover {
+    background: rgba(148, 163, 184, 0.25);
+}
+.drive-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.drive-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+    background: var(--bg-surface, #1e293b);
+    z-index: 10;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.drive-selected-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-main, #f8fafc);
+}
+.drive-selected-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    color: #60a5fa;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+.drive-selected-badge strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+.drive-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 .drive-grid-container {
     flex: 1;
     overflow-y: auto;
@@ -127,8 +191,26 @@
 }
 
 .drive-item.selected {
-    background: rgba(59, 130, 246, 0.1);
-    box-shadow: inset 0 0 0 2px var(--primary-color, #3b82f6);
+    background: rgba(59, 130, 246, 0.18) !important;
+    box-shadow: inset 0 0 0 2px var(--primary-color, #3b82f6) !important;
+}
+
+.drive-item.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .folder-icon {

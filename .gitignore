@@ -9,4 +9,5 @@ node_modules/
 *.tar.gz
 scratch/
 backups/
+uploads/
 

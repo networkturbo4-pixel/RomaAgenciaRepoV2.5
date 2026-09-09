@@ -112,3 +112,16 @@
   - Selector switch moderno iOS para alternar visualización.
   - Grid de cuentas bancarias (BCP, Yape, Interbank, Scotiabank) en tarjetas compactas responsivas (`repeat(auto-fit, minmax(260px, 1fr))`).
 
+---
+
+## 7. Módulo de Mensajes (App Nativa Responsive - Móvil, Tablet y Desktop)
+- **Filosofía de Experiencia de Usuario:**
+  - En móviles (< 768px), comportamiento idéntico a una app nativa de mensajería (Telegram / WhatsApp / iOS Messages): navegación fluida de pantalla completa, integración con `history.pushState` para soporte del botón físico/gestual de retroceso, safe-area insets (`env(safe-area-inset-bottom)`) y campos de entrada con prevención de auto-zoom en iOS (16px base en touch).
+  - En tablets (768px - 1024px), experiencia Master-Detail en 2 columnas paralelas estilo iPad, permitiendo explorar la lista de chats a la izquierda (280px - 320px) mientras se interactúa con el chat activo a la derecha.
+  - En escritorio (>= 1025px), diseño amplio con estética glassmorphism, 2 o 3 columnas (Sidebar + Chat + Info Drawer) con esquinas redondeadas modernas y sombras sutiles.
+- **Micro-interacciones y Componentes Táctiles:**
+  - **Action Sheet de Adjuntos:** En móviles y tablets se presenta como un Bottom Sheet táctil emergente con fondo desenfocado y cuadrícula de 6 accesos directos de alta visibilidad (Documento, Foto/Video, GIF, Tarea, Pendiente, Pizarra) con botón de cancelación.
+  - **Pulsación Larga (Long-Press):** Detección de toque prolongado (400ms) en burbujas de mensaje para abrir el menú contextual táctil y la barra de reacciones rápidas emoji.
+  - **Composer Dock (Barra de Escritura):** Cápsula flotante redondeada con botón de emojis, selector de adjuntos (+), textarea auto-expandible y botón de acción animado (micrófono para notas de voz que se transforma en botón de envío al ingresar texto).
+  - **Drawers y Modales:** Animación de entrada suave con efecto backdrop blur (`12px` - `16px`) y cierre intuitivo al tocar fuera del panel.
+

@@ -52,6 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('msgBtnAttach');
         if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
             menu.classList.remove('active');
+            const backdrop = document.getElementById('msgAppBackdrop');
+            if (backdrop && window.innerWidth < 768) {
+                const ctxMenu = document.getElementById('msgContextMenu');
+                const infoPanel = document.getElementById('msgInfoPanel');
+                if ((!ctxMenu || ctxMenu.style.display === 'none') && (!infoPanel || !infoPanel.classList.contains('active'))) {
+                    backdrop.classList.remove('active');
+                }
+            }
         }
     });
 
@@ -129,9 +137,149 @@ document.addEventListener('DOMContentLoaded', () => {
             pollChats();
         }
     });
+
+    // Mobile popstate listener for back button & gestures
+    window.addEventListener('popstate', (e) => {
+        if (currentChatId && window.innerWidth < 768) {
+            closeChat(false);
+        }
+        if (typeof closeAllAppSheets === 'function') {
+            closeAllAppSheets();
+        }
+    });
+
+    // Screen resize handler to preserve desktop/tablet/mobile consistency
+    window.addEventListener('resize', () => {
+        const sidebar = document.getElementById('msgSidebar');
+        const main = document.getElementById('msgMain');
+        if (window.innerWidth >= 768) {
+            if (sidebar) sidebar.classList.remove('hidden');
+            if (main) main.classList.remove('active');
+            const backdrop = document.getElementById('msgAppBackdrop');
+            if (backdrop) backdrop.classList.remove('active');
+        } else if (currentChatId) {
+            if (sidebar) sidebar.classList.add('hidden');
+            if (main) main.classList.add('active');
+        }
+    });
+
+    // Scroll to bottom on input focus on touch screens
+    const msgInput = document.getElementById('msgInput');
+    if (msgInput) {
+        msgInput.addEventListener('focus', () => {
+            if (window.innerWidth < 768) {
+                setTimeout(() => {
+                    const area = document.getElementById('msgArea');
+                    if (area) area.scrollTop = area.scrollHeight;
+                }, 280);
+            }
+        });
+    }
 });
 
-function closeChat() {
+function closeAllAppSheets() {
+    const backdrop = document.getElementById('msgAppBackdrop');
+    if (backdrop) backdrop.classList.remove('active');
+
+    const attachMenu = document.getElementById('msgAttachMenu');
+    if (attachMenu) attachMenu.classList.remove('active');
+
+    const contextMenu = document.getElementById('msgContextMenu');
+    if (contextMenu) contextMenu.style.display = 'none';
+
+    const emojiMenu = document.getElementById('msgEmojiMenu');
+    if (emojiMenu) emojiMenu.classList.remove('active');
+
+    const gifMenu = document.getElementById('msgGifMenu');
+    if (gifMenu) gifMenu.classList.remove('active');
+
+    // On mobile & tablet, close info panel if active
+    if (window.innerWidth <= 1024) {
+        const infoPanel = document.getElementById('msgInfoPanel');
+        if (infoPanel && infoPanel.classList.contains('active')) {
+            infoPanel.classList.remove('active');
+        }
+    }
+}
+window.closeAllAppSheets = closeAllAppSheets;
+
+function toggleAttachMenu(e) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    const menu = document.getElementById('msgAttachMenu');
+    const btn = document.getElementById('msgBtnAttach');
+    const backdrop = document.getElementById('msgAppBackdrop');
+    if (!menu) return;
+
+    const willOpen = !menu.classList.contains('active');
+    closeAllPopovers();
+
+    if (willOpen) {
+        if (window.innerWidth >= 768 && btn) {
+            const rect = btn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.bottom = Math.max(12, (window.innerHeight - rect.top + 8)) + 'px';
+            menu.style.left = Math.max(10, Math.min(window.innerWidth - 310, rect.left - 20)) + 'px';
+            menu.style.top = 'auto';
+            menu.style.right = 'auto';
+            menu.style.width = '290px';
+        } else {
+            menu.style.position = '';
+            menu.style.bottom = '';
+            menu.style.left = '';
+            menu.style.top = '';
+            menu.style.right = '';
+            menu.style.width = '';
+            if (backdrop) backdrop.classList.add('active');
+        }
+        menu.classList.add('active');
+    } else {
+        menu.classList.remove('active');
+        if (backdrop) backdrop.classList.remove('active');
+    }
+}
+window.toggleAttachMenu = toggleAttachMenu;
+
+function toggleEmojiMenu(e) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    const menu = document.getElementById('msgEmojiMenu');
+    const btn = document.getElementById('msgBtnEmoji');
+    const backdrop = document.getElementById('msgAppBackdrop');
+    if (!menu) return;
+
+    const willOpen = !menu.classList.contains('active');
+    closeAllPopovers();
+
+    if (willOpen) {
+        if (window.innerWidth >= 768 && btn) {
+            const rect = btn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.bottom = Math.max(12, (window.innerHeight - rect.top + 8)) + 'px';
+            menu.style.left = Math.max(10, Math.min(window.innerWidth - 360, rect.left)) + 'px';
+            menu.style.top = 'auto';
+            menu.style.right = 'auto';
+        } else {
+            menu.style.position = '';
+            menu.style.bottom = '';
+            menu.style.left = '';
+            menu.style.top = '';
+            menu.style.right = '';
+            if (backdrop) backdrop.classList.add('active');
+        }
+        menu.classList.add('active');
+    } else {
+        menu.classList.remove('active');
+        if (backdrop) backdrop.classList.remove('active');
+    }
+}
+window.toggleEmojiMenu = toggleEmojiMenu;
+
+function closeChat(triggerPopState = false) {
     currentChatId = null;
     if (pollInterval) clearInterval(pollInterval);
     
@@ -144,17 +292,21 @@ function closeChat() {
     // Deselect chat item
     document.querySelectorAll('.msg-chat-item').forEach(el => el.classList.remove('active'));
     
-    // Close info panel
-    const infoPanel = document.getElementById('msgInfoPanel');
-    if (infoPanel) infoPanel.classList.remove('active');
+    // Close info panel & sheets
+    closeAllAppSheets();
     
     // For mobile
     const sidebar = document.getElementById('msgSidebar');
     const main = document.getElementById('msgMain');
     if (sidebar) sidebar.classList.remove('hidden');
     if (main) main.classList.remove('active');
+
+    if (triggerPopState && history.state && history.state.msg_chat_open) {
+        history.back();
+    }
 }
-window.goBackToChatList = closeChat;
+window.closeChat = closeChat;
+window.goBackToChatList = () => closeChat(true);
 
 function sendGreeting(name) {
     const input = document.getElementById('msgInput');
@@ -471,11 +623,18 @@ function openChat(chatId, name, publicLink) {
 
     const sidebar = document.getElementById('msgSidebar');
     const main = document.getElementById('msgMain');
-    if (sidebar && window.innerWidth <= 992) {
+    if (sidebar && window.innerWidth < 768) {
         sidebar.classList.add('hidden');
     }
-    if (main && window.innerWidth <= 992) {
+    if (main && window.innerWidth < 768) {
         main.classList.add('active');
+    }
+
+    // Register mobile browser history state for seamless back button support
+    if (window.innerWidth < 768) {
+        if (!history.state || !history.state.msg_chat_open || history.state.chatId !== chatId) {
+            history.pushState({ msg_chat_open: true, chatId: chatId }, '');
+        }
     }
 
     if (pollInterval) clearInterval(pollInterval);
@@ -585,7 +744,14 @@ function loadChatInfo(chatId) {
             const driveEl = document.getElementById('msgDriveFolderName');
             if (driveEl) {
                 if (data.drive_folder_id) {
-                    driveEl.innerText = "Carpeta ID: " + data.drive_folder_id;
+                    driveEl.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:2px;">
+                            <span style="color:#10b981; font-weight:600;"><i class="ph ph-folder-check"></i> Vinculada</span>
+                            <a href="https://drive.google.com/drive/folders/${encodeURIComponent(data.drive_folder_id)}" target="_blank" style="color:var(--msg-primary); font-size:11.5px; text-decoration:none; display:flex; align-items:center; gap:2px; font-weight:600;">
+                                Abrir <i class="ph ph-arrow-square-out"></i>
+                            </a>
+                        </div>
+                    `;
                 } else {
                     driveEl.innerText = "Sin vincular";
                 }
@@ -1379,6 +1545,16 @@ function showContextMenu(e, msgId, isOwn, isDeleted, contentReply, contentEdit, 
         }
     }
     
+    // On mobile screens (< 768px), display as bottom sheet with backdrop
+    if (window.innerWidth < 768) {
+        menu.style.display = 'block';
+        menu.style.top = '';
+        menu.style.left = '';
+        const backdrop = document.getElementById('msgAppBackdrop');
+        if (backdrop) backdrop.classList.add('active');
+        return;
+    }
+
     // Position the menu
     menu.style.display = 'block';
     
@@ -1402,9 +1578,17 @@ function showContextMenu(e, msgId, isOwn, isDeleted, contentReply, contentEdit, 
     menu.style.left = leftPos + 'px';
 }
 
+function hideContextMenu() {
+    const menu = document.getElementById('msgContextMenu');
+    if (menu) menu.style.display = 'none';
+    const backdrop = document.getElementById('msgAppBackdrop');
+    if (backdrop && window.innerWidth < 768) backdrop.classList.remove('active');
+}
+window.hideContextMenu = hideContextMenu;
+
 document.addEventListener('contextmenu', (e) => {
     const bubbleWrap = e.target.closest('.msg-bubble-wrap');
-    if (bubbleWrap && document.getElementById('msgArea').contains(bubbleWrap)) {
+    if (bubbleWrap && document.getElementById('msgArea') && document.getElementById('msgArea').contains(bubbleWrap)) {
         const msgId = bubbleWrap.getAttribute('data-id');
         const isOwn = bubbleWrap.getAttribute('data-own') === 'true';
         const isDeleted = bubbleWrap.getAttribute('data-deleted') === '1';
@@ -1419,9 +1603,66 @@ document.addEventListener('contextmenu', (e) => {
     }
 });
 
+// Touch Long-Press Detection on message bubbles for mobile app UX
+let touchTimer = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let activeTouchBubble = null;
+
+document.addEventListener('touchstart', (e) => {
+    const bubbleWrap = e.target.closest('.msg-bubble-wrap');
+    if (!bubbleWrap || !document.getElementById('msgArea') || !document.getElementById('msgArea').contains(bubbleWrap)) return;
+    
+    // Ignore long-press on interactive controls inside message (buttons, links, reactions, audio player)
+    if (e.target.closest('button, a, audio, video, input, .msg-reaction-pill, .msg-interactive-item, .msg-audio-play-btn')) return;
+    
+    activeTouchBubble = bubbleWrap;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    
+    clearTimeout(touchTimer);
+    touchTimer = setTimeout(() => {
+        if (activeTouchBubble) {
+            try { if (navigator.vibrate) navigator.vibrate(40); } catch(ex) {}
+            const msgId = activeTouchBubble.getAttribute('data-id');
+            const isOwn = activeTouchBubble.getAttribute('data-own') === 'true';
+            const isDeleted = activeTouchBubble.getAttribute('data-deleted') === '1';
+            const isStarred = activeTouchBubble.getAttribute('data-starred') === '1';
+            const isPinned = activeTouchBubble.getAttribute('data-pinned') === '1';
+            const contentReply = activeTouchBubble.getAttribute('data-reply');
+            const contentEdit = activeTouchBubble.getAttribute('data-edit');
+            const senderName = activeTouchBubble.getAttribute('data-sender');
+            const type = activeTouchBubble.getAttribute('data-type');
+            
+            showContextMenu(e.touches[0], msgId, isOwn, isDeleted, contentReply, contentEdit, senderName, type, isStarred, isPinned);
+            activeTouchBubble = null;
+        }
+    }, 420);
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+    if (!activeTouchBubble) return;
+    const moveX = Math.abs(e.touches[0].clientX - touchStartX);
+    const moveY = Math.abs(e.touches[0].clientY - touchStartY);
+    if (moveX > 10 || moveY > 10) {
+        clearTimeout(touchTimer);
+        activeTouchBubble = null;
+    }
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+    clearTimeout(touchTimer);
+    activeTouchBubble = null;
+});
+
+document.addEventListener('touchcancel', () => {
+    clearTimeout(touchTimer);
+    activeTouchBubble = null;
+});
+
 function sendReaction(emoji) {
     if (!ctxMsgId) return;
-    document.getElementById('msgContextMenu').style.display = 'none';
+    hideContextMenu();
     
     const formData = new FormData();
     formData.append('message_id', ctxMsgId);
@@ -1437,22 +1678,22 @@ function sendReaction(emoji) {
 }
 
 function ctxReply() {
-    document.getElementById('msgContextMenu').style.display = 'none';
+    hideContextMenu();
     setReplyTo(ctxMsgId, ctxMsgSender, ctxMsgContentReply);
 }
 
 function ctxEdit() {
-    document.getElementById('msgContextMenu').style.display = 'none';
+    hideContextMenu();
     editMessage(ctxMsgId, ctxMsgContentEdit);
 }
 
 function ctxDelete() {
-    document.getElementById('msgContextMenu').style.display = 'none';
+    hideContextMenu();
     deleteMessage(ctxMsgId);
 }
 
 function ctxPin() {
-    document.getElementById('msgContextMenu').style.display = 'none';
+    hideContextMenu();
     if (!ctxMsgId || !currentChatId) return;
     
     fetch('modules/mensajes/ajax.php?action=pin_message', {
@@ -1478,7 +1719,7 @@ function ctxPin() {
     });
 }
 function ctxForward() {
-    document.getElementById('msgContextMenu').style.display = 'none';
+    hideContextMenu();
     if (!ctxMsgId) {
         alert("Error: No se ha seleccionado ningún mensaje (ctxMsgId es nulo).");
         return;
@@ -1950,6 +2191,10 @@ function handleFileSelect(e) {
         
         Promise.all(promises).then(() => {
             renderFilePreview();
+            const hasMedia = pendingFiles.some(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+            if (hasMedia) {
+                openMediaModal();
+            }
         });
     }
 }
@@ -1964,7 +2209,16 @@ function clearFilePreview() {
 
 function toggleInfoPanel() {
     const panel = document.getElementById('msgInfoPanel');
-    if (panel) panel.classList.toggle('active');
+    const backdrop = document.getElementById('msgAppBackdrop');
+    if (!panel) return;
+    const isActive = panel.classList.toggle('active');
+    if (backdrop && window.innerWidth <= 1024) {
+        if (isActive) {
+            backdrop.classList.add('active');
+        } else {
+            backdrop.classList.remove('active');
+        }
+    }
 }
 
 function copyPublicLink() {
@@ -2099,10 +2353,12 @@ function submitNewChatModal() {
 }
 
 function openDriveSelector() {
+    if (!currentChatId) {
+        showToast('Selecciona una conversación primero');
+        return;
+    }
     if (typeof DriveExplorer !== 'undefined') {
-        DriveExplorer.openGlobalModal();
         DriveExplorer.setOnFolderSelect((fileId, fileName) => {
-            // Save folder id
             fetch('modules/mensajes/ajax.php?action=save_drive_folder', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -2111,14 +2367,18 @@ function openDriveSelector() {
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    alert('Carpeta vinculada exitosamente');
+                    showToast(`Carpeta "${fileName || 'Drive'}" vinculada exitosamente`);
                     loadChatInfo(currentChatId);
-                    document.getElementById('global-drive-modal').classList.remove('active');
+                    DriveExplorer.closeModal();
                 } else {
-                    alert('Error vinculando carpeta: ' + data.error);
+                    alert('Error vinculando carpeta: ' + (data.error || 'Desconocido'));
                 }
+            })
+            .catch(err => {
+                alert('Error de red al vincular carpeta');
             });
         });
+        DriveExplorer.openGlobalModal();
     } else {
         alert("El explorador de Drive no está disponible.");
     }
@@ -2343,7 +2603,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleFileObject(file) {
     pendingFiles.push(file);
     renderFilePreview();
-    document.getElementById('msgInput').focus();
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        openMediaModal();
+    } else {
+        document.getElementById('msgInput').focus();
+    }
 }
 
 function removePendingFile(index) {
@@ -2353,6 +2617,7 @@ function removePendingFile(index) {
 
 function renderFilePreview() {
     const previewContainer = document.getElementById('msgFilePreviewContainer');
+    if (!previewContainer) return;
     if (pendingFiles.length === 0) {
         previewContainer.style.display = 'none';
         previewContainer.innerHTML = '';
@@ -2361,25 +2626,183 @@ function renderFilePreview() {
     
     let html = '';
     pendingFiles.forEach((file, index) => {
-        let fileIcon = '<i class="ph ph-file-text"></i>';
-        if (file.type.startsWith('image/')) fileIcon = '<i class="ph ph-image"></i>';
-        else if (file.type.startsWith('video/')) fileIcon = '<i class="ph ph-video-camera"></i>';
-        else if (file.type.startsWith('audio/')) fileIcon = '<i class="ph ph-speaker-high"></i>';
+        const isImg = file.type.startsWith('image/');
+        const isVid = file.type.startsWith('video/');
+        let iconOrThumb = '';
         
-        let name = file.name;
+        if (isImg) {
+            try {
+                const objectUrl = URL.createObjectURL(file);
+                iconOrThumb = `<img src="${objectUrl}" class="msg-file-preview-thumb" alt="Preview">`;
+            } catch(e) {
+                iconOrThumb = `<div class="msg-file-preview-icon"><i class="ph ph-image"></i></div>`;
+            }
+        } else if (isVid) {
+            iconOrThumb = `<div class="msg-file-preview-icon"><i class="ph ph-video-camera"></i></div>`;
+        } else if (file.type.startsWith('audio/')) {
+            iconOrThumb = `<div class="msg-file-preview-icon"><i class="ph ph-speaker-high"></i></div>`;
+        } else {
+            iconOrThumb = `<div class="msg-file-preview-icon"><i class="ph ph-file-text"></i></div>`;
+        }
+        
+        let name = file.name || 'Archivo';
         if (name.length > 20) name = name.substring(0, 17) + '...';
 
         html += `
-            <div class="msg-file-preview-item">
-                <div class="msg-file-preview-icon">${fileIcon}</div>
+            <div class="msg-file-preview-item" onclick="${(isImg || isVid) ? `openMediaModal(${index})` : ''}" style="${(isImg || isVid) ? 'cursor:pointer;' : ''}">
+                ${iconOrThumb}
                 <span class="msg-file-preview-name" title="${file.name}">${name}</span>
-                <button class="msg-icon-btn msg-file-preview-remove" onclick="removePendingFile(${index})" title="Quitar"><i class="ph ph-x"></i></button>
+                <button class="msg-file-preview-remove" type="button" onclick="event.stopPropagation(); removePendingFile(${index});" title="Quitar"><i class="ph ph-x"></i></button>
             </div>
         `;
     });
     previewContainer.innerHTML = html;
     previewContainer.style.display = 'flex';
 }
+
+/* WhatsApp-style Media Preview / Send Modal Logic */
+let currentMediaModalIdx = 0;
+
+function openMediaModal(activeIdx = 0) {
+    if (pendingFiles.length === 0) return;
+    const modal = document.getElementById('msgMediaSendModal');
+    if (!modal) return;
+    
+    currentMediaModalIdx = activeIdx >= 0 && activeIdx < pendingFiles.length ? activeIdx : 0;
+    
+    const mainInput = document.getElementById('msgInput');
+    const captionInput = document.getElementById('msgMediaCaptionInput');
+    if (captionInput && mainInput && !captionInput.value.trim() && mainInput.value.trim()) {
+        captionInput.value = mainInput.value;
+    }
+    
+    modal.style.display = 'flex';
+    renderMediaModalView();
+    if (captionInput) {
+        setTimeout(() => captionInput.focus(), 150);
+    }
+}
+window.openMediaModal = openMediaModal;
+
+function closeMediaModal(discardAll = false) {
+    const modal = document.getElementById('msgMediaSendModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    
+    const img = document.getElementById('msgMediaModalImg');
+    const video = document.getElementById('msgMediaModalVideo');
+    if (img) img.src = '';
+    if (video) { video.pause(); video.src = ''; }
+    
+    if (discardAll) {
+        clearFilePreview();
+    } else {
+        const mainInput = document.getElementById('msgInput');
+        const captionInput = document.getElementById('msgMediaCaptionInput');
+        if (captionInput && mainInput && captionInput.value.trim()) {
+            mainInput.value = captionInput.value;
+        }
+        renderFilePreview();
+    }
+}
+window.closeMediaModal = closeMediaModal;
+
+function discardCurrentMedia() {
+    if (pendingFiles.length === 0) {
+        closeMediaModal(true);
+        return;
+    }
+    pendingFiles.splice(currentMediaModalIdx, 1);
+    if (pendingFiles.length === 0) {
+        closeMediaModal(true);
+    } else {
+        if (currentMediaModalIdx >= pendingFiles.length) {
+            currentMediaModalIdx = pendingFiles.length - 1;
+        }
+        renderMediaModalView();
+        renderFilePreview();
+    }
+}
+window.discardCurrentMedia = discardCurrentMedia;
+
+function renderMediaModalView() {
+    if (pendingFiles.length === 0) {
+        closeMediaModal(true);
+        return;
+    }
+    
+    const file = pendingFiles[currentMediaModalIdx];
+    const img = document.getElementById('msgMediaModalImg');
+    const video = document.getElementById('msgMediaModalVideo');
+    const title = document.getElementById('msgMediaModalTitle');
+    const strip = document.getElementById('msgMediaStrip');
+    
+    if (title) {
+        title.textContent = pendingFiles.length > 1 
+            ? `${currentMediaModalIdx + 1} de ${pendingFiles.length}` 
+            : (file.name || 'Vista previa');
+    }
+    
+    const objectUrl = URL.createObjectURL(file);
+    if (file.type.startsWith('video/')) {
+        if (img) img.style.display = 'none';
+        if (video) {
+            video.src = objectUrl;
+            video.style.display = 'block';
+        }
+    } else {
+        if (video) { video.style.display = 'none'; video.pause(); }
+        if (img) {
+            img.src = objectUrl;
+            img.style.display = 'block';
+        }
+    }
+    
+    if (strip) {
+        let stripHtml = '';
+        pendingFiles.forEach((f, idx) => {
+            const fUrl = URL.createObjectURL(f);
+            stripHtml += `
+                <img src="${fUrl}" class="msg-media-strip-thumb ${idx === currentMediaModalIdx ? 'active' : ''}" onclick="switchMediaModalIdx(${idx})" alt="Thumb">
+            `;
+        });
+        stripHtml += `<button class="msg-media-strip-add" type="button" onclick="triggerFileInput('image/*,video/*')" title="Añadir más"><i class="ph ph-plus"></i></button>`;
+        strip.innerHTML = stripHtml;
+    }
+}
+
+function switchMediaModalIdx(idx) {
+    if (idx >= 0 && idx < pendingFiles.length) {
+        currentMediaModalIdx = idx;
+        renderMediaModalView();
+    }
+}
+window.switchMediaModalIdx = switchMediaModalIdx;
+
+function handleMediaCaptionKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        confirmSendMedia();
+    }
+}
+window.handleMediaCaptionKeydown = handleMediaCaptionKeydown;
+
+function confirmSendMedia() {
+    const captionInput = document.getElementById('msgMediaCaptionInput');
+    const mainInput = document.getElementById('msgInput');
+    if (captionInput && mainInput) {
+        mainInput.value = captionInput.value;
+    }
+    closeMediaModal(false);
+    sendMessage();
+    if (captionInput) captionInput.value = '';
+}
+window.confirmSendMedia = confirmSendMedia;
+
+function toggleEmojiInMediaModal(e) {
+    toggleEmojiMenu(e);
+}
+window.toggleEmojiInMediaModal = toggleEmojiInMediaModal;
 
 // Toast logic
 function showToast(message) {
@@ -2580,14 +3003,31 @@ function sendAudioMessage(blob) {
 }
 
 // GIF Logic
-function toggleGifMenu() {
+function toggleGifMenu(e) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
     const menu = document.getElementById('msgGifMenu');
-    menu.classList.toggle('active');
-    if (menu.classList.contains('active')) {
-        document.getElementById('msgGifSearchInput').focus();
-        if (document.getElementById('msgGifResults').children.length <= 1) {
+    const backdrop = document.getElementById('msgAppBackdrop');
+    if (!menu) return;
+
+    const willOpen = !menu.classList.contains('active');
+    closeAllPopovers();
+
+    if (willOpen) {
+        if (window.innerWidth < 768 && backdrop) {
+            backdrop.classList.add('active');
+        }
+        menu.classList.add('active');
+        const input = document.getElementById('msgGifSearchInput');
+        if (input) setTimeout(() => input.focus(), 120);
+        if (document.getElementById('msgGifResults') && document.getElementById('msgGifResults').children.length <= 1) {
             searchGifs(true);
         }
+    } else {
+        menu.classList.remove('active');
+        if (backdrop) backdrop.classList.remove('active');
     }
 }
 
@@ -2964,16 +3404,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const picker = document.querySelector('emoji-picker');
     if (picker) {
         picker.addEventListener('emoji-click', event => {
-            const input = document.getElementById('msgInput');
+            const mediaModal = document.getElementById('msgMediaSendModal');
+            const isMediaModalOpen = mediaModal && mediaModal.style.display !== 'none';
+            const input = isMediaModalOpen 
+                ? document.getElementById('msgMediaCaptionInput') 
+                : document.getElementById('msgInput');
             if (input) {
-                const cursorPosition = input.selectionStart;
+                const cursorPosition = input.selectionStart || input.value.length;
                 const textBefore = input.value.substring(0, cursorPosition);
                 const textAfter  = input.value.substring(cursorPosition, input.value.length);
                 input.value = textBefore + event.detail.unicode + textAfter;
                 input.selectionStart = cursorPosition + event.detail.unicode.length;
                 input.selectionEnd = cursorPosition + event.detail.unicode.length;
                 input.focus();
-                handleInputState();
+                if (!isMediaModalOpen) handleInputState();
             }
         });
     }
@@ -2987,6 +3431,13 @@ function closeAllPopovers() {
     if (attachMenu) attachMenu.classList.remove('active');
     if (emojiMenu) emojiMenu.classList.remove('active');
     if (gifMenu) gifMenu.classList.remove('active');
+
+    const backdrop = document.getElementById('msgAppBackdrop');
+    const contextMenu = document.getElementById('msgContextMenu');
+    const isContextOpen = contextMenu && contextMenu.style.display !== 'none';
+    if (backdrop && !isContextOpen && window.innerWidth < 768) {
+        backdrop.classList.remove('active');
+    }
 }
 
 // removed double click

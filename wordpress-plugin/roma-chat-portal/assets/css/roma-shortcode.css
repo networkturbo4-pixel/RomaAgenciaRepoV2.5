@@ -1,0 +1,818 @@
+/**
+ * Roma Chat & Portal - Shortcode [roma_portal] Styles
+ * Con aislamiento de estilos para Elementor y temas WordPress.
+ */
+
+.roma-portal-wrapper {
+    width: 100% !important;
+    max-width: 860px !important;
+    margin: 30px auto !important;
+    box-sizing: border-box !important;
+    font-family: var(--roma-font, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif) !important;
+    color: #1e293b !important;
+    line-height: 1.5 !important;
+}
+
+.roma-portal-wrapper * {
+    box-sizing: border-box !important;
+    letter-spacing: normal !important;
+}
+
+.roma-portal-card {
+    background: #ffffff !important;
+    border-radius: 24px !important;
+    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.08), 0 0 1px 1px rgba(15, 23, 42, 0.05) !important;
+    border: 1px solid #f1f5f9 !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Header */
+.roma-portal-header {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
+    color: #ffffff !important;
+    padding: 32px 36px 28px 36px !important;
+    text-align: center !important;
+    position: relative !important;
+}
+
+.roma-portal-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    padding: 4px 14px !important;
+    border-radius: 30px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #e0e7ff !important;
+    margin-bottom: 12px !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.roma-portal-title {
+    margin: 0 0 8px 0 !important;
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.2 !important;
+}
+
+.roma-portal-subtitle {
+    margin: 0 auto !important;
+    font-size: 14px !important;
+    color: #c7d2fe !important;
+    max-width: 580px !important;
+    line-height: 1.5 !important;
+}
+
+/* Tabs */
+.roma-portal-tabs {
+    display: flex !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 8px 16px 0 16px !important;
+    gap: 8px !important;
+}
+
+.roma-tab-btn {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 14px 18px !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 3px solid transparent !important;
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    font-family: inherit !important;
+}
+
+.roma-tab-btn:hover {
+    color: #1e293b !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.roma-tab-btn.active {
+    color: var(--roma-primary, #6366f1) !important;
+    background: #ffffff !important;
+    border-bottom-color: var(--roma-primary, #6366f1) !important;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.02) !important;
+}
+
+.roma-tab-btn i {
+    font-size: 18px !important;
+}
+
+/* Tab Content */
+.roma-portal-content {
+    padding: 32px 36px !important;
+}
+
+.roma-tab-pane {
+    display: none !important;
+    animation: roma-pane-in 0.3s ease !important;
+}
+
+.roma-tab-pane.active {
+    display: block !important;
+}
+
+@keyframes roma-pane-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* TAB 1: SOPORTE */
+.roma-soporte-search-box {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 24px !important;
+    margin-bottom: 24px !important;
+}
+
+.roma-search-instructions {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    font-size: 13.5px !important;
+    color: #475569 !important;
+    margin-bottom: 16px !important;
+    line-height: 1.45 !important;
+}
+
+.roma-search-instructions i {
+    font-size: 18px !important;
+    color: var(--roma-primary, #6366f1) !important;
+    margin-top: 1px !important;
+}
+
+.roma-search-input-group {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.roma-search-input-group > i {
+    position: absolute !important;
+    left: 16px !important;
+    font-size: 20px !important;
+    color: #94a3b8 !important;
+    pointer-events: none !important;
+}
+
+.roma-search-input-group input {
+    width: 100% !important;
+    padding: 14px 130px 14px 46px !important;
+    font-size: 15px !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    transition: all 0.2s ease !important;
+    font-family: inherit !important;
+    margin: 0 !important;
+}
+
+.roma-search-input-group input:focus {
+    border-color: var(--roma-primary, #6366f1) !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+}
+
+.roma-btn-search {
+    position: absolute !important;
+    right: 8px !important;
+    background: linear-gradient(135deg, var(--roma-primary, #6366f1) 0%, var(--roma-secondary, #4f46e5) 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 10px 18px !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin: 0 !important;
+    transition: opacity 0.2s, transform 0.15s !important;
+}
+
+.roma-btn-search:hover {
+    opacity: 0.95 !important;
+    transform: scale(1.02) !important;
+}
+
+/* Loading & State feedback */
+.roma-lookup-state {
+    text-align: center !important;
+    padding: 36px 20px !important;
+}
+
+.roma-spinner {
+    width: 38px !important;
+    height: 38px !important;
+    border: 3px solid #e2e8f0 !important;
+    border-top-color: var(--roma-primary, #6366f1) !important;
+    border-radius: 50% !important;
+    margin: 0 auto 12px auto !important;
+    animation: roma-spin 0.8s linear infinite !important;
+}
+
+@keyframes roma-spin {
+    to { transform: rotate(360deg); }
+}
+
+.roma-state-error {
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    border-radius: 14px !important;
+    padding: 24px !important;
+}
+
+.roma-error-icon {
+    font-size: 36px !important;
+    color: #dc2626 !important;
+    margin-bottom: 8px !important;
+}
+
+.roma-state-error h4 {
+    margin: 0 0 6px 0 !important;
+    color: #991b1b !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+}
+
+.roma-state-error p {
+    margin: 0 0 16px 0 !important;
+    color: #7f1d1d !important;
+    font-size: 13.5px !important;
+    line-height: 1.4 !important;
+}
+
+.roma-btn-inline-quote {
+    background: #ffffff !important;
+    border: 1px solid #dc2626 !important;
+    color: #dc2626 !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    transition: all 0.2s ease !important;
+}
+
+.roma-btn-inline-quote:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+/* Client Results Box */
+.roma-lookup-results {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    animation: roma-pane-in 0.35s ease !important;
+}
+
+.roma-client-profile-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 20px 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+}
+
+.roma-client-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    background: var(--roma-primary, #6366f1) !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 24px !important;
+    flex-shrink: 0 !important;
+}
+
+.roma-client-info {
+    flex: 1 !important;
+    min-width: 220px !important;
+}
+
+.roma-client-name {
+    margin: 0 0 4px 0 !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+}
+
+.roma-client-meta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    font-size: 13px !important;
+    color: #64748b !important;
+}
+
+.roma-client-meta span {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.roma-btn-primary {
+    background: linear-gradient(135deg, var(--roma-primary, #6366f1) 0%, var(--roma-secondary, #4f46e5) 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    outline: none !important;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
+    margin: 0 !important;
+    transition: transform 0.15s, box-shadow 0.15s !important;
+}
+
+.roma-btn-primary:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4) !important;
+}
+
+/* Sections */
+.roma-section-box {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+}
+
+.roma-section-title {
+    margin: 0 !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.roma-count-badge {
+    background: #e2e8f0 !important;
+    color: #475569 !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    padding: 2px 8px !important;
+    border-radius: 12px !important;
+}
+
+/* Brands Grid */
+.roma-brands-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    gap: 16px !important;
+}
+
+.roma-brand-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
+    border-left: 4px solid var(--roma-primary, #6366f1) !important;
+}
+
+.roma-brand-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+.roma-brand-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.roma-brand-logo-wrap {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+    background: #f1f5f9 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: var(--roma-primary, #6366f1) !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+}
+
+.roma-brand-logo-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+
+.roma-brand-name {
+    margin: 0 !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+}
+
+.roma-badge-membership {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    width: fit-content !important;
+}
+
+.roma-brand-services-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+}
+
+.roma-service-tag {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    font-size: 11.5px !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+}
+
+.roma-brand-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-top: auto !important;
+}
+
+.roma-btn-whatsapp-group {
+    background: #25d366 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    transition: opacity 0.15s !important;
+}
+
+.roma-btn-whatsapp-group:hover {
+    opacity: 0.9 !important;
+    color: #ffffff !important;
+}
+
+/* Services List */
+.roma-services-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.roma-service-item {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 14px 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+}
+
+.roma-service-item-title {
+    margin: 0 0 2px 0 !important;
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+}
+
+.roma-service-item-dates {
+    font-size: 12px !important;
+    color: #64748b !important;
+}
+
+.roma-service-status-pill {
+    padding: 4px 10px !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-transform: capitalize !important;
+}
+
+.roma-status-in-progress { background: #e0e7ff !important; color: #3730a3 !important; }
+.roma-status-active { background: #dcfce7 !important; color: #166534 !important; }
+.roma-status-completed { background: #f1f5f9 !important; color: #475569 !important; }
+
+/* TAB 2: COTIZAR */
+.roma-quote-intro {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 20px !important;
+    margin-bottom: 24px !important;
+}
+
+.roma-quote-icon {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, var(--roma-primary, #6366f1) 0%, var(--roma-secondary, #4f46e5) 100%) !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 24px !important;
+    flex-shrink: 0 !important;
+}
+
+.roma-quote-intro h3 {
+    margin: 0 0 4px 0 !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+}
+
+.roma-quote-intro p {
+    margin: 0 !important;
+    font-size: 13px !important;
+    color: #64748b !important;
+    line-height: 1.4 !important;
+}
+
+.roma-portal-form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+}
+
+.roma-form-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+}
+
+.roma-form-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+.roma-form-group label {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin: 0 !important;
+}
+
+.roma-input-icon {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.roma-input-icon > i {
+    position: absolute !important;
+    left: 14px !important;
+    font-size: 18px !important;
+    color: #94a3b8 !important;
+    pointer-events: none !important;
+}
+
+.roma-input-icon input,
+.roma-input-icon select {
+    width: 100% !important;
+    padding: 12px 14px 12px 42px !important;
+    font-size: 14px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    outline: none !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+    font-family: inherit !important;
+    margin: 0 !important;
+}
+
+.roma-input-icon input:focus,
+.roma-input-icon select:focus,
+.roma-portal-form textarea:focus {
+    border-color: var(--roma-primary, #6366f1) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+.roma-portal-form textarea {
+    width: 100% !important;
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    outline: none !important;
+    box-shadow: none !important;
+    resize: vertical !important;
+    min-height: 85px !important;
+    font-family: inherit !important;
+    transition: border-color 0.2s !important;
+    margin: 0 !important;
+}
+
+.roma-form-submit-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    margin-top: 6px !important;
+}
+
+.roma-btn-submit-quote {
+    background: linear-gradient(135deg, var(--roma-primary, #6366f1) 0%, var(--roma-secondary, #4f46e5) 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    outline: none !important;
+    padding: 14px 26px !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35) !important;
+    margin: 0 !important;
+    transition: transform 0.15s, box-shadow 0.15s !important;
+}
+
+.roma-btn-submit-quote:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45) !important;
+}
+
+.roma-privacy-hint {
+    font-size: 12px !important;
+    color: #94a3b8 !important;
+}
+
+/* Quote Success View */
+.roma-quote-success-view {
+    text-align: center !important;
+    padding: 40px 20px !important;
+    animation: roma-pane-in 0.3s ease !important;
+}
+
+.roma-success-icon {
+    font-size: 54px !important;
+    color: #16a34a !important;
+    margin-bottom: 12px !important;
+}
+
+.roma-quote-success-view h3 {
+    margin: 0 0 8px 0 !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+}
+
+.roma-quote-success-view p {
+    margin: 0 auto 24px auto !important;
+    font-size: 14.5px !important;
+    color: #64748b !important;
+    max-width: 500px !important;
+    line-height: 1.5 !important;
+}
+
+.roma-success-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 14px !important;
+    flex-wrap: wrap !important;
+}
+
+.roma-btn-outline {
+    background: transparent !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #475569 !important;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    transition: all 0.15s ease !important;
+}
+
+.roma-btn-outline:hover {
+    border-color: #94a3b8 !important;
+    color: #1e293b !important;
+    background: #f8fafc !important;
+}
+
+/* Footer */
+.roma-portal-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 14px 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    font-size: 12px !important;
+    color: #94a3b8 !important;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .roma-portal-content {
+        padding: 20px 18px !important;
+    }
+    .roma-portal-header {
+        padding: 24px 20px !important;
+    }
+    .roma-portal-title {
+        font-size: 21px !important;
+    }
+    .roma-form-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .roma-search-input-group input {
+        padding-right: 14px !important;
+        padding-bottom: 50px !important;
+    }
+    .roma-btn-search {
+        bottom: 8px !important;
+        top: auto !important;
+        right: 8px !important;
+        width: calc(100% - 16px) !important;
+        justify-content: center !important;
+    }
+    .roma-client-profile-card {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    .roma-client-action {
+        width: 100% !important;
+    }
+    .roma-client-action button {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}

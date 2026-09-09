@@ -26,6 +26,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Auto-login if guest_token is passed via GET (e.g. from WordPress chat expand button)
+if (!empty($_GET['guest_token']) && empty($_SESSION['guest_id'])) {
+    $gTok = trim($_GET['guest_token']);
+    $gFind = $db->prepare("SELECT id, name FROM msg_guests WHERE token = ?");
+    $gFind->execute([$gTok]);
+    $guestFound = $gFind->fetch(PDO::FETCH_ASSOC);
+    if ($guestFound) {
+        $_SESSION['guest_id'] = $guestFound['id'];
+        $_SESSION['guest_name'] = $guestFound['name'];
+    }
+}
+
 // Handle guest login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guest_name'])) {
     $guest_name = trim($_POST['guest_name']);

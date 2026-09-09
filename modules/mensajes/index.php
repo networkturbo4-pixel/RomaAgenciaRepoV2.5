@@ -165,28 +165,6 @@ include 'includes/header.php';
             </button>
             
             <div class="msg-input-area">
-                
-                <div id="msgContextMenu" class="msg-context-menu" style="display:none;">
-                    <div class="msg-ctx-reactions">
-                        <span onclick="sendReaction('👍')">👍</span>
-                        <span onclick="sendReaction('❤️')">❤️</span>
-                        <span onclick="sendReaction('😂')">😂</span>
-                        <span onclick="sendReaction('😮')">😮</span>
-                        <span onclick="sendReaction('😢')">😢</span>
-                        <span onclick="sendReaction('🙏')">🙏</span>
-                    </div>
-                    <div class="msg-ctx-menu-items">
-                        <div class="msg-ctx-item" onclick="ctxReply()"><i class="ph ph-arrow-u-up-left"></i> Responder</div>
-                        <div class="msg-ctx-item" onclick="ctxStar()"><i class="ph ph-star" id="ctxStarBtnIcon"></i> <span id="ctxStarBtnText">Destacar</span></div>
-                        <div class="msg-ctx-item" onclick="ctxPin()"><i class="ph ph-push-pin" id="ctxPinBtnIcon"></i> <span id="ctxPinBtnText">Fijar</span></div>
-                        <div class="msg-ctx-item" id="ctxEditBtn" onclick="ctxEdit()"><i class="ph ph-pencil-simple"></i> Editar</div>
-                        <div class="msg-ctx-item" onclick="ctxCopy()"><i class="ph ph-copy"></i> Copiar</div>
-                        <div class="msg-ctx-item" onclick="ctxForward()"><i class="ph ph-share-fat"></i> Reenviar</div>
-                        <div class="msg-ctx-item" onclick="ctxSelect()"><i class="ph ph-check-square-offset"></i> Seleccionar</div>
-                        <div class="msg-ctx-item ctx-danger" id="ctxDeleteBtn" onclick="ctxDelete()"><i class="ph ph-trash"></i> Eliminar</div>
-                    </div>
-                </div>
-                
                 <div id="msgFilePreviewContainer" style="display:none;"></div>
                 <div id="msgReplyPreviewContainer" style="display:none;" class="msg-reply-preview">
                     <div class="msg-reply-preview-content">
@@ -205,15 +183,10 @@ include 'includes/header.php';
                 </div>
                 
                     <div class="msg-input-wrapper" id="msgInputWrapper">
-                        <button class="msg-icon-btn msg-input-tool-btn" id="msgBtnEmoji" title="Emoticonos" onclick="document.getElementById('msgEmojiMenu').classList.toggle('active')">
+                        <button class="msg-icon-btn msg-input-tool-btn" id="msgBtnEmoji" title="Emoticonos" type="button" onclick="toggleEmojiMenu(event)">
                             <i class="ph ph-smiley"></i>
                         </button>
-                        
-                        <!-- Emoji Popover -->
-                        <div class="msg-emoji-popover" id="msgEmojiMenu">
-                            <emoji-picker class="light"></emoji-picker>
-                        </div>
-                        <button class="msg-icon-btn msg-input-tool-btn" id="msgBtnAttach" onclick="document.getElementById('msgAttachMenu').classList.toggle('active')" title="Adjuntar contenido">
+                        <button class="msg-icon-btn msg-input-tool-btn" id="msgBtnAttach" type="button" onclick="toggleAttachMenu(event)" title="Adjuntar contenido">
                             <i class="ph ph-paperclip"></i>
                         </button>
                     <div id="msgMarkdownPreview" class="msg-markdown-preview" style="display:none; padding:10px; background:var(--msg-bubble-own); color:var(--msg-bubble-own-text); border-radius:8px; margin-bottom:8px; font-size:14px; max-height:100px; overflow-y:auto;"></div>
@@ -231,44 +204,6 @@ include 'includes/header.php';
                     <button class="msg-btn-send" id="msgBtnAction" onclick="handleActionBtn()" title="Enviar mensaje">
                         <i id="actionBtnIcon" class="ph-fill ph-microphone"></i>
                     </button>
-                </div>
-                
-                <!-- Attachment Popover -->
-                <div class="msg-attach-menu" id="msgAttachMenu">
-                    <div class="msg-attach-item" onclick="triggerFileInput('*/*')">
-                        <div class="msg-attach-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);"><i class="ph ph-file-text"></i></div>
-                        <span>Documento</span>
-                    </div>
-                    <div class="msg-attach-item" onclick="triggerFileInput('image/*,video/*')">
-                        <div class="msg-attach-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);"><i class="ph ph-image"></i></div>
-                        <span>Foto / Video</span>
-                    </div>
-                    <div class="msg-attach-item" onclick="toggleGifMenu(); document.getElementById('msgAttachMenu').classList.remove('active');">
-                        <div class="msg-attach-icon" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="ph ph-gif"></i></div>
-                        <span>GIF</span>
-                    </div>
-                    <div class="msg-attach-item" onclick="openTaskModal(); document.getElementById('msgAttachMenu').classList.remove('active');">
-                        <div class="msg-attach-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="ph ph-check-square"></i></div>
-                        <span>Tarea</span>
-                    </div>
-                    <div class="msg-attach-item" onclick="openPendienteModal(); document.getElementById('msgAttachMenu').classList.remove('active');">
-                        <div class="msg-attach-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"><i class="ph ph-list-checks"></i></div>
-                        <span>Pendientes</span>
-                    </div>
-                    <div class="msg-attach-item" onclick="openWhiteboardModal(); document.getElementById('msgAttachMenu').classList.remove('active');">
-                        <div class="msg-attach-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);"><i class="ph ph-chalkboard"></i></div>
-                        <span>Pizarra</span>
-                    </div>
-                </div>
-
-                <!-- GIF Popover -->
-                <div class="msg-gif-popover" id="msgGifMenu">
-                    <div class="msg-gif-header">
-                        <input type="text" id="msgGifSearchInput" placeholder="Buscar GIFs..." onkeyup="searchGifs()">
-                    </div>
-                    <div id="msgGifResults" class="msg-gif-results">
-                        <div class="msg-gif-empty">Buscar en Tenor...</div>
-                    </div>
                 </div>
 
                 <input type="file" id="msgHiddenFileInput" style="display:none;" multiple onchange="handleFileSelect(event)">
@@ -340,6 +275,115 @@ include 'includes/header.php';
             </details>
         </div>
     </aside>
+
+    <!-- Global App Backdrop for Drawers, Bottom Sheets & Modals -->
+    <div class="msg-app-backdrop" id="msgAppBackdrop" onclick="closeAllAppSheets()"></div>
+
+    <!-- Attachment Popover / Bottom Sheet -->
+    <div class="msg-attach-menu" id="msgAttachMenu">
+        <div class="msg-sheet-header">
+            <div class="msg-sheet-handle"></div>
+            <div class="msg-sheet-title">Compartir contenido</div>
+            <button class="msg-icon-btn msg-sheet-close" type="button" onclick="closeAllAppSheets()" title="Cerrar"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="msg-attach-grid">
+            <div class="msg-attach-item" onclick="triggerFileInput('*/*'); closeAllAppSheets();">
+                <div class="msg-attach-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);"><i class="ph ph-file-text"></i></div>
+                <span>Documento</span>
+            </div>
+            <div class="msg-attach-item" onclick="triggerFileInput('image/*,video/*'); closeAllAppSheets();">
+                <div class="msg-attach-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);"><i class="ph ph-image"></i></div>
+                <span>Foto / Video</span>
+            </div>
+            <div class="msg-attach-item" onclick="toggleGifMenu(); closeAllAppSheets();">
+                <div class="msg-attach-icon" style="background: linear-gradient(135deg, #10b981, #059669);"><span class="msg-gif-badge">GIF</span></div>
+                <span>GIF</span>
+            </div>
+            <div class="msg-attach-item" onclick="openTaskModal(); closeAllAppSheets();">
+                <div class="msg-attach-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="ph ph-check-square"></i></div>
+                <span>Tarea</span>
+            </div>
+            <div class="msg-attach-item" onclick="openPendienteModal(); closeAllAppSheets();">
+                <div class="msg-attach-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"><i class="ph ph-list-checks"></i></div>
+                <span>Pendientes</span>
+            </div>
+            <div class="msg-attach-item" onclick="openWhiteboardModal(); closeAllAppSheets();">
+                <div class="msg-attach-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);"><i class="ph ph-chalkboard"></i></div>
+                <span>Pizarra</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="msgContextMenu" class="msg-context-menu" style="display:none;">
+        <div class="msg-sheet-handle"></div>
+        <div class="msg-ctx-reactions">
+            <span onclick="sendReaction('👍')">👍</span>
+            <span onclick="sendReaction('❤️')">❤️</span>
+            <span onclick="sendReaction('😂')">😂</span>
+            <span onclick="sendReaction('😮')">😮</span>
+            <span onclick="sendReaction('😢')">😢</span>
+            <span onclick="sendReaction('🙏')">🙏</span>
+        </div>
+        <div class="msg-ctx-menu-items">
+            <div class="msg-ctx-item" onclick="ctxReply()"><i class="ph ph-arrow-u-up-left"></i> Responder</div>
+            <div class="msg-ctx-item" onclick="ctxStar()"><i class="ph ph-star" id="ctxStarBtnIcon"></i> <span id="ctxStarBtnText">Destacar</span></div>
+            <div class="msg-ctx-item" onclick="ctxPin()"><i class="ph ph-push-pin" id="ctxPinBtnIcon"></i> <span id="ctxPinBtnText">Fijar</span></div>
+            <div class="msg-ctx-item" id="ctxEditBtn" onclick="ctxEdit()"><i class="ph ph-pencil-simple"></i> Editar</div>
+            <div class="msg-ctx-item" onclick="ctxCopy()"><i class="ph ph-copy"></i> Copiar</div>
+            <div class="msg-ctx-item" onclick="ctxForward()"><i class="ph ph-share-fat"></i> Reenviar</div>
+            <div class="msg-ctx-item" onclick="ctxSelect()"><i class="ph ph-check-square-offset"></i> Seleccionar</div>
+            <div class="msg-ctx-item ctx-danger" id="ctxDeleteBtn" onclick="ctxDelete()"><i class="ph ph-trash"></i> Eliminar</div>
+        </div>
+    </div>
+
+    <!-- GIF Popover -->
+    <div class="msg-gif-popover" id="msgGifMenu">
+        <div class="msg-gif-header">
+            <input type="text" id="msgGifSearchInput" placeholder="Buscar GIFs..." onkeyup="searchGifs()">
+        </div>
+        <div id="msgGifResults" class="msg-gif-results">
+            <div class="msg-gif-empty">Buscar en Tenor...</div>
+        </div>
+    </div>
+
+    <!-- Emoji Popover -->
+    <div class="msg-emoji-popover" id="msgEmojiMenu">
+        <emoji-picker class="light"></emoji-picker>
+    </div>
+</div>
+
+<!-- Media Send Modal (WhatsApp / Telegram style image/video preview before sending) -->
+<div id="msgMediaSendModal" class="msg-media-modal" style="display:none;">
+    <div class="msg-media-modal-backdrop" onclick="closeMediaModal(true)"></div>
+    <div class="msg-media-modal-content">
+        <div class="msg-media-modal-header">
+            <button class="msg-icon-btn msg-media-btn-close" type="button" onclick="closeMediaModal(true)" title="Cerrar"><i class="ph ph-x"></i></button>
+            <div class="msg-media-modal-title" id="msgMediaModalTitle">Vista previa</div>
+            <button class="msg-icon-btn msg-media-btn-delete" type="button" onclick="discardCurrentMedia()" title="Descartar archivo"><i class="ph ph-trash"></i></button>
+        </div>
+        
+        <div class="msg-media-modal-preview" id="msgMediaModalPreview">
+            <img id="msgMediaModalImg" src="" alt="Preview" style="display:none;">
+            <video id="msgMediaModalVideo" controls style="display:none;"></video>
+        </div>
+
+        <div class="msg-media-modal-footer">
+            <div class="msg-media-strip" id="msgMediaStrip">
+                <button class="msg-media-strip-add" type="button" onclick="triggerFileInput('image/*,video/*')" title="Añadir más"><i class="ph ph-plus"></i></button>
+            </div>
+            
+            <div class="msg-media-caption-bar">
+                <div class="msg-media-input-wrap">
+                    <button type="button" onclick="toggleEmojiInMediaModal(event)" title="Emoticonos"><i class="ph ph-smiley"></i></button>
+                    <input type="text" id="msgMediaCaptionInput" placeholder="Escribe un mensaje..." onkeydown="handleMediaCaptionKeydown(event)">
+                </div>
+                <button class="msg-media-send-btn" id="msgMediaSendBtn" type="button" onclick="confirmSendMedia()" title="Enviar">
+                    <i class="ph ph-paper-plane-right-fill"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modals -->
