@@ -9,12 +9,13 @@ if (!defined('ABSPATH')) {
 
 class Roma_Chat_Shortcode {
 
-    private $options;
-
     public function __construct() {
-        $this->options = get_option('roma_cp_options', []);
         add_shortcode('roma_portal', [$this, 'render_shortcode']);
         add_action('wp_enqueue_scripts', [$this, 'register_assets']);
+    }
+
+    private function get_options() {
+        return get_option('roma_cp_options', []);
     }
 
     public function register_assets() {
@@ -44,12 +45,13 @@ class Roma_Chat_Shortcode {
         wp_enqueue_style('roma-shortcode-css');
         wp_enqueue_script('roma-shortcode-js');
 
-        $crmUrl = rtrim($this->options['crm_url'] ?? 'http://localhost/CESARMENDOZA', '/');
+        $options = $this->get_options();
+        $crmUrl = rtrim($options['crm_url'] ?? 'http://localhost/CESARMENDOZA', '/');
 
         wp_localize_script('roma-shortcode-js', 'RomaPortalConfig', [
             'crmUrl' => $crmUrl,
             'apiUrl' => $crmUrl . '/modules/mensajes/api_widget.php',
-            'apiKey' => $this->options['crm_app_key'] ?? '',
+            'apiKey' => $options['crm_app_key'] ?? '',
             'guestUrl' => $crmUrl . '/index.php?module=mensajes&action=guest'
         ]);
 

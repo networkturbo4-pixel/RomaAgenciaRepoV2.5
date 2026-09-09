@@ -14,6 +14,33 @@ class Roma_Chat_Admin {
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
         add_action('wp_ajax_roma_cp_test_connection', [$this, 'ajax_test_connection']);
+        add_action('wp_ajax_roma_cp_save_settings', [$this, 'ajax_save_settings']);
+    }
+
+    public static function purge_all_caches() {
+        wp_cache_delete('roma_cp_options', 'options');
+        if (function_exists('wp_cache_flush')) {
+            @wp_cache_flush();
+        }
+        // LiteSpeed Cache purge
+        if (has_action('litespeed_purge_all')) {
+            do_action('litespeed_purge_all');
+        }
+        if (class_exists('LiteSpeed\Purge')) {
+            try { \LiteSpeed\Purge::purge_all(); } catch (\Throwable $t) {}
+        }
+        // WP Super Cache
+        if (function_exists('wp_cache_clear_cache')) {
+            @wp_cache_clear_cache();
+        }
+        // W3 Total Cache
+        if (function_exists('w3tc_flush_all')) {
+            @w3tc_flush_all();
+        }
+        // WP Rocket
+        if (function_exists('rocket_clean_domain')) {
+            @rocket_clean_domain();
+        }
     }
 
     public function add_settings_page() {
@@ -37,10 +64,19 @@ class Roma_Chat_Admin {
 
     public function sanitize_options($input) {
         $clean = [];
-        $clean['crm_url'] = esc_url_raw(rtrim($input['crm_url'] ?? '', '/'));
-        $clean['crm_app_key'] = sanitize_text_field($input['crm_app_key'] ?? '');
-        $clean['pusher_key'] = sanitize_text_field($input['pusher_key'] ?? '');
-        $clean['pusher_cluster'] = sanitize_text_field($input['pusher_cluster'] ?? 'us2');
+        $rawUrl = trim($input['crm_url'] ?? '');
+        if (!empty($rawUrl)) {
+            if (!preg_match('#^https?://#i', $rawUrl)) {
+                $rawUrl = 'https://' . $rawUrl;
+            }
+            $clean['crm_url'] = esc_url_raw(rtrim($rawUrl, '/'));
+        } else {
+            $clean['crm_url'] = '';
+        }
+
+        $clean['crm_app_key'] = sanitize_text_field(trim($input['crm_app_key'] ?? ''));
+        $clean['pusher_key'] = sanitize_text_field(trim($input['pusher_key'] ?? ''));
+        $clean['pusher_cluster'] = sanitize_text_field(trim($input['pusher_cluster'] ?? 'us2'));
         $clean['enable_widget'] = isset($input['enable_widget']) && $input['enable_widget'] === 'yes' ? 'yes' : 'no';
         $clean['bubble_position'] = in_array($input['bubble_position'] ?? '', ['bottom-right', 'bottom-left']) ? $input['bubble_position'] : 'bottom-right';
         $clean['primary_color'] = sanitize_hex_color($input['primary_color'] ?? '#6366f1') ?: '#6366f1';
@@ -51,7 +87,32 @@ class Roma_Chat_Admin {
         $clean['widget_title'] = sanitize_text_field($input['widget_title'] ?? 'Roma Soporte & Ventas');
         $clean['widget_subtitle'] = sanitize_text_field($input['widget_subtitle'] ?? 'Normalmente respondemos en minutos');
         $clean['welcome_msg'] = sanitize_textarea_field($input['welcome_msg'] ?? '');
+
+        self::purge_all_caches();
+
         return $clean;
+    }
+
+    public function ajax_save_settings() {
+        check_ajax_referer('roma_cp_save_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'No autorizado']);
+        }
+
+        $existing = get_option('roma_cp_options', []);
+        $input = $_POST['roma_cp_options'] ?? [];
+
+        $merged = array_merge($existing, $input);
+        $clean = $this->sanitize_options($merged);
+
+        update_option('roma_cp_options', $clean);
+        self::purge_all_caches();
+
+        wp_send_json_success([
+            'message' => 'Ajustes guardados correctamente en WordPress y caché purgada.',
+            'options' => $clean
+        ]);
     }
 
     public function enqueue_admin_assets($hook) {
@@ -163,24 +224,27 @@ class Roma_Chat_Admin {
                                 <tr>
                                     <th scope="row" style="width: 200px;"><label for="crm_url">URL del CRM</label></th>
                                     <td>
-                                        <input type="url" id="crm_url" name="roma_cp_options[crm_url]" value="<?php echo esc_attr($crm_url); ?>" class="regular-text" style="width: 100%; max-width: 480px;" placeholder="https://romaagencia.lat/" required>
-                                        <p class="description">Ejemplo: <code>https://romaagencia.lat/</code> o en local <code>http://localhost/CESARMENDOZA</code></p>
+                                        <input type="text" id="crm_url" name="roma_cp_options[crm_url]" value="<?php echo esc_attr($crm_url); ?>" class="regular-text" style="width: 100%; max-width: 480px;" placeholder="https://romaagencia.lat" required autocomplete="off">
+                                        <p class="description">Ejemplo: <code>https://romaagencia.lat</code> o en local <code>http://localhost/CESARMENDOZA</code></p>
                                     </td>
                                 </tr>
                                 <tr>
                                     <th scope="row"><label for="crm_app_key">App Key del CRM</label></th>
                                     <td>
                                         <div style="display: flex; gap: 8px; max-width: 480px;">
-                                            <input type="password" id="crm_app_key" name="roma_cp_options[crm_app_key]" value="<?php echo esc_attr($crm_app_key); ?>" class="regular-text" style="width: 100%; font-family: monospace;" placeholder="roma_live_...">
+                                            <input type="password" id="crm_app_key" name="roma_cp_options[crm_app_key]" value="<?php echo esc_attr($crm_app_key); ?>" class="regular-text" style="width: 100%; font-family: monospace;" placeholder="roma_live_..." autocomplete="off">
                                             <button type="button" id="btn-toggle-admin-key" class="button" title="Ver / Ocultar clave">👁️</button>
                                         </div>
                                         <p class="description">Clave generada en tu CRM en <strong>Conexiones &gt; WordPress &amp; CRM API</strong>.</p>
-                                        <div style="margin-top: 10px;">
-                                            <button type="button" id="btn-test-conn" class="button button-secondary">
+                                        <div style="margin-top: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                            <button type="button" id="btn-test-conn" class="button button-secondary" style="font-weight: 600;">
                                                 🔌 Probar Conexión
                                             </button>
-                                            <span id="conn-test-result" style="margin-left: 10px; font-size: 13px; font-weight: 500;"></span>
+                                            <button type="button" id="btn-save-conn-ajax" class="button button-primary" style="background: #4f46e5; border-color: #4338ca; font-weight: 600;">
+                                                💾 Guardar Cambios de Conexión
+                                            </button>
                                         </div>
+                                        <div id="conn-test-result" style="margin-top: 10px; font-size: 13px; font-weight: 500; min-height: 22px;"></div>
                                     </td>
                                 </tr>
                                 <tr>
@@ -378,34 +442,139 @@ class Roma_Chat_Admin {
                 $keyInput.attr('type', isPassword ? 'text' : 'password');
             });
 
-            // Botón de Test de Conexión
-            $('#btn-test-conn').on('click', function(e) {
+            // Normalizar URL al salir del campo
+            $('#crm_url').on('blur', function() {
+                var val = $(this).val().trim();
+                if (val && !/^https?:\/\//i.test(val)) {
+                    val = 'https://' + val;
+                }
+                if (val) {
+                    val = val.replace(/\/+$/, '');
+                }
+                $(this).val(val);
+            });
+
+            // Guardar solo ajustes de conexión vía AJAX
+            $('#btn-save-conn-ajax').on('click', function(e) {
                 e.preventDefault();
-                var crmUrl = $('#crm_url').val();
-                var crmAppKey = $('#crm_app_key').val();
+                var $btn = $(this);
+                var crmUrl = $('#crm_url').val().trim();
+                var crmAppKey = $('#crm_app_key').val().trim();
+                var pusherKey = $('#pusher_key').val().trim();
+                var pusherCluster = $('#pusher_cluster').val().trim();
                 var $status = $('#conn-test-result');
-                
-                $status.html('<span style="color: #6366f1;">⏳ Conectando con Roma CRM...</span>');
+
+                if (crmUrl && !/^https?:\/\//i.test(crmUrl)) {
+                    crmUrl = 'https://' + crmUrl;
+                    $('#crm_url').val(crmUrl);
+                }
+                if (crmUrl) {
+                    crmUrl = crmUrl.replace(/\/+$/, '');
+                    $('#crm_url').val(crmUrl);
+                }
+
+                $btn.prop('disabled', true).text('Guardando...');
+                $status.html('<span style="color: #6366f1;">⏳ Guardando ajustes de conexión y purgando caché...</span>');
 
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
+                    dataType: 'json',
                     data: {
-                        action: 'roma_cp_test_connection',
-                        crm_url: crmUrl,
-                        crm_app_key: crmAppKey,
-                        nonce: '<?php echo wp_create_nonce("roma_cp_test_nonce"); ?>'
+                        action: 'roma_cp_save_settings',
+                        nonce: '<?php echo wp_create_nonce("roma_cp_save_nonce"); ?>',
+                        roma_cp_options: {
+                            crm_url: crmUrl,
+                            crm_app_key: crmAppKey,
+                            pusher_key: pusherKey,
+                            pusher_cluster: pusherCluster
+                        }
                     },
                     success: function(res) {
+                        $btn.prop('disabled', false).text('💾 Guardar Cambios de Conexión');
                         if (res.success) {
-                            $status.html('<span style="color: #16a34a;">✅ ' + res.data.message + '</span>');
+                            $status.html('<span style="color: #16a34a; font-weight: 600;">✅ ' + res.data.message + '</span>');
                         } else {
-                            $status.html('<span style="color: #dc2626;">❌ ' + res.data.message + '</span>');
+                            $status.html('<span style="color: #dc2626; font-weight: 600;">❌ ' + res.data.message + '</span>');
                         }
                     },
                     error: function() {
-                        $status.html('<span style="color: #dc2626;">❌ No se pudo conectar al endpoint del CRM. Verifica la URL y la App Key.</span>');
+                        $btn.prop('disabled', false).text('💾 Guardar Cambios de Conexión');
+                        $status.html('<span style="color: #dc2626; font-weight: 600;">❌ Error al guardar ajustes en WordPress. Puedes usar también el botón inferior.</span>');
                     }
+                });
+            });
+
+            // Botón de Test de Conexión (Prueba Directa en Navegador vía Fetch con CORS)
+            $('#btn-test-conn').on('click', function(e) {
+                e.preventDefault();
+                var crmUrl = $('#crm_url').val().trim();
+                var crmAppKey = $('#crm_app_key').val().trim();
+                var $status = $('#conn-test-result');
+
+                if (!crmUrl) {
+                    $status.html('<span style="color: #dc2626; font-weight: 600;">⚠️ Por favor ingresa la URL del CRM primero.</span>');
+                    $('#crm_url').focus();
+                    return;
+                }
+
+                if (!/^https?:\/\//i.test(crmUrl)) {
+                    crmUrl = 'https://' + crmUrl;
+                    $('#crm_url').val(crmUrl);
+                }
+                crmUrl = crmUrl.replace(/\/+$/, '');
+
+                $status.html('<span style="color: #6366f1;">⏳ Conectando con Roma CRM desde tu navegador...</span>');
+
+                var testEndpoint = crmUrl + '/modules/mensajes/api_widget.php?action=get_services&api_key=' + encodeURIComponent(crmAppKey);
+
+                // 1. Probar directamente desde el navegador (como lo harán los clientes/visitantes)
+                fetch(testEndpoint, {
+                    method: 'GET',
+                    headers: {
+                        'X-Roma-Api-Key': crmAppKey
+                    },
+                    cache: 'no-store'
+                })
+                .then(function(response) {
+                    return response.json().then(function(data) {
+                        return { status: response.status, data: data };
+                    });
+                })
+                .then(function(res) {
+                    if (res.data && res.data.success === true) {
+                        var count = (res.data.services && res.data.services.length) ? res.data.services.length : 0;
+                        $status.html('<span style="color: #16a34a; font-weight: 600;">✅ ¡Conexión exitosa! El CRM respondió correctamente en tiempo real (' + count + ' servicios activos disponibles).</span>');
+                    } else if (res.status === 401 || (res.data && res.data.error)) {
+                        $status.html('<span style="color: #dc2626; font-weight: 600;">❌ Error en App Key: ' + (res.data.error || 'Clave no válida') + '</span>');
+                    } else {
+                        $status.html('<span style="color: #dc2626; font-weight: 600;">❌ Respuesta inesperada del CRM: ' + JSON.stringify(res.data) + '</span>');
+                    }
+                })
+                .catch(function(err) {
+                    // Si fetch en navegador falló (posible bloqueo SSL o mixed-content), intentar fallback vía servidor
+                    $status.html('<span style="color: #d97706;">⏳ Verificando vía servidor de respaldo...</span>');
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'roma_cp_test_connection',
+                            crm_url: crmUrl,
+                            crm_app_key: crmAppKey,
+                            nonce: '<?php echo wp_create_nonce("roma_cp_test_nonce"); ?>'
+                        },
+                        success: function(serverRes) {
+                            if (serverRes.success) {
+                                $status.html('<span style="color: #16a34a; font-weight: 600;">✅ ' + serverRes.data.message + '</span>');
+                            } else {
+                                $status.html('<span style="color: #dc2626; font-weight: 600;">❌ ' + serverRes.data.message + '</span>');
+                            }
+                        },
+                        error: function() {
+                            $status.html('<span style="color: #dc2626; font-weight: 600;">❌ No se pudo conectar con el CRM (' + crmUrl + '). Asegúrate de que la URL sea pública y use HTTPS.</span>');
+                        }
+                    });
                 });
             });
         });

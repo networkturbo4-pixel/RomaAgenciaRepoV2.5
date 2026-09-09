@@ -9,12 +9,9 @@ if (!defined('ABSPATH')) {
 
 class Roma_Chat_Widget {
 
-    private $options;
-
     public function __construct() {
-        $this->options = get_option('roma_cp_options', []);
-        
-        $enable = $this->options['enable_widget'] ?? 'yes';
+        $options = $this->get_options();
+        $enable = $options['enable_widget'] ?? 'yes';
         if ($enable === 'yes') {
             add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
             add_action('wp_head', [$this, 'inject_custom_styles']);
@@ -22,7 +19,13 @@ class Roma_Chat_Widget {
         }
     }
 
+    private function get_options() {
+        return get_option('roma_cp_options', []);
+    }
+
     public function enqueue_scripts() {
+        $options = $this->get_options();
+
         wp_enqueue_style(
             'roma-widget-css',
             ROMA_CP_URL . 'assets/css/roma-widget.css',
@@ -38,28 +41,29 @@ class Roma_Chat_Widget {
             true
         );
 
-        $crmUrl = rtrim($this->options['crm_url'] ?? 'http://localhost/CESARMENDOZA', '/');
+        $crmUrl = rtrim($options['crm_url'] ?? 'http://localhost/CESARMENDOZA', '/');
 
         wp_localize_script('roma-widget-js', 'RomaWidgetConfig', [
             'crmUrl' => $crmUrl,
             'apiUrl' => $crmUrl . '/modules/mensajes/api_widget.php',
-            'apiKey' => $this->options['crm_app_key'] ?? '',
+            'apiKey' => $options['crm_app_key'] ?? '',
             'guestUrl' => $crmUrl . '/index.php?module=mensajes&action=guest',
-            'pusherKey' => $this->options['pusher_key'] ?? 'b31f38612d61b0285c78',
-            'pusherCluster' => $this->options['pusher_cluster'] ?? 'us2',
-            'welcomeMsg' => $this->options['welcome_msg'] ?? '¡Hola! 👋 ¿En qué podemos ayudarte hoy?',
-            'widgetTitle' => $this->options['widget_title'] ?? 'Roma Soporte & Ventas',
-            'widgetSubtitle' => $this->options['widget_subtitle'] ?? 'Normalmente respondemos en minutos',
-            'position' => $this->options['bubble_position'] ?? 'bottom-right'
+            'pusherKey' => $options['pusher_key'] ?? 'b31f38612d61b0285c78',
+            'pusherCluster' => $options['pusher_cluster'] ?? 'us2',
+            'welcomeMsg' => $options['welcome_msg'] ?? '¡Hola! 👋 ¿En qué podemos ayudarte hoy?',
+            'widgetTitle' => $options['widget_title'] ?? 'Roma Soporte & Ventas',
+            'widgetSubtitle' => $options['widget_subtitle'] ?? 'Normalmente respondemos en minutos',
+            'position' => $options['bubble_position'] ?? 'bottom-right'
         ]);
     }
 
     public function inject_custom_styles() {
-        $primary = $this->options['primary_color'] ?? '#6366f1';
-        $secondary = $this->options['secondary_color'] ?? '#4f46e5';
-        $textColor = $this->options['text_color'] ?? '#ffffff';
-        $font = $this->options['font_family'] ?? 'Inter, sans-serif';
-        $position = $this->options['bubble_position'] ?? 'bottom-right';
+        $options = $this->get_options();
+        $primary = $options['primary_color'] ?? '#6366f1';
+        $secondary = $options['secondary_color'] ?? '#4f46e5';
+        $textColor = $options['text_color'] ?? '#ffffff';
+        $font = $options['font_family'] ?? 'Inter, sans-serif';
+        $position = $options['bubble_position'] ?? 'bottom-right';
 
         $posCss = ($position === 'bottom-left') 
             ? 'left: 24px; right: auto;' 
@@ -82,9 +86,10 @@ class Roma_Chat_Widget {
     }
 
     public function render_widget_html() {
-        $icon = $this->options['button_icon'] ?? 'ph-chat-circle-dots';
-        $title = $this->options['widget_title'] ?? 'Roma Soporte & Ventas';
-        $subtitle = $this->options['widget_subtitle'] ?? 'Normalmente respondemos en minutos';
+        $options = $this->get_options();
+        $icon = $options['button_icon'] ?? 'ph-chat-circle-dots';
+        $title = $options['widget_title'] ?? 'Roma Soporte & Ventas';
+        $subtitle = $options['widget_subtitle'] ?? 'Normalmente respondemos en minutos';
         ?>
         <!-- Roma Floating Chat Widget -->
         <div id="roma-chat-widget" class="roma-widget-container" style="display: none;">
