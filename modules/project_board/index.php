@@ -310,7 +310,7 @@ try {
     /* ===== MONTH CARDS GRID ===== */
     .months-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 1.5rem;
         width: 100%;
         min-width: 0;
@@ -320,7 +320,7 @@ try {
         background: #ffffff;
         border: 1px solid rgba(226, 232, 240, 0.9);
         border-radius: 20px;
-        padding: 1.4rem;
+        padding: 1.25rem;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
         display: flex;
         flex-direction: column;
@@ -409,31 +409,36 @@ try {
     /* Stats Grid Tiles */
     .mc-stats-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        width: 100%;
+        min-width: 0;
     }
     .mc-stat-tile {
         background: rgba(15, 23, 42, 0.02);
         border: 1px solid var(--border-color);
         border-radius: 14px;
-        padding: 0.75rem 1rem;
+        padding: 0.65rem 0.7rem;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
+        min-width: 0;
+        overflow: hidden;
         transition: all 0.2s ease;
+        box-sizing: border-box;
     }
     [data-theme="dark"] .mc-stat-tile {
         background: #181818;
         border-color: #27272a;
     }
     .mc-stat-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         flex-shrink: 0;
     }
     .mc-stat-icon.posts { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
@@ -442,19 +447,25 @@ try {
     .mc-stat-info {
         display: flex;
         flex-direction: column;
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
     }
     .mc-stat-num {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         font-weight: 800;
         color: var(--color-title);
         line-height: 1.1;
     }
     .mc-stat-label {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 700;
         color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Progress Section */
@@ -1318,22 +1329,22 @@ try {
                     
                     <!-- Stats Grid -->
                     <div class="mc-stats-grid">
-                        <div class="mc-stat-tile">
+                        <div class="mc-stat-tile" title="<?php echo $postsCount; ?> Publicaciones">
                             <div class="mc-stat-icon posts">
                                 <i class="ph-bold ph-newspaper"></i>
                             </div>
                             <div class="mc-stat-info">
                                 <div class="mc-stat-num"><?php echo $postsCount; ?></div>
-                                <div class="mc-stat-label">Publicaciones</div>
+                                <div class="mc-stat-label" title="Publicaciones">Publicaciones</div>
                             </div>
                         </div>
-                        <div class="mc-stat-tile">
+                        <div class="mc-stat-tile" title="<?php echo $commentsCount; ?> Comentarios">
                             <div class="mc-stat-icon comments">
                                 <i class="ph-bold ph-chat-circle-dots"></i>
                             </div>
                             <div class="mc-stat-info">
                                 <div class="mc-stat-num"><?php echo $commentsCount; ?></div>
-                                <div class="mc-stat-label">Comentarios</div>
+                                <div class="mc-stat-label" title="Comentarios">Comentarios</div>
                             </div>
                         </div>
                     </div>

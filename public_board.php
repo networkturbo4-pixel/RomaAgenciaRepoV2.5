@@ -1610,7 +1610,18 @@ function renderPreviewBox($urlStr, $isRef = true) {
                 $isApproved = ($p['status'] === 'Aprobado' || $p['status'] === 'Publicado');
                 $btnDisabled = $isApproved ? 'disabled' : '';
                 $btnClass = $isApproved ? 'disabled-green' : 'active-approve';
-                $btnText = $isApproved ? ($p['status'] === 'Publicado' ? 'Publicado' : 'Aprobado') : 'Aprobar Referencia';
+
+                $isRefType = ($p['post_type'] === 'Referencia Visual');
+                $hasRefImg = !empty($p['reference_image_link']);
+                $hasFinalImg = !empty($p['image_link']);
+                $showRefActive = $isRefType || ($hasRefImg && !$hasFinalImg);
+                $activeApproveType = $showRefActive ? 'referencia' : 'terminado';
+
+                if ($isApproved) {
+                    $btnText = ($p['status'] === 'Publicado') ? 'Publicado' : ($showRefActive ? 'Referencia Aprobada' : 'Aprobado');
+                } else {
+                    $btnText = $showRefActive ? 'Aprobar Referencia' : 'Aprobar y Publicar';
+                }
             ?>
             <div class="main-post-slide" data-post-id="<?php echo $p['id']; ?>" data-index="<?php echo $index; ?>" data-is-approved="<?php echo $isApproved ? '1' : '0'; ?>">
                 
@@ -1656,7 +1667,7 @@ function renderPreviewBox($urlStr, $isRef = true) {
                         <i class="ph-bold ph-image"></i> Multimedia
                     </div>
                     <div class="tab-btn tab-btn-copy-label" onclick="switchTab(this, 'copy-<?php echo $p['id']; ?>')">
-                        <i class="ph-bold ph-notepad"></i> Descripción
+                        <i class="ph-bold ph-text-align-left"></i> Copy / Descripción
                     </div>
                     <div class="tab-btn" onclick="switchTab(this, 'comment-<?php echo $p['id']; ?>')">
                         <i class="ph-bold ph-chat-circle-dots"></i> Comentarios <?php echo count($p['comments']) > 0 ? '('.count($p['comments']).')' : ''; ?>
@@ -1670,37 +1681,44 @@ function renderPreviewBox($urlStr, $isRef = true) {
                         <!-- COLUMN 1: BRIEF / COPY DEL POST -->
                         <div class="tab-content" id="copy-<?php echo $p['id']; ?>">
                             <div class="studio-column-card">
-                                <!-- PANE 1: DESCRIPCIÓN / IDEA REFERENCIAL (Para Referencia Gráfica) -->
-                                <div class="copy-pane" id="brief-pane-<?php echo $p['id']; ?>">
-                                    <div class="studio-column-header">
-                                        <span class="studio-column-title"><i class="ph-bold ph-notepad"></i> Descripción / Idea Referencial</span>
-                                        <button type="button" class="btn-copy-clipboard" onclick="copyPostText(this, 'brief-text-<?php echo $p['id']; ?>')">
-                                            <i class="ph ph-copy"></i> <span>Copiar</span>
-                                        </button>
-                                    </div>
-                                    <div class="copy-text-box" id="brief-text-<?php echo $p['id']; ?>"><?php 
-                                        if (!empty($p['design_brief'])) {
-                                            echo nl2br(htmlspecialchars($p['design_brief']));
-                                        } elseif (!empty($p['concept'])) {
-                                            echo nl2br(htmlspecialchars($p['concept']));
-                                        } else {
-                                            echo 'Sin descripción o idea asignada a esta referencia.';
-                                        }
-                                    ?></div>
-                                </div>
-
-                                <!-- PANE 2: COPY DEL POST (Para Post Terminado) -->
-                                <div class="copy-pane" id="copy-pane-<?php echo $p['id']; ?>" style="display: none;">
+                                <!-- COPY DEL POST (Siempre visible e igual que en post terminado) -->
+                                <div class="copy-pane" id="copy-pane-<?php echo $p['id']; ?>">
                                     <div class="studio-column-header">
                                         <span class="studio-column-title"><i class="ph-bold ph-text-align-left"></i> Copy del Post</span>
                                         <button type="button" class="btn-copy-clipboard" onclick="copyPostText(this, 'copy-text-<?php echo $p['id']; ?>')">
                                             <i class="ph ph-copy"></i> <span>Copiar</span>
                                         </button>
                                     </div>
-                                    <div class="copy-text-box" id="copy-text-<?php echo $p['id']; ?>"><?php echo empty($p['copy_text']) ? 'Sin copy asignado a esta publicación.' : nl2br(htmlspecialchars($p['copy_text'])); ?></div>
+                                    <div class="copy-text-box" id="copy-text-<?php echo $p['id']; ?>"><?php 
+                                        if (!empty($p['copy_text'])) {
+                                            $cleanCopy = strip_tags($p['copy_text']);
+                                            $cleanCopy = htmlspecialchars($cleanCopy);
+                                            $cleanCopy = preg_replace('/(#[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_]+)/u', '<span class="hashtag" style="color:var(--primary); font-weight:700;">$1</span>', $cleanCopy);
+                                            $cleanCopy = preg_replace('/(https?:\/\/[^\s]+)/', '<a href="$1" target="_blank" style="color:var(--primary); text-decoration:underline;">$1</a>', $cleanCopy);
+                                            echo nl2br($cleanCopy);
+                                        } elseif (!empty($p['design_brief'])) {
+                                            echo nl2br(htmlspecialchars($p['design_brief']));
+                                        } elseif (!empty($p['concept'])) {
+                                            echo nl2br(htmlspecialchars($p['concept']));
+                                        } else {
+                                            echo 'Sin copy asignado a esta publicación.';
+                                        }
+                                    ?></div>
                                 </div>
+
+                                <?php if (!empty($p['design_brief']) && !empty($p['copy_text'])): ?>
+                                <!-- BRIEF / IDEA REFERENCIAL COMPLEMENTARIA -->
+                                <div class="copy-pane-secondary" id="brief-pane-<?php echo $p['id']; ?>" style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px dashed var(--app-border);">
+                                    <div class="studio-column-header" style="margin-bottom: 0.4rem;">
+                                        <span class="studio-column-title" style="font-size: 0.78rem; opacity: 0.85;"><i class="ph-bold ph-notepad"></i> Idea / Referencia Creativa</span>
+                                    </div>
+                                    <div class="copy-text-box" id="brief-text-<?php echo $p['id']; ?>" style="font-size: 0.8rem; color: var(--app-text-muted); background: var(--app-subtle); padding: 0.6rem 0.8rem; border-radius: 8px;">
+                                        <?php echo nl2br(htmlspecialchars($p['design_brief'])); ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                                 
-                                <button class="btn-approve btn-approve-desktop <?php echo $btnClass; ?>" <?php echo $btnDisabled; ?> onclick="approvePost(<?php echo $p['id']; ?>, this, 'referencia')">
+                                <button class="btn-approve btn-approve-desktop <?php echo $btnClass; ?>" <?php echo $btnDisabled; ?> onclick="approvePost(<?php echo $p['id']; ?>, this, '<?php echo $activeApproveType; ?>')">
                                     <i class="ph-bold ph-check"></i> <span class="btn-approve-text"><?php echo $btnText; ?></span>
                                 </button>
                             </div>
@@ -1715,15 +1733,15 @@ function renderPreviewBox($urlStr, $isRef = true) {
                                 </div>
                                 
                                 <div class="media-switcher">
-                                    <button type="button" class="media-switch-btn active" onclick="switchMedia(this, 'ref-<?php echo $p['id']; ?>', 'final-<?php echo $p['id']; ?>')">Referencia gráfica</button>
-                                    <button type="button" class="media-switch-btn" onclick="switchMedia(this, 'final-<?php echo $p['id']; ?>', 'ref-<?php echo $p['id']; ?>')">Post Terminado</button>
+                                    <button type="button" class="media-switch-btn <?php echo $showRefActive ? 'active' : ''; ?>" onclick="switchMedia(this, 'ref-<?php echo $p['id']; ?>', 'final-<?php echo $p['id']; ?>')">Referencia gráfica</button>
+                                    <button type="button" class="media-switch-btn <?php echo !$showRefActive ? 'active' : ''; ?>" onclick="switchMedia(this, 'final-<?php echo $p['id']; ?>', 'ref-<?php echo $p['id']; ?>')">Post Terminado</button>
                                 </div>
 
                                 <div class="media-display-frame">
-                                    <div class="media-pane active" id="ref-<?php echo $p['id']; ?>">
+                                    <div class="media-pane <?php echo $showRefActive ? 'active' : ''; ?>" id="ref-<?php echo $p['id']; ?>">
                                         <?php echo renderPreviewBox($p['reference_image_link'] ?? null, true); ?>
                                     </div>
-                                    <div class="media-pane" id="final-<?php echo $p['id']; ?>">
+                                    <div class="media-pane <?php echo !$showRefActive ? 'active' : ''; ?>" id="final-<?php echo $p['id']; ?>">
                                         <?php if(empty($p['image_link'])): ?>
                                             <div class="media-empty-state">
                                                 <i class="ph ph-paint-brush"></i>
@@ -1816,7 +1834,7 @@ function renderPreviewBox($urlStr, $isRef = true) {
                     </div>
 
                     <!-- Mobile Approve Action Button -->
-                    <button class="btn-approve btn-approve-mobile <?php echo $btnClass; ?>" <?php echo $btnDisabled; ?> onclick="approvePost(<?php echo $p['id']; ?>, this, 'referencia')">
+                    <button class="btn-approve btn-approve-mobile <?php echo $btnClass; ?>" <?php echo $btnDisabled; ?> onclick="approvePost(<?php echo $p['id']; ?>, this, '<?php echo $activeApproveType; ?>')">
                         <i class="ph-bold ph-check"></i> <span class="btn-approve-text"><?php echo $btnText; ?></span>
                     </button>
                 </div>
@@ -1872,7 +1890,15 @@ function renderPreviewBox($urlStr, $isRef = true) {
             $thumbIndex = 1;
             foreach($posts as $tp): 
                 $thumbSrc = '';
-                $imgField = $tp['reference_image_link'] ?? ($tp['image_link'] ?? '');
+                $imgField = '';
+                if (!empty($tp['reference_image_link']) && ($tp['post_type'] === 'Referencia Visual' || empty($tp['image_link']))) {
+                    $imgField = $tp['reference_image_link'];
+                } elseif (!empty($tp['image_link'])) {
+                    $imgField = $tp['image_link'];
+                } elseif (!empty($tp['reference_image_link'])) {
+                    $imgField = $tp['reference_image_link'];
+                }
+
                 if (!empty($imgField)) {
                     $decoded = json_decode($imgField, true);
                     if (is_array($decoded) && !empty($decoded)) {
@@ -2121,25 +2147,16 @@ function renderPreviewBox($urlStr, $isRef = true) {
 
         const isRef = showId.startsWith('ref-');
         
-        // Toggle Column 1 Panes
-        const briefPane = document.getElementById('brief-pane-' + postId);
+        // Ensure Copy of the post stays always visible
         const copyPane = document.getElementById('copy-pane-' + postId);
-        if (briefPane && copyPane) {
-            if (isRef) {
-                briefPane.style.display = 'block';
-                copyPane.style.display = 'none';
-            } else {
-                briefPane.style.display = 'none';
-                copyPane.style.display = 'block';
-            }
+        if (copyPane) {
+            copyPane.style.display = 'block';
         }
 
         // Update Mobile Tab label
         const copyTabBtn = slide.querySelector('.tab-btn-copy-label');
         if (copyTabBtn) {
-            copyTabBtn.innerHTML = isRef 
-                ? '<i class="ph-bold ph-notepad"></i> Descripción' 
-                : '<i class="ph-bold ph-text-align-left"></i> Copy del post';
+            copyTabBtn.innerHTML = '<i class="ph-bold ph-text-align-left"></i> Copy / Descripción';
         }
 
         // Update Approval Buttons (Desktop & Mobile)

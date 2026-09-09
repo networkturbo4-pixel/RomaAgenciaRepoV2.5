@@ -889,20 +889,26 @@ $dateFmt = (!empty($post['post_date']) && $post['post_date'] !== '0000-00-00' &&
         <div class="col-card" id="tab-panel-1">
             <div class="col-title"><i class="ph ph-image"></i> Multimedia</div>
             
+            <?php 
+            $isRefType = (($post['post_type'] ?? '') === 'Referencia Visual');
+            $hasRefImg = !empty($post['reference_image_link']);
+            $hasFinalImg = !empty($post['image_link']);
+            $showRefActive = $isRefType || ($hasRefImg && !$hasFinalImg);
+            ?>
             <?php if(!empty($post['reference_image_link'])): ?>
             <div class="media-switcher">
-                <button class="media-switch-btn active" onclick="switchMediaTab('referencia')">Referencia Gráfica</button>
-                <button class="media-switch-btn" onclick="switchMediaTab('terminado')">Arte Terminado</button>
+                <button class="media-switch-btn <?php echo $showRefActive ? 'active' : ''; ?>" onclick="switchMediaTab('referencia')">Referencia Gráfica</button>
+                <button class="media-switch-btn <?php echo !$showRefActive ? 'active' : ''; ?>" onclick="switchMediaTab('terminado')">Arte Terminado</button>
             </div>
             <?php endif; ?>
 
-            <div class="media-pane<?php echo !empty($post['reference_image_link']) ? ' active' : ''; ?>" id="media-referencia">
+            <div class="media-pane<?php echo $showRefActive ? ' active' : ''; ?>" id="media-referencia">
                 <div class="media-block media-block-ref">
                     <?php echo renderMedia($post['reference_image_link'] ?? ''); ?>
                 </div>
             </div>
 
-            <div class="media-pane<?php echo empty($post['reference_image_link']) ? ' active' : ''; ?>" id="media-terminado">
+            <div class="media-pane<?php echo !$showRefActive ? ' active' : ''; ?>" id="media-terminado">
                 <div class="media-block">
                     <?php if(empty($post['reference_image_link'])): ?>
                     <div class="section-label">Arte Terminado</div>
