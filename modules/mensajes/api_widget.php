@@ -109,7 +109,7 @@ switch ($action) {
 
             if (!empty($servicesIds)) {
                 $placeholders = implode(',', array_fill(0, count($servicesIds), '?'));
-                $sStmt = $db->prepare("SELECT id, name, description, price, currency, category_id FROM services WHERE id IN ($placeholders) AND (deleted_at IS NULL OR deleted_at = '')");
+                $sStmt = $db->prepare("SELECT id, name, description, price, currency, category_id FROM services WHERE id IN ($placeholders) AND deleted_at IS NULL");
                 $sStmt->execute($servicesIds);
                 $serviceList = $sStmt->fetchAll(PDO::FETCH_ASSOC);
             }
@@ -159,7 +159,7 @@ switch ($action) {
             $stmt = $db->query("
                 SELECT id, name, description, price, currency, category_id, delivery_time, badge
                 FROM services 
-                WHERE (deleted_at IS NULL OR deleted_at = '') 
+                WHERE deleted_at IS NULL 
                   AND (status = 'active' OR status IS NULL) 
                 ORDER BY name ASC
             ");
