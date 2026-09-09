@@ -44,6 +44,11 @@ if ($userRoleId == 1) {
 
 $monthNames = [1=>'Enero',2=>'Febrero',3=>'Marzo',4=>'Abril',5=>'Mayo',6=>'Junio',7=>'Julio',8=>'Agosto',9=>'Septiembre',10=>'Octubre',11=>'Noviembre',12=>'Diciembre'];
 
+function jsonUserContains($column, $id) {
+    $id = (int)$id;
+    return "(JSON_CONTAINS(IFNULL({$column}, '[]'), '{$id}') = 1 OR JSON_CONTAINS(IFNULL({$column}, '[]'), '\"{$id}\"') = 1)";
+}
+
 function getUserMap($db) {
     $stmt = $db->query("SELECT id, name, avatar, role_id FROM users ORDER BY name ASC");
     $map = [];
@@ -140,6 +145,24 @@ function processRecurringTasks($db) {
             AND recurrence_type = 'daily'
         ");
         $db->exec("UPDATE tm_recurring_templates SET last_generated = NOW() WHERE recurrence_type = 'daily' AND (last_generated IS NULL OR DATE(last_generated) < CURDATE())");
+
+        // Tareas fijadas diarias: Si se completaron en días anteriores, reactivarlas para la jornada de hoy
+        $db->exec("
+            UPDATE tm_tasks 
+            SET status = 'pending', objective_date = CURDATE()
+            WHERE is_pinned = 1 
+              AND status IN ('completed', 'approved') 
+              AND (last_completed_date IS NOT NULL AND last_completed_date < CURDATE())
+        ");
+
+        // Reiniciar subtareas de las tareas fijadas que se reactivaron hoy
+        $db->exec("
+            UPDATE tm_subtasks st
+            JOIN tm_tasks t ON st.task_id = t.id
+            SET st.is_completed = 0
+            WHERE t.is_pinned = 1 
+              AND (t.last_completed_date IS NOT NULL AND t.last_completed_date < CURDATE())
+        ");
     } catch(Throwable $e) {}
 }
 
@@ -312,6 +335,19 @@ if ($action === 'get_projects_and_months') {
             }
         } catch(Throwable $e) {}
 
+        // Whiteboards (Pizarras)
+        $whiteboards = [];
+        try {
+            $whereW = $isAdmin ? "1=1" : "(w.created_by = {$userId} OR " . jsonUserContains('w.assigned_users', $userId) . ")";
+            $stmtW = $db->query("SELECT w.id, w.title, w.created_by, w.updated_at FROM whiteboards w WHERE {$whereW} ORDER BY w.updated_at DESC");
+            while ($r = $stmtW->fetch(PDO::FETCH_ASSOC)) {
+                $whiteboards[] = [
+                    'id' => (int)$r['id'],
+                    'title' => $r['title'] ?: 'Pizarra #' . $r['id']
+                ];
+            }
+        } catch(Throwable $e) {}
+
         echo json_encode([
             'success' => true,
             'projects' => $projects,
@@ -319,6 +355,7 @@ if ($action === 'get_projects_and_months') {
             'brand_projects' => $brandProjects,
             'brand_groups' => $brandGroups,
             'project_services' => $projectServices,
+            'whiteboards' => $whiteboards,
             'available_tags' => $availableTags,
             'users' => array_values($userMap)
         ]);
@@ -460,47 +497,49 @@ if ($action === 'get_all_tasks') {
         
         // User filter
         if ($filterUser === 'me') {
-            $whereConditions[] = "(
-                JSON_CONTAINS(t.assigned_users, '\"{$userId}\"') OR 
-                JSON_CONTAINS(t.assigned_roles, '\"{$userRoleId}\"') OR 
-                t.created_by = {$userId}
-            )";
+            $uCond = jsonUserContains('t.assigned_users', $userId);
+            $rCond = jsonUserContains('t.assigned_roles', $userRoleId);
+            $whereConditions[] = "({$uCond} OR {$rCond} OR t.created_by = {$userId})";
         } elseif ($filterUser !== 'all' && is_numeric($filterUser)) {
             $fUid = (int)$filterUser;
-            $whereConditions[] = "(
-                JSON_CONTAINS(t.assigned_users, '\"{$fUid}\"') OR 
-                t.created_by = {$fUid}
-            )";
+            $uCond = jsonUserContains('t.assigned_users', $fUid);
+            $whereConditions[] = "({$uCond} OR t.created_by = {$fUid})";
         } elseif (!$isAdmin && $filterUser === 'all') {
             // Empleado que elige "all" pero no es admin sólo ve lo permitido o general
-            $whereConditions[] = "(
-                JSON_CONTAINS(t.assigned_users, '\"{$userId}\"') OR 
-                JSON_CONTAINS(t.assigned_roles, '\"{$userRoleId}\"') OR 
-                t.created_by = {$userId} OR 
-                t.assigned_users = '[]' OR t.assigned_users IS NULL
-            )";
+            $uCond = jsonUserContains('t.assigned_users', $userId);
+            $rCond = jsonUserContains('t.assigned_roles', $userRoleId);
+            $whereConditions[] = "({$uCond} OR {$rCond} OR t.created_by = {$userId} OR t.assigned_users = '[]' OR t.assigned_users IS NULL)";
         }
 
         // Area filter
-        if ($filterArea !== 'all' && in_array($filterArea, ['desarrollo_marca', 'desarrollo_web', 'audiovisual', 'general'])) {
+        if ($filterArea !== 'all' && in_array($filterArea, ['desarrollo_marca', 'desarrollo_web', 'audiovisual', 'pizarras', 'general'])) {
             $whereConditions[] = "t.area = " . $db->quote($filterArea);
         }
 
         // Frequency filter
-        if ($filterFrequency !== 'all' && in_array($filterFrequency, ['daily', 'weekly', 'one_time'])) {
+        if ($filterFrequency === 'pinned') {
+            $whereConditions[] = "t.is_pinned = 1";
+        } elseif ($filterFrequency !== 'all' && in_array($filterFrequency, ['daily', 'weekly', 'one_time'])) {
             $whereConditions[] = "t.frequency = " . $db->quote($filterFrequency);
         }
 
         // Daily Objective filter
         if ($filterDailyObjective === '1') {
-            $whereConditions[] = "(t.is_daily_objective = 1 OR t.frequency = 'daily')";
+            $whereConditions[] = "(t.is_daily_objective = 1 OR t.frequency = 'daily' OR t.is_pinned = 1)";
             if ($filterDate) {
-                $whereConditions[] = "(t.objective_date = " . $db->quote($filterDate) . " OR t.objective_date IS NULL OR t.frequency = 'daily')";
+                $whereConditions[] = "(t.objective_date = " . $db->quote($filterDate) . " OR t.objective_date IS NULL OR t.frequency = 'daily' OR t.is_pinned = 1)";
             }
         }
 
         $whereSQL = implode(' AND ', $whereConditions);
-        $stmtT = $db->query("SELECT t.*, u.name as creator_name FROM tm_tasks t LEFT JOIN users u ON t.created_by = u.id WHERE {$whereSQL} ORDER BY t.created_at DESC");
+        $stmtT = $db->query("
+            SELECT t.*, u.name as creator_name, wb.title as whiteboard_title 
+            FROM tm_tasks t 
+            LEFT JOIN users u ON t.created_by = u.id 
+            LEFT JOIN whiteboards wb ON t.whiteboard_id = wb.id 
+            WHERE {$whereSQL} 
+            ORDER BY t.is_pinned DESC, t.created_at DESC
+        ");
         $tasks = $stmtT->fetchAll(PDO::FETCH_ASSOC);
         
         $tIds = array_column($tasks, 'id');
@@ -517,6 +556,7 @@ if ($action === 'get_all_tasks') {
             'desarrollo_marca' => 'Desarrollo de Marca',
             'desarrollo_web' => 'Desarrollo Web',
             'audiovisual' => 'Audiovisual',
+            'pizarras' => 'Pizarras',
             'general' => 'General'
         ];
 
@@ -534,6 +574,7 @@ if ($action === 'get_all_tasks') {
             $bpId = (int)($t['brand_project_id'] ?? 0);
             $bgId = (int)($t['brand_group_id'] ?? 0);
             $psId = (int)($t['project_service_id'] ?? 0);
+            $wbId = (int)($t['whiteboard_id'] ?? 0);
 
             // resolve users
             $usersArr = json_decode($t['assigned_users']??'[]', true) ?: [];
@@ -575,7 +616,10 @@ if ($action === 'get_all_tasks') {
                 'brand_group_name' => isset($brandGroupMap[$bgId]) ? $brandGroupMap[$bgId]['name'] : null,
                 'project_service_id' => $psId,
                 'project_service_info' => $projectServiceMap[$psId] ?? null,
+                'whiteboard_id' => $wbId,
+                'whiteboard_title' => $t['whiteboard_title'] ?? null,
                 'is_daily_objective' => (int)($t['is_daily_objective'] ?? 0),
+                'is_pinned' => (int)($t['is_pinned'] ?? 0),
                 'objective_date' => $t['objective_date'] ?? null,
                 'start_date' => $t['start_date'],
                 'due_date' => $t['due_date'],
@@ -597,11 +641,13 @@ if ($action === 'get_all_tasks') {
             'approved' => 0,
             'daily_count' => 0,
             'weekly_count' => 0,
+            'pinned_count' => 0,
             'daily_objectives_total' => 0,
             'daily_objectives_completed' => 0,
             'marca_count' => 0,
             'web_count' => 0,
-            'audio_count' => 0
+            'audio_count' => 0,
+            'pizarra_count' => 0
         ];
 
         $todayStr = date('Y-m-d');
@@ -609,11 +655,13 @@ if ($action === 'get_all_tasks') {
             if (isset($stats[$t['status']])) $stats[$t['status']]++;
             if ($t['frequency'] === 'daily') $stats['daily_count']++;
             if ($t['frequency'] === 'weekly') $stats['weekly_count']++;
+            if (!empty($t['is_pinned'])) $stats['pinned_count']++;
             if ($t['area'] === 'desarrollo_marca') $stats['marca_count']++;
             if ($t['area'] === 'desarrollo_web') $stats['web_count']++;
             if ($t['area'] === 'audiovisual') $stats['audio_count']++;
+            if ($t['area'] === 'pizarras') $stats['pizarra_count']++;
 
-            if ($t['is_daily_objective'] || $t['frequency'] === 'daily') {
+            if ($t['is_daily_objective'] || $t['frequency'] === 'daily' || !empty($t['is_pinned'])) {
                 $stats['daily_objectives_total']++;
                 if (in_array($t['status'], ['completed', 'approved'])) {
                     $stats['daily_objectives_completed']++;
@@ -643,7 +691,13 @@ if ($action === 'create_task') {
     $brandProjectId = !empty($_POST['brand_project_id']) ? (int)$_POST['brand_project_id'] : null;
     $brandGroupId = !empty($_POST['brand_group_id']) ? (int)$_POST['brand_group_id'] : null;
     $projectServiceId = !empty($_POST['project_service_id']) ? (int)$_POST['project_service_id'] : null;
+    $whiteboardId = !empty($_POST['whiteboard_id']) ? (int)$_POST['whiteboard_id'] : null;
+    $isPinned = !empty($_POST['is_pinned']) ? 1 : 0;
     $isDailyObjective = !empty($_POST['is_daily_objective']) ? 1 : 0;
+    if ($isPinned) {
+        $frequency = 'daily';
+        $isDailyObjective = 1;
+    }
     $objectiveDate = !empty($_POST['objective_date']) ? $_POST['objective_date'] : ($isDailyObjective ? date('Y-m-d') : null);
 
     $startDate = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
@@ -659,13 +713,13 @@ if ($action === 'create_task') {
         $stmt = $db->prepare("
             INSERT INTO tm_tasks (
                 title, description, priority, status, frequency, area, 
-                project_id, project_month_id, brand_project_id, brand_group_id, project_service_id, is_daily_objective, objective_date, 
+                project_id, project_month_id, brand_project_id, brand_group_id, project_service_id, whiteboard_id, is_daily_objective, is_pinned, objective_date, 
                 start_date, due_date, assigned_users, assigned_roles, tags, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $title, $desc, $priority, $status, $frequency, $area,
-            $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $isDailyObjective, $objectiveDate,
+            $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $whiteboardId, $isDailyObjective, $isPinned, $objectiveDate,
             $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $userId
         ]);
         $taskId = $db->lastInsertId();
@@ -745,6 +799,14 @@ if ($action === 'get_task') {
             }
             $task['assigned_roles'] = json_decode($task['assigned_roles'] ?? '[]', true) ?: [];
             $task['tags'] = json_decode($task['tags'] ?? '[]', true) ?: [];
+            $task['is_pinned'] = (int)($task['is_pinned'] ?? 0);
+            $task['whiteboard_id'] = (int)($task['whiteboard_id'] ?? 0);
+            $task['whiteboard_title'] = null;
+            if (!empty($task['whiteboard_id'])) {
+                $stW = $db->prepare("SELECT title FROM whiteboards WHERE id = ?");
+                $stW->execute([(int)$task['whiteboard_id']]);
+                $task['whiteboard_title'] = $stW->fetchColumn() ?: null;
+            }
             
             // Get subtasks list
             $stmtSub = $db->prepare("SELECT id, title, is_completed FROM tm_subtasks WHERE task_id = ? ORDER BY id ASC");
@@ -859,7 +921,13 @@ if ($action === 'update_task_details') {
     $brandProjectId = !empty($_POST['brand_project_id']) ? (int)$_POST['brand_project_id'] : null;
     $brandGroupId = !empty($_POST['brand_group_id']) ? (int)$_POST['brand_group_id'] : null;
     $projectServiceId = !empty($_POST['project_service_id']) ? (int)$_POST['project_service_id'] : null;
+    $whiteboardId = !empty($_POST['whiteboard_id']) ? (int)$_POST['whiteboard_id'] : null;
+    $isPinned = !empty($_POST['is_pinned']) ? 1 : 0;
     $isDailyObjective = !empty($_POST['is_daily_objective']) ? 1 : 0;
+    if ($isPinned) {
+        $frequency = 'daily';
+        $isDailyObjective = 1;
+    }
     $objectiveDate = !empty($_POST['objective_date']) ? $_POST['objective_date'] : ($isDailyObjective ? date('Y-m-d') : null);
 
     $startDate = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
@@ -880,15 +948,19 @@ if ($action === 'update_task_details') {
         $stmt = $db->prepare("
             UPDATE tm_tasks SET 
                 title = ?, description = ?, priority = ?, status = ?, frequency = ?, area = ?, 
-                project_id = ?, project_month_id = ?, brand_project_id = ?, brand_group_id = ?, project_service_id = ?, is_daily_objective = ?, objective_date = ?, 
+                project_id = ?, project_month_id = ?, brand_project_id = ?, brand_group_id = ?, project_service_id = ?, whiteboard_id = ?, is_daily_objective = ?, is_pinned = ?, objective_date = ?, 
                 start_date = ?, due_date = ?, assigned_users = ?, assigned_roles = ?, tags = ? 
             WHERE id = ?
         ");
         $stmt->execute([
             $title, $desc, $priority, $status, $frequency, $area,
-            $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $isDailyObjective, $objectiveDate,
+            $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $whiteboardId, $isDailyObjective, $isPinned, $objectiveDate,
             $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $taskId
         ]);
+
+        if (in_array($status, ['completed', 'approved']) && $isPinned) {
+            $db->prepare("UPDATE tm_tasks SET last_completed_date = CURDATE() WHERE id = ?")->execute([$taskId]);
+        }
 
         // Sincronizar fechas con el Mes de Calendario vinculado para reiniciar el cronómetro del mes
         syncCalendarMonthDates($db, $projectMonthId, $startDate, $dueDate);
@@ -935,6 +1007,10 @@ if ($action === 'update_status') {
     try {
         $stmt = $db->prepare("UPDATE tm_tasks SET status = ? WHERE id = ?");
         $stmt->execute([$newStatus, $taskId]);
+
+        if (in_array($newStatus, ['completed', 'approved'])) {
+            $db->prepare("UPDATE tm_tasks SET last_completed_date = CURDATE() WHERE id = ? AND is_pinned = 1")->execute([$taskId]);
+        }
 
         // Sincronizar estado con el Mes de Calendario vinculado
         require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
@@ -1016,6 +1092,33 @@ if ($action === 'update_status') {
         } catch(Throwable $e) {}
 
         echo json_encode(['success'=>true, 'completion_notice' => $completionNotice]);
+    } catch(Throwable $e) {
+        echo json_encode(['success'=>false, 'error'=>$e->getMessage()]);
+    }
+    exit;
+}
+
+// ══════════════════════════════════════════════════════════
+// 6b. TOGGLE PINNED STATUS (Fijar / Desfijar Tarea)
+// ══════════════════════════════════════════════════════════
+if ($action === 'toggle_pin') {
+    $taskId = (int)($_POST['task_id'] ?? 0);
+    if (!$taskId) { echo json_encode(['success'=>false, 'error'=>'Falta task_id']); exit; }
+    try {
+        $st = $db->prepare("SELECT is_pinned FROM tm_tasks WHERE id = ?");
+        $st->execute([$taskId]);
+        $currPinned = (int)$st->fetchColumn();
+        $newPinned = $currPinned ? 0 : 1;
+        
+        if ($newPinned) {
+            $stmtUp = $db->prepare("UPDATE tm_tasks SET is_pinned = 1, frequency = 'daily', is_daily_objective = 1, objective_date = COALESCE(objective_date, CURDATE()) WHERE id = ?");
+            $stmtUp->execute([$taskId]);
+        } else {
+            $stmtUp = $db->prepare("UPDATE tm_tasks SET is_pinned = 0 WHERE id = ?");
+            $stmtUp->execute([$taskId]);
+        }
+        
+        echo json_encode(['success'=>true, 'is_pinned'=>$newPinned]);
     } catch(Throwable $e) {
         echo json_encode(['success'=>false, 'error'=>$e->getMessage()]);
     }
@@ -1188,16 +1291,16 @@ if ($action === 'get_daily_objectives') {
     
     try {
         // Fetch tasks marked as daily objectives or daily frequency for this user and date
-        $whereUser = "(JSON_CONTAINS(t.assigned_users, '\"{$targetUser}\"') OR t.created_by = {$targetUser})";
+        $whereUser = "(" . jsonUserContains('t.assigned_users', $targetUser) . " OR t.created_by = {$targetUser})";
         $stmtObj = $db->prepare("
             SELECT t.*, u.name as creator_name 
             FROM tm_tasks t 
             LEFT JOIN users u ON t.created_by = u.id 
-            WHERE (t.is_daily_objective = 1 OR t.frequency = 'daily') 
-            AND (t.objective_date = ? OR t.objective_date IS NULL OR t.frequency = 'daily')
+            WHERE (t.is_daily_objective = 1 OR t.frequency = 'daily' OR t.is_pinned = 1) 
+            AND (t.objective_date = ? OR t.objective_date IS NULL OR t.frequency = 'daily' OR t.is_pinned = 1)
             AND t.status != 'archived'
             AND {$whereUser}
-            ORDER BY FIELD(t.priority, 'urgent', 'high', 'medium', 'low'), t.id DESC
+            ORDER BY t.is_pinned DESC, FIELD(t.priority, 'urgent', 'high', 'medium', 'low'), t.id DESC
         ");
         $stmtObj->execute([$targetDate]);
         $objectives = $stmtObj->fetchAll(PDO::FETCH_ASSOC);
@@ -1248,12 +1351,12 @@ if ($action === 'save_daily_evaluation') {
     
     try {
         // Re-count active objectives for this date
-        $whereUser = "(JSON_CONTAINS(t.assigned_users, '\"{$targetUser}\"') OR t.created_by = {$targetUser})";
+        $whereUser = "(" . jsonUserContains('t.assigned_users', $targetUser) . " OR t.created_by = {$targetUser})";
         $stmtObj = $db->prepare("
             SELECT t.status 
             FROM tm_tasks t 
-            WHERE (t.is_daily_objective = 1 OR t.frequency = 'daily') 
-            AND (t.objective_date = ? OR t.objective_date IS NULL OR t.frequency = 'daily')
+            WHERE (t.is_daily_objective = 1 OR t.frequency = 'daily' OR t.is_pinned = 1) 
+            AND (t.objective_date = ? OR t.objective_date IS NULL OR t.frequency = 'daily' OR t.is_pinned = 1)
             AND t.status != 'archived'
             AND {$whereUser}
         ");

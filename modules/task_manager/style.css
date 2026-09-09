@@ -4791,5 +4791,373 @@ span.tm-pm-initial {
     border-color: #18191c !important;
 }
 
+/* ══════════════════════════════════════════════════════════
+   TAREAS FIJADAS, VINCULACIÓN DE PIZARRAS Y ACCESOS RÁPIDOS
+   ══════════════════════════════════════════════════════════ */
+
+/* Cabecera del Card (Insignias + Botón Fijar) */
+.tm-task-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    margin-bottom: 0.35rem;
+}
+
+.tm-task-header-row .tm-task-badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1;
+}
+
+/* Botón Pin en la Tarjeta */
+.tm-btn-card-pin {
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 6px;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.95rem;
+    line-height: 1;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.tm-btn-card-pin:hover {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.3);
+    transform: scale(1.12);
+}
+
+.tm-btn-card-pin.is-pinned {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.tm-btn-card-pin.is-pinned:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Tarjeta Fijada (Highlight) */
+.tm-card.is-pinned-card {
+    border-left: 3.5px solid #f59e0b !important;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.04) 0%, rgba(245, 158, 11, 0.01) 100%) !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08) !important;
+}
+
+[data-theme="dark"] .tm-card.is-pinned-card {
+    border-left: 3.5px solid #f59e0b !important;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.09) 0%, rgba(20, 20, 24, 0.95) 100%) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Insignia de Tarea Fijada */
+.tm-badge-pinned {
+    background: rgba(245, 158, 11, 0.14) !important;
+    color: #b45309 !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.68rem;
+}
+
+[data-theme="dark"] .tm-badge-pinned {
+    background: rgba(245, 158, 11, 0.22) !important;
+    color: #fbbf24 !important;
+    border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
+/* Área y Filtro de Pizarras */
+.tm-badge-pizarra,
+.area-pizarra {
+    background: rgba(139, 92, 246, 0.12) !important;
+    color: #7c3aed !important;
+    border: 1px solid rgba(139, 92, 246, 0.28) !important;
+}
+
+[data-theme="dark"] .tm-badge-pizarra,
+[data-theme="dark"] .area-pizarra {
+    background: rgba(139, 92, 246, 0.22) !important;
+    color: #c4b5fd !important;
+    border-color: rgba(139, 92, 246, 0.4) !important;
+}
+
+.dot-pizarra {
+    background-color: #8b5cf6 !important;
+}
+
+/* Chips Interactivos para Entidades Vinculadas (Pizarra, Calendario, Marca, Servicios) */
+.tm-task-project-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-surface, #ffffff);
+    color: var(--text-main, #334155);
+    max-width: 100%;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    text-decoration: none;
+}
+
+.tm-task-project-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tm-task-project-chip span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tm-chip-external-icon {
+    font-size: 0.75rem;
+    opacity: 0.55;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    margin-left: 0.15rem;
+}
+
+.tm-task-project-chip:hover .tm-chip-external-icon {
+    opacity: 1;
+    transform: translateX(1px) translateY(-1px);
+}
+
+/* Tipos específicos de chips */
+.tm-task-project-chip.chip-pizarra {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #7c3aed;
+}
+.tm-task-project-chip.chip-pizarra:hover {
+    background: rgba(139, 92, 246, 0.16);
+    border-color: #8b5cf6;
+    color: #6d28d9;
+}
+
+.tm-task-project-chip.chip-calendar {
+    background: rgba(14, 165, 233, 0.08);
+    border-color: rgba(14, 165, 233, 0.3);
+    color: #0284c7;
+}
+.tm-task-project-chip.chip-calendar:hover {
+    background: rgba(14, 165, 233, 0.16);
+    border-color: #0ea5e9;
+    color: #0369a1;
+}
+
+.tm-task-project-chip.chip-brand {
+    background: rgba(236, 72, 153, 0.08);
+    border-color: rgba(236, 72, 153, 0.3);
+    color: #db2777;
+}
+.tm-task-project-chip.chip-brand:hover {
+    background: rgba(236, 72, 153, 0.16);
+    border-color: #ec4899;
+    color: #be185d;
+}
+
+.tm-task-project-chip.chip-service {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #2563eb;
+}
+.tm-task-project-chip.chip-service:hover {
+    background: rgba(59, 130, 246, 0.16);
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+.tm-task-project-chip.chip-project {
+    background: rgba(100, 116, 139, 0.08);
+    border-color: rgba(100, 116, 139, 0.3);
+    color: #475569;
+}
+.tm-task-project-chip.chip-project:hover {
+    background: rgba(100, 116, 139, 0.16);
+    border-color: #64748b;
+    color: #334155;
+}
+
+/* Modo oscuro para Chips */
+[data-theme="dark"] .tm-task-project-chip {
+    background: #18191c;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+[data-theme="dark"] .tm-task-project-chip.chip-pizarra {
+    background: rgba(139, 92, 246, 0.16);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #c4b5fd;
+}
+[data-theme="dark"] .tm-task-project-chip.chip-calendar {
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(14, 165, 233, 0.4);
+    color: #7dd3fc;
+}
+[data-theme="dark"] .tm-task-project-chip.chip-brand {
+    background: rgba(236, 72, 153, 0.16);
+    border-color: rgba(236, 72, 153, 0.4);
+    color: #f472b6;
+}
+[data-theme="dark"] .tm-task-project-chip.chip-service {
+    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #93c5fd;
+}
+[data-theme="dark"] .tm-task-project-chip.chip-project {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.3);
+    color: #cbd5e1;
+}
+
+/* Card Fijar Tarea (Diseño idéntico y emparejado con Objetivo Diario) */
+.tm-pinned-field-container {
+    height: 100%;
+}
+
+.tm-pinned-card {
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--tm-radius-md, 12px);
+    padding: 0.85rem 1rem;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    cursor: pointer;
+    box-sizing: border-box;
+    height: 100%;
+    justify-content: center;
+}
+
+.tm-pinned-card:hover {
+    border-color: rgba(245, 158, 11, 0.45);
+}
+
+.tm-pinned-card.is-active {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.03) 100%) !important;
+    border-color: rgba(245, 158, 11, 0.55) !important;
+    box-shadow: 0 4px 18px rgba(245, 158, 11, 0.12) !important;
+}
+
+.tm-pinned-card .tm-pinned-icon-badge {
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--text-muted, #64748b);
+    transition: all 0.25s ease;
+}
+
+.tm-pinned-card:hover .tm-pinned-icon-badge {
+    color: #f59e0b;
+}
+
+.tm-pinned-card.is-active .tm-pinned-icon-badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.45) !important;
+    transform: scale(1.05);
+}
+
+.tm-pinned-badge-active {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #d97706 !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    padding: 1px 6px !important;
+    border-radius: 4px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+}
+
+[data-theme="dark"] .tm-pinned-card {
+    background: #141416 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .tm-pinned-card:hover {
+    border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+[data-theme="dark"] .tm-pinned-card.is-active {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.06) 100%) !important;
+    border-color: rgba(245, 158, 11, 0.6) !important;
+}
+
+[data-theme="dark"] .tm-pinned-badge-active {
+    background: rgba(245, 158, 11, 0.25) !important;
+    color: #fbbf24 !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+/* Whiteboard full-width row */
+#row-whiteboard {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+}
+
+/* Botón de Apertura Rápida en Modales */
+.tm-btn-open-ext {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.38rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    height: 40px;
+    padding: 0 0.85rem;
+    border-radius: var(--tm-radius-sm, 8px);
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-surface, #ffffff);
+    color: var(--primary-color, #4f46e5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.tm-btn-open-ext:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary-color, #4f46e5);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="dark"] .tm-btn-open-ext {
+    background: #1e1e24;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #a5b4fc;
+}
+
+[data-theme="dark"] .tm-btn-open-ext:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #818cf8;
+    color: #c7d2fe;
+}
+
+
 
 

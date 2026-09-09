@@ -477,6 +477,7 @@ const TM = {
                 this.brandProjects = data.brand_projects || [];
                 this.brandGroups = data.brand_groups || [];
                 this.projectServices = data.project_services || [];
+                this.whiteboards = data.whiteboards || [];
                 if (data.available_tags && Array.isArray(data.available_tags)) {
                     data.available_tags.forEach(t => {
                         if (t && !this.availableTags.some(ex => ex.toLowerCase() === t.toLowerCase())) {
@@ -541,6 +542,18 @@ const TM = {
                 opt.dataset.area = ps.area;
                 opt.textContent = `${ps.project_name} · ${ps.title} (${ps.status})`;
                 psSelect.appendChild(opt);
+            });
+        }
+
+        // Whiteboards select (Pizarras)
+        const wbSelect = document.getElementById('tm-whiteboard-id');
+        if (wbSelect) {
+            wbSelect.innerHTML = '<option value="">-- Sin Vincular / Seleccionar Pizarra --</option>';
+            (this.whiteboards || []).forEach(wb => {
+                const opt = document.createElement('option');
+                opt.value = wb.id;
+                opt.textContent = wb.title;
+                wbSelect.appendChild(opt);
             });
         }
     },
@@ -644,6 +657,7 @@ const TM = {
         const projectRow = document.getElementById('row-project');
         const monthRow = document.getElementById('row-calendar-month');
         const serviceRow = document.getElementById('row-project-service');
+        const whiteboardRow = document.getElementById('row-whiteboard');
         const accentBar = document.getElementById('tm-modal-accent');
         
         if (area === 'desarrollo_marca') {
@@ -652,12 +666,14 @@ const TM = {
             if (projectRow) projectRow.style.display = 'none';
             if (monthRow) monthRow.style.display = 'none';
             if (serviceRow) serviceRow.style.display = 'none';
+            if (whiteboardRow) whiteboardRow.style.display = 'none';
             this.onBrandProjectChange(document.getElementById('tm-brand-project-id')?.value, document.getElementById('tm-brand-group-id')?.value);
         } else if (area === 'desarrollo_web' || area === 'audiovisual') {
             if (brandRow) brandRow.style.display = 'none';
             if (brandGroupRow) brandGroupRow.style.display = 'none';
             if (projectRow) projectRow.style.display = 'flex';
             if (monthRow) monthRow.style.display = 'none';
+            if (whiteboardRow) whiteboardRow.style.display = 'none';
             if (serviceRow) {
                 serviceRow.style.display = 'flex';
                 const psSelect = document.getElementById('tm-project-service-id');
@@ -669,6 +685,14 @@ const TM = {
                     });
                 }
             }
+        } else if (area === 'pizarras') {
+            if (brandRow) brandRow.style.display = 'none';
+            if (brandGroupRow) brandGroupRow.style.display = 'none';
+            if (projectRow) projectRow.style.display = 'none';
+            if (monthRow) monthRow.style.display = 'none';
+            if (serviceRow) serviceRow.style.display = 'none';
+            if (whiteboardRow) whiteboardRow.style.display = 'flex';
+            this.onWhiteboardChange(document.getElementById('tm-whiteboard-id')?.value);
         } else {
             // General / Calendario
             if (brandRow) brandRow.style.display = 'none';
@@ -676,6 +700,7 @@ const TM = {
             if (projectRow) projectRow.style.display = 'flex';
             if (monthRow) monthRow.style.display = 'flex';
             if (serviceRow) serviceRow.style.display = 'none';
+            if (whiteboardRow) whiteboardRow.style.display = 'none';
         }
 
         this.updateProjectMembersBar();
@@ -687,12 +712,112 @@ const TM = {
                 accentBar.style.background = 'linear-gradient(90deg, #0ea5e9, #2563eb)';
             } else if (area === 'audiovisual') {
                 accentBar.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+            } else if (area === 'pizarras') {
+                accentBar.style.background = 'linear-gradient(90deg, #8b5cf6, #a855f7)';
             } else {
                 accentBar.style.background = 'linear-gradient(90deg, #10b981, #3b82f6)';
             }
         }
 
         this.refreshSyncPanelFromSelections();
+    },
+
+    onWhiteboardChange: function(wbId) {
+        const btn = document.getElementById('btn-open-whiteboard');
+        if (btn) btn.style.display = wbId ? 'inline-flex' : 'none';
+    },
+
+    openLinkedWhiteboard: function() {
+        const wbId = document.getElementById('tm-whiteboard-id')?.value;
+        if (wbId) {
+            window.open(`index.php?module=pizarras&action=view&id=${wbId}`, '_blank');
+        }
+    },
+
+    openLinkedMonth: function() {
+        const pmId = document.getElementById('tm-project-month-id')?.value;
+        if (pmId) {
+            window.open(`index.php?module=month_board&id=${pmId}`, '_blank');
+        }
+    },
+
+    openLinkedBrand: function() {
+        const bpId = document.getElementById('tm-brand-project-id')?.value;
+        if (bpId) {
+            window.open(`index.php?module=desarrollo_marca&action=view&id=${bpId}`, '_blank');
+        }
+    },
+
+    openLinkedService: function() {
+        const psId = document.getElementById('tm-project-service-id')?.value;
+        if (psId && this.projectServices) {
+            const ps = this.projectServices.find(s => String(s.id) === String(psId));
+            if (ps && ps.project_id) {
+                window.open(`index.php?module=projects&action=view&id=${ps.project_id}`, '_blank');
+            } else {
+                window.open(`index.php?module=services`, '_blank');
+            }
+        }
+    },
+
+    togglePinnedFromCard: function(event) {
+        if (event && event.target && event.target.closest('.tm-switch')) return;
+        const chk = document.getElementById('tm-is-pinned');
+        if (chk) {
+            chk.checked = !chk.checked;
+            this.onPinnedToggle(chk.checked);
+        }
+    },
+
+    onPinnedToggle: function(checked) {
+        const card = document.getElementById('tm-pinned-card');
+        const badge = document.getElementById('tm-pinned-badge');
+        const text = document.getElementById('tm-pinned-text');
+        if (card) card.classList.toggle('is-active', Boolean(checked));
+        if (badge) badge.style.display = checked ? 'inline-block' : 'none';
+        if (text) text.textContent = checked ? 'Fijada en el tablero (repite a diario)' : 'Anclar arriba y repetir a diario';
+
+        if (checked) {
+            const freqSelect = document.getElementById('tm-frequency');
+            if (freqSelect) freqSelect.value = 'daily';
+            const isObjCheck = document.getElementById('tm-is-daily-objective');
+            if (isObjCheck && !isObjCheck.checked) {
+                isObjCheck.checked = true;
+                this.onDailyObjectiveToggle(true);
+            }
+        }
+    },
+
+    togglePin: function(taskId, event) {
+        if (event) event.stopPropagation();
+        
+        const params = new URLSearchParams();
+        params.append('action_type', 'toggle_pin');
+        params.append('task_id', taskId);
+        
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params.toString()
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const task = (this.tasks || []).find(t => t.id === taskId);
+                if (task) {
+                    task.is_pinned = data.is_pinned ? 1 : 0;
+                    if (data.is_pinned) {
+                        task.frequency = 'daily';
+                        task.is_daily_objective = 1;
+                    }
+                }
+                this.renderKanban();
+                if (this.lastStats) this.updateCounts(this.lastStats);
+            } else {
+                alert(data.error || 'Error al actualizar estado fijado');
+            }
+        })
+        .catch(err => console.error('Error toggling pin:', err));
     },
 
     onTaskDatesChanged: function() {
@@ -1217,11 +1342,19 @@ const TM = {
         document.getElementById('count-completed').innerText = stats.completed || 0;
         document.getElementById('count-approved').innerText = stats.approved || 0;
 
+        this.lastStats = stats;
+
         // Counters for pills
         document.getElementById('count-pill-all').innerText = stats.total || 0;
         document.getElementById('count-pill-brand').innerText = stats.marca_count || 0;
         document.getElementById('count-pill-web').innerText = stats.web_count || 0;
         document.getElementById('count-pill-audio').innerText = stats.audio_count || 0;
+        if (document.getElementById('count-pill-pizarra')) {
+            document.getElementById('count-pill-pizarra').innerText = stats.pizarra_count || 0;
+        }
+        if (document.getElementById('count-pill-pinned')) {
+            document.getElementById('count-pill-pinned').innerText = stats.pinned_count || 0;
+        }
     },
 
     switchView: function(viewName) {
@@ -1294,7 +1427,7 @@ const TM = {
             if(!col) return;
 
             const card = document.createElement('div');
-            card.className = `tm-task-card ${t.status === 'overdue' ? 'is-overdue' : ''} tm-card-area-${t.area}`;
+            card.className = `tm-task-card ${t.status === 'overdue' ? 'is-overdue' : ''} ${t.is_pinned ? 'is-pinned-card' : ''} tm-card-area-${t.area}`;
             card.draggable = true;
             card.id = `tm-task-${t.id}`;
             card.dataset.id = t.id;
@@ -1312,6 +1445,14 @@ const TM = {
                 areaBadgeHtml = `<span class="tm-badge tm-badge-web"><i class="ph ph-browser"></i> Web</span>`;
             } else if (t.area === 'audiovisual') {
                 areaBadgeHtml = `<span class="tm-badge tm-badge-audio"><i class="ph ph-video-camera"></i> Audiovisual</span>`;
+            } else if (t.area === 'pizarras') {
+                areaBadgeHtml = `<span class="tm-badge tm-badge-pizarra"><i class="ph ph-chalkboard-simple"></i> Pizarra</span>`;
+            }
+
+            // Pinned Badge
+            let pinnedBadgeHtml = '';
+            if (t.is_pinned) {
+                pinnedBadgeHtml = `<span class="tm-badge tm-badge-pinned" title="Tarea fijada: se repite a diario"><i class="ph-fill ph-push-pin"></i> Fijada</span>`;
             }
 
             // Frequency & Daily Objective Badge
@@ -1327,17 +1468,26 @@ const TM = {
                 objBadgeHtml = `<span class="tm-badge tm-badge-objective"><i class="ph ph-target"></i> Meta Hoy</span>`;
             }
 
-            // Connected Project & Calendar Month / Brand / Service & Process Phase
+            // Connected Project & Calendar Month / Brand / Service / Pizarra & Process Phase
             let projectHtml = '';
             let phaseChipHtml = '';
             let entityDueDate = null;
 
-            if (t.project_month_info) {
+            if (t.whiteboard_id) {
+                const wbTitle = t.whiteboard_title || `Pizarra #${t.whiteboard_id}`;
+                projectHtml = `
+                    <div class="tm-task-project-chip chip-pizarra" title="Clic para abrir pizarra: ${this.escapeHtml(wbTitle)}" onclick="event.stopPropagation(); window.open('index.php?module=pizarras&action=view&id=${t.whiteboard_id}', '_blank')">
+                        <i class="ph-bold ph-chalkboard-simple"></i> <span>${this.escapeHtml(wbTitle)}</span>
+                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
+                    </div>
+                `;
+            } else if (t.project_month_info) {
                 const pm = t.project_month_info;
                 entityDueDate = pm.due_date;
                 projectHtml = `
-                    <div class="tm-task-project-chip" title="Mes de Calendario: ${pm.label}">
-                        <i class="ph ph-calendar-blank"></i> <span>${this.escapeHtml(pm.label)}</span>
+                    <div class="tm-task-project-chip chip-calendar" title="Clic para abrir Mes en Tablero: ${this.escapeHtml(pm.label)}" onclick="event.stopPropagation(); window.open('index.php?module=month_board&id=${pm.id}', '_blank')">
+                        <i class="ph-bold ph-calendar-blank"></i> <span>${this.escapeHtml(pm.label)}</span>
+                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
                     </div>
                 `;
                 const safePhase = (pm.content_phase || 'En Borrador').toLowerCase().replace(/\s+/g, '-');
@@ -1354,8 +1504,9 @@ const TM = {
                     brandPhaseTxt = ` <span class="tm-brand-phase-txt">· ${this.escapeHtml(t.brand_group_name)}</span>`;
                 }
                 projectHtml = `
-                    <div class="tm-task-project-chip" title="Desarrollo de Marca: ${bp.title}${t.brand_group_name ? ' (' + t.brand_group_name + ')' : ''}">
-                        <i class="ph ph-paint-brush"></i> <span>${this.escapeHtml(bp.title)}${brandPhaseTxt}</span>
+                    <div class="tm-task-project-chip chip-brand" title="Clic para abrir Proyecto de Marca: ${this.escapeHtml(bp.title)}" onclick="event.stopPropagation(); window.open('index.php?module=desarrollo_marca&action=view&id=${bp.id}', '_blank')">
+                        <i class="ph-bold ph-paint-brush"></i> <span>${this.escapeHtml(bp.title)}${brandPhaseTxt}</span>
+                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
                     </div>
                 `;
                 phaseChipHtml = `
@@ -1367,9 +1518,11 @@ const TM = {
                 const ps = t.project_service_info;
                 entityDueDate = ps.due_date;
                 const iconClass = t.area === 'audiovisual' ? 'ph-video-camera' : 'ph-browser';
+                const srvTargetUrl = ps.project_id ? `index.php?module=projects&action=view&id=${ps.project_id}` : `index.php?module=services`;
                 projectHtml = `
-                    <div class="tm-task-project-chip" title="Servicio: ${ps.title} (${ps.project_name})">
-                        <i class="ph ${iconClass}"></i> <span>${this.escapeHtml(ps.project_name)} · ${this.escapeHtml(ps.title)}</span>
+                    <div class="tm-task-project-chip chip-service" title="Clic para abrir Servicio: ${this.escapeHtml(ps.title)}" onclick="event.stopPropagation(); window.open('${srvTargetUrl}', '_blank')">
+                        <i class="ph-bold ${iconClass}"></i> <span>${this.escapeHtml(ps.project_name)} · ${this.escapeHtml(ps.title)}</span>
+                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
                     </div>
                 `;
                 phaseChipHtml = `
@@ -1378,21 +1531,33 @@ const TM = {
                     </span>
                 `;
             } else if (t.project_name) {
+                const projUrl = `index.php?module=project_board&id=${t.project_id}`;
                 projectHtml = `
-                    <div class="tm-task-project-chip" title="Proyecto: ${t.project_name}">
-                        <i class="ph ph-folder"></i> <span>${this.escapeHtml(t.project_name)}</span>
+                    <div class="tm-task-project-chip chip-project" title="Clic para abrir Proyecto: ${this.escapeHtml(t.project_name)}" onclick="event.stopPropagation(); window.open('${projUrl}', '_blank')">
+                        <i class="ph-bold ph-folder"></i> <span>${this.escapeHtml(t.project_name)}</span>
+                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
                     </div>
                 `;
             }
 
+            const pinBtnHtml = `
+                <button type="button" class="tm-btn-card-pin ${t.is_pinned ? 'is-pinned' : ''}" onclick="TM.togglePin(${t.id}, event)" title="${t.is_pinned ? 'Desfijar tarea' : 'Fijar tarea arriba (repetir diario)'}">
+                    <i class="${t.is_pinned ? 'ph-fill' : 'ph-bold'} ph-push-pin"></i>
+                </button>
+            `;
+
             let badgesHtml = `
-                <div class="tm-task-badges-row">
-                    <span class="tm-badge tm-badge-priority-${t.priority}">${t.priority}</span>
-                    ${areaBadgeHtml}
-                    ${phaseChipHtml}
-                    ${freqBadgeHtml}
-                    ${objBadgeHtml}
-                    ${t.status === 'overdue' ? '<span class="tm-badge tm-badge-overdue"><i class="ph ph-warning-circle"></i> Retrasada</span>' : ''}
+                <div class="tm-task-header-row">
+                    <div class="tm-task-badges-row">
+                        ${pinnedBadgeHtml}
+                        <span class="tm-badge tm-badge-priority-${t.priority}">${t.priority}</span>
+                        ${areaBadgeHtml}
+                        ${phaseChipHtml}
+                        ${freqBadgeHtml}
+                        ${objBadgeHtml}
+                        ${t.status === 'overdue' ? '<span class="tm-badge tm-badge-overdue"><i class="ph ph-warning-circle"></i> Retrasada</span>' : ''}
+                    </div>
+                    ${pinBtnHtml}
                 </div>
             `;
 
@@ -1560,6 +1725,7 @@ const TM = {
                     <div class="tm-daily-item-info" onclick="TM.openEditModalById(${task.id})">
                         <span class="tm-daily-item-title">${this.escapeHtml(task.title)}</span>
                         <div class="tm-daily-item-meta">
+                            ${task.is_pinned ? '<span class="tm-badge tm-badge-pinned"><i class="ph-fill ph-push-pin"></i> Fijada</span>' : ''}
                             <span class="tm-badge tm-badge-priority-${task.priority}">${task.priority}</span>
                             <span class="tm-badge tm-badge-area">${task.area || 'general'}</span>
                             ${task.frequency === 'daily' ? '<span class="tm-badge tm-badge-daily">Diaria</span>' : ''}
@@ -2390,6 +2556,16 @@ const TM = {
             }
         }
 
+        if (document.getElementById('tm-is-pinned')) {
+            const shouldPin = (defaultFreq === 'daily' || defaultFreq === 'pinned');
+            document.getElementById('tm-is-pinned').checked = shouldPin;
+            this.onPinnedToggle(shouldPin);
+        }
+        if (document.getElementById('tm-whiteboard-id')) {
+            document.getElementById('tm-whiteboard-id').value = '';
+            this.onWhiteboardChange('');
+        }
+
         this.onAreaChange(document.getElementById('tm-area').value);
         if (document.getElementById('tm-brand-group-id')) {
             document.getElementById('tm-brand-group-id').innerHTML = '<option value="">-- Seleccionar Fase de Marca --</option>';
@@ -2437,6 +2613,28 @@ const TM = {
         // Project service id (Web / Audiovisual)
         if (document.getElementById('tm-project-service-id')) {
             document.getElementById('tm-project-service-id').value = task.project_service_id || '';
+        }
+
+        // Whiteboard select
+        if (document.getElementById('tm-whiteboard-id')) {
+            document.getElementById('tm-whiteboard-id').value = task.whiteboard_id || '';
+            this.onWhiteboardChange(task.whiteboard_id || '');
+        }
+
+        // Update open buttons
+        const btnBrand = document.getElementById('btn-open-brand');
+        if (btnBrand) btnBrand.style.display = task.brand_project_id ? 'inline-flex' : 'none';
+        const btnMonth = document.getElementById('btn-open-month');
+        if (btnMonth) btnMonth.style.display = task.project_month_id ? 'inline-flex' : 'none';
+        const btnService = document.getElementById('btn-open-service');
+        if (btnService) btnService.style.display = task.project_service_id ? 'inline-flex' : 'none';
+
+        // Pinned state
+        const isPinnedCheck = document.getElementById('tm-is-pinned');
+        if (isPinnedCheck) {
+            const isPinned = Boolean(task.is_pinned);
+            isPinnedCheck.checked = isPinned;
+            this.onPinnedToggle(isPinned);
         }
 
         this.refreshSyncPanelFromSelections();
@@ -2612,10 +2810,18 @@ const TM = {
         formData.append('brand_project_id', document.getElementById('tm-brand-project-id').value);
         formData.append('brand_group_id', document.getElementById('tm-brand-group-id') ? document.getElementById('tm-brand-group-id').value : '');
         formData.append('project_service_id', document.getElementById('tm-project-service-id') ? document.getElementById('tm-project-service-id').value : '');
+        formData.append('whiteboard_id', document.getElementById('tm-whiteboard-id') ? document.getElementById('tm-whiteboard-id').value : '');
 
-        const isObj = document.getElementById('tm-is-daily-objective').checked ? 1 : 0;
+        const isPinned = document.getElementById('tm-is-pinned')?.checked ? 1 : 0;
+        formData.append('is_pinned', isPinned);
+
+        const isObj = (document.getElementById('tm-is-daily-objective')?.checked || isPinned) ? 1 : 0;
         formData.append('is_daily_objective', isObj);
         formData.append('objective_date', document.getElementById('tm-objective-date').value);
+
+        if (isPinned) {
+            formData.set('frequency', 'daily');
+        }
 
         formData.append('start_date', document.getElementById('tm-start-date').value);
         formData.append('due_date', document.getElementById('tm-due-date').value);

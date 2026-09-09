@@ -152,7 +152,13 @@ try {
         <button class="tm-pill-btn area-audio" data-area="audiovisual" onclick="TM.setFilterArea('audiovisual', this)">
             <span class="tm-area-dot dot-audio"></span> Audiovisual <span class="tm-pill-count" id="count-pill-audio">0</span>
         </button>
+        <button class="tm-pill-btn area-pizarra" data-area="pizarras" onclick="TM.setFilterArea('pizarras', this)">
+            <span class="tm-area-dot dot-pizarra"></span> Pizarras <span class="tm-pill-count" id="count-pill-pizarra">0</span>
+        </button>
         <div class="tm-pill-separator"></div>
+        <button class="tm-pill-btn freq-btn btn-pinned" data-freq="pinned" onclick="TM.setFilterFrequency('pinned', this)">
+            <i class="ph-fill ph-push-pin"></i> Fijadas <span class="tm-pill-count" id="count-pill-pinned">0</span>
+        </button>
         <button class="tm-pill-btn freq-btn" data-freq="daily" onclick="TM.setFilterFrequency('daily', this)">
             <i class="ph ph-lightning"></i> Tareas Diarias
         </button>
@@ -407,7 +413,7 @@ try {
                 <input type="hidden" id="tm-desc">
 
                 <div class="lumio-meta-grid">
-                    <!-- Frecuencia -->
+                    <!-- Frecuencia (Fila 1 - Col 1) -->
                     <div class="lumio-meta-row">
                         <div class="lumio-meta-label"><i class="ph ph-repeat"></i> Frecuencia</div>
                         <div class="lumio-meta-value">
@@ -419,7 +425,21 @@ try {
                         </div>
                     </div>
 
-                    <!-- Es Objetivo Diario -->
+                    <!-- Área / Especialidad (Fila 1 - Col 2) -->
+                    <div class="lumio-meta-row">
+                        <div class="lumio-meta-label"><i class="ph ph-briefcase"></i> Área</div>
+                        <div class="lumio-meta-value">
+                            <select id="tm-area" class="lumio-pill-select" onchange="TM.onAreaChange(this.value)">
+                                <option value="general">General / Operativa</option>
+                                <option value="desarrollo_marca">Desarrollo de Marca</option>
+                                <option value="desarrollo_web">Desarrollo Web</option>
+                                <option value="audiovisual">Audiovisual</option>
+                                <option value="pizarras">Pizarras</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Es Objetivo Diario (Fila 2 - Col 1) -->
                     <div class="lumio-meta-row tm-objective-field-container">
                         <div class="lumio-meta-label"><i class="ph ph-target"></i> Objetivo Diario</div>
                         <div class="tm-objective-card" id="tm-objective-card">
@@ -436,7 +456,7 @@ try {
                                         <span class="tm-objective-subtitle" id="tm-objective-text">Fijar como meta principal del día</span>
                                     </div>
                                 </div>
-                                <label class="tm-switch tm-switch-objective" title="Activar / Desactivar Objetivo Diario">
+                                <label class="tm-switch tm-switch-objective" title="Activar / Desactivar Objetivo Diario" onclick="event.stopPropagation()">
                                     <input type="checkbox" id="tm-is-daily-objective" onchange="TM.onDailyObjectiveToggle(this.checked)">
                                     <span class="tm-slider"></span>
                                 </label>
@@ -464,26 +484,54 @@ try {
                         </div>
                     </div>
 
-                    <!-- Área / Especialidad -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-briefcase"></i> Área</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-area" class="lumio-pill-select" onchange="TM.onAreaChange(this.value)">
-                                <option value="general">General / Operativa</option>
-                                <option value="desarrollo_marca">Desarrollo de Marca</option>
-                                <option value="desarrollo_web">Desarrollo Web</option>
-                                <option value="audiovisual">Audiovisual</option>
+                    <!-- Fijar Tarea (Fila 2 - Col 2) -->
+                    <div class="lumio-meta-row tm-pinned-field-container">
+                        <div class="lumio-meta-label"><i class="ph-bold ph-push-pin"></i> Fijar Tarea</div>
+                        <div class="tm-objective-card tm-pinned-card" id="tm-pinned-card" onclick="TM.togglePinnedFromCard(event)">
+                            <div class="tm-objective-header">
+                                <div class="tm-objective-info">
+                                    <div class="tm-objective-icon-badge tm-pinned-icon-badge">
+                                        <i class="ph-bold ph-push-pin"></i>
+                                    </div>
+                                    <div class="tm-objective-texts">
+                                        <div class="tm-objective-title-line">
+                                            <span class="tm-objective-title">Fijar en Tablero</span>
+                                            <span class="tm-objective-badge tm-pinned-badge-active" id="tm-pinned-badge" style="display:none;">Fijada</span>
+                                        </div>
+                                        <span class="tm-objective-subtitle" id="tm-pinned-text">Anclar arriba y repetir a diario</span>
+                                    </div>
+                                </div>
+                                <label class="tm-switch tm-switch-pinned" title="Fijar en el tablero y repetir diariamente" onclick="event.stopPropagation()">
+                                    <input type="checkbox" id="tm-is-pinned" onchange="TM.onPinnedToggle(this.checked)">
+                                    <span class="tm-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pizarra Vinculada (Módulo Pizarras) -->
+                    <div class="lumio-meta-row" id="row-whiteboard" style="display:none; grid-column: 1 / -1;">
+                        <div class="lumio-meta-label"><i class="ph ph-chalkboard-simple"></i> Pizarra</div>
+                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                            <select id="tm-whiteboard-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onWhiteboardChange(this.value)">
+                                <option value="">-- Sin Vincular / Seleccionar Pizarra --</option>
                             </select>
+                            <button type="button" id="btn-open-whiteboard" class="tm-btn-open-ext" onclick="TM.openLinkedWhiteboard()" title="Abrir Pizarra en nueva pestaña" style="display:none;">
+                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                            </button>
                         </div>
                     </div>
 
                     <!-- Proyecto de Marca (Condicional para Desarrollo de Marca) -->
                     <div class="lumio-meta-row" id="row-brand-project" style="display:none;">
                         <div class="lumio-meta-label"><i class="ph ph-paint-brush"></i> Proy. Marca</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-brand-project-id" class="lumio-pill-select" onchange="TM.onBrandProjectChange(this.value)">
+                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                            <select id="tm-brand-project-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onBrandProjectChange(this.value)">
                                 <option value="">-- Seleccionar Identidad / Marca --</option>
                             </select>
+                            <button type="button" id="btn-open-brand" class="tm-btn-open-ext" onclick="TM.openLinkedBrand()" title="Abrir Proyecto de Marca en nueva pestaña" style="display:none;">
+                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                            </button>
                         </div>
                     </div>
 
@@ -510,20 +558,26 @@ try {
                     <!-- Mes de Calendario Activo (Para Calendario / Marketing) -->
                     <div class="lumio-meta-row" id="row-calendar-month">
                         <div class="lumio-meta-label"><i class="ph ph-calendar-blank"></i> Mes Activo</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-project-month-id" class="lumio-pill-select" onchange="TM.onProjectMonthChange(this.value)">
+                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                            <select id="tm-project-month-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onProjectMonthChange(this.value)">
                                 <option value="">-- Seleccionar Mes de Calendario --</option>
                             </select>
+                            <button type="button" id="btn-open-month" class="tm-btn-open-ext" onclick="TM.openLinkedMonth()" title="Abrir Mes en Tablero" style="display:none;">
+                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                            </button>
                         </div>
                     </div>
 
                     <!-- Servicio / Entregable Web y Audiovisual (Condicional) -->
                     <div class="lumio-meta-row" id="row-project-service" style="display:none;">
                         <div class="lumio-meta-label"><i class="ph ph-gear"></i> Servicio Web/Audio</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-project-service-id" class="lumio-pill-select" onchange="TM.onProjectServiceChange(this.value)">
+                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                            <select id="tm-project-service-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onProjectServiceChange(this.value)">
                                 <option value="">-- Seleccionar Servicio / Entregable --</option>
                             </select>
+                            <button type="button" id="btn-open-service" class="tm-btn-open-ext" onclick="TM.openLinkedService()" title="Abrir Servicio en nueva pestaña" style="display:none;">
+                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                            </button>
                         </div>
                     </div>
 
