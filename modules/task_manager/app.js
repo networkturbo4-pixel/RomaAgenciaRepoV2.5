@@ -820,6 +820,62 @@ const TM = {
         .catch(err => console.error('Error toggling pin:', err));
     },
 
+    quickToggleTaskDone: function(taskId, currentStatus, event) {
+        if (event) event.stopPropagation();
+        const isDone = (currentStatus === 'completed' || currentStatus === 'approved');
+        const targetStatus = isDone ? 'pending' : 'completed';
+        this.updateTaskStatus(taskId, targetStatus);
+    },
+
+    moveTaskStep: function(taskId, targetStatus, event) {
+        if (event) event.stopPropagation();
+        if (!targetStatus) return;
+        this.updateTaskStatus(taskId, targetStatus);
+    },
+
+    updateTaskStatus: function(taskId, newStatus) {
+        if (newStatus === 'approved' && !window.TM_IS_ADMIN) {
+            alert("Acceso denegado: Solo los administradores pueden aprobar tareas.");
+            return;
+        }
+
+        const cardEl = document.querySelector(`.tm-card[data-task-id="${taskId}"]`);
+        if (cardEl) {
+            cardEl.style.opacity = '0.45';
+            cardEl.style.pointerEvents = 'none';
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('action_type', 'update_status');
+        formData.append('task_id', taskId);
+        formData.append('status', newStatus);
+
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: formData.toString()
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.error || 'Error al actualizar el estado de la tarea');
+                this.loadTasks();
+            } else {
+                if (data.completion_notice) {
+                    const notice = data.completion_notice;
+                    if (confirm(notice.message + "\n\n¿Deseas abrir la tarea para actualizar la fase del proyecto ahora?")) {
+                        this.openEditModalById(parseInt(taskId, 10));
+                    }
+                }
+                this.loadTasks();
+            }
+        })
+        .catch(err => {
+            console.error('Error updating status:', err);
+            this.loadTasks();
+        });
+    },
+
     onTaskDatesChanged: function() {
         const startVal = document.getElementById('tm-start-date')?.value || '';
         const dueVal = document.getElementById('tm-due-date')?.value || '';
@@ -1617,9 +1673,60 @@ const TM = {
                 `;
             }
 
+            // Process flow navigation (Retroceder y Avanzar)
+            const isDone = (t.status === 'completed' || t.status === 'approved');
+            let prevStatus = null;
+            let prevLabel = '';
+            let nextStatus = null;
+            let nextLabel = '';
+
+            if (t.status === 'new') {
+                nextStatus = 'pending';
+                nextLabel = 'Pendiente / En Curso';
+            } else if (t.status === 'pending' || t.status === 'overdue') {
+                prevStatus = 'new';
+                prevLabel = 'Nuevo';
+                nextStatus = 'completed';
+                nextLabel = 'Terminado';
+            } else if (t.status === 'completed') {
+                prevStatus = 'pending';
+                prevLabel = 'Pendiente / En Curso';
+                if (window.TM_IS_ADMIN) {
+                    nextStatus = 'approved';
+                    nextLabel = 'Aprobado';
+                }
+            } else if (t.status === 'approved') {
+                prevStatus = 'completed';
+                prevLabel = 'Terminado';
+            }
+
+            let flowNavHtml = '';
+            if (prevStatus || nextStatus) {
+                const prevBtn = prevStatus ? `
+                    <button type="button" class="tm-btn-flow tm-btn-flow-prev" onclick="TM.moveTaskStep(${t.id}, '${prevStatus}', event)" title="Retroceder proceso a: ${prevLabel}">
+                        <i class="ph-bold ph-caret-left"></i>
+                    </button>
+                ` : '';
+                const nextBtn = nextStatus ? `
+                    <button type="button" class="tm-btn-flow tm-btn-flow-next" onclick="TM.moveTaskStep(${t.id}, '${nextStatus}', event)" title="Avanzar proceso a: ${nextLabel}">
+                        <i class="ph-bold ph-caret-right"></i>
+                    </button>
+                ` : '';
+                flowNavHtml = `<div class="tm-card-flow-nav">${prevBtn}${nextBtn}</div>`;
+            }
+
+            const checkBtnHtml = `
+                <button type="button" class="tm-btn-card-check ${isDone ? 'is-done' : ''}" onclick="TM.quickToggleTaskDone(${t.id}, '${t.status}', event)" title="${isDone ? 'Completada (Clic para reabrir a Pendiente)' : 'Marcar como Terminada'}">
+                    <i class="${isDone ? 'ph-fill ph-check-circle' : 'ph-bold ph-circle'}"></i>
+                </button>
+            `;
+
             card.innerHTML = `
                 ${badgesHtml}
-                <h4 class="tm-task-title">${this.escapeHtml(t.title)}</h4>
+                <div class="tm-task-title-row">
+                    ${checkBtnHtml}
+                    <h4 class="tm-task-title ${isDone ? 'is-title-done' : ''}">${this.escapeHtml(t.title)}</h4>
+                </div>
                 ${tagsHtml}
                 ${projectHtml}
                 ${subtasksHtml}
@@ -1628,6 +1735,7 @@ const TM = {
                         ${timerHtml}
                     </div>
                     <div class="tm-task-footer-right">
+                        ${flowNavHtml}
                         ${usersHtml}
                     </div>
                 </div>

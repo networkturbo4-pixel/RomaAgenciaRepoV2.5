@@ -5158,6 +5158,137 @@ span.tm-pm-initial {
     color: #c7d2fe;
 }
 
+/* ══════════════════════════════════════════════════════════
+   BOTONES DE ESTADO: CHECK DE COMPLETADO Y FLUJO DEL PROCESO
+   ══════════════════════════════════════════════════════════ */
+
+/* Fila de Título con Botón Check */
+.tm-task-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 0.25rem 0 0.5rem 0;
+}
+
+.tm-task-title-row .tm-task-title {
+    margin: 0 !important;
+    flex: 1;
+    line-height: 1.35 !important;
+}
+
+.tm-btn-card-check {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-top: 1px;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--text-muted, #94a3b8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+}
+
+.tm-btn-card-check:hover {
+    color: #10b981;
+    transform: scale(1.2);
+}
+
+.tm-btn-card-check.is-done {
+    color: #10b981;
+}
+
+.tm-btn-card-check.is-done:hover {
+    color: #f59e0b;
+    transform: scale(1.2);
+}
+
+.tm-task-title.is-title-done {
+    color: var(--text-muted, #64748b) !important;
+}
+
+/* Botones de Navegación de Proceso (Retroceder y Avanzar) */
+.tm-card-flow-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-right: 0.35rem;
+}
+
+.tm-btn-flow {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-surface, #ffffff);
+    color: var(--text-muted, #64748b);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.tm-btn-flow:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.tm-btn-flow-prev:hover {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #d97706;
+}
+
+.tm-btn-flow-next:hover {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #059669;
+}
+
+/* Modo oscuro para Botones de Check y Flujo */
+[data-theme="dark"] .tm-btn-card-check {
+    color: #64748b;
+}
+
+[data-theme="dark"] .tm-btn-card-check:hover {
+    color: #34d399;
+}
+
+[data-theme="dark"] .tm-btn-card-check.is-done {
+    color: #34d399;
+}
+
+[data-theme="dark"] .tm-btn-card-check.is-done:hover {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .tm-btn-flow {
+    background: #1c1d22;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .tm-btn-flow-prev:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .tm-btn-flow-next:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    color: #34d399;
+}
+
+
 
 
 
