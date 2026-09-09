@@ -45,7 +45,13 @@
             url: config.apiUrl,
             type: 'GET',
             dataType: 'json',
-            data: { action: 'get_services' },
+            headers: {
+                'X-Roma-Api-Key': config.apiKey || ''
+            },
+            data: {
+                action: 'get_services',
+                api_key: config.apiKey || ''
+            },
             success: function(res) {
                 if (res.success && Array.isArray(res.services)) {
                     $select.empty();
@@ -102,8 +108,12 @@
                 url: config.apiUrl,
                 type: 'GET',
                 dataType: 'json',
+                headers: {
+                    'X-Roma-Api-Key': config.apiKey || ''
+                },
                 data: {
                     action: 'lookup_client',
+                    api_key: config.apiKey || '',
                     query: query
                 },
                 success: function(res) {
@@ -281,8 +291,12 @@
                 url: config.apiUrl,
                 type: 'POST',
                 dataType: 'json',
+                headers: {
+                    'X-Roma-Api-Key': config.apiKey || ''
+                },
                 data: {
                     action: 'submit_quote',
+                    api_key: config.apiKey || '',
                     name: name,
                     dni: dni,
                     phone: phone,

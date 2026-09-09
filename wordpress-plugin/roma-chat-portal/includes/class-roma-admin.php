@@ -38,6 +38,7 @@ class Roma_Chat_Admin {
     public function sanitize_options($input) {
         $clean = [];
         $clean['crm_url'] = esc_url_raw(rtrim($input['crm_url'] ?? '', '/'));
+        $clean['crm_app_key'] = sanitize_text_field($input['crm_app_key'] ?? '');
         $clean['pusher_key'] = sanitize_text_field($input['pusher_key'] ?? '');
         $clean['pusher_cluster'] = sanitize_text_field($input['pusher_cluster'] ?? 'us2');
         $clean['enable_widget'] = isset($input['enable_widget']) && $input['enable_widget'] === 'yes' ? 'yes' : 'no';
@@ -70,12 +71,21 @@ class Roma_Chat_Admin {
         }
 
         $crm_url = esc_url_raw(rtrim($_POST['crm_url'] ?? '', '/'));
+        $app_key = sanitize_text_field($_POST['crm_app_key'] ?? '');
+
         if (empty($crm_url)) {
             wp_send_json_error(['message' => 'Ingresa la URL del CRM']);
         }
 
         $apiUrl = $crm_url . '/modules/mensajes/api_widget.php?action=get_services';
-        $response = wp_remote_get($apiUrl, ['timeout' => 8, 'sslverify' => false]);
+        $args = [
+            'timeout' => 8,
+            'sslverify' => false,
+            'headers' => [
+                'X-Roma-Api-Key' => $app_key
+            ]
+        ];
+        $response = wp_remote_get($apiUrl, $args);
 
         if (is_wp_error($response)) {
             wp_send_json_error(['message' => 'Error de conexión: ' . $response->get_error_message()]);
@@ -99,6 +109,7 @@ class Roma_Chat_Admin {
     public function render_admin_page() {
         $options = get_option('roma_cp_options', []);
         $crm_url = $options['crm_url'] ?? 'http://localhost/CESARMENDOZA';
+        $crm_app_key = $options['crm_app_key'] ?? '';
         $pusher_key = $options['pusher_key'] ?? 'b31f38612d61b0285c78';
         $pusher_cluster = $options['pusher_cluster'] ?? 'us2';
         $enable_widget = ($options['enable_widget'] ?? 'yes') === 'yes';
@@ -145,19 +156,31 @@ class Roma_Chat_Admin {
                                 🌐 Conexión con Roma CRM
                             </h2>
                             <p style="color: #64748b; font-size: 13px; margin-top: 0; margin-bottom: 20px;">
-                                Especifica la URL base donde se encuentra alojado tu sistema Roma CRM. El plugin conectará automáticamente con su módulo de mensajería y base de datos.
+                                Especifica la URL base donde se encuentra alojado tu sistema Roma CRM y la App Key generada en el módulo de Conexiones del CRM.
                             </p>
 
                             <table class="form-table" style="margin-top: 0;">
                                 <tr>
                                     <th scope="row" style="width: 200px;"><label for="crm_url">URL del CRM</label></th>
                                     <td>
-                                        <input type="url" id="crm_url" name="roma_cp_options[crm_url]" value="<?php echo esc_attr($crm_url); ?>" class="regular-text" style="width: 100%; max-width: 480px;" placeholder="http://localhost/CESARMENDOZA" required>
-                                        <p class="description">Ejemplo: <code>https://crm.tudominio.com</code> o en local <code>http://localhost/CESARMENDOZA</code></p>
-                                        <button type="button" id="btn-test-conn" class="button" style="margin-top: 8px;">
-                                            🔌 Probar Conexión
-                                        </button>
-                                        <span id="conn-test-result" style="margin-left: 10px; font-size: 13px; font-weight: 500;"></span>
+                                        <input type="url" id="crm_url" name="roma_cp_options[crm_url]" value="<?php echo esc_attr($crm_url); ?>" class="regular-text" style="width: 100%; max-width: 480px;" placeholder="https://romaagencia.lat/" required>
+                                        <p class="description">Ejemplo: <code>https://romaagencia.lat/</code> o en local <code>http://localhost/CESARMENDOZA</code></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row"><label for="crm_app_key">App Key del CRM</label></th>
+                                    <td>
+                                        <div style="display: flex; gap: 8px; max-width: 480px;">
+                                            <input type="password" id="crm_app_key" name="roma_cp_options[crm_app_key]" value="<?php echo esc_attr($crm_app_key); ?>" class="regular-text" style="width: 100%; font-family: monospace;" placeholder="roma_live_...">
+                                            <button type="button" id="btn-toggle-admin-key" class="button" title="Ver / Ocultar clave">👁️</button>
+                                        </div>
+                                        <p class="description">Clave generada en tu CRM en <strong>Conexiones &gt; WordPress &amp; CRM API</strong>.</p>
+                                        <div style="margin-top: 10px;">
+                                            <button type="button" id="btn-test-conn" class="button button-secondary">
+                                                🔌 Probar Conexión
+                                            </button>
+                                            <span id="conn-test-result" style="margin-left: 10px; font-size: 13px; font-weight: 500;"></span>
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr>
@@ -347,10 +370,19 @@ class Roma_Chat_Admin {
                 $('#preview-bubble i').attr('class', 'ph ' + iconClass);
             });
 
+            // Toggle ver/ocultar clave
+            $('#btn-toggle-admin-key').on('click', function(e) {
+                e.preventDefault();
+                var $keyInput = $('#crm_app_key');
+                var isPassword = $keyInput.attr('type') === 'password';
+                $keyInput.attr('type', isPassword ? 'text' : 'password');
+            });
+
             // Botón de Test de Conexión
             $('#btn-test-conn').on('click', function(e) {
                 e.preventDefault();
                 var crmUrl = $('#crm_url').val();
+                var crmAppKey = $('#crm_app_key').val();
                 var $status = $('#conn-test-result');
                 
                 $status.html('<span style="color: #6366f1;">⏳ Conectando con Roma CRM...</span>');
@@ -361,6 +393,7 @@ class Roma_Chat_Admin {
                     data: {
                         action: 'roma_cp_test_connection',
                         crm_url: crmUrl,
+                        crm_app_key: crmAppKey,
                         nonce: '<?php echo wp_create_nonce("roma_cp_test_nonce"); ?>'
                     },
                     success: function(res) {
@@ -371,7 +404,7 @@ class Roma_Chat_Admin {
                         }
                     },
                     error: function() {
-                        $status.html('<span style="color: #dc2626;">❌ No se pudo conectar al endpoint del CRM. Verifica la URL.</span>');
+                        $status.html('<span style="color: #dc2626;">❌ No se pudo conectar al endpoint del CRM. Verifica la URL y la App Key.</span>');
                     }
                 });
             });

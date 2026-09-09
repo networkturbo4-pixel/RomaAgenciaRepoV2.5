@@ -153,8 +153,12 @@
             url: config.apiUrl,
             type: 'POST',
             dataType: 'json',
+            headers: {
+                'X-Roma-Api-Key': config.apiKey || ''
+            },
             data: {
                 action: 'init_chat',
+                api_key: config.apiKey || '',
                 name: name,
                 phone: phone,
                 email: email,
@@ -242,8 +246,12 @@
             url: config.apiUrl,
             type: 'GET',
             dataType: 'json',
+            headers: {
+                'X-Roma-Api-Key': config.apiKey || ''
+            },
             data: {
                 action: 'get_messages',
+                api_key: config.apiKey || '',
                 chat_token: chatSession.chat_token,
                 guest_token: chatSession.guest_token,
                 last_id: isInitial ? 0 : lastMessageId
@@ -315,8 +323,12 @@
             url: config.apiUrl,
             type: 'POST',
             dataType: 'json',
+            headers: {
+                'X-Roma-Api-Key': config.apiKey || ''
+            },
             data: {
                 action: 'send_message',
+                api_key: config.apiKey || '',
                 chat_token: chatSession.chat_token,
                 guest_token: chatSession.guest_token,
                 content: content

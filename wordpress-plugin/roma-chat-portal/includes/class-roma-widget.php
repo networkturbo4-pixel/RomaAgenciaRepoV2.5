@@ -43,6 +43,7 @@ class Roma_Chat_Widget {
         wp_localize_script('roma-widget-js', 'RomaWidgetConfig', [
             'crmUrl' => $crmUrl,
             'apiUrl' => $crmUrl . '/modules/mensajes/api_widget.php',
+            'apiKey' => $this->options['crm_app_key'] ?? '',
             'guestUrl' => $crmUrl . '/index.php?module=mensajes&action=guest',
             'pusherKey' => $this->options['pusher_key'] ?? 'b31f38612d61b0285c78',
             'pusherCluster' => $this->options['pusher_cluster'] ?? 'us2',

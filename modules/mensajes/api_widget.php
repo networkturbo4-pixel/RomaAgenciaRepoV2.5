@@ -4,7 +4,7 @@
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Roma-Api-Key');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -22,6 +22,38 @@ if (!$db) {
     echo json_encode(['success' => false, 'error' => 'Error de conexión con la base de datos']);
     exit;
 }
+
+// =========================================================================
+// VALIDACIÓN DE APP KEY (ROMA CRM <-> WORDPRESS)
+// =========================================================================
+$stmtKey = $db->prepare("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('crm_api_key', 'crm_api_enabled')");
+$stmtKey->execute();
+$apiSettings = $stmtKey->fetchAll(PDO::FETCH_KEY_PAIR);
+
+$expectedKey = $apiSettings['crm_api_key'] ?? '';
+$apiEnabled = ($apiSettings['crm_api_enabled'] ?? '1') === '1';
+
+if (!$apiEnabled) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'La API para WordPress está desactivada en el módulo de Conexiones de Roma CRM.']);
+    exit;
+}
+
+// Obtener clave enviada (cabecera HTTP_X_ROMA_API_KEY o GET/POST api_key)
+$providedKey = $_SERVER['HTTP_X_ROMA_API_KEY'] ?? $_REQUEST['api_key'] ?? '';
+
+if (!empty($expectedKey)) {
+    if (empty($providedKey) || !hash_equals($expectedKey, $providedKey)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'App Key inválida o no proporcionada. Por favor verifica la App Key en los ajustes de WordPress (Roma Portal).']);
+        exit;
+    }
+}
+
+// Actualizar timestamp de última conexión exitosa
+try {
+    $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('crm_api_last_access', NOW()) ON DUPLICATE KEY UPDATE setting_value = NOW()")->execute();
+} catch (Exception $e) {}
 
 // Pusher Setup (para notificaciones en tiempo real)
 $pusher = null;

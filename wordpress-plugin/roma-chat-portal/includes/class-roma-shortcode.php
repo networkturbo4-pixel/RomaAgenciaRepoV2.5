@@ -49,6 +49,7 @@ class Roma_Chat_Shortcode {
         wp_localize_script('roma-shortcode-js', 'RomaPortalConfig', [
             'crmUrl' => $crmUrl,
             'apiUrl' => $crmUrl . '/modules/mensajes/api_widget.php',
+            'apiKey' => $this->options['crm_app_key'] ?? '',
             'guestUrl' => $crmUrl . '/index.php?module=mensajes&action=guest'
         ]);
 
