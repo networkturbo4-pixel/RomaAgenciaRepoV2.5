@@ -3338,8 +3338,9 @@ require_once 'includes/header.php';
                 }
 
                 var xml = new XMLSerializer().serializeToString(svg);
-                if (!xml.startsWith('<?xml')) {
-                    xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml;
+                var xmlHeader = '<' + '?xml version="1.0" encoding="UTF-8"?>\n';
+                if (!xml.startsWith('<' + '?xml')) {
+                    xml = xmlHeader + xml;
                 }
                 var blob = new Blob([xml], {type: 'image/svg+xml;charset=utf-8'});
                 saveAs(blob, 'codigo-barras.svg');
@@ -3458,8 +3459,9 @@ require_once 'includes/header.php';
                         }
 
                         var xml = new XMLSerializer().serializeToString(dummySvg);
-                        if (!xml.startsWith('<?xml')) {
-                            xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml;
+                        var xmlHeader = '<' + '?xml version="1.0" encoding="UTF-8"?>\n';
+                        if (!xml.startsWith('<' + '?xml')) {
+                            xml = xmlHeader + xml;
                         }
                         folder.file(val + ".svg", xml);
                     }
