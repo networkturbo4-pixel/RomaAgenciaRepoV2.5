@@ -2212,6 +2212,11 @@
   display: block;
 }
 
+.qr-barcode-box svg text {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: 0.5px;
+}
+
 /* --------------------------------------------------------------------------
    Export Deck
    -------------------------------------------------------------------------- */

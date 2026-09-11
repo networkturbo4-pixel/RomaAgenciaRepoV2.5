@@ -945,12 +945,40 @@ require_once 'includes/header.php';
                         </label>
                     </div>
 
-                    <div class="qr-range-row">
-                        <div class="qr-range-header">
-                            <span class="qr-range-label">Tamaño del Texto</span>
-                            <span class="qr-range-value" id="barcodeFontSizeValue">20px</span>
+                    <div id="barcodeTypographyControls" style="display:flex; flex-direction:column; gap:0.65rem; margin-top:0.4rem; padding-top:0.5rem; border-top:1px dashed var(--border-color);">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.6rem;">
+                            <div>
+                                <label class="bc-field-mini-label" style="display:flex; align-items:center; gap:4px;">
+                                    <i class="ph ph-text-t"></i> Tipografía:
+                                </label>
+                                <select id="barcodeFontFamily" class="qr-field-select" style="font-size:0.8rem; padding:0.45rem 0.5rem; font-weight:600;">
+                                    <option value="Inter" selected>Inter (Recomendada)</option>
+                                    <option value="Roboto">Roboto</option>
+                                    <option value="Montserrat">Montserrat</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="monospace">Courier / Monospace</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="bc-field-mini-label" style="display:flex; align-items:center; gap:4px;">
+                                    <i class="ph ph-text-b"></i> Grosor / Peso:
+                                </label>
+                                <select id="barcodeFontWeight" class="qr-field-select" style="font-size:0.8rem; padding:0.45rem 0.5rem; font-weight:600;">
+                                    <option value="600" selected>Semi-Negrita (600)</option>
+                                    <option value="700">Negrita (700)</option>
+                                    <option value="500">Media (500)</option>
+                                    <option value="400">Regular (400)</option>
+                                </select>
+                            </div>
                         </div>
-                        <input type="range" id="barcodeFontSize" min="10" max="40" step="1" value="20" class="qr-range-input">
+
+                        <div class="qr-range-row" style="margin-top:0.15rem">
+                            <div class="qr-range-header">
+                                <span class="qr-range-label">Tamaño del Texto</span>
+                                <span class="qr-range-value" id="barcodeFontSizeValue">20px</span>
+                            </div>
+                            <input type="range" id="barcodeFontSize" min="10" max="40" step="1" value="20" class="qr-range-input">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2797,7 +2825,8 @@ require_once 'includes/header.php';
         // Barcode Generator & Sequential Tools
         // =====================================================================
         const barcodeInputs = [
-            'barcodeFormatSelect', 'barcodeInputVal', 'barcodeLineColor', 'barcodeBgColor', 'barcodeShowText', 'barcodeFontSize'
+            'barcodeFormatSelect', 'barcodeInputVal', 'barcodeLineColor', 'barcodeBgColor', 'barcodeShowText', 'barcodeFontSize',
+            'barcodeFontFamily', 'barcodeFontWeight'
         ];
         barcodeInputs.forEach(id => {
             let el = document.getElementById(id);
@@ -2805,6 +2834,12 @@ require_once 'includes/header.php';
                 if(id === 'barcodeFontSize') {
                     el.addEventListener('input', function() {
                         document.getElementById('barcodeFontSizeValue').textContent = this.value + 'px';
+                        generateBarcode();
+                    });
+                } else if(id === 'barcodeShowText') {
+                    el.addEventListener('change', function() {
+                        var typo = document.getElementById('barcodeTypographyControls');
+                        if (typo) typo.style.display = this.checked ? 'flex' : 'none';
                         generateBarcode();
                     });
                 } else {
@@ -3032,6 +3067,55 @@ require_once 'includes/header.php';
         document.getElementById('barcodeSeqStart')?.addEventListener('input', updateBulkCount);
         document.getElementById('barcodeSeqEnd')?.addEventListener('input', updateBulkCount);
 
+        function applyBarcodeTypography(svgEl, fontFamily, fontWeight, fontSize) {
+            if (!svgEl) return;
+            fontFamily = fontFamily || 'Inter';
+            fontWeight = fontWeight || '600';
+            fontSize = fontSize || 20;
+
+            svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            svgEl.setAttribute('version', '1.1');
+
+            var oldStyle = svgEl.querySelector('style[data-barcode-font]');
+            if (oldStyle) oldStyle.remove();
+
+            var defs = svgEl.querySelector('defs');
+            if (!defs) {
+                defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                svgEl.insertBefore(defs, svgEl.firstChild);
+            }
+
+            var styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+            styleEl.setAttribute('type', 'text/css');
+            styleEl.setAttribute('data-barcode-font', 'true');
+            styleEl.textContent = 
+                "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');\n" +
+                "@font-face {\n" +
+                "  font-family: 'Inter';\n" +
+                "  font-style: normal;\n" +
+                "  font-weight: " + fontWeight + ";\n" +
+                "  src: local('Inter SemiBold'), local('Inter-SemiBold'), local('Inter Bold'), local('Inter-Bold'), local('Inter');\n" +
+                "}\n" +
+                "text {\n" +
+                "  font-family: '" + fontFamily + "', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;\n" +
+                "  font-weight: " + fontWeight + " !important;\n" +
+                "  letter-spacing: 0.5px;\n" +
+                "}";
+            defs.appendChild(styleEl);
+
+            var textElements = svgEl.querySelectorAll('text');
+            textElements.forEach(function(txt) {
+                txt.setAttribute('font-family', fontFamily);
+                txt.setAttribute('font-weight', fontWeight);
+                txt.setAttribute('font-size', fontSize + 'px');
+                txt.setAttribute('letter-spacing', '0.5px');
+                txt.style.fontFamily = "'" + fontFamily + "', -apple-system, BlinkMacSystemFont, sans-serif";
+                txt.style.fontWeight = fontWeight;
+                txt.style.fontSize = fontSize + 'px';
+                txt.style.letterSpacing = '0.5px';
+            });
+        }
+
         function generateBarcode() {
             var format = document.getElementById('barcodeFormatSelect').value;
             var rawVal = document.getElementById('barcodeInputVal').value;
@@ -3040,6 +3124,9 @@ require_once 'includes/header.php';
             var bgColor = document.getElementById('barcodeBgColor').value;
             var showText = document.getElementById('barcodeShowText').checked;
             var fontSize = document.getElementById('barcodeFontSize') ? parseInt(document.getElementById('barcodeFontSize').value) : 20;
+            var fontFamily = document.getElementById('barcodeFontFamily') ? document.getElementById('barcodeFontFamily').value : 'Inter';
+            var fontWeight = document.getElementById('barcodeFontWeight') ? document.getElementById('barcodeFontWeight').value : '600';
+            var fontOptionVal = (fontWeight === 'bold' || parseInt(fontWeight) >= 600) ? 'bold' : '';
             var hintEl = document.getElementById('barcodeHint');
 
             checkContrast(lineColor, bgColor);
@@ -3133,10 +3220,17 @@ require_once 'includes/header.php';
                         background: bgColor,
                         displayValue: showText,
                         fontSize: fontSize,
+                        font: fontFamily,
+                        fontOptions: fontOptionVal,
                         width: 2,
                         height: 90,
                         margin: 8
                     });
+
+                    var svgEl = document.getElementById('barcodeSvgContainer');
+                    if (svgEl && showText) {
+                        applyBarcodeTypography(svgEl, fontFamily, fontWeight, fontSize);
+                    }
                 }
             } catch (e) {
                 // Show friendly error in the SVG container
@@ -3193,6 +3287,15 @@ require_once 'includes/header.php';
                     });
                     return;
                 }
+
+                var showText = document.getElementById('barcodeShowText') ? document.getElementById('barcodeShowText').checked : true;
+                var fontFamily = document.getElementById('barcodeFontFamily') ? document.getElementById('barcodeFontFamily').value : 'Inter';
+                var fontWeight = document.getElementById('barcodeFontWeight') ? document.getElementById('barcodeFontWeight').value : '600';
+                var fontSize = document.getElementById('barcodeFontSize') ? parseInt(document.getElementById('barcodeFontSize').value) : 20;
+                if (showText) {
+                    applyBarcodeTypography(svg, fontFamily, fontWeight, fontSize);
+                }
+
                 var xml = new XMLSerializer().serializeToString(svg);
                 var svg64 = btoa(unescape(encodeURIComponent(xml)));
                 var image64 = 'data:image/svg+xml;base64,' + svg64;
@@ -3215,11 +3318,31 @@ require_once 'includes/header.php';
             if (currentCodeType === 'qr') {
                 qrCodeInstance.download({ name: "codigo-qr", extension: "svg" });
             } else {
-                getTargetCanvasOrSvg(function(canvas, xml) {
-                    if(!xml) return;
-                    var blob = new Blob([xml], {type: 'image/svg+xml;charset=utf-8'});
-                    saveAs(blob, 'codigo-barras.svg');
-                });
+                var svg = document.getElementById('barcodeSvgContainer');
+                if (!svg || svg.innerHTML.includes('ef4444')) {
+                    Swal.fire({
+                        title: 'Código Inválido',
+                        text: 'No se puede exportar un código con formato inválido.',
+                        icon: 'warning',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+
+                var showText = document.getElementById('barcodeShowText') ? document.getElementById('barcodeShowText').checked : true;
+                var fontFamily = document.getElementById('barcodeFontFamily') ? document.getElementById('barcodeFontFamily').value : 'Inter';
+                var fontWeight = document.getElementById('barcodeFontWeight') ? document.getElementById('barcodeFontWeight').value : '600';
+                var fontSize = document.getElementById('barcodeFontSize') ? parseInt(document.getElementById('barcodeFontSize').value) : 20;
+                if (showText) {
+                    applyBarcodeTypography(svg, fontFamily, fontWeight, fontSize);
+                }
+
+                var xml = new XMLSerializer().serializeToString(svg);
+                if (!xml.startsWith('<?xml')) {
+                    xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml;
+                }
+                var blob = new Blob([xml], {type: 'image/svg+xml;charset=utf-8'});
+                saveAs(blob, 'codigo-barras.svg');
             }
         });
 
@@ -3294,6 +3417,9 @@ require_once 'includes/header.php';
                 var bgColor = document.getElementById('barcodeBgColor').value;
                 var showText = document.getElementById('barcodeShowText').checked;
                 var fontSize = document.getElementById('barcodeFontSize') ? parseInt(document.getElementById('barcodeFontSize').value) : 20;
+                var fontFamily = document.getElementById('barcodeFontFamily') ? document.getElementById('barcodeFontFamily').value : 'Inter';
+                var fontWeight = document.getElementById('barcodeFontWeight') ? document.getElementById('barcodeFontWeight').value : '600';
+                var fontOptionVal = (fontWeight === 'bold' || parseInt(fontWeight) >= 600) ? 'bold' : '';
                 
                 var zip = new JSZip();
                 var folder = zip.folder("codigos_barras");
@@ -3320,11 +3446,21 @@ require_once 'includes/header.php';
                             background: bgColor,
                             displayValue: showText,
                             fontSize: fontSize,
+                            font: fontFamily,
+                            fontOptions: fontOptionVal,
                             width: 2,
                             height: 90,
                             margin: 8
                         });
+
+                        if (showText) {
+                            applyBarcodeTypography(dummySvg, fontFamily, fontWeight, fontSize);
+                        }
+
                         var xml = new XMLSerializer().serializeToString(dummySvg);
+                        if (!xml.startsWith('<?xml')) {
+                            xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml;
+                        }
                         folder.file(val + ".svg", xml);
                     }
                     
