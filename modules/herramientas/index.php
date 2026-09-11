@@ -152,55 +152,80 @@ require_once 'includes/header.php';
 <!-- Tab Content: Generador de Paletas -->
 <div class="herr-tab-content active" data-tool-content="paleta">
 
-    <!-- Controls Bar -->
+    <!-- Controls Bar — Estilo App Moderna -->
     <div class="paleta-controls">
+        <!-- Color Seeds (Primario y Secundario) -->
         <div class="paleta-picker-group">
-            <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:0.65rem;font-weight:700;color:var(--text-muted);letter-spacing:0.05em">PRIMARY</span>
-                <div style="display:flex;gap:4px">
-                    <input type="color" id="colorPicker" value="#0c36a6">
-                    <input type="text" id="hexInput" value="#0c36a6" maxlength="7" placeholder="#000000">
+            <!-- Primario -->
+            <div class="paleta-chip-card">
+                <span class="paleta-chip-mini-tag">COLOR PRIMARIO</span>
+                <div class="paleta-chip-box">
+                    <label class="paleta-color-preview-wrap" title="Haz clic para abrir el selector de color">
+                        <input type="color" id="colorPicker" value="#0c36a6" class="paleta-color-native-input">
+                        <span class="paleta-color-dot" id="primaryColorDot" style="background:#0c36a6"></span>
+                    </label>
+                    <input type="text" id="hexInput" value="#0C36A6" maxlength="7" placeholder="#000000" class="paleta-chip-hex" autocomplete="off" spellcheck="false">
                 </div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:2px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-                    <span style="font-size:0.65rem;font-weight:700;color:var(--text-muted);letter-spacing:0.05em">SECONDARY</span>
-                    <label class="app-switch" style="transform: scale(0.65); transform-origin: right center; margin: 0; height:20px">
+
+            <!-- Secundario -->
+            <div class="paleta-chip-card">
+                <div class="paleta-chip-card-header">
+                    <span class="paleta-chip-mini-tag">COLOR SECUNDARIO</span>
+                    <label class="app-switch" title="Activar / Desactivar color secundario">
                         <input type="checkbox" id="enableSecondary" checked>
                         <span class="app-switch-slider"></span>
                     </label>
                 </div>
-                <div style="display:flex;gap:4px;transition:opacity 0.2s" id="secondaryColorControls">
-                    <input type="color" id="secondaryColorPicker" value="#10b981">
-                    <input type="text" id="secondaryHexInput" value="#10b981" maxlength="7" placeholder="#000000">
+                <div class="paleta-chip-box" id="secondaryColorControls">
+                    <label class="paleta-color-preview-wrap" title="Haz clic para abrir el selector de color secundario">
+                        <input type="color" id="secondaryColorPicker" value="#10b981" class="paleta-color-native-input">
+                        <span class="paleta-color-dot" id="secondaryColorDot" style="background:#10b981"></span>
+                    </label>
+                    <input type="text" id="secondaryHexInput" value="#10B981" maxlength="7" placeholder="#000000" class="paleta-chip-hex" autocomplete="off" spellcheck="false">
                 </div>
             </div>
         </div>
+
+        <!-- Armonía Cromática -->
         <div class="paleta-harmony-group">
-            <label><i class="ph ph-circles-three"></i> Armonía:</label>
-            <select id="harmonyMode">
-                <option value="auto">Auto</option>
-                <option value="complementary">Complementario</option>
-                <option value="analogous">Análogo</option>
-                <option value="triadic">Tríada</option>
-                <option value="split">Split-Complementario</option>
-            </select>
+            <span class="paleta-chip-mini-tag">ARMONÍA CROMÁTICA</span>
+            <div class="paleta-harmony-box">
+                <i class="ph ph-circles-three"></i>
+                <select id="harmonyMode" class="paleta-harmony-select">
+                    <option value="auto" selected>Auto (Inteligente)</option>
+                    <option value="complementary">Complementario (180°)</option>
+                    <option value="analogous">Análogo (±30°)</option>
+                    <option value="triadic">Tríada (120°)</option>
+                    <option value="split">Split-Complementario</option>
+                </select>
+            </div>
         </div>
+
+        <!-- Botones de Acción de la App -->
         <div class="paleta-actions">
-            <button class="btn btn-outline" id="btnRandom" title="Spacebar"><i class="ph ph-shuffle"></i> Random <span class="kbd-hint">Space</span></button>
-            <button class="btn btn-primary" id="btnSave"><i class="ph ph-floppy-disk"></i> Guardar</button>
+            <button type="button" class="btn btn-outline paleta-btn-random" id="btnRandom" title="Atajo: Barra espaciadora">
+                <i class="ph ph-shuffle"></i> <span>Aleatorio</span> <span class="kbd-hint">Espacio</span>
+            </button>
+            <button type="button" class="btn btn-primary paleta-btn-save" id="btnSave">
+                <i class="ph ph-floppy-disk"></i> <span>Guardar</span>
+            </button>
             <div class="export-dropdown">
-                <button class="btn btn-outline" id="btnExport"><i class="ph ph-export"></i> Exportar <i class="ph ph-caret-down"></i></button>
+                <button type="button" class="btn btn-outline" id="btnExport">
+                    <i class="ph ph-export"></i> <span>Exportar</span> <i class="ph ph-caret-down"></i>
+                </button>
                 <div class="export-dropdown-menu" id="exportMenu">
-                    <button class="export-dropdown-item" data-export="css"><i class="ph ph-file-css"></i> CSS Variables</button>
-                    <button class="export-dropdown-item" data-export="json"><i class="ph ph-file-js"></i> JSON</button>
-                    <button class="export-dropdown-item" data-export="tailwind"><i class="ph ph-wind"></i> Tailwind Config</button>
+                    <button type="button" class="export-dropdown-item" data-export="css"><i class="ph ph-file-css"></i> Variables CSS (:root)</button>
+                    <button type="button" class="export-dropdown-item" data-export="json"><i class="ph ph-file-js"></i> Tokens JSON</button>
+                    <button type="button" class="export-dropdown-item" data-export="tailwind"><i class="ph ph-wind"></i> Configuración Tailwind CSS</button>
                     <div style="height:1px;background:var(--border-color);margin:4px 0"></div>
-                    <button class="export-dropdown-item" data-export="png"><i class="ph ph-image"></i> Imagen (PNG)</button>
-                    <button class="export-dropdown-item" data-export="pdf"><i class="ph ph-file-pdf"></i> Documento (PDF)</button>
+                    <button type="button" class="export-dropdown-item" data-export="png"><i class="ph ph-image"></i> Paleta en Imagen (PNG HD)</button>
+                    <button type="button" class="export-dropdown-item" data-export="pdf"><i class="ph ph-file-pdf"></i> Guía de Color (PDF)</button>
                 </div>
             </div>
-            <button class="btn btn-outline" id="btnToggleSidebar"><i class="ph ph-bookmark-simple"></i> Paletas Guardadas</button>
+            <button type="button" class="btn btn-outline" id="btnToggleSidebar" title="Ver paletas guardadas">
+                <i class="ph ph-bookmark-simple"></i> <span>Colección</span> <span class="paleta-count-badge" id="savedPalettesCount">0</span>
+            </button>
         </div>
     </div>
 
@@ -237,178 +262,409 @@ require_once 'includes/header.php';
 <div class="herr-tab-content" data-tool-content="qr">
     <div class="qr-layout">
         
-        <!-- Controles Laterales -->
+        <!-- Controles Laterales (Configuración) -->
         <div class="qr-sidebar">
-            <div class="qr-control-group">
-                <label class="qr-section-title">Tipo de Código</label>
-                <div class="qr-tabs qr-type-switcher">
-                    <button class="qr-tab-btn active" data-type="qr">QR</button>
-                    <button class="qr-tab-btn" data-type="barcode">Barras</button>
-                </div>
+            
+            <!-- Switcher de Tipo de Código -->
+            <div class="qr-type-switcher">
+                <button type="button" class="qr-tab-btn active" data-type="qr">
+                    <i class="ph ph-qr-code"></i> Código QR
+                </button>
+                <button type="button" class="qr-tab-btn" data-type="barcode">
+                    <i class="ph ph-barcode"></i> Código de Barras
+                </button>
             </div>
 
-            <!-- Controles QR -->
+            <!-- ======================================================== -->
+            <!-- CONTROLES QR                                             -->
+            <!-- ======================================================== -->
             <div id="qrControlsContainer">
-                <div class="qr-control-group qr-field-group">
-                    <label class="qr-field-label">Formato de QR</label>
-                    <select id="qrFormatSelect" class="qr-field-select">
-                        <option value="url">Enlace / URL</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="telegram">Telegram</option>
-                        <option value="mailto">Correo Electrónico</option>
-                        <option value="event">Evento (Calendario)</option>
-                        <option value="wifi">Red Wi-Fi</option>
-                        <option value="vcard">Contacto (vCard)</option>
-                        <option value="geo">Geolocalización</option>
-                        <option value="text">Texto Libre</option>
-                    </select>
-                </div>
-
-                <!-- Inputs dinámicos QR -->
-                <div id="qrDynamicInputs">
-                    <!-- URL Input (Default) -->
-                    <div class="qr-input-group active" data-qr-input="url">
-                        <label class="qr-field-label qr-field-label--sub">Introduce el enlace</label>
-                        <input type="text" id="qrInputUrl" placeholder="https://ejemplo.com" class="qr-field-input" value="https://romaagencia.com">
+                
+                <!-- Card 1: Tipo y Formato QR -->
+                <div class="qr-card">
+                    <div class="qr-card-header">
+                        <span class="qr-card-title"><i class="ph ph-sliders-horizontal"></i> Tipo y Formato QR</span>
+                        <span class="qr-card-badge">Dinámico</span>
                     </div>
 
-                    <!-- WhatsApp Input -->
-                    <div class="qr-input-group" data-qr-input="whatsapp" style="display:none">
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Teléfono (con código de país)</label>
-                            <input type="tel" id="qrInputWaPhone" placeholder="+34600000000" class="qr-field-input">
-                        </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Mensaje Predefinido</label>
-                            <textarea id="qrInputWaText" placeholder="Hola, me gustaría más información..." class="qr-field-textarea"></textarea>
-                        </div>
+                    <div class="qr-field-group">
+                        <label class="qr-field-label">Contenido / Destino</label>
+                        <select id="qrFormatSelect" class="qr-field-select">
+                            <option value="url">Enlace / URL</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="telegram">Telegram</option>
+                            <option value="mailto">Correo Electrónico</option>
+                            <option value="event">Evento (Calendario)</option>
+                            <option value="wifi">Red Wi-Fi</option>
+                            <option value="vcard">Contacto (vCard)</option>
+                            <option value="geo">Geolocalización</option>
+                            <option value="text">Texto Libre</option>
+                        </select>
                     </div>
 
-                    <!-- Telegram Input -->
-                    <div class="qr-input-group" data-qr-input="telegram" style="display:none">
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Usuario, Grupo o Canal</label>
-                            <input type="text" id="qrInputTgUser" placeholder="romaagencia" class="qr-field-input">
-                        </div>
-                    </div>
-
-                    <!-- Correo Input -->
-                    <div class="qr-input-group" data-qr-input="mailto" style="display:none">
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Destinatario</label>
-                            <input type="email" id="qrInputMailTo" placeholder="hola@romaagencia.com" class="qr-field-input">
-                        </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Asunto</label>
-                            <input type="text" id="qrInputMailSubj" placeholder="Consulta de servicios" class="qr-field-input">
-                        </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Mensaje</label>
-                            <textarea id="qrInputMailBody" placeholder="Escribe aquí tu mensaje..." class="qr-field-textarea"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Evento Input -->
-                    <div class="qr-input-group" data-qr-input="event" style="display:none">
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Título del Evento</label>
-                            <input type="text" id="qrInputEvtTitle" placeholder="Reunión Anual" class="qr-field-input">
-                        </div>
-                        <div class="qr-field-row">
-                            <div class="qr-field-col">
-                                <label class="qr-field-label qr-field-label--sub">Inicio</label>
-                                <input type="datetime-local" id="qrInputEvtStart" class="qr-field-input">
-                            </div>
-                            <div class="qr-field-col">
-                                <label class="qr-field-label qr-field-label--sub">Fin</label>
-                                <input type="datetime-local" id="qrInputEvtEnd" class="qr-field-input">
+                    <!-- Inputs dinámicos QR -->
+                    <div id="qrDynamicInputs">
+                        <!-- URL Input (Default) -->
+                        <div class="qr-input-group active" data-qr-input="url">
+                            <label class="qr-field-label qr-field-label--sub">Introduce el enlace (URL)</label>
+                            <div class="bc-input-box">
+                                <span class="bc-input-icon"><i class="ph ph-link"></i></span>
+                                <input type="url" 
+                                       id="qrInputUrl" 
+                                       placeholder="https://ejemplo.com" 
+                                       class="qr-field-input" 
+                                       value="https://romaagencia.com" 
+                                       autocomplete="off" 
+                                       data-lpignore="true" 
+                                       data-1p-ignore="true" 
+                                       data-bwignore="true" 
+                                       data-form-type="other"
+                                       aria-autocomplete="none" 
+                                       spellcheck="false">
+                                <div class="bc-input-actions">
+                                    <button type="button" class="bc-action-btn" id="btnClearQrUrl" title="Limpiar enlace">
+                                        <i class="ph ph-x"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Ubicación</label>
-                            <input type="text" id="qrInputEvtLoc" placeholder="Oficina Roma" class="qr-field-input">
-                        </div>
-                    </div>
-                    
-                    <!-- Wi-Fi Input -->
-                    <div class="qr-input-group" data-qr-input="wifi" style="display:none">
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Nombre de la red (SSID)</label>
-                            <input type="text" id="qrInputWifiSsid" placeholder="Mi Red WiFi" class="qr-field-input">
-                        </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Contraseña</label>
-                            <input type="text" id="qrInputWifiPass" placeholder="Contraseña secreta" class="qr-field-input">
-                        </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Seguridad</label>
-                            <select id="qrInputWifiType" class="qr-field-input">
-                                <option value="WPA">WPA/WPA2</option>
-                                <option value="WEP">WEP</option>
-                                <option value="nopass">Sin contraseña</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <!-- vCard Input -->
-                    <div class="qr-input-group" data-qr-input="vcard" style="display:none">
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Nombre completo</label>
-                            <input type="text" id="qrInputVcardName" placeholder="Juan Pérez" class="qr-field-input">
+                        <!-- WhatsApp Input -->
+                        <div class="qr-input-group" data-qr-input="whatsapp" style="display:none">
+                            <div class="qr-field-group">
+                                <label class="qr-field-label qr-field-label--sub">Teléfono (con código de país)</label>
+                                <div class="bc-input-box">
+                                    <span class="bc-input-icon"><i class="ph ph-whatsapp-logo" style="color:#22c55e"></i></span>
+                                    <input type="tel" 
+                                           id="qrInputWaPhone" 
+                                           placeholder="Ej: +51987654321" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
+                            <div class="qr-field-group" style="margin-top:0.6rem">
+                                <label class="qr-field-label qr-field-label--sub">Mensaje Predefinido (Opcional)</label>
+                                <textarea id="qrInputWaText" placeholder="Hola, me gustaría solicitar más información..." class="qr-field-textarea" style="min-height:75px" autocomplete="off" data-lpignore="true"></textarea>
+                            </div>
                         </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Teléfono</label>
-                            <input type="tel" id="qrInputVcardPhone" placeholder="+123456789" class="qr-field-input">
-                        </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Email</label>
-                            <input type="email" id="qrInputVcardEmail" placeholder="juan@ejemplo.com" class="qr-field-input">
-                        </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Organización / Empresa</label>
-                            <input type="text" id="qrInputVcardOrg" placeholder="Roma Agencia" class="qr-field-input">
-                        </div>
-                    </div>
 
-                    <!-- Geolocalización Input -->
-                    <div class="qr-input-group" data-qr-input="geo" style="display:none">
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Latitud</label>
-                            <input type="text" id="qrInputGeoLat" placeholder="40.7128" class="qr-field-input">
+                        <!-- Telegram Input -->
+                        <div class="qr-input-group" data-qr-input="telegram" style="display:none">
+                            <div class="qr-field-group">
+                                <label class="qr-field-label qr-field-label--sub">Usuario, Grupo o Canal (@)</label>
+                                <div class="bc-input-box">
+                                    <span class="bc-input-icon"><i class="ph ph-telegram-logo" style="color:#0284c7"></i></span>
+                                    <input type="text" 
+                                           id="qrInputTgUser" 
+                                           placeholder="romaagencia" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="qr-field-label qr-field-label--sub">Longitud</label>
-                            <input type="text" id="qrInputGeoLng" placeholder="-74.0060" class="qr-field-input">
-                        </div>
-                    </div>
 
-                    <!-- Texto Libre Input -->
-                    <div class="qr-input-group" data-qr-input="text" style="display:none">
-                        <label class="qr-field-label qr-field-label--sub">Texto</label>
-                        <textarea id="qrInputText" placeholder="Escribe tu mensaje aquí..." class="qr-field-textarea qr-field-textarea--tall"></textarea>
+                        <!-- Correo Input -->
+                        <div class="qr-input-group" data-qr-input="mailto" style="display:none">
+                            <div class="qr-field-group">
+                                <label class="qr-field-label qr-field-label--sub">Destinatario</label>
+                                <div class="bc-input-box">
+                                    <span class="bc-input-icon"><i class="ph ph-envelope"></i></span>
+                                    <input type="email" 
+                                           id="qrInputMailTo" 
+                                           placeholder="contacto@romaagencia.com" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
+                            <div class="qr-field-group" style="margin-top:0.5rem">
+                                <label class="qr-field-label qr-field-label--sub">Asunto</label>
+                                <div class="bc-input-box">
+                                    <span class="bc-input-icon"><i class="ph ph-chat-circle-dots"></i></span>
+                                    <input type="text" 
+                                           id="qrInputMailSubj" 
+                                           placeholder="Consulta de servicios y cotización" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
+                            <div class="qr-field-group" style="margin-top:0.5rem">
+                                <label class="qr-field-label qr-field-label--sub">Mensaje</label>
+                                <textarea id="qrInputMailBody" placeholder="Escribe aquí tu mensaje..." class="qr-field-textarea" style="min-height:70px" autocomplete="off" data-lpignore="true"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Evento Input -->
+                        <div class="qr-input-group" data-qr-input="event" style="display:none">
+                            <div class="qr-field-group">
+                                <label class="qr-field-label qr-field-label--sub">Título del Evento</label>
+                                <div class="bc-input-box">
+                                    <span class="bc-input-icon"><i class="ph ph-calendar-check"></i></span>
+                                    <input type="text" 
+                                           id="qrInputEvtTitle" 
+                                           placeholder="Reunión de Estrategia Roma" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
+                            <div class="qr-field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin:0.5rem 0;">
+                                <div>
+                                    <label class="qr-field-label qr-field-label--sub">Inicio</label>
+                                    <input type="datetime-local" id="qrInputEvtStart" class="qr-field-input">
+                                </div>
+                                <div>
+                                    <label class="qr-field-label qr-field-label--sub">Fin</label>
+                                    <input type="datetime-local" id="qrInputEvtEnd" class="qr-field-input">
+                                </div>
+                            </div>
+                            <div class="qr-field-group">
+                                <label class="qr-field-label qr-field-label--sub">Ubicación</label>
+                                <div class="bc-input-box">
+                                    <span class="bc-input-icon"><i class="ph ph-map-pin"></i></span>
+                                    <input type="text" 
+                                           id="qrInputEvtLoc" 
+                                           placeholder="Oficina Principal Roma" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Wi-Fi Input -->
+                        <div class="qr-input-group" data-qr-input="wifi" style="display:none">
+                            <div class="qr-field-group">
+                                <label class="qr-field-label qr-field-label--sub">Nombre de la red (SSID)</label>
+                                <div class="bc-input-box">
+                                    <span class="bc-input-icon"><i class="ph ph-wifi-high"></i></span>
+                                    <input type="text" 
+                                           id="qrInputWifiSsid" 
+                                           placeholder="Mi Red WiFi" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
+                            <div class="qr-field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem">
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Clave de Red</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-key"></i></span>
+                                        <input type="password" 
+                                               id="qrInputWifiPass" 
+                                               name="qr_wifi_key_secret_nonce" 
+                                               placeholder="Contraseña" 
+                                               class="qr-field-input" 
+                                               autocomplete="off" 
+                                               data-lpignore="true" 
+                                               data-1p-ignore="true" 
+                                               data-bwignore="true" 
+                                               data-form-type="other">
+                                        <div class="bc-input-actions">
+                                            <button type="button" class="bc-action-btn" id="btnToggleWifiPass" title="Mostrar u ocultar contraseña">
+                                                <i class="ph ph-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Seguridad</label>
+                                    <select id="qrInputWifiType" class="qr-field-select">
+                                        <option value="WPA" selected>WPA / WPA2</option>
+                                        <option value="WEP">WEP</option>
+                                        <option value="nopass">Sin contraseña (Abierta)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- vCard Input (Rediseñado en Cuadrícula 2 Columnas Elegante) -->
+                        <div class="qr-input-group" data-qr-input="vcard" style="display:none">
+                            <div class="qr-vcard-grid">
+                                <!-- Fila 1: Nombre Completo -->
+                                <div class="qr-field-group qr-vcard-full">
+                                    <label class="qr-field-label qr-field-label--sub">Nombre Completo</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-user"></i></span>
+                                        <input type="text" 
+                                               id="qrInputVcardName" 
+                                               value="Juan Pérez" 
+                                               placeholder="Ej: Juan Pérez" 
+                                               class="qr-field-input" 
+                                               autocomplete="off" 
+                                               data-lpignore="true" 
+                                               data-1p-ignore="true" 
+                                               data-bwignore="true" 
+                                               data-form-type="other">
+                                    </div>
+                                </div>
+
+                                <!-- Fila 2: Teléfono & Email -->
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Teléfono Móvil</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-phone"></i></span>
+                                        <input type="tel" 
+                                               id="qrInputVcardPhone" 
+                                               value="+51 987 654 321" 
+                                               placeholder="Ej: +51 987 654 321" 
+                                               class="qr-field-input" 
+                                               autocomplete="off" 
+                                               data-lpignore="true" 
+                                               data-1p-ignore="true" 
+                                               data-bwignore="true" 
+                                               data-form-type="other">
+                                    </div>
+                                </div>
+
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Correo Electrónico</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-envelope"></i></span>
+                                        <input type="email" 
+                                               id="qrInputVcardEmail" 
+                                               value="juan@romaagencia.com" 
+                                               placeholder="juan@romaagencia.com" 
+                                               class="qr-field-input" 
+                                               autocomplete="off" 
+                                               data-lpignore="true" 
+                                               data-1p-ignore="true" 
+                                               data-bwignore="true" 
+                                               data-form-type="other">
+                                    </div>
+                                </div>
+
+                                <!-- Fila 3: Empresa & Cargo -->
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Empresa / Organización</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-buildings"></i></span>
+                                        <input type="text" 
+                                               id="qrInputVcardOrg" 
+                                               value="Roma Agencia" 
+                                               placeholder="Ej: Roma Agencia" 
+                                               class="qr-field-input" 
+                                               autocomplete="off" 
+                                               data-lpignore="true" 
+                                               data-1p-ignore="true" 
+                                               data-bwignore="true" 
+                                               data-form-type="other">
+                                    </div>
+                                </div>
+
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Cargo / Puesto (Opcional)</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-briefcase"></i></span>
+                                        <input type="text" 
+                                               id="qrInputVcardTitle" 
+                                               placeholder="Ej: Director Creativo" 
+                                               class="qr-field-input" 
+                                               autocomplete="off" 
+                                               data-lpignore="true" 
+                                               data-1p-ignore="true" 
+                                               data-bwignore="true" 
+                                               data-form-type="other">
+                                    </div>
+                                </div>
+
+                                <!-- Fila 4: Sitio Web / Enlace -->
+                                <div class="qr-field-group qr-vcard-full">
+                                    <label class="qr-field-label qr-field-label--sub">Sitio Web / Enlace (Opcional)</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-globe"></i></span>
+                                        <input type="url" 
+                                               id="qrInputVcardUrl" 
+                                               placeholder="https://romaagencia.com" 
+                                               class="qr-field-input" 
+                                               autocomplete="off" 
+                                               data-lpignore="true" 
+                                               data-1p-ignore="true" 
+                                               data-bwignore="true" 
+                                               data-form-type="other">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Geolocalización Input -->
+                        <div class="qr-input-group" data-qr-input="geo" style="display:none">
+                            <div class="qr-field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Latitud</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-map-pin"></i></span>
+                                        <input type="text" id="qrInputGeoLat" placeholder="-12.0464" class="qr-field-input" autocomplete="off" data-lpignore="true">
+                                    </div>
+                                </div>
+                                <div class="qr-field-group">
+                                    <label class="qr-field-label qr-field-label--sub">Longitud</label>
+                                    <div class="bc-input-box">
+                                        <span class="bc-input-icon"><i class="ph ph-map-pin"></i></span>
+                                        <input type="text" id="qrInputGeoLng" placeholder="-77.0428" class="qr-field-input" autocomplete="off" data-lpignore="true">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Texto Libre Input -->
+                        <div class="qr-input-group" data-qr-input="text" style="display:none">
+                            <label class="qr-field-label qr-field-label--sub">Texto a Codificar</label>
+                            <textarea id="qrInputText" placeholder="Escribe tu texto aquí..." class="qr-field-textarea" style="min-height:95px" autocomplete="off" data-lpignore="true"></textarea>
+                        </div>
                     </div>
                 </div>
 
-                <div class="qr-customize-section">
-                    <label class="qr-customize-title">Personalización QR</label>
-                    
+                <!-- Card 2: Estilo Visual del QR -->
+                <div class="qr-card">
+                    <div class="qr-card-header">
+                        <span class="qr-card-title"><i class="ph ph-paint-brush"></i> Personalización QR</span>
+                    </div>
+
                     <div class="qr-option-row">
                         <span class="qr-option-label">Color Principal</span>
-                        <div style="display:flex;gap:4px">
+                        <div class="qr-color-group">
                             <input type="color" id="qrColorDark" value="#000000" class="qr-color-picker">
+                            <input type="text" id="qrColorDarkHex" value="#000000" maxlength="7" class="qr-field-input qr-color-hex">
                         </div>
                     </div>
                     
                     <div class="qr-option-row">
                         <span class="qr-option-label">Color Fondo</span>
-                        <div style="display:flex;gap:4px">
+                        <div class="qr-color-group">
                             <input type="color" id="qrColorLight" value="#ffffff" class="qr-color-picker">
+                            <input type="text" id="qrColorLightHex" value="#ffffff" maxlength="7" class="qr-field-input qr-color-hex">
                         </div>
                     </div>
 
                     <div class="qr-option-row">
                         <span class="qr-option-label">Estilo de Puntos</span>
-                        <select id="qrDotsStyle" class="qr-field-select qr-field-select--sm">
+                        <select id="qrDotsStyle" class="qr-field-select" style="max-width:140px">
                             <option value="square" selected>Cuadrado</option>
                             <option value="dots">Puntos</option>
                             <option value="rounded">Redondeado</option>
@@ -418,7 +674,7 @@ require_once 'includes/header.php';
                     
                     <div class="qr-option-row">
                         <span class="qr-option-label">Estilo Esquinas</span>
-                        <select id="qrCornersStyle" class="qr-field-select qr-field-select--sm">
+                        <select id="qrCornersStyle" class="qr-field-select" style="max-width:140px">
                             <option value="square" selected>Cuadrado</option>
                             <option value="dot">Punto</option>
                             <option value="extra-rounded">Súper Redondo</option>
@@ -427,97 +683,262 @@ require_once 'includes/header.php';
 
                     <div class="qr-option-row">
                         <span class="qr-option-label">Nivel Corrección</span>
-                        <select id="qrErrorLevel" class="qr-field-select qr-field-select--sm">
+                        <select id="qrErrorLevel" class="qr-field-select" style="max-width:140px">
                             <option value="L">L (7%)</option>
                             <option value="M">M (15%)</option>
                             <option value="Q">Q (25%)</option>
-                            <option value="H" selected>H (30%)</option>
+                            <option value="H" selected>H (30% Recomendado)</option>
                         </select>
                     </div>
 
-                    <!-- Estilo de Marco (Frame) -->
-                    <div class="qr-option-row qr-divider">
-                        <span class="qr-option-label qr-option-label--bold">Añadir Marco</span>
-                        <select id="qrFrameSelect" class="qr-field-select qr-field-select--sm">
+                    <div class="qr-option-row" style="border-top:1px dashed var(--border-color);padding-top:0.6rem;margin-top:0.4rem">
+                        <span class="qr-option-label" style="font-weight:600">Añadir Marco</span>
+                        <select id="qrFrameSelect" class="qr-field-select" style="max-width:140px">
                             <option value="none" selected>Sin Marco</option>
                             <option value="scan-me">"Escanea Aquí"</option>
                             <option value="menu">"Ver Menú"</option>
                         </select>
                     </div>
-                    
-                    <!-- Subir Logo -->
-                    <div class="qr-logo-section">
-                        <label class="qr-customize-title">Añadir Logo al Centro</label>
-                        <input type="file" id="qrLogoInput" accept="image/png, image/jpeg, image/svg+xml" class="qr-file-input">
-                        
-                        <div id="qrLogoColorContainer" class="qr-option-row" style="display:none">
-                            <span class="qr-option-label">Color del Logo (SVG)</span>
-                            <div style="display:flex;gap:4px">
-                                <input type="color" id="qrLogoColor" value="#000000" class="qr-color-picker">
-                            </div>
-                        </div>
+                </div>
 
-                        <div id="qrLogoSizeContainer" class="qr-range-row" style="display:none">
-                            <div class="qr-range-header">
-                                <span class="qr-option-label">Tamaño del Logo</span>
-                                <span class="qr-option-label" id="qrLogoSizeValue">0.4</span>
-                            </div>
-                            <input type="range" id="qrLogoSize" min="0.1" max="0.5" step="0.05" value="0.4" class="qr-range-input">
+                <!-- Card 3: Logo Central QR -->
+                <div class="qr-card">
+                    <div class="qr-card-header">
+                        <span class="qr-card-title"><i class="ph ph-image"></i> Logo Central (Opcional)</span>
+                    </div>
+                    
+                    <input type="file" id="qrLogoInput" accept="image/png, image/jpeg, image/svg+xml" class="qr-field-input" style="padding:0.4rem">
+                    
+                    <div id="qrLogoColorContainer" class="qr-option-row" style="display:none;margin-top:0.5rem">
+                        <span class="qr-option-label">Color del Logo (SVG)</span>
+                        <input type="color" id="qrLogoColor" value="#000000" class="qr-color-picker">
+                    </div>
+
+                    <div id="qrLogoSizeContainer" class="qr-range-row" style="display:none;margin-top:0.5rem">
+                        <div class="qr-range-header">
+                            <span class="qr-range-label">Tamaño del Logo</span>
+                            <span class="qr-range-value" id="qrLogoSizeValue">0.4</span>
                         </div>
+                        <input type="range" id="qrLogoSize" min="0.1" max="0.5" step="0.05" value="0.4" class="qr-range-input">
                     </div>
                 </div>
             </div>
 
-            <!-- Controles Barcode -->
+            <!-- ======================================================== -->
+            <!-- CONTROLES CÓDIGO DE BARRAS                               -->
+            <!-- ======================================================== -->
             <div id="barcodeControlsContainer" style="display:none">
-                <div class="qr-control-group qr-field-group">
-                    <label class="qr-field-label">Formato de Barras</label>
-                    <select id="barcodeFormatSelect" class="qr-field-select">
-                        <option value="CODE128">CODE128 (Universal)</option>
-                        <option value="EAN13">EAN-13 (Comercial)</option>
-                        <option value="UPC">UPC (Comercial US)</option>
-                        <option value="CODE39">CODE39 (Alfanumérico)</option>
-                    </select>
-                </div>
-
-                <div class="qr-control-group qr-field-group">
-                    <label class="qr-field-label qr-field-label--sub">Valor del Código</label>
-                    <div class="bc-value-row">
-                        <input type="text" id="barcodeInputVal" placeholder="Ej: 123456789012" value="Roma Agencia 2025" class="qr-field-input">
-                        <button class="btn btn-outline bc-magic-btn" id="btnRandomBarcode" title="Generar valor aleatorio automáticamente"><i class="ph ph-magic-wand" style="font-size:1.2rem"></i></button>
+                
+                <!-- Card 1: Formato y Valor con Generador Inteligente -->
+                <div class="qr-card">
+                    <div class="qr-card-header">
+                        <span class="qr-card-title"><i class="ph ph-barcode"></i> Formato y Valor</span>
+                        <span class="qr-card-badge" id="barcodeFormatBadge">CODE128</span>
                     </div>
-                    <small class="bc-hint" id="barcodeHint">Admite texto y números.</small>
-                </div>
 
-                <div class="bc-bulk-section">
-                    <label class="qr-customize-title">Generación Secuencial (Masiva)</label>
-                    <div class="bc-bulk-inputs">
-                        <input type="number" id="barcodeSeqStart" placeholder="Inicio (Ej: 100)" class="bc-bulk-input">
-                        <span class="bc-bulk-separator">-</span>
-                        <input type="number" id="barcodeSeqEnd" placeholder="Fin (Ej: 150)" class="bc-bulk-input">
+                    <div class="qr-field-group">
+                        <label class="qr-field-label">Formato de Barras</label>
+                        <select id="barcodeFormatSelect" class="qr-field-select">
+                            <option value="CODE128" selected>CODE128 (Universal - Letras y Números)</option>
+                            <option value="EAN13">EAN-13 (Comercial / Retail Internacional)</option>
+                            <option value="UPC">UPC-A (Comercial EE.UU. / Retail)</option>
+                            <option value="CODE39">CODE39 (Alfanumérico Industrial)</option>
+                        </select>
                     </div>
-                    <button class="btn btn-outline bc-bulk-btn" id="btnBulkBarcode"><i class="ph ph-file-zip"></i> Descargar ZIP Masivo</button>
+
+                    <div class="qr-field-group" style="margin-top:0.75rem">
+                        <label class="qr-field-label">
+                            <span>Valor del Código</span>
+                            <span id="barcodeCharCount" style="font-size:0.7rem;color:var(--text-muted);font-weight:normal">16 caracteres</span>
+                        </label>
+                        
+                        <!-- Input con Atributos Estrictos Anti-Autofill del Navegador -->
+                        <div class="bc-input-box">
+                            <span class="bc-input-icon"><i class="ph ph-hash"></i></span>
+                            <input type="text" 
+                                   id="barcodeInputVal" 
+                                   name="barcode_custom_code_payload" 
+                                   value="Roma Agencia 2025" 
+                                   placeholder="Ej: 123456789012" 
+                                   autocomplete="off" 
+                                   data-lpignore="true" 
+                                   data-1p-ignore="true" 
+                                   data-bwignore="true" 
+                                   data-form-type="other" 
+                                   aria-autocomplete="none" 
+                                   spellcheck="false" 
+                                   autocorrect="off" 
+                                   autocapitalize="off">
+                            <div class="bc-input-actions">
+                                <button type="button" class="bc-action-btn" id="btnCopyBarcodeVal" title="Copiar valor al portapapeles">
+                                    <i class="ph ph-copy"></i>
+                                </button>
+                                <button type="button" class="bc-action-btn" id="btnClearBarcodeVal" title="Limpiar campo">
+                                    <i class="ph ph-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <small class="bc-hint" id="barcodeHint">Admite texto y números.</small>
+                    </div>
+
+                    <!-- Generador Inteligente con Opción de Número Inicial -->
+                    <div class="bc-generator-section">
+                        <div class="bc-gen-header">
+                            <span class="bc-gen-title"><i class="ph ph-sparkle"></i> Generador Inteligente</span>
+                            <div class="bc-mode-pills">
+                                <button type="button" class="bc-mode-pill active" id="btnModeSeq">Secuencial (+1)</button>
+                                <button type="button" class="bc-mode-pill" id="btnModeRand">Aleatorio</button>
+                            </div>
+                        </div>
+
+                        <!-- Panel Secuencial (Por defecto) -->
+                        <div id="bcSeqPanel" class="bc-seq-controls">
+                            <div class="bc-seq-inputs">
+                                <div>
+                                    <label class="bc-field-mini-label">Número Inicial / Base:</label>
+                                    <input type="number" 
+                                           id="barcodeStartNum" 
+                                           value="1000" 
+                                           min="0" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                                <div>
+                                    <label class="bc-field-mini-label" id="barcodePrefixLabel">Prefijo (Opcional):</label>
+                                    <input type="text" 
+                                           id="barcodePrefix" 
+                                           placeholder="Ej: ROM-, PRD-" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other">
+                                </div>
+                            </div>
+
+                            <div class="bc-seq-actions">
+                                <button type="button" class="bc-btn-generate-seq" id="btnGenerateNextBarcode" title="Genera el código con el número inicial y aumenta +1 para la siguiente generación">
+                                    <i class="ph ph-lightning"></i> Generar / Siguiente (+1)
+                                </button>
+                                <button type="button" class="bc-step-btn" id="btnStepDownBarcode" title="Restar 1 al contador">
+                                    <i class="ph ph-minus"></i>
+                                </button>
+                                <button type="button" class="bc-step-btn" id="btnStepUpBarcode" title="Sumar 1 al contador">
+                                    <i class="ph ph-plus"></i>
+                                </button>
+                                <button type="button" class="bc-step-btn" id="btnResetSeqBarcode" title="Restablecer contador a 1000">
+                                    <i class="ph ph-arrow-counter-clockwise"></i>
+                                </button>
+                            </div>
+
+                            <div class="bc-hint-box" id="bcSeqHint">
+                                <i class="ph ph-info"></i>
+                                <span><b>Secuencial:</b> Toma tu número inicial, genera el código y calcula el checksum oficial si usas EAN-13/UPC.</span>
+                            </div>
+                        </div>
+
+                        <!-- Panel Aleatorio con Número Inicial -->
+                        <div id="bcRandPanel" class="bc-seq-controls" style="display:none">
+                            <div class="bc-seq-inputs">
+                                <div>
+                                    <label class="bc-field-mini-label" id="barcodeRandStartLabel">Iniciar con Número / Prefijo:</label>
+                                    <input type="text" 
+                                           id="barcodeRandStartNum" 
+                                           value="775" 
+                                           placeholder="Ej: 775, 100, 84..." 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true" 
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other"
+                                           style="font-family:monospace;font-weight:600">
+                                </div>
+                                <div id="barcodeRandLenGroup">
+                                    <label class="bc-field-mini-label" id="barcodeRandLenLabel">Longitud Total:</label>
+                                    <input type="number" 
+                                           id="barcodeRandLen" 
+                                           value="13" 
+                                           min="4" 
+                                           max="30" 
+                                           class="qr-field-input" 
+                                           autocomplete="off" 
+                                           data-lpignore="true"
+                                           data-1p-ignore="true" 
+                                           data-bwignore="true" 
+                                           data-form-type="other"
+                                           style="text-align:center;font-weight:600">
+                                </div>
+                            </div>
+
+                            <div class="bc-seq-actions">
+                                <button type="button" class="bc-btn-generate-seq" id="btnRandomBarcode" title="Genera un código aleatorio que comienza con el número indicado">
+                                    <i class="ph ph-shuffle"></i> Generar Aleatorio con Inicio
+                                </button>
+                            </div>
+
+                            <div class="bc-hint-box" id="bcRandHint">
+                                <i class="ph ph-info"></i>
+                                <span><b>Aleatorio:</b> Inicia con <b id="bcRandStartDisplay">775</b> y completa los dígitos restantes al azar con checksum válido.</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bc-customize-section">
-                    <label class="qr-customize-title">Personalización Barras</label>
+                <!-- Card 2: Generación Secuencial Masiva (Lote ZIP) -->
+                <div class="qr-card">
+                    <div class="qr-card-header">
+                        <span class="qr-card-title"><i class="ph ph-stack"></i> Generación Masiva (Lote)</span>
+                        <span class="bc-bulk-badge" id="barcodeBulkCountBadge">51 códigos listos</span>
+                    </div>
+
+                    <div class="bc-bulk-section">
+                        <div class="bc-bulk-row">
+                            <div>
+                                <label class="bc-field-mini-label">Desde:</label>
+                                <input type="number" id="barcodeSeqStart" placeholder="100" value="100" class="qr-field-input">
+                            </div>
+                            <div class="bc-bulk-arrow">➔</div>
+                            <div>
+                                <label class="bc-field-mini-label">Hasta:</label>
+                                <input type="number" id="barcodeSeqEnd" placeholder="150" value="150" class="qr-field-input">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline bc-bulk-btn" id="btnBulkBarcode">
+                            <i class="ph ph-file-zip"></i> Descargar ZIP con Códigos SVG
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 3: Personalización Visual de Barras -->
+                <div class="qr-card">
+                    <div class="qr-card-header">
+                        <span class="qr-card-title"><i class="ph ph-sliders"></i> Personalización de Barras</span>
+                    </div>
                     
                     <div class="qr-option-row">
-                        <span class="qr-option-label">Color Barras</span>
-                        <div style="display:flex;gap:4px">
+                        <span class="qr-option-label">Color de Barras</span>
+                        <div class="qr-color-group">
                             <input type="color" id="barcodeLineColor" value="#000000" class="qr-color-picker">
+                            <input type="text" id="barcodeLineColorHex" value="#000000" maxlength="7" class="qr-field-input qr-color-hex">
                         </div>
                     </div>
                     
                     <div class="qr-option-row">
-                        <span class="qr-option-label">Color Fondo</span>
-                        <div style="display:flex;gap:4px">
+                        <span class="qr-option-label">Color de Fondo</span>
+                        <div class="qr-color-group">
                             <input type="color" id="barcodeBgColor" value="#ffffff" class="qr-color-picker">
+                            <input type="text" id="barcodeBgColorHex" value="#ffffff" maxlength="7" class="qr-field-input qr-color-hex">
                         </div>
                     </div>
 
-                    <div class="qr-option-row bc-text-toggle">
-                        <span class="qr-option-label">Mostrar Texto</span>
+                    <div class="qr-option-row" style="border-top:1px dashed var(--border-color);padding-top:0.5rem;margin-top:0.4rem">
+                        <span class="qr-option-label">Mostrar Texto Numérico</span>
                         <label class="app-switch qr-switch-sm">
                             <input type="checkbox" id="barcodeShowText" checked>
                             <span class="app-switch-slider"></span>
@@ -526,65 +947,96 @@ require_once 'includes/header.php';
 
                     <div class="qr-range-row">
                         <div class="qr-range-header">
-                            <span class="qr-option-label">Tamaño de Texto</span>
-                            <span class="qr-option-label" id="barcodeFontSizeValue">20px</span>
+                            <span class="qr-range-label">Tamaño del Texto</span>
+                            <span class="qr-range-value" id="barcodeFontSizeValue">20px</span>
                         </div>
                         <input type="range" id="barcodeFontSize" min="10" max="40" step="1" value="20" class="qr-range-input">
                     </div>
                 </div>
             </div>
 
-        </div>
+        </div> <!-- /.qr-sidebar -->
 
-        <!-- Vista Previa -->
+        <!-- Columna Derecha (Lienzo de Vista Previa & Exportación) -->
         <div class="qr-preview-area">
-            <div class="qr-preview-box">
-                
-                <!-- Contenedor del Canvas QR -->
-                <div id="qrFrameWrapper" class="qr-frame-wrapper">
-                    <div id="qrFrameHeader" class="qr-frame-header" style="display:none">ESCANEA AQUÍ</div>
-                    <div id="qrCanvasContainer"></div>
+            
+            <!-- Lienzo de Vista Previa -->
+            <div class="qr-stage-card">
+                <div class="qr-stage-header">
+                    <div class="qr-stage-info">
+                        <span class="stage-pill" id="stageCodeTypeBadge"><i class="ph ph-qr-code"></i> QR</span>
+                        <span class="stage-subpill" id="stageCodeLenBadge">Listo</span>
+                    </div>
+                    <div class="qr-stage-actions">
+                        <button type="button" class="qr-stage-btn" id="btnCopyRawValue" title="Copiar el texto / enlace actual">
+                            <i class="ph ph-copy"></i> Copiar Texto
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Contenedor SVG Barcode -->
-                <div id="barcodeRenderBox" class="qr-barcode-box" style="display:none">
-                    <svg id="barcodeSvgContainer"></svg>
-                </div>
+                <div class="qr-stage-body">
+                    <!-- Contenedor del Canvas QR -->
+                    <div id="qrFrameWrapper" class="qr-frame-wrapper">
+                        <div id="qrFrameHeader" class="qr-frame-header" style="display:none">ESCANEA AQUÍ</div>
+                        <div id="qrCanvasContainer"></div>
+                    </div>
 
+                    <!-- Contenedor SVG Barcode -->
+                    <div id="barcodeRenderBox" class="qr-barcode-box" style="display:none">
+                        <svg id="barcodeSvgContainer"></svg>
+                    </div>
+                </div>
             </div>
 
+            <!-- Panel de Exportación -->
             <div class="qr-export-panel">
-                
                 <div class="qr-export-header">
-                    <span class="qr-export-title">Opciones de Exportación</span>
-                    <select id="exportDpiSelect" class="qr-export-dpi">
-                        <option value="1">Normal (1x)</option>
-                        <option value="2" selected>Alta Calidad (2x)</option>
-                        <option value="4">Impresión (4x)</option>
-                    </select>
+                    <span class="qr-export-title"><i class="ph ph-download-simple"></i> Opciones de Exportación</span>
+                    <div class="qr-dpi-control">
+                        <span>Calidad:</span>
+                        <select id="exportDpiSelect" class="qr-export-dpi">
+                            <option value="1">1x (Web)</option>
+                            <option value="2" selected>2x (Alta Definición)</option>
+                            <option value="4">4x (Impresión 300 DPI)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="qr-export-grid">
-                    <button class="btn btn-outline qr-export-btn" id="btnCopyClipboard" title="Copiar al portapapeles"><i class="ph ph-copy"></i> Copiar</button>
-                    <button class="btn btn-outline qr-export-btn" id="btnShareLink" title="Generar enlace corto"><i class="ph ph-share-network"></i> Compartir</button>
-                    <button class="btn btn-outline qr-export-btn" id="btnDownloadCodeSVG"><i class="ph ph-file-svg"></i> SVG</button>
-                    <button class="btn btn-primary qr-export-btn" id="btnDownloadCodePNG"><i class="ph ph-image"></i> PNG</button>
-                    <button class="btn btn-primary qr-export-btn" id="btnDownloadCodePDF"><i class="ph ph-file-pdf"></i> PDF (Folleto)</button>
+                    <button type="button" class="qr-export-btn qr-btn-primary-glow" id="btnDownloadCodePNG" title="Descargar como imagen PNG de alta resolución">
+                        <i class="ph ph-image"></i> Descargar PNG
+                    </button>
+                    <button type="button" class="btn btn-outline qr-export-btn" id="btnDownloadCodeSVG" title="Descargar archivo vectorial SVG">
+                        <i class="ph ph-file-svg"></i> SVG (Vector)
+                    </button>
+                    <button type="button" class="btn btn-outline qr-export-btn" id="btnDownloadCodePDF" title="Generar hoja de impresión en PDF">
+                        <i class="ph ph-file-pdf"></i> PDF (Folleto)
+                    </button>
+                    <button type="button" class="btn btn-outline qr-export-btn" id="btnCopyClipboard" title="Copiar imagen directamente al portapapeles">
+                        <i class="ph ph-copy-simple"></i> Copiar Imagen
+                    </button>
+                    <button type="button" class="btn btn-outline qr-export-btn" id="btnShareLink" title="Crear enlace público compartible">
+                        <i class="ph ph-share-network"></i> Compartir
+                    </button>
                 </div>
             </div>
 
-            <!-- Panel de Historial -->
+            <!-- Panel de Historial Reciente -->
             <div class="qr-history-panel">
                 <div class="qr-history-header">
                     <span class="qr-history-title"><i class="ph ph-clock-counter-clockwise"></i> Historial Reciente</span>
-                    <button class="btn btn-outline qr-history-clear-btn" id="btnClearHistory">Limpiar</button>
+                    <button type="button" class="qr-history-clear-btn" id="btnClearHistory">
+                        <i class="ph ph-trash"></i> Limpiar Historial
+                    </button>
                 </div>
                 <div id="qrHistoryList" class="qr-history-list">
-                    <!-- History items will be inserted here -->
+                    <!-- History items will be inserted dynamically -->
                 </div>
             </div>
 
-        </div>    </div>
+        </div> <!-- /.qr-preview-area -->
+
+    </div> <!-- /.qr-layout -->
 </div><!-- /.herr-tab-content (QR/Barras) -->
 
     <!-- Save Modal -->
@@ -1097,16 +1549,28 @@ require_once 'includes/header.php';
     function renderScaleRow(label, scale, baseHex, isPrimary) {
         var closestShade = isPrimary ? findClosestShade(baseHex, scale) : -1;
         var html = '<div class="paleta-scale">';
-        html += '<div class="paleta-scale-label"><i class="ph ph-palette"></i> ' + label + '</div>';
+        html += '<div class="paleta-scale-header">';
+        html += '  <div class="paleta-scale-info">';
+        html += '    <span class="paleta-scale-title"><i class="ph ph-swatch"></i> Escala ' + label + '</span>';
+        html += '    <span class="paleta-scale-seed-tag">Base: ' + baseHex.toUpperCase() + '</span>';
+        html += '  </div>';
+        html += '</div>';
         html += '<div class="paleta-scale-row">';
 
         shadeConfig.forEach(function(cfg) {
             var color = scale[cfg.shade];
-            var isActive = (cfg.shade === closestShade) ? ' active' : '';
-            var textClass = isLightColor(color) ? '' : ' light-text';
-            html += '<div class="paleta-swatch' + isActive + textClass + '" style="background-color:' + color + '" data-hex="' + color + '" title="Clic para copiar ' + color + '">';
-            html += '<span class="paleta-swatch-shade">' + cfg.shade + '</span>';
-            html += '<span class="paleta-swatch-hex">' + color.toUpperCase() + '</span>';
+            var isActive = (cfg.shade === closestShade);
+            var textClass = isLightColor(color) ? ' dark-text' : ' light-text';
+            var activeClass = isActive ? ' active' : '';
+            html += '<div class="paleta-swatch' + activeClass + textClass + '" style="background-color:' + color + '" data-hex="' + color + '" title="Clic para copiar ' + color + '">';
+            html += '  <div class="paleta-swatch-top">';
+            html += '    <span class="paleta-swatch-shade">' + cfg.shade + '</span>';
+            if (isActive) html += '    <span class="paleta-swatch-base-badge">BASE</span>';
+            html += '  </div>';
+            html += '  <div class="paleta-swatch-bottom">';
+            html += '    <span class="paleta-swatch-hex">' + color.toUpperCase() + '</span>';
+            html += '    <i class="ph ph-copy paleta-swatch-copy-icon"></i>';
+            html += '  </div>';
             html += '</div>';
         });
 
@@ -1136,10 +1600,12 @@ require_once 'includes/header.php';
         
         container.innerHTML = html;
 
-        // Attach click handlers to swatches
+        // Attach click handlers to swatches with feedback
         container.querySelectorAll('.paleta-swatch').forEach(function(swatch) {
             swatch.addEventListener('click', function() {
-                copyToClipboard(this.getAttribute('data-hex').toUpperCase());
+                var hex = this.getAttribute('data-hex').toUpperCase();
+                copyToClipboard(hex);
+                showNoticeToast('Color ' + hex + ' copiado al portapapeles');
             });
         });
     }
@@ -1594,6 +2060,12 @@ require_once 'includes/header.php';
 
         currentScale = generateScale(hex);
         currentHex = hex;
+
+        // Sync preview dots
+        var pDot = document.getElementById('primaryColorDot');
+        if (pDot) pDot.style.background = hex;
+        var sDot = document.getElementById('secondaryColorDot');
+        if (sDot) sDot.style.background = secHex;
         
         if (isSecondaryEnabled) {
             currentSecondaryScale = generateScale(secHex);
@@ -1612,6 +2084,11 @@ require_once 'includes/header.php';
 
         renderScales(hex, secHex, mode);
         renderCurrentPreview();
+
+        // Update saved palettes badge count
+        var saved = JSON.parse(localStorage.getItem('saved_palettes') || '[]');
+        var countEl = document.getElementById('savedPalettesCount');
+        if (countEl) countEl.textContent = saved.length;
     }
 
     // =========================================================================
@@ -1900,19 +2377,54 @@ require_once 'includes/header.php';
         let currentCodeType = 'qr'; // 'qr' or 'barcode'
         let qrCodeInstance = null;
 
-        // Tabs QR/Barcode
+        // Toast Helper
+        function showNoticeToast(msg, icon = 'success') {
+            if (typeof Swal !== 'undefined') {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2200,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.style.borderRadius = '12px';
+                    }
+                });
+                Toast.fire({
+                    icon: icon,
+                    title: msg
+                });
+            } else if (window.showToast) {
+                window.showToast(msg, icon);
+            }
+        }
+
+        // Checksum Calculation Helpers
+        function calculateEAN13Checksum(twelveDigits) {
+            var str = twelveDigits.toString().padStart(12, '0').substring(0, 12);
+            var sum = 0;
+            for (var i = 0; i < 12; i++) {
+                var d = parseInt(str.charAt(i), 10) || 0;
+                sum += (i % 2 === 0) ? d : d * 3;
+            }
+            return (10 - (sum % 10)) % 10;
+        }
+
+        function calculateUPCChecksum(elevenDigits) {
+            var str = elevenDigits.toString().padStart(11, '0').substring(0, 11);
+            var sum = 0;
+            for (var i = 0; i < 11; i++) {
+                var d = parseInt(str.charAt(i), 10) || 0;
+                sum += (i % 2 === 0) ? d * 3 : d;
+            }
+            return (10 - (sum % 10)) % 10;
+        }
+
+        // Tabs QR / Barcode Switcher
         document.querySelectorAll('.qr-tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.querySelectorAll('.qr-tab-btn').forEach(b => {
-                    b.classList.remove('active');
-                    b.style.background = 'transparent';
-                    b.style.color = 'var(--text-muted)';
-                    b.style.boxShadow = 'none';
-                });
+                document.querySelectorAll('.qr-tab-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                this.style.background = 'var(--bg-surface)';
-                this.style.color = 'var(--text-main)';
-                this.style.boxShadow = 'var(--shadow-sm)';
 
                 currentCodeType = this.getAttribute('data-type');
                 
@@ -1941,7 +2453,7 @@ require_once 'includes/header.php';
             });
             var activeGroup = document.querySelector('.qr-input-group[data-qr-input="' + format + '"]');
             if (activeGroup) {
-                activeGroup.style.display = format === 'wifi' || format === 'vcard' || format === 'geo' ? 'flex' : 'block';
+                activeGroup.style.display = 'block';
                 activeGroup.classList.add('active');
             }
             generateQRCode();
@@ -1951,6 +2463,7 @@ require_once 'includes/header.php';
         const qrInputs = [
             'qrInputUrl', 'qrInputWifiSsid', 'qrInputWifiPass', 'qrInputWifiType',
             'qrInputVcardName', 'qrInputVcardPhone', 'qrInputVcardEmail', 'qrInputVcardOrg',
+            'qrInputVcardTitle', 'qrInputVcardUrl',
             'qrInputGeoLat', 'qrInputGeoLng', 'qrInputText', 
             'qrColorDark', 'qrColorLight', 'qrErrorLevel',
             'qrDotsStyle', 'qrCornersStyle',
@@ -1966,6 +2479,55 @@ require_once 'includes/header.php';
                 el.addEventListener('change', generateQRCode);
             }
         });
+
+        // Clear QR URL button
+        document.getElementById('btnClearQrUrl')?.addEventListener('click', function() {
+            var input = document.getElementById('qrInputUrl');
+            if (input) {
+                input.value = '';
+                generateQRCode();
+                input.focus();
+            }
+        });
+
+        // Wi-Fi Password Toggle Visibility
+        document.getElementById('btnToggleWifiPass')?.addEventListener('click', function() {
+            var input = document.getElementById('qrInputWifiPass');
+            var icon = this.querySelector('i');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) icon.className = 'ph ph-eye-slash';
+            } else {
+                input.type = 'password';
+                if (icon) icon.className = 'ph ph-eye';
+            }
+        });
+
+        // Sync QR Color Pickers with Hex Inputs
+        const qrColorDark = document.getElementById('qrColorDark');
+        const qrColorDarkHex = document.getElementById('qrColorDarkHex');
+        if (qrColorDark && qrColorDarkHex) {
+            qrColorDark.addEventListener('input', function() { qrColorDarkHex.value = this.value; generateQRCode(); });
+            qrColorDarkHex.addEventListener('input', function() {
+                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                    qrColorDark.value = this.value;
+                    generateQRCode();
+                }
+            });
+        }
+
+        const qrColorLight = document.getElementById('qrColorLight');
+        const qrColorLightHex = document.getElementById('qrColorLightHex');
+        if (qrColorLight && qrColorLightHex) {
+            qrColorLight.addEventListener('input', function() { qrColorLightHex.value = this.value; generateQRCode(); });
+            qrColorLightHex.addEventListener('input', function() {
+                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                    qrColorLight.value = this.value;
+                    generateQRCode();
+                }
+            });
+        }
 
         let qrLogoDataUrl = ''; // Stores base64 or Data URI of logo
         let qrLogoIsSvg = false; // Flag if it's SVG
@@ -2038,7 +2600,6 @@ require_once 'includes/header.php';
             let svg = doc.documentElement;
             let color = document.getElementById('qrLogoColor').value;
             
-            // Cambiar todos los fill explícitos (que no sean 'none') y el del SVG principal si aplica
             let els = svg.querySelectorAll('*');
             els.forEach(el => {
                 if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') el.setAttribute('fill', color);
@@ -2080,7 +2641,6 @@ require_once 'includes/header.php';
                 var end = document.getElementById('qrInputEvtEnd').value;
                 var loc = document.getElementById('qrInputEvtLoc').value;
                 
-                // Format dates to YYYYMMDDTHHMMSSZ for vCalendar
                 var formatDt = (dtStr) => {
                     if(!dtStr) return '';
                     let d = new Date(dtStr);
@@ -2101,11 +2661,18 @@ require_once 'includes/header.php';
                 return `WIFI:T:${type};S:${ssid};P:${pass};;`;
             }
             if (format === 'vcard') {
-                var name = document.getElementById('qrInputVcardName').value;
-                var phone = document.getElementById('qrInputVcardPhone').value;
-                var email = document.getElementById('qrInputVcardEmail').value;
-                var org = document.getElementById('qrInputVcardOrg').value;
-                return `BEGIN:VCARD\nVERSION:3.0\nN:${name}\nTEL:${phone}\nEMAIL:${email}\nORG:${org}\nEND:VCARD`;
+                var name = document.getElementById('qrInputVcardName')?.value || '';
+                var phone = document.getElementById('qrInputVcardPhone')?.value || '';
+                var email = document.getElementById('qrInputVcardEmail')?.value || '';
+                var org = document.getElementById('qrInputVcardOrg')?.value || '';
+                var title = document.getElementById('qrInputVcardTitle')?.value || '';
+                var url = document.getElementById('qrInputVcardUrl')?.value || '';
+                
+                var vcard = `BEGIN:VCARD\nVERSION:3.0\nN:${name}\nFN:${name}\nTEL;TYPE=CELL:${phone}\nEMAIL:${email}\nORG:${org}`;
+                if (title) vcard += `\nTITLE:${title}`;
+                if (url) vcard += `\nURL:${url}`;
+                vcard += `\nEND:VCARD`;
+                return vcard;
             }
             if (format === 'geo') {
                 var lat = document.getElementById('qrInputGeoLat').value;
@@ -2120,13 +2687,13 @@ require_once 'includes/header.php';
 
         // Helper function for Dark Mode Warning
         function getLuminance(hex) {
-            var c = hex.substring(1);      
+            if (!hex || hex.length < 6) return 0;
+            var c = hex.replace('#', '');      
             var rgb = parseInt(c, 16);   
             var r = (rgb >> 16) & 0xff; 
             var g = (rgb >>  8) & 0xff; 
             var b = (rgb >>  0) & 0xff; 
-            var luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            return luma;
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
         }
 
         function checkContrast(colorDark, colorLight) {
@@ -2137,16 +2704,17 @@ require_once 'includes/header.php';
                 if(!warningEl) {
                     var el = document.createElement('div');
                     el.id = 'contrastWarning';
-                    el.style.backgroundColor = '#fef2f2';
+                    el.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
                     el.style.color = '#ef4444';
-                    el.style.padding = '12px';
-                    el.style.borderRadius = '8px';
-                    el.style.marginTop = '16px';
-                    el.style.fontSize = '0.85rem';
+                    el.style.padding = '10px 14px';
+                    el.style.borderRadius = '10px';
+                    el.style.marginBottom = '12px';
+                    el.style.fontSize = '0.8rem';
                     el.style.fontWeight = '500';
-                    el.style.border = '1px solid #f87171';
-                    el.innerHTML = '<i class="ph ph-warning"></i> <b>Cuidado:</b> Estás usando un color claro para el código y oscuro para el fondo. Muchos lectores no podrán escanearlo.';
-                    document.querySelector('.qr-preview-area').insertBefore(el, document.querySelector('.qr-preview-area').children[1]);
+                    el.style.border = '1px solid rgba(239, 68, 68, 0.25)';
+                    el.innerHTML = '<i class="ph ph-warning"></i> <b>Cuidado:</b> Estás usando un color claro para las barras/código y oscuro para el fondo. Muchos lectores ópticos no podrán escanearlo.';
+                    var previewArea = document.querySelector('.qr-preview-area');
+                    if (previewArea) previewArea.insertBefore(el, previewArea.firstChild);
                 }
             } else {
                 if(warningEl) warningEl.remove();
@@ -2155,6 +2723,7 @@ require_once 'includes/header.php';
 
         function generateQRCode() {
             var container = document.getElementById('qrCanvasContainer');
+            if (!container) return;
             container.innerHTML = ''; // Clear previous
             
             var text = getQRText();
@@ -2173,9 +2742,11 @@ require_once 'includes/header.php';
             var frameWrapper = document.getElementById('qrFrameWrapper');
             
             if (frameSelect && frameSelect.value !== 'none') {
-                frameHeader.style.display = 'block';
-                frameHeader.textContent = frameSelect.options[frameSelect.selectedIndex].text;
-                frameWrapper.style.border = `4px solid ${colorDark}`;
+                if (frameHeader) {
+                    frameHeader.style.display = 'block';
+                    frameHeader.textContent = frameSelect.options[frameSelect.selectedIndex].text;
+                }
+                if (frameWrapper) frameWrapper.style.border = `4px solid ${colorDark}`;
             } else if (frameHeader) {
                 frameHeader.style.display = 'none';
                 if(frameWrapper) frameWrapper.style.border = 'none';
@@ -2183,8 +2754,8 @@ require_once 'includes/header.php';
 
             if (typeof QRCodeStyling !== 'undefined') {
                 qrCodeInstance = new QRCodeStyling({
-                    width: 300,
-                    height: 300,
+                    width: 280,
+                    height: 280,
                     data: text,
                     image: qrLogoDataUrl,
                     dotsOptions: {
@@ -2200,7 +2771,7 @@ require_once 'includes/header.php';
                     },
                     imageOptions: {
                         crossOrigin: "anonymous",
-                        margin: 10,
+                        margin: 8,
                         imageSize: logoSize
                     },
                     qrOptions: {
@@ -2209,9 +2780,22 @@ require_once 'includes/header.php';
                 });
                 qrCodeInstance.append(container);
             }
+
+            // Update Stage Header
+            var stageTypeBadge = document.getElementById('stageCodeTypeBadge');
+            if (stageTypeBadge) {
+                var qrFmt = document.getElementById('qrFormatSelect')?.value.toUpperCase() || 'URL';
+                stageTypeBadge.innerHTML = `<i class="ph ph-qr-code"></i> QR · ${qrFmt}`;
+            }
+            var stageLenBadge = document.getElementById('stageCodeLenBadge');
+            if (stageLenBadge) {
+                stageLenBadge.textContent = `${text.trim().length} caracteres`;
+            }
         }
 
-        // Event listeners for Barcode inputs
+        // =====================================================================
+        // Barcode Generator & Sequential Tools
+        // =====================================================================
         const barcodeInputs = [
             'barcodeFormatSelect', 'barcodeInputVal', 'barcodeLineColor', 'barcodeBgColor', 'barcodeShowText', 'barcodeFontSize'
         ];
@@ -2230,9 +2814,228 @@ require_once 'includes/header.php';
             }
         });
 
+        // Sync Barcode Color Pickers with Hex Inputs
+        const barcodeLineColor = document.getElementById('barcodeLineColor');
+        const barcodeLineColorHex = document.getElementById('barcodeLineColorHex');
+        if (barcodeLineColor && barcodeLineColorHex) {
+            barcodeLineColor.addEventListener('input', function() { barcodeLineColorHex.value = this.value; generateBarcode(); });
+            barcodeLineColorHex.addEventListener('input', function() {
+                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                    barcodeLineColor.value = this.value;
+                    generateBarcode();
+                }
+            });
+        }
+
+        const barcodeBgColor = document.getElementById('barcodeBgColor');
+        const barcodeBgColorHex = document.getElementById('barcodeBgColorHex');
+        if (barcodeBgColor && barcodeBgColorHex) {
+            barcodeBgColor.addEventListener('input', function() { barcodeBgColorHex.value = this.value; generateBarcode(); });
+            barcodeBgColorHex.addEventListener('input', function() {
+                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                    barcodeBgColor.value = this.value;
+                    generateBarcode();
+                }
+            });
+        }
+
+        // Generator Mode Toggle (Secuencial vs Aleatorio)
+        document.getElementById('btnModeSeq')?.addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('btnModeRand')?.classList.remove('active');
+            document.getElementById('bcSeqPanel').style.display = 'flex';
+            document.getElementById('bcRandPanel').style.display = 'none';
+        });
+
+        document.getElementById('btnModeRand')?.addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('btnModeSeq')?.classList.remove('active');
+            document.getElementById('bcSeqPanel').style.display = 'none';
+            document.getElementById('bcRandPanel').style.display = 'flex';
+        });
+
+        // Live preview of starting digits in random hint
+        document.getElementById('barcodeRandStartNum')?.addEventListener('input', function() {
+            var display = document.getElementById('bcRandStartDisplay');
+            if (display) {
+                display.textContent = this.value.trim() || 'tu número';
+            }
+        });
+
+        // Step buttons for starting number
+        document.getElementById('btnStepUpBarcode')?.addEventListener('click', function() {
+            var input = document.getElementById('barcodeStartNum');
+            input.value = (parseInt(input.value) || 0) + 1;
+        });
+
+        document.getElementById('btnStepDownBarcode')?.addEventListener('click', function() {
+            var input = document.getElementById('barcodeStartNum');
+            var val = parseInt(input.value) || 0;
+            if (val > 0) input.value = val - 1;
+        });
+
+        document.getElementById('btnResetSeqBarcode')?.addEventListener('click', function() {
+            document.getElementById('barcodeStartNum').value = 1000;
+            showNoticeToast('Contador restablecido a 1000', 'info');
+        });
+
+        // Generate next code from start number
+        function generateNextSequentialBarcode() {
+            var format = document.getElementById('barcodeFormatSelect').value;
+            var startNumInput = document.getElementById('barcodeStartNum');
+            var prefixInput = document.getElementById('barcodePrefix');
+            var prefix = prefixInput ? prefixInput.value.trim() : '';
+            var currentNum = parseInt(startNumInput.value);
+            if (isNaN(currentNum)) currentNum = 1000;
+
+            var finalCode = '';
+
+            if (format === 'EAN13') {
+                // Requires 12 digits + 1 checksum digit = 13 digits
+                var numStr = currentNum.toString();
+                if (numStr.length > 12) {
+                    numStr = numStr.substring(0, 12);
+                } else {
+                    numStr = numStr.padStart(12, '0');
+                }
+                var chk = calculateEAN13Checksum(numStr);
+                finalCode = numStr + chk;
+            } else if (format === 'UPC') {
+                // Requires 11 digits + 1 checksum digit = 12 digits
+                var numStr = currentNum.toString();
+                if (numStr.length > 11) {
+                    numStr = numStr.substring(0, 11);
+                } else {
+                    numStr = numStr.padStart(11, '0');
+                }
+                var chk = calculateUPCChecksum(numStr);
+                finalCode = numStr + chk;
+            } else if (format === 'CODE39') {
+                var cleanPrefix = prefix.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
+                finalCode = (cleanPrefix ? cleanPrefix + '-' : '') + currentNum;
+            } else {
+                // CODE128 (default)
+                finalCode = (prefix ? prefix : '') + currentNum;
+            }
+
+            document.getElementById('barcodeInputVal').value = finalCode;
+            generateBarcode();
+
+            // Auto-increment for next click
+            startNumInput.value = currentNum + 1;
+            showNoticeToast('Código generado: ' + finalCode);
+        }
+        document.getElementById('btnGenerateNextBarcode')?.addEventListener('click', generateNextSequentialBarcode);
+
+        // Random Barcode Value Generator (Starting with user-defined number/prefix)
+        document.getElementById('btnRandomBarcode')?.addEventListener('click', function() {
+            var format = document.getElementById('barcodeFormatSelect').value;
+            var input = document.getElementById('barcodeInputVal');
+            var rawStart = (document.getElementById('barcodeRandStartNum')?.value || '').toString().trim();
+            var lenInput = document.getElementById('barcodeRandLen');
+            var val = '';
+            
+            if (format === 'EAN13') {
+                // Strictly 13 digits: 12 data digits + 1 checksum digit
+                var digits = rawStart.replace(/\D/g, '');
+                if (!digits) digits = '775';
+                if (digits.length >= 12) {
+                    digits = digits.substring(0, 12);
+                } else {
+                    while (digits.length < 12) {
+                        digits += Math.floor(Math.random() * 10);
+                    }
+                }
+                val = digits + calculateEAN13Checksum(digits);
+            } else if (format === 'UPC') {
+                // Strictly 12 digits: 11 data digits + 1 checksum digit
+                var digits = rawStart.replace(/\D/g, '');
+                if (!digits) digits = '012';
+                if (digits.length >= 11) {
+                    digits = digits.substring(0, 11);
+                } else {
+                    while (digits.length < 11) {
+                        digits += Math.floor(Math.random() * 10);
+                    }
+                }
+                val = digits + calculateUPCChecksum(digits);
+            } else if (format === 'CODE39') {
+                var cleanStart = rawStart.toUpperCase().replace(/[^A-Z0-9\-\.\ \$\/\+\%]/g, '');
+                if (!cleanStart) cleanStart = '775';
+                var targetLen = parseInt(lenInput?.value) || 10;
+                if (targetLen < cleanStart.length + 2) targetLen = cleanStart.length + 4;
+                var isDigits = /^\d+$/.test(cleanStart);
+                var chars = isDigits ? '0123456789' : '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                val = cleanStart;
+                while (val.length < targetLen) {
+                    val += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+            } else {
+                // CODE128 (default)
+                var cleanStart = rawStart;
+                if (!cleanStart) cleanStart = '775';
+                var targetLen = parseInt(lenInput?.value) || 12;
+                if (targetLen < cleanStart.length + 2) targetLen = cleanStart.length + 5;
+                var isDigits = /^\d+$/.test(cleanStart);
+                var chars = isDigits ? '0123456789' : '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                val = cleanStart;
+                while (val.length < targetLen) {
+                    val += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+            }
+            
+            input.value = val;
+            generateBarcode();
+            showNoticeToast('Aleatorio generado iniciando en: ' + (rawStart || 'automático'));
+        });
+
+        // Copy Barcode Value
+        document.getElementById('btnCopyBarcodeVal')?.addEventListener('click', function() {
+            var val = document.getElementById('barcodeInputVal').value;
+            if (!val) return;
+            navigator.clipboard.writeText(val).then(() => {
+                showNoticeToast('¡Valor copiado al portapapeles!');
+            });
+        });
+
+        // Clear Barcode Value
+        document.getElementById('btnClearBarcodeVal')?.addEventListener('click', function() {
+            document.getElementById('barcodeInputVal').value = '';
+            generateBarcode();
+            document.getElementById('barcodeInputVal').focus();
+        });
+
+        // Copy Raw Value from Stage
+        document.getElementById('btnCopyRawValue')?.addEventListener('click', function() {
+            var val = currentCodeType === 'qr' ? getQRText() : document.getElementById('barcodeInputVal').value;
+            if (!val || val === ' ') return;
+            navigator.clipboard.writeText(val).then(() => {
+                showNoticeToast('¡Texto copiado al portapapeles!');
+            });
+        });
+
+        // Bulk Counter Live Update
+        function updateBulkCount() {
+            var start = parseInt(document.getElementById('barcodeSeqStart').value);
+            var end = parseInt(document.getElementById('barcodeSeqEnd').value);
+            var badge = document.getElementById('barcodeBulkCountBadge');
+            if (!badge) return;
+            if (!isNaN(start) && !isNaN(end) && end >= start) {
+                var count = end - start + 1;
+                badge.innerHTML = `<i class="ph ph-check-circle"></i> ${count} código${count > 1 ? 's' : ''} listo${count > 1 ? 's' : ''}`;
+                badge.style.color = 'var(--primary-color)';
+            } else {
+                badge.innerHTML = `<i class="ph ph-warning"></i> Rango no válido`;
+                badge.style.color = '#ef4444';
+            }
+        }
+        document.getElementById('barcodeSeqStart')?.addEventListener('input', updateBulkCount);
+        document.getElementById('barcodeSeqEnd')?.addEventListener('input', updateBulkCount);
+
         function generateBarcode() {
             var format = document.getElementById('barcodeFormatSelect').value;
-            var val = document.getElementById('barcodeInputVal').value || ' ';
+            var rawVal = document.getElementById('barcodeInputVal').value;
+            var val = rawVal || ' ';
             var lineColor = document.getElementById('barcodeLineColor').value;
             var bgColor = document.getElementById('barcodeBgColor').value;
             var showText = document.getElementById('barcodeShowText').checked;
@@ -2243,12 +3046,84 @@ require_once 'includes/header.php';
 
             // Update hint based on format
             var hints = {
-                'CODE128': 'Admite texto y números.',
-                'EAN13': 'Requiere exactamente 13 dígitos numéricos.',
-                'UPC': 'Requiere exactamente 12 dígitos numéricos.',
-                'CODE39': 'Admite letras mayúsculas, números y algunos símbolos.'
+                'CODE128': 'Admite texto y números (Recomendado para cualquier uso comercial).',
+                'EAN13': 'Requiere exactamente 13 dígitos numéricos (calcula automáticamente checksum con el generador).',
+                'UPC': 'Requiere exactamente 12 dígitos numéricos (comercial US).',
+                'CODE39': 'Admite letras mayúsculas, números y símbolos permitidos.'
             };
             if (hintEl) hintEl.textContent = hints[format] || 'Admite texto y números.';
+
+            // Adapt prefix input if format is numeric only
+            var prefixInput = document.getElementById('barcodePrefix');
+            var prefixLabel = document.getElementById('barcodePrefixLabel');
+            if (format === 'EAN13' || format === 'UPC') {
+                if (prefixInput) {
+                    prefixInput.disabled = true;
+                    prefixInput.placeholder = 'No aplicable (Solo numérico)';
+                }
+                if (prefixLabel) prefixLabel.textContent = 'Prefijo (Solo numérico):';
+            } else {
+                if (prefixInput) {
+                    prefixInput.disabled = false;
+                    prefixInput.placeholder = 'Ej: ROM-, PRD-';
+                }
+                if (prefixLabel) prefixLabel.textContent = 'Prefijo (Opcional):';
+            }
+
+            // Adapt random generator controls based on format
+            var randLenInput = document.getElementById('barcodeRandLen');
+            var randLenLabel = document.getElementById('barcodeRandLenLabel');
+            var randStartInput = document.getElementById('barcodeRandStartNum');
+            var randStartLabel = document.getElementById('barcodeRandStartLabel');
+            var randDisplay = document.getElementById('bcRandStartDisplay');
+            var currentRandStart = randStartInput ? (randStartInput.value.trim() || '775') : '775';
+            if (randDisplay) randDisplay.textContent = currentRandStart;
+
+            if (randLenInput && randLenLabel) {
+                if (format === 'EAN13') {
+                    randLenInput.value = '13';
+                    randLenInput.disabled = true;
+                    randLenLabel.textContent = 'Longitud (Fijo 13):';
+                    if (randStartLabel) randStartLabel.textContent = 'Iniciar con Dígitos:';
+                    if (randStartInput) randStartInput.placeholder = 'Ej: 775, 100, 84...';
+                } else if (format === 'UPC') {
+                    randLenInput.value = '12';
+                    randLenInput.disabled = true;
+                    randLenLabel.textContent = 'Longitud (Fijo 12):';
+                    if (randStartLabel) randStartLabel.textContent = 'Iniciar con Dígitos:';
+                    if (randStartInput) randStartInput.placeholder = 'Ej: 012, 78, 10...';
+                } else if (format === 'CODE39') {
+                    randLenInput.disabled = false;
+                    if (randLenInput.value === '13' || randLenInput.value === '12') randLenInput.value = '10';
+                    randLenLabel.textContent = 'Longitud Total:';
+                    if (randStartLabel) randStartLabel.textContent = 'Iniciar con Número / Prefijo:';
+                    if (randStartInput) randStartInput.placeholder = 'Ej: 775, ROM, ART...';
+                } else {
+                    // CODE128
+                    randLenInput.disabled = false;
+                    if (randLenInput.value === '13' || randLenInput.value === '10') randLenInput.value = '12';
+                    randLenLabel.textContent = 'Longitud Total:';
+                    if (randStartLabel) randStartLabel.textContent = 'Iniciar con Número / Prefijo:';
+                    if (randStartInput) randStartInput.placeholder = 'Ej: 775, ROM-, 100...';
+                }
+            }
+
+            // Update header badges
+            var formatBadge = document.getElementById('barcodeFormatBadge');
+            if (formatBadge) formatBadge.textContent = format;
+
+            var charCount = document.getElementById('barcodeCharCount');
+            if (charCount) charCount.textContent = `${rawVal.length} caracteres`;
+
+            var stageTypeBadge = document.getElementById('stageCodeTypeBadge');
+            if (stageTypeBadge) stageTypeBadge.innerHTML = `<i class="ph ph-barcode"></i> Barras · ${format}`;
+
+            var stageLenBadge = document.getElementById('stageCodeLenBadge');
+            if (stageLenBadge) stageLenBadge.textContent = `${rawVal.length} caracteres`;
+
+            // Adjust Barcode Box background to match user selection
+            var renderBox = document.getElementById('barcodeRenderBox');
+            if (renderBox) renderBox.style.backgroundColor = bgColor;
 
             try {
                 if (typeof JsBarcode !== 'undefined') {
@@ -2259,8 +3134,8 @@ require_once 'includes/header.php';
                         displayValue: showText,
                         fontSize: fontSize,
                         width: 2,
-                        height: 100,
-                        margin: 10
+                        height: 90,
+                        margin: 8
                     });
                 }
             } catch (e) {
@@ -2268,9 +3143,9 @@ require_once 'includes/header.php';
                 var svgEl = document.getElementById('barcodeSvgContainer');
                 if (svgEl) {
                     svgEl.innerHTML = '';
-                    svgEl.removeAttribute('viewBox'); // Remove JsBarcode viewBox if any
+                    svgEl.removeAttribute('viewBox');
                     svgEl.setAttribute('width', '100%');
-                    svgEl.setAttribute('height', '100');
+                    svgEl.setAttribute('height', '90');
                     
                     var ns = 'http://www.w3.org/2000/svg';
                     var text = document.createElementNS(ns, 'text');
@@ -2279,7 +3154,7 @@ require_once 'includes/header.php';
                     text.setAttribute('text-anchor', 'middle');
                     text.setAttribute('dominant-baseline', 'middle');
                     text.setAttribute('fill', '#ef4444');
-                    text.setAttribute('font-size', '16');
+                    text.setAttribute('font-size', '14');
                     text.setAttribute('font-weight', '600');
                     text.setAttribute('font-family', 'sans-serif');
                     text.textContent = '⚠ Valor no válido para ' + format;
@@ -2299,21 +3174,23 @@ require_once 'includes/header.php';
                         callback(canvas, null);
                     });
                 } else {
-                    // Update size temporarily for high res
-                    var originalSize = 300;
+                    var originalSize = 280;
                     qrCodeInstance.update({ width: originalSize * dpi, height: originalSize * dpi });
-                    // qr-code-styling natively draws on a canvas inside qrCanvasContainer
                     setTimeout(() => {
                         var canvas = document.querySelector('#qrCanvasContainer canvas');
                         callback(canvas, null);
-                        // Revert size
                         qrCodeInstance.update({ width: originalSize, height: originalSize });
                     }, 100);
                 }
             } else {
                 var svg = document.getElementById('barcodeSvgContainer');
                 if (!svg || svg.innerHTML.includes('ef4444')) {
-                    alert("No se puede exportar un código inválido.");
+                    Swal.fire({
+                        title: 'Código Inválido',
+                        text: 'No se puede exportar un código con formato inválido.',
+                        icon: 'warning',
+                        confirmButtonText: 'Entendido'
+                    });
                     return;
                 }
                 var xml = new XMLSerializer().serializeToString(svg);
@@ -2364,7 +3241,6 @@ require_once 'includes/header.php';
                 var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
                 var pdfWidth = pdf.internal.pageSize.getWidth();
                 var pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                // Si la imagen es más alta que la página, ajustamos el ancho
                 if(pdfHeight > pdf.internal.pageSize.getHeight()) {
                     pdfHeight = pdf.internal.pageSize.getHeight() - 20;
                     pdfWidth = (canvas.width * pdfHeight) / canvas.height;
@@ -2383,10 +3259,15 @@ require_once 'includes/header.php';
                 canvas.toBlob(function(blob) {
                     try {
                         navigator.clipboard.write([new ClipboardItem({'image/png': blob})]).then(function() {
-                            alert("¡Copiado al portapapeles con éxito!");
+                            showNoticeToast('¡Imagen copiada al portapapeles!');
                         });
                     } catch(e) {
-                        alert("Tu navegador no soporta copiado directo. Descarga la imagen en su lugar.");
+                        Swal.fire({
+                            title: 'Copiado no soportado',
+                            text: 'Tu navegador no permite copiar imágenes binarias directamente. Puedes descargar el archivo PNG.',
+                            icon: 'info',
+                            confirmButtonText: 'Entendido'
+                        });
                     }
                 });
             });
@@ -2399,7 +3280,12 @@ require_once 'includes/header.php';
                 var start = parseInt(document.getElementById('barcodeSeqStart').value);
                 var end = parseInt(document.getElementById('barcodeSeqEnd').value);
                 if(isNaN(start) || isNaN(end) || start > end || (end - start) > 500) {
-                    alert("Rango inválido. Máximo 500 códigos a la vez.");
+                    Swal.fire({
+                        title: 'Rango Inválido',
+                        text: 'El rango debe ser válido y tener como máximo 500 códigos a la vez.',
+                        icon: 'warning',
+                        confirmButtonText: 'Entendido'
+                    });
                     return;
                 }
                 
@@ -2412,16 +3298,21 @@ require_once 'includes/header.php';
                 var zip = new JSZip();
                 var folder = zip.folder("codigos_barras");
                 
-                // Generar en background
                 var dummySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                document.body.appendChild(dummySvg); // Needed for getBBox usually, but JsBarcode might not need it if not displayed
+                document.body.appendChild(dummySvg);
                 
                 try {
-                    for(var i=start; i<=end; i++) {
-                        var val = i.toString().padStart(document.getElementById('barcodeSeqStart').value.length, '0');
-                        // UPC y EAN13 necesitan longitud específica. Simplificación: Forzamos pad.
-                        if(format === 'UPC') val = val.padStart(11, '0').substring(0,11);
-                        if(format === 'EAN13') val = val.padStart(12, '0').substring(0,12);
+                    for(var i = start; i <= end; i++) {
+                        var val = '';
+                        if(format === 'UPC') {
+                            var numStr = i.toString().padStart(11, '0').substring(0, 11);
+                            val = numStr + calculateUPCChecksum(numStr);
+                        } else if(format === 'EAN13') {
+                            var numStr = i.toString().padStart(12, '0').substring(0, 12);
+                            val = numStr + calculateEAN13Checksum(numStr);
+                        } else {
+                            val = i.toString();
+                        }
                         
                         JsBarcode(dummySvg, val, {
                             format: format,
@@ -2430,8 +3321,8 @@ require_once 'includes/header.php';
                             displayValue: showText,
                             fontSize: fontSize,
                             width: 2,
-                            height: 100,
-                            margin: 10
+                            height: 90,
+                            margin: 8
                         });
                         var xml = new XMLSerializer().serializeToString(dummySvg);
                         folder.file(val + ".svg", xml);
@@ -2440,32 +3331,19 @@ require_once 'includes/header.php';
                     zip.generateAsync({type:"blob"}).then(function(content) {
                         saveAs(content, "codigos_barras_masivos.zip");
                         document.body.removeChild(dummySvg);
+                        showNoticeToast('¡Archivo ZIP descargado con éxito!');
                     });
                 } catch(e) {
-                    alert("Error en generación masiva. Verifica que los números son válidos para el formato.");
+                    Swal.fire({
+                        title: 'Error en Generación',
+                        text: 'Ocurrió un error al generar los códigos masivos. Verifica los parámetros.',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
                     if(document.body.contains(dummySvg)) document.body.removeChild(dummySvg);
                 }
             });
         }
-
-        // Random Barcode Value Generator
-        document.getElementById('btnRandomBarcode').addEventListener('click', function() {
-            var format = document.getElementById('barcodeFormatSelect').value;
-            var input = document.getElementById('barcodeInputVal');
-            var val = '';
-            
-            if (format === 'UPC') {
-                for (var i = 0; i < 11; i++) val += Math.floor(Math.random() * 10);
-            } else if (format === 'EAN13') {
-                for (var i = 0; i < 12; i++) val += Math.floor(Math.random() * 10);
-            } else {
-                var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                for (var i = 0; i < 10; i++) val += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            
-            input.value = val;
-            generateBarcode();
-        });
         
         // Share Link Logic
         document.getElementById('btnShareLink').addEventListener('click', function() {
@@ -2481,7 +3359,7 @@ require_once 'includes/header.php';
                     navigator.clipboard.writeText(data.link).then(() => {
                         Swal.fire({
                             title: '¡Enlace Generado!',
-                            text: 'El enlace ha sido copiado al portapapeles.',
+                            text: 'El enlace directo ha sido copiado a tu portapapeles.',
                             icon: 'success',
                             confirmButtonText: 'Genial'
                         });
@@ -2521,7 +3399,6 @@ require_once 'includes/header.php';
                 let el = document.getElementById(id);
                 if(el) conf[id] = el.type === 'checkbox' ? el.checked : el.value;
             });
-            // Frame
             var frameSelect = document.getElementById('qrFrameSelect');
             if(frameSelect) conf.qrFrameSelect = frameSelect.value;
             return conf;
@@ -2529,11 +3406,8 @@ require_once 'includes/header.php';
 
         function applyConfig(conf) {
             if(!conf) return;
-            if(conf.type === 'qr') {
-                document.querySelector('.app-tabs button[data-type="qr"]').click();
-            } else {
-                document.querySelector('.app-tabs button[data-type="barcode"]').click();
-            }
+            var targetBtn = document.querySelector('.qr-type-switcher button[data-type="' + conf.type + '"]');
+            if(targetBtn) targetBtn.click();
             
             if(conf.qrFormat) {
                 document.getElementById('qrFormatSelect').value = conf.qrFormat;
@@ -2553,12 +3427,13 @@ require_once 'includes/header.php';
             
             if(conf.type === 'qr') generateQRCode();
             else generateBarcode();
+
+            showNoticeToast('Configuración restaurada desde historial', 'info');
         }
 
         function saveToHistory() {
             var conf = captureConfig();
             var hist = JSON.parse(localStorage.getItem('qr_history') || '[]');
-            // Evitar duplicados consecutivos exactos
             if(hist.length > 0) {
                 var last = hist[0];
                 if(last.type === conf.type && last.qrFormat === conf.qrFormat && last.barcodeFormat === conf.barcodeFormat) {
@@ -2569,7 +3444,7 @@ require_once 'includes/header.php';
                 }
             }
             hist.unshift(conf);
-            if(hist.length > 10) hist.pop();
+            if(hist.length > 12) hist.pop();
             localStorage.setItem('qr_history', JSON.stringify(hist));
             renderHistory();
         }
@@ -2580,32 +3455,39 @@ require_once 'includes/header.php';
             list.innerHTML = '';
             var hist = JSON.parse(localStorage.getItem('qr_history') || '[]');
             if(hist.length === 0) {
-                list.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px">No hay historial.</div>';
+                list.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:16px"><i class="ph ph-clock" style="font-size:1.4rem;display:block;margin-bottom:4px;opacity:0.6"></i>No hay códigos en el historial reciente.</div>';
                 return;
             }
-            hist.forEach((item, index) => {
-                var div = document.createElement('div');
-                div.style.padding = '8px';
-                div.style.border = '1px solid var(--border-color)';
-                div.style.borderRadius = '4px';
-                div.style.cursor = 'pointer';
-                div.style.fontSize = '0.8rem';
-                div.style.background = 'var(--bg-color)';
-                div.style.display = 'flex';
-                div.style.justifyContent = 'space-between';
+            hist.forEach((item) => {
+                var card = document.createElement('div');
+                card.className = 'qr-history-card';
+                card.title = 'Haz clic para cargar esta configuración';
                 
-                var title = item.type === 'qr' ? 'QR: ' + item.qrFormat : 'Barras: ' + item.barcodeFormat;
-                var date = new Date(item.timestamp).toLocaleTimeString();
+                var isQr = item.type === 'qr';
+                var iconClass = isQr ? 'ph ph-qr-code' : 'ph ph-barcode';
+                var title = isQr ? 'QR · ' + (item.qrFormat || 'URL').toUpperCase() : 'Barras · ' + (item.barcodeFormat || 'CODE128');
+                var valPreview = isQr ? (item.qrInputUrl || item.qrInputText || item.qrInputWaPhone || 'QR Configurado') : (item.barcodeInputVal || 'Código de barras');
+                var date = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 
-                div.innerHTML = `<span><strong>${title}</strong></span><span style="color:var(--text-muted)">${date}</span>`;
-                div.onclick = function() { applyConfig(item); };
-                list.appendChild(div);
+                card.innerHTML = `
+                    <div class="qr-history-left">
+                        <div class="qr-history-icon-badge"><i class="${iconClass}"></i></div>
+                        <div class="qr-history-meta">
+                            <span class="qr-history-tag">${title}</span>
+                            <span class="qr-history-val">${valPreview}</span>
+                        </div>
+                    </div>
+                    <span class="qr-history-time">${date}</span>
+                `;
+                card.onclick = function() { applyConfig(item); };
+                list.appendChild(card);
             });
         }
         
         document.getElementById('btnClearHistory')?.addEventListener('click', function() {
             localStorage.removeItem('qr_history');
             renderHistory();
+            showNoticeToast('Historial vaciado', 'info');
         });
 
         // =====================================================================
@@ -2616,9 +3498,10 @@ require_once 'includes/header.php';
         updateAll();
         loadPalettes();
         renderHistory();
+        updateBulkCount();
         
-        // Auto-save history every 5 seconds if there are changes
-        setInterval(saveToHistory, 5000);
+        // Auto-save history periodically
+        setInterval(saveToHistory, 6000);
         
         // Load from Share Link if URL has ?qr=HASH
         var urlParams = new URLSearchParams(window.location.search);
@@ -2639,8 +3522,7 @@ require_once 'includes/header.php';
                 }
             });
         } else {
-            // Init QR Code renderer timeout to ensure script loaded
-            setTimeout(() => { generateQRCode(); generateBarcode(); }, 500);
+            setTimeout(() => { generateQRCode(); generateBarcode(); }, 350);
         }
 
     }); // DOMContentLoaded
