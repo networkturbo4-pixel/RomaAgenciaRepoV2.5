@@ -283,7 +283,7 @@ try {
                         <div class="milestone-step" id="step-refrigerio-ini" data-step="refrigerio_ini">
                             <div class="step-node"><i class="ph ph-coffee"></i></div>
                             <div class="step-content">
-                                <span class="step-label">ALMUERZO (I)</span>
+                                <span class="step-label">INICIO ALM.</span>
                                 <span class="step-time" id="time-refrigerio-ini">--:--</span>
                             </div>
                         </div>
@@ -291,7 +291,7 @@ try {
                         <div class="milestone-step" id="step-refrigerio-fin" data-step="refrigerio_fin">
                             <div class="step-node"><i class="ph ph-play"></i></div>
                             <div class="step-content">
-                                <span class="step-label">ALMUERZO (F)</span>
+                                <span class="step-label">FIN ALM.</span>
                                 <span class="step-time" id="time-refrigerio-fin">--:--</span>
                             </div>
                         </div>

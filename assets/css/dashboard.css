@@ -1382,16 +1382,19 @@
     gap: 0.4rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .milestones-track {
-        flex-wrap: wrap;
-        gap: 0.6rem;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.65rem !important;
     }
     .step-connector {
         display: none !important;
     }
     .milestone-step {
-        flex: 1 1 calc(50% - 0.6rem) !important;
+        flex: unset !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 }
 
@@ -2381,20 +2384,242 @@
    RESPONSIVE REFINEMENTS FOR PREMIUM LAYOUT
    ============================================ */
 @media (max-width: 768px) {
-    .dashboard-page-wrapper {
-        padding: 1rem;
-        border-radius: 0;
+    /* Reduce excessive white side margins on mobile */
+    body:has(.dashboard-page-wrapper) .content-wrapper,
+    .content-wrapper:has(.dashboard-page-wrapper) {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        padding-top: calc(52px + 0.65rem) !important;
+        padding-bottom: 5.5rem !important;
     }
+
+    .dashboard-page-wrapper {
+        padding: 0 !important;
+        border-radius: 0 !important;
+        background-color: transparent !important;
+    }
+
+    .dash-hero {
+        margin-bottom: 1.25rem !important;
+    }
+    .dash-avatar-wrapper {
+        width: 72px !important;
+        height: 72px !important;
+        margin-bottom: 0.85rem !important;
+    }
+    .dash-hero-title {
+        font-size: 1.7rem !important;
+        margin-bottom: 0.35rem !important;
+    }
+    .dash-hero-motivational {
+        font-size: 0.88rem !important;
+        max-width: 100% !important;
+        padding: 0 0.5rem !important;
+        line-height: 1.45 !important;
+    }
+
     .dashboard-grid {
-        gap: 0.75rem;
+        gap: 0.85rem !important;
     }
     .widget {
-        padding: 1.25rem 1rem;
-        border-radius: 18px;
+        padding: 1.15rem 1rem !important;
+        border-radius: 20px !important;
     }
-    .dash-hero {
-        margin-bottom: 1.5rem;
+
+    /* WIDGET ASISTENCIA: MOBILE APP HERO REFINEMENT */
+    .widget.bento-hero-asistencia,
+    .widget-asistencia.bento-hero-asistencia {
+        padding: 1.35rem 0.95rem !important;
+        border-radius: 22px !important;
+        margin: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
+    .asistencia-ambient-glow {
+        width: 250px !important;
+        height: 250px !important;
+        top: -70px !important;
+        right: -10px !important;
+        filter: blur(35px) !important;
+    }
+    .asistencia-bento-container {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1.15rem !important;
+    }
+    .asistencia-bento-clock {
+        align-items: center !important;
+        text-align: center !important;
+        gap: 0.45rem !important;
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+    .asistencia-date-pill {
+        margin: 0 auto !important;
+        font-size: 0.68rem !important;
+        padding: 0.28rem 0.8rem !important;
+        letter-spacing: 0.5px !important;
+    }
+    .asistencia-time {
+        font-size: 2.35rem !important;
+        letter-spacing: -1px !important;
+        margin: 0.1rem 0 !important;
+    }
+    .asistencia-time .ampm {
+        font-size: 0.85rem !important;
+    }
+    .asistencia-status-pill {
+        margin: 0 auto !important;
+        display: inline-flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.4rem !important;
+        padding: 0.35rem 0.85rem !important;
+        font-size: 0.78rem !important;
+        max-width: 100% !important;
+        line-height: 1.4 !important;
+        border-radius: 9999px !important;
+    }
+    .asistencia-status-pill .badge-status-pill {
+        margin-left: 0 !important;
+        font-size: 0.7rem !important;
+        padding: 2px 7px !important;
+        border-radius: 6px !important;
+    }
+    
+    /* Timeline Bento */
+    .asistencia-bento-timeline {
+        padding: 0.95rem 0.85rem !important;
+        border-radius: 17px !important;
+        gap: 0.85rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .timeline-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        font-size: 0.68rem !important;
+        letter-spacing: 0.6px !important;
+    }
+    .timeline-header .timeline-title {
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        gap: 0.35rem !important;
+    }
+    .timeline-header .timeline-info {
+        font-size: 0.68rem !important;
+        padding: 0.15rem 0.55rem !important;
+        border-radius: 9999px !important;
+    }
+    .milestones-track {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.55rem !important;
+        width: 100% !important;
+    }
+    .milestone-step {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.55rem !important;
+        padding: 0.55rem 0.65rem !important;
+        border-radius: 13px !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .milestone-step .step-node {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 9px !important;
+        font-size: 1.05rem !important;
+        flex-shrink: 0 !important;
+    }
+    .milestone-step .step-content {
+        display: flex !important;
+        flex-direction: column !important;
+        min-width: 0 !important;
+        gap: 1px !important;
+        overflow: hidden !important;
+    }
+    .milestone-step .step-label {
+        font-size: 0.62rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.25px !important;
+        color: rgba(255, 255, 255, 0.65) !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    .milestone-step .step-time {
+        font-size: 0.92rem !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        letter-spacing: -0.2px !important;
+        line-height: 1.1 !important;
+    }
+
+    /* Actions Bento */
+    .asistencia-bento-actions {
+        min-width: 0 !important;
+        width: 100% !important;
+        gap: 0.5rem !important;
+    }
+    .actions-header {
+        justify-content: flex-start !important;
+        font-size: 0.66rem !important;
+        letter-spacing: 0.8px !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+    .asistencia-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.55rem !important;
+        width: 100% !important;
+    }
+    .asistencia-actions > .btn-asistencia-primary:only-of-type,
+    .asistencia-actions > .btn-asistencia-danger:only-of-type,
+    .asistencia-actions > .btn-asistencia-warning:only-of-type,
+    .btn-asistencia-permiso {
+        grid-column: 1 / -1 !important;
+    }
+    .btn-asistencia-primary,
+    .btn-asistencia-danger,
+    .btn-asistencia-warning {
+        padding: 0.75rem 0.85rem !important;
+        font-size: 0.85rem !important;
+        border-radius: 14px !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+    }
+    .btn-asistencia-permiso {
+        padding: 0.65rem 0.85rem !important;
+        font-size: 0.82rem !important;
+        border-radius: 13px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Bento Cards Row 2 */
+    .widget.bento-card {
+        padding: 1.25rem 1.1rem !important;
+        border-radius: 22px !important;
+        min-height: auto !important;
+    }
+    .bento-card-header {
+        margin-bottom: 0.75rem !important;
+    }
+    .bento-title {
+        font-size: 1.15rem !important;
+    }
+    .projects-grid {
+        gap: 0.85rem !important;
+    }
+    .modern-proj-card.bento-proj-card {
+        padding: 1.15rem 1.05rem !important;
+        border-radius: 22px !important;
+    }
+
     .section-header {
         flex-direction: column;
         align-items: flex-start;
@@ -2408,6 +2633,40 @@
     .section-header .quick-actions .btn-glass {
         flex: 1;
         justify-content: center;
+    }
+}
+
+@media (max-width: 380px) {
+    body:has(.dashboard-page-wrapper) .content-wrapper,
+    .content-wrapper:has(.dashboard-page-wrapper) {
+        padding-left: 0.35rem !important;
+        padding-right: 0.35rem !important;
+    }
+    .widget.bento-hero-asistencia,
+    .widget-asistencia.bento-hero-asistencia {
+        padding: 1.15rem 0.75rem !important;
+        border-radius: 18px !important;
+    }
+    .asistencia-time {
+        font-size: 2.05rem !important;
+    }
+    .asistencia-bento-timeline {
+        padding: 0.8rem 0.65rem !important;
+    }
+    .milestone-step {
+        padding: 0.5rem 0.5rem !important;
+        gap: 0.45rem !important;
+    }
+    .milestone-step .step-node {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 0.92rem !important;
+    }
+    .milestone-step .step-label {
+        font-size: 0.58rem !important;
+    }
+    .milestone-step .step-time {
+        font-size: 0.85rem !important;
     }
 }
 
