@@ -250,6 +250,14 @@ require_once 'includes/header.php';
     background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
     box-shadow: 0 8px 20px -3px rgba(139, 92, 246, 0.45);
 }
+.icon-forms {
+    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #14b8a6 100%);
+    box-shadow: 0 8px 20px -3px rgba(16, 185, 129, 0.45);
+}
+.icon-calendar {
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #be123c 100%);
+    box-shadow: 0 8px 20px -3px rgba(244, 63, 94, 0.45);
+}
 .icon-meetings {
     background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
     box-shadow: 0 8px 20px -3px rgba(6, 182, 212, 0.45);
@@ -524,7 +532,9 @@ require_once 'includes/header.php';
     if (in_array('romita', $perms)) $active_apps_count++;
     if (in_array('desarrollo_marca', $perms)) $active_apps_count++;
     if (in_array('knowledge_base', $perms)) $active_apps_count++;
+    if (in_array('forms', $perms)) $active_apps_count++;
     if (in_array('reuniones', $perms)) $active_apps_count++;
+    if (in_array('calendar', $perms)) $active_apps_count++;
     if (in_array('pizarras', $perms)) $active_apps_count++;
     if (in_array('herramientas', $perms)) $active_apps_count++;
     if (in_array('audiovisual', $perms)) $active_apps_count++;
@@ -654,6 +664,27 @@ require_once 'includes/header.php';
         </a>
         <?php endif; ?>
 
+        <!-- Formularios (Activo) -->
+        <?php if (in_array('forms', $perms)): ?>
+        <a href="index.php?module=forms&action=index" class="workspace-card" data-title="Formularios" data-desc="Creación de formularios encuestas captura de leads feedback preguntas dinamicas">
+            <div class="workspace-card-top">
+                <div class="workspace-card-icon icon-forms">
+                    <i class="ph-bold ph-note-pencil"></i>
+                </div>
+                <div class="app-launch-chip">
+                    <i class="ph-bold ph-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="workspace-card-content">
+                <h3 class="workspace-card-title">Formularios</h3>
+                <p class="workspace-card-desc">Creación de formularios, encuestas y captura de leads.</p>
+            </div>
+            <div class="workspace-card-footer">
+                <span class="ws-app-tag">Formularios & Leads</span>
+            </div>
+        </a>
+        <?php endif; ?>
+
         <!-- Reuniones (Activo) -->
         <?php if (in_array('reuniones', $perms)): ?>
         <a href="index.php?module=reuniones&action=index" class="workspace-card" data-title="Reuniones" data-desc="Salas de videollamadas grabaciones enlaces interactivos clientes equipo">
@@ -671,6 +702,27 @@ require_once 'includes/header.php';
             </div>
             <div class="workspace-card-footer">
                 <span class="ws-app-tag">Videollamadas</span>
+            </div>
+        </a>
+        <?php endif; ?>
+
+        <!-- Calendario (Activo) -->
+        <?php if (in_array('calendar', $perms)): ?>
+        <a href="index.php?module=calendar&action=index" class="workspace-card" data-title="Calendario" data-desc="Eventos agenda cronograma fechas entregas reuniones actividades">
+            <div class="workspace-card-top">
+                <div class="workspace-card-icon icon-calendar">
+                    <i class="ph-bold ph-calendar"></i>
+                </div>
+                <div class="app-launch-chip">
+                    <i class="ph-bold ph-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="workspace-card-content">
+                <h3 class="workspace-card-title">Calendario</h3>
+                <p class="workspace-card-desc">Agenda corporativa, cronogramas de entregas y eventos.</p>
+            </div>
+            <div class="workspace-card-footer">
+                <span class="ws-app-tag">Planificación</span>
             </div>
         </a>
         <?php endif; ?>

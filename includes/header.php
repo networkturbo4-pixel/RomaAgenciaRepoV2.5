@@ -209,7 +209,7 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             <?php endif; ?>
             
             <?php if (in_array('workspace', $perms) || in_array('dashboard', $perms)): ?>
-            <a href="index.php?module=workspace&action=index" class="nav-item <?php echo in_array($current_module, ['workspace', 'desarrollo_marca', 'audiovisual', 'project_board', 'month_board']) ? 'active' : ''; ?>" data-title="Workspace">
+            <a href="index.php?module=workspace&action=index" class="nav-item <?php echo in_array($current_module, ['workspace', 'desarrollo_marca', 'audiovisual', 'project_board', 'month_board', 'knowledge_base', 'forms', 'calendar']) ? 'active' : ''; ?>" data-title="Workspace">
                 <i class="ph ph-briefcase"></i>
                 <span>Workspace</span>
             </a>
@@ -259,31 +259,11 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             </a>
             <?php endif; ?>
 
-            <?php if (in_array('calendar', $perms)): ?>
-            <a href="index.php?module=calendar&action=index" class="nav-item <?php echo $current_module === 'calendar' ? 'active' : ''; ?>" data-title="Calendario">
-                <i class="ph ph-calendar"></i>
-                <span>Calendario</span>
-            </a>
-            <?php endif; ?>
-
-            <?php if (in_array('forms', $perms)): ?>
-            <a href="index.php?module=forms&action=index" class="nav-item <?php echo $current_module === 'forms' ? 'active' : ''; ?>" data-title="Formularios">
-                <i class="ph ph-note-pencil"></i>
-                <span>Formularios</span>
-            </a>
-            <?php endif; ?>
 
             <?php if (in_array('contracts', $perms)): ?>
             <a href="index.php?module=contracts&action=index" class="nav-item <?php echo $current_module === 'contracts' ? 'active' : ''; ?>" data-title="Contratos">
                 <i class="ph ph-signature"></i>
                 <span>Contratos</span>
-            </a>
-            <?php endif; ?>
-
-            <?php if (in_array('knowledge_base', $perms)): ?>
-            <a href="index.php?module=knowledge_base&action=index" class="nav-item <?php echo $current_module === 'knowledge_base' ? 'active' : ''; ?>" data-title="Base de Conocimiento">
-                <i class="ph ph-book-open"></i>
-                <span>Base de Conocimiento</span>
             </a>
             <?php endif; ?>
 

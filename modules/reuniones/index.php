@@ -51,878 +51,1271 @@ $marcas = $stmtBrands->fetchAll(PDO::FETCH_ASSOC);
 
 $activeFilters = ($search || $brand_id || $status) ? true : false;
 $filterCount = ($search ? 1 : 0) + ($brand_id ? 1 : 0) + ($status ? 1 : 0);
+
+// Fetch Quick Stats for Bento Header
+$stat_total = count($reuniones);
+$stat_prog = 0;
+$stat_comp = 0;
+$stat_rooms = 0;
+try {
+    $stat_prog = (int)$db->query("SELECT COUNT(*) FROM reuniones WHERE estado = 'Programada'")->fetchColumn();
+    $stat_comp = (int)$db->query("SELECT COUNT(*) FROM reuniones WHERE estado = 'Completada'")->fetchColumn();
+    $stat_rooms = (int)$db->query("SELECT COUNT(*) FROM meeting_rooms WHERE is_active = 1")->fetchColumn();
+} catch(Exception $e) {}
 ?>
 
 <style>
-    /* ============ ANIMATIONS ============ */
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(16px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes shimmer {
-        0% { background-position: -200% 0; }
-        100% { background-position: 200% 0; }
-    }
-    @keyframes pulse-soft {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-    @keyframes float-icon {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-8px); }
-    }
-    @keyframes fadeInCard {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+/* ==========================================================================
+   REUNIONES MODERN APP-STYLE DESIGN SYSTEM (APPLE BENTO / MACOS)
+   ========================================================================== */
 
-    /* ============ SEGMENTED TABS ============ */
-    .reuniones-tabs {
-        display: inline-flex;
-        background: color-mix(in srgb, var(--border-color) 40%, transparent);
-        border-radius: 12px;
-        padding: 4px;
-        margin-bottom: 1rem;
-        gap: 2px;
-    }
-    .reuniones-tab {
-        padding: 0.5rem 1.25rem;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--text-muted);
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        transition: all 0.2s ease;
-        text-decoration: none;
-    }
-    .reuniones-tab:hover {
-        color: var(--text-main);
-        background: color-mix(in srgb, var(--bg-surface) 60%, transparent);
-    }
-    .reuniones-tab.active {
-        background: var(--bg-surface);
-        color: var(--primary-color);
-        box-shadow: var(--shadow-sm);
-    }
+.reuniones-page-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem 1rem;
+    animation: appFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-    /* ============ HEADER ============ */
-    .reuniones-header {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        padding: 1.75rem;
-        border-radius: 16px;
-        background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 4%, transparent), color-mix(in srgb, var(--secondary-color, #10b981) 3%, transparent));
-        gap: 1rem;
-        border-bottom: none;
-    }
-    .reuniones-header h1 {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: var(--color-title);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        animation: fadeInUp 0.4s ease-out;
-    }
-    .reuniones-header p {
-        color: var(--text-muted);
-        margin: 0.25rem 0 0 0;
-        font-size: 0.9rem;
-        animation: fadeInUp 0.5s ease-out;
-    }
+@keyframes appFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-    /* ============ ACTION BUTTONS ============ */
-    .reuniones-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex-shrink: 0;
-    }
-    .reuniones-actions .btn {
-        transition: all 0.2s ease;
-    }
-    .reuniones-actions .btn:hover {
-        transform: scale(1.02);
-    }
-    .reuniones-actions .btn.btn-primary:hover {
-        box-shadow: 0 0 20px color-mix(in srgb, #ea4335 30%, transparent);
-    }
-    .reuniones-actions .btn.btn-outline:hover {
-        box-shadow: 0 0 20px color-mix(in srgb, #10b981 25%, transparent);
-    }
-    .reuniones-actions .btn span.btn-label {
-        display: inline;
-    }
+@keyframes pulseDot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: 0.6; }
+}
 
-    /* ============ FILTER TOGGLE ============ */
-    .filter-toggle-btn {
-        display: none;
-        width: 100%;
-        padding: 0.75rem 1rem;
-        background: var(--bg-color);
-        border: 1px solid var(--border-color);
+@keyframes shimmerLoading {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* ============ SEGMENTED FLOATING NAV TABS ============ */
+.reuniones-segmented-nav {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 5px;
+    border-radius: 9999px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.04);
+    gap: 4px;
+}
+
+[data-theme="dark"] .reuniones-segmented-nav {
+    background: #141720;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.reuniones-seg-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1.15rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    text-decoration: none;
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+}
+
+.reuniones-seg-tab:hover {
+    color: var(--text-main, #0f172a);
+}
+
+[data-theme="dark"] .reuniones-seg-tab:hover {
+    color: #ffffff;
+}
+
+.reuniones-seg-tab.active {
+    background: var(--primary-color, #4f46e5);
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color, #4f46e5) 35%, transparent);
+}
+
+.reuniones-seg-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: inherit;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.12rem 0.45rem;
+    border-radius: 9999px;
+}
+
+.reuniones-seg-tab:not(.active) .reuniones-seg-badge {
+    background: color-mix(in srgb, var(--border-color, #e2e8f0) 80%, transparent);
+    color: var(--text-muted, #64748b);
+}
+
+/* ============ HERO APP BAR ============ */
+.reuniones-hero-card {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 24px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .reuniones-hero-card {
+    background: #141720;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.hero-ambient-accent {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(234, 67, 53, 0.12) 0%, rgba(244, 63, 94, 0.06) 45%, transparent 70%);
+    top: -120px;
+    right: -40px;
+    pointer-events: none;
+    filter: blur(40px);
+}
+
+.hero-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 2;
+}
+
+.hero-identity {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+}
+
+.hero-app-squircle {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ea4335 0%, #ff5252 50%, #e11d48 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.85rem;
+    color: #ffffff;
+    box-shadow: 0 10px 25px -4px rgba(234, 67, 53, 0.45);
+    flex-shrink: 0;
+}
+
+.hero-app-text h1 {
+    margin: 0;
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    color: var(--text-main, #0f172a);
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+[data-theme="dark"] .hero-app-text h1 {
+    color: #ffffff;
+}
+
+.hero-badge-meet {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    background: rgba(234, 67, 53, 0.12);
+    color: #ea4335;
+    border: 1px solid rgba(234, 67, 53, 0.25);
+    padding: 0.22rem 0.65rem;
+    border-radius: 9999px;
+}
+
+.hero-app-text p {
+    margin: 0.35rem 0 0 0;
+    color: var(--text-muted, #64748b);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.hero-app-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.btn-hero-sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: color-mix(in srgb, #10b981 10%, transparent);
+    color: #10b981;
+    border: 1.5px solid color-mix(in srgb, #10b981 30%, transparent);
+    padding: 0.65rem 1.15rem;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    text-decoration: none;
+}
+
+.btn-hero-sync:hover {
+    background: color-mix(in srgb, #10b981 18%, transparent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+.btn-hero-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #ea4335 0%, #dc2626 100%);
+    color: #ffffff !important;
+    border: none;
+    padding: 0.65rem 1.25rem;
+    border-radius: 14px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -3px rgba(234, 67, 53, 0.4);
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-decoration: none;
+}
+
+.btn-hero-create:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px -4px rgba(234, 67, 53, 0.5);
+}
+
+/* ============ BENTO MINI STATS TILES ============ */
+.hero-bento-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+    position: relative;
+    z-index: 2;
+}
+
+[data-theme="dark"] .hero-bento-stats {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.bento-stat-pill {
+    background: color-mix(in srgb, var(--bg-body, #f8fafc) 70%, transparent);
+    border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+    padding: 0.75rem 1rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .bento-stat-pill {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.bento-stat-pill:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color, #4f46e5);
+}
+
+.bento-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.bento-stat-icon.icon-blue {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.bento-stat-icon.icon-amber {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+.bento-stat-icon.icon-green {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.bento-stat-icon.icon-purple {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+}
+
+.bento-stat-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.bento-stat-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text-main, #0f172a);
+    font-variant-numeric: tabular-nums;
+}
+
+[data-theme="dark"] .bento-stat-val {
+    color: #ffffff;
+}
+
+.bento-stat-lbl {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+/* ============ SEARCH & FILTER BAR ============ */
+.reuniones-filter-card {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .reuniones-filter-card {
+    background: #141720;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.filters-row {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr auto;
+    gap: 0.85rem;
+    align-items: center;
+}
+
+.filter-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.filter-input-wrap i {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-muted, #94a3b8);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 0.65rem 1rem 0.65rem 2.5rem;
+    border-radius: 12px;
+    background: var(--bg-body, #f8fafc);
+    border: 1.5px solid var(--border-color, #e2e8f0);
+    color: var(--text-main, #0f172a);
+    font-size: 0.85rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .filter-input {
+    background: #0d1017;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.filter-input:focus {
+    border-color: var(--primary-color, #4f46e5);
+    background: var(--bg-surface, #ffffff);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #4f46e5) 15%, transparent);
+}
+
+[data-theme="dark"] .filter-input:focus {
+    background: #141720;
+}
+
+.filter-select {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border-radius: 12px;
+    background: var(--bg-body, #f8fafc);
+    border: 1.5px solid var(--border-color, #e2e8f0);
+    color: var(--text-main, #0f172a);
+    font-size: 0.85rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .filter-select {
+    background: #0d1017;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.filter-select:focus {
+    border-color: var(--primary-color, #4f46e5);
+}
+
+.btn-filter-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.65rem 1rem;
+    border-radius: 12px;
+    background: transparent;
+    border: 1.5px solid var(--border-color, #e2e8f0);
+    color: var(--text-muted, #64748b);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.btn-filter-reset:hover {
+    background: color-mix(in srgb, var(--text-muted, #64748b) 12%, transparent);
+    color: var(--text-main, #0f172a);
+}
+
+/* ============ MEETINGS LIST: DESKTOP TABLE ============ */
+.reuniones-table-card {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 22px;
+    box-shadow: 0 6px 25px -4px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+[data-theme="dark"] .reuniones-table-card {
+    background: #141720;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.reuniones-app-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.88rem;
+}
+
+.reuniones-app-table thead th {
+    padding: 0.95rem 1.25rem;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted, #94a3b8);
+    background: color-mix(in srgb, var(--bg-body, #f8fafc) 80%, transparent);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+[data-theme="dark"] .reuniones-app-table thead th {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.reuniones-app-table tbody tr {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid var(--border-color, #f1f5f9);
+}
+
+[data-theme="dark"] .reuniones-app-table tbody tr {
+    border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+.reuniones-app-table tbody tr:hover {
+    background: color-mix(in srgb, var(--primary-color, #4f46e5) 4%, transparent);
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .reuniones-app-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.reuniones-app-table tbody td {
+    padding: 1.05rem 1.25rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color, #f1f5f9);
+}
+
+[data-theme="dark"] .reuniones-app-table tbody td {
+    border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Brand & Meeting info */
+.meet-main-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+}
+
+.brand-squircle-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.brand-squircle-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.meet-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.meet-title-link {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-main, #0f172a);
+    text-decoration: none;
+    line-height: 1.25;
+    transition: color 0.2s;
+}
+
+.meet-title-link:hover {
+    color: var(--primary-color, #4f46e5);
+}
+
+[data-theme="dark"] .meet-title-link {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .meet-title-link:hover {
+    color: #818cf8;
+}
+
+.meet-meta-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+.brand-chip-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted, #64748b);
+}
+
+.tag-micro-pill {
+    background: color-mix(in srgb, var(--primary-color, #4f46e5) 10%, transparent);
+    color: var(--primary-color, #4f46e5);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.45rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Date & Time pill */
+.date-time-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.date-primary {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-main, #0f172a);
+}
+
+[data-theme="dark"] .date-primary {
+    color: #e2e8f0;
+}
+
+.time-secondary {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-muted, #64748b);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Status Badges */
+.status-pill-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.32rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+.status-pill-modern .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.status-pill-programada {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.status-pill-programada .status-dot {
+    background: #3b82f6;
+    box-shadow: 0 0 6px #3b82f6;
+    animation: pulseDot 2s infinite;
+}
+
+.status-pill-completada {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.status-pill-completada .status-dot {
+    background: #10b981;
+}
+
+.status-pill-cancelada {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.status-pill-cancelada .status-dot {
+    background: #ef4444;
+}
+
+/* Link Actions Squircles */
+.meet-actions-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
+.squircle-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    text-decoration: none;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-surface, #ffffff);
+    color: var(--text-muted, #64748b);
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+
+[data-theme="dark"] .squircle-action-btn {
+    background: #181b24;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.squircle-action-btn:hover {
+    transform: scale(1.08) translateY(-1px);
+}
+
+.squircle-action-btn.btn-meet-video {
+    color: #ea4335;
+    background: rgba(234, 67, 53, 0.08);
+    border-color: rgba(234, 67, 53, 0.25);
+}
+.squircle-action-btn.btn-meet-video:hover {
+    background: #ea4335;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(234, 67, 53, 0.35);
+}
+
+.squircle-action-btn.btn-meet-rec {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+.squircle-action-btn.btn-meet-rec:hover {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.squircle-action-btn.btn-meet-gemini {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.25);
+}
+.squircle-action-btn.btn-meet-gemini:hover {
+    background: #8b5cf6;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+}
+
+.squircle-action-btn.btn-meet-wa {
+    color: #25D366;
+    background: rgba(37, 211, 102, 0.08);
+    border-color: rgba(37, 211, 102, 0.25);
+}
+.squircle-action-btn.btn-meet-wa:hover {
+    background: #25D366;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+}
+
+.btn-detail-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 11px;
+    background: var(--primary-color, #4f46e5);
+    color: #ffffff !important;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--primary-color, #4f46e5) 40%, transparent);
+}
+
+.btn-detail-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px -2px color-mix(in srgb, var(--primary-color, #4f46e5) 50%, transparent);
+}
+
+/* ============ MOBILE CARDS (RESPONSIVE) ============ */
+.reuniones-mobile-grid {
+    display: none;
+    padding: 0.85rem;
+    gap: 0.85rem;
+}
+
+.meet-mobile-card {
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 18px;
+    padding: 1.15rem 1rem;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+[data-theme="dark"] .meet-mobile-card {
+    background: #141720;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.meet-mobile-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.meet-mobile-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
+}
+
+[data-theme="dark"] .meet-mobile-footer {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Empty State */
+.reuniones-empty-state {
+    padding: 4.5rem 2rem;
+    text-align: center;
+}
+
+.empty-squircle-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--primary-color, #4f46e5) 10%, transparent);
+    color: var(--primary-color, #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    margin: 0 auto 1.25rem auto;
+}
+
+/* Skeleton Loading */
+.sk-box {
+    background: linear-gradient(90deg, var(--border-color) 25%, color-mix(in srgb, var(--border-color), white 25%) 50%, var(--border-color) 75%);
+    background-size: 200% 100%;
+    animation: shimmerLoading 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+    .filters-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    .hero-bento-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .reuniones-page-wrapper {
+        padding: 0.75rem 0.45rem 4rem 0.45rem;
+    }
+    .reuniones-hero-card {
+        padding: 1.25rem 1rem;
         border-radius: 20px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--text-main);
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0;
-        transition: all 0.2s ease;
     }
-    .filter-toggle-btn:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-    .filter-toggle-btn .badge-count {
-        background: var(--primary-color);
-        color: white;
-        font-size: 0.7rem;
-        padding: 2px 6px;
-        border-radius: 10px;
-        margin-left: 0.5rem;
-    }
-    .filter-toggle-btn i.chevron {
-        transition: transform 0.3s ease;
-    }
-    .filter-toggle-btn.active i.chevron {
-        transform: rotate(180deg);
-    }
-
-    /* ============ FILTERS CONTAINER ============ */
-    .filters-container {
-        display: flex;
+    .hero-top-row {
+        flex-direction: column;
+        align-items: flex-start;
         gap: 1rem;
-        align-items: flex-end;
-        flex-wrap: wrap;
-        max-height: 500px;
-        opacity: 1;
-        transition: max-height 0.35s ease, opacity 0.25s ease;
     }
-    .filters-container .filter-field {
-        flex: 1;
-        min-width: 180px;
-    }
-    .filters-container .filter-field label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        color: var(--text-muted);
-    }
-    .filters-container .form-control {
-        border-radius: 12px;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .filters-container .form-control:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color) 12%, transparent);
-        outline: none;
-    }
-
-    /* ============ TABLE DESKTOP ============ */
-    .reuniones-table {
+    .hero-app-actions {
         width: 100%;
-        border-collapse: collapse;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
     }
-    .reuniones-table thead th {
-        padding: 0.85rem 1rem;
-        text-align: left;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        color: var(--text-muted);
-        background: var(--bg-color);
-        border-bottom: 1px solid var(--border-color);
-    }
-    .reuniones-table tbody tr {
-        border-bottom: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
-        transition: all 0.2s ease;
-        box-shadow: inset 0 0 0 transparent;
-    }
-    .reuniones-table tbody tr:hover {
-        background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color) 5%, transparent), transparent 70%);
-        transform: translateX(2px);
-        box-shadow: inset 3px 0 0 var(--primary-color);
-    }
-    .reuniones-table tbody tr:hover .table-avatar {
-        transform: scale(1.05);
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--primary-color) 15%, transparent);
-    }
-    .reuniones-table tbody td {
-        padding: 0.85rem 1rem;
-        vertical-align: middle;
-    }
-    .reuniones-table .col-estado { text-align: center; }
-    .reuniones-table .col-enlaces { text-align: center; }
-    .reuniones-table .col-acciones { text-align: right; }
-
-    .table-avatar {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    /* ============ TAG PILLS ============ */
-    .tag-pill {
-        background: color-mix(in srgb, var(--primary-color) 8%, #f1f5f9);
-        color: #475569;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-size: 0.7rem;
-        font-weight: 500;
-        border: 1px solid color-mix(in srgb, var(--primary-color) 12%, #e2e8f0);
-        backdrop-filter: blur(4px);
-        transition: all 0.15s ease;
-    }
-    .tag-pill:hover {
-        background: color-mix(in srgb, var(--primary-color) 14%, #f1f5f9);
-    }
-
-    /* ============ STATUS BADGES ============ */
-    .status-badge {
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        white-space: nowrap;
-        transition: all 0.2s ease;
-    }
-    .status-programada {
-        background: #dbeafe;
-        color: #1e40af;
-        animation: pulse-soft 2s ease-in-out infinite;
-    }
-    .status-completada { background: #d1fae5; color: #065f46; }
-    .status-cancelada  { background: #fee2e2; color: #991b1b; }
-
-    /* ============ ICON BUTTONS ============ */
-    .icon-btn {
-        display: inline-flex;
-        align-items: center;
+    .btn-hero-sync, .btn-hero-create {
         justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: transparent;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        font-size: 1rem;
-        color: var(--text-muted);
-        text-decoration: none;
+        padding: 0.65rem 0.5rem;
+        font-size: 0.82rem;
     }
-    .icon-btn:hover {
-        background: var(--bg-color);
-        transform: scale(1.08);
+    .hero-bento-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
     }
-    .icon-btn.meet { color: #ea4335; border-color: #fecaca; }
-    .icon-btn.meet:hover { background: #fef2f2; }
-    .icon-btn.recording { color: #10b981; border-color: #a7f3d0; }
-    .icon-btn.recording:hover { background: #ecfdf5; }
-    .icon-btn.gemini { color: #8b5cf6; border-color: #ddd6fe; }
-    .icon-btn.gemini:hover { background: #f5f3ff; }
-    .icon-btn.copy { color: #6b7280; border-color: #e5e7eb; }
-    .icon-btn.copy:hover { background: #f9fafb; }
-
-    /* ============ MOBILE CARD VIEW ============ */
-    .reuniones-mobile-cards {
+    .bento-stat-pill {
+        padding: 0.65rem 0.75rem;
+    }
+    .filters-row {
+        grid-template-columns: 1fr;
+    }
+    .reuniones-table-card {
         display: none;
     }
-    .reunion-card {
-        background: var(--bg-surface, #fff);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-        transition: box-shadow 0.2s ease, transform 0.15s ease;
-        animation: fadeInCard 0.35s ease-out both;
-        border-left: 4px solid var(--border-color);
-    }
-    .reunion-card:active {
-        transform: scale(0.98);
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--text-main) 8%, transparent);
-    }
-    .reunion-card.card-programada {
-        border-left-color: #3b82f6;
-    }
-    .reunion-card.card-completada {
-        border-left-color: #10b981;
-    }
-    .reunion-card.card-cancelada {
-        border-left-color: #ef4444;
-    }
-    .reunion-card-header {
+    .reuniones-mobile-grid {
         display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
+        flex-direction: column;
+        padding: 0;
     }
-    .reunion-card-avatar {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
-        object-fit: cover;
-        flex-shrink: 0;
-    }
-    .reunion-card-avatar-placeholder {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
-        background: var(--primary-color-light);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary-color);
-        font-weight: bold;
-        font-size: 1.1rem;
-        flex-shrink: 0;
-    }
-    .reunion-card-title {
-        font-weight: 600;
-        font-size: 0.95rem;
-        color: var(--color-title);
-        line-height: 1.3;
-    }
-    .reunion-card-brand {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        margin-top: 0.15rem;
-    }
-    .reunion-card-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid var(--border-color);
-    }
-    .reunion-card-date {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-    .reunion-card-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-    .reunion-card-actions .icon-btn {
-        min-width: 40px;
-        min-height: 40px;
-        width: 40px;
-        height: 40px;
-    }
-    .reunion-card-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-        margin-bottom: 0.75rem;
-    }
-
-    /* ============ EMPTY STATE ============ */
-    .empty-state {
-        padding: 4rem 2rem;
-        text-align: center;
-        color: var(--text-muted);
-        animation: fadeInUp 0.5s ease-out;
-    }
-    .empty-state-icon {
-        font-size: 4rem;
-        color: color-mix(in srgb, var(--text-muted) 40%, transparent);
-        margin-bottom: 1.25rem;
-        animation: float-icon 3s ease-in-out infinite;
-        display: inline-block;
-    }
-    .empty-state h3 {
-        margin: 0 0 0.5rem 0;
-        color: var(--color-title);
-        font-size: 1.15rem;
-    }
-    .empty-state p {
-        margin: 0;
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        max-width: 360px;
-        margin: 0 auto;
-        line-height: 1.5;
-    }
-
-    /* ============ SKELETON SHIMMER ============ */
-    .sk-box {
-        background: linear-gradient(90deg, var(--border-color) 25%, color-mix(in srgb, var(--border-color), white 30%) 50%, var(--border-color) 75%);
-        background-size: 200% 100%;
-        animation: shimmer 1.5s ease-in-out infinite;
-        border-radius: 6px;
-    }
-
-    /* ============ DARK MODE ============ */
-    [data-theme="dark"] .reuniones-header {
-        background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 6%, transparent), color-mix(in srgb, var(--secondary-color, #10b981) 4%, transparent));
-    }
-    [data-theme="dark"] .reuniones-table tbody tr:hover {
-        background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color) 8%, transparent), transparent 70%);
-    }
-    [data-theme="dark"] .reunion-card {
-        background: color-mix(in srgb, var(--bg-surface) 95%, white 5%);
-    }
-    [data-theme="dark"] .tag-pill {
-        background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-color));
-        color: color-mix(in srgb, var(--text-main) 80%, white);
-        border-color: color-mix(in srgb, var(--primary-color) 20%, var(--border-color));
-    }
-    [data-theme="dark"] .status-programada {
-        background: color-mix(in srgb, #3b82f6 18%, var(--bg-color));
-        color: #93bbfd;
-    }
-    [data-theme="dark"] .status-completada {
-        background: color-mix(in srgb, #10b981 18%, var(--bg-color));
-        color: #6ee7b7;
-    }
-    [data-theme="dark"] .status-cancelada {
-        background: color-mix(in srgb, #ef4444 18%, var(--bg-color));
-        color: #fca5a5;
-    }
-    [data-theme="dark"] .sk-box {
-        background: linear-gradient(90deg, var(--border-color) 25%, color-mix(in srgb, var(--border-color), white 8%) 50%, var(--border-color) 75%);
-        background-size: 200% 100%;
-        animation: shimmer 1.5s ease-in-out infinite;
-    }
-    [data-theme="dark"] .icon-btn.meet:hover { background: color-mix(in srgb, #ea4335 12%, var(--bg-color)); }
-    [data-theme="dark"] .icon-btn.recording:hover { background: color-mix(in srgb, #10b981 12%, var(--bg-color)); }
-    [data-theme="dark"] .icon-btn.gemini:hover { background: color-mix(in srgb, #8b5cf6 12%, var(--bg-color)); }
-    [data-theme="dark"] .icon-btn.copy:hover { background: color-mix(in srgb, #6b7280 12%, var(--bg-color)); }
-    [data-theme="dark"] .empty-state-icon {
-        color: color-mix(in srgb, var(--text-muted) 30%, transparent);
-    }
-    [data-theme="dark"] .reuniones-tab.active {
-        background: var(--bg-color);
-    }
-
-    /* ============ RESPONSIVE ============ */
-    @media (max-width: 768px) {
-        .reuniones-header {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 1.25rem;
-            border-radius: 12px;
-        }
-        .reuniones-header h1 {
-            font-size: 1.35rem;
-        }
-        .reuniones-header p {
-            font-size: 0.8rem;
-        }
-        .reuniones-actions {
-            width: 100%;
-        }
-        .reuniones-actions .btn {
-            flex: 1;
-            justify-content: center;
-            font-size: 0.8rem;
-            padding: 0.55rem 0.5rem;
-        }
-        .reuniones-actions .btn span.btn-label {
-            display: none;
-        }
-
-        /* Show toggle, hide filters by default */
-        .filter-toggle-btn {
-            display: flex;
-        }
-        .filters-container {
-            display: none;
-            flex-direction: column;
-            gap: 0.75rem;
-            padding-top: 0.75rem;
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-        }
-        .filters-container.show {
-            display: flex;
-            max-height: 500px;
-            opacity: 1;
-        }
-        .filters-container .filter-field {
-            min-width: 100%;
-        }
-
-        /* Hide desktop table, show mobile cards */
-        .reuniones-table-wrapper {
-            display: none;
-        }
-        .reuniones-mobile-cards {
-            display: block;
-        }
-
-        .reuniones-tabs {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .reuniones-header h1 {
-            font-size: 1.2rem;
-        }
-        .reuniones-actions .btn {
-            font-size: 0.75rem;
-            padding: 0.5rem 0.4rem;
-        }
-    }
+}
 </style>
 
-<script>
-    function copyInvitation(title, datetime, link) {
-        const textToCopy = `${title}\n${datetime}\n${link}\nTe esperamos en la reunión`;
-        
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            Swal.fire({
-                title: 'Copiado',
-                text: 'Invitación copiada al portapapeles',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        }).catch(err => {
-            console.error('Error al copiar: ', err);
-            Swal.fire('Error', 'No se pudo copiar al portapapeles', 'error');
-        });
-    }
+<div class="reuniones-page-wrapper">
 
-    function sendWhatsApp(title, datetime, link, clientPhone, groupPhone) {
-        const textToCopy = `Hola, te comparto el enlace para nuestra reunión:\n\n*${title}*\n📅 ${datetime}\n🔗 ${link}\n\nTe esperamos.`;
-        
-        // Escape backticks in textToCopy for the onclick handler
-        const escapedMsg = textToCopy.replace(/`/g, '\\`');
+    <!-- Segmented Navigation Tabs -->
+    <div class="reuniones-segmented-nav">
+        <a href="index.php?module=reuniones&action=index" class="reuniones-seg-tab active">
+            <i class="ph-fill ph-list-bullets"></i>
+            <span>Historial</span>
+            <span class="reuniones-seg-badge"><?php echo $stat_total; ?></span>
+        </a>
+        <a href="index.php?module=reuniones&action=rooms" class="reuniones-seg-tab">
+            <i class="ph-fill ph-buildings"></i>
+            <span>Salas</span>
+            <span class="reuniones-seg-badge"><?php echo $stat_rooms; ?></span>
+        </a>
+    </div>
 
-        const optionsHtml = `
-            <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
-                <button class="swal2-confirm swal2-styled" style="background-color: #25D366; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="executeSendWA('${groupPhone}', \`${escapedMsg}\`)">
-                    <i class="ph ph-users"></i> Enviar al Grupo del Proyecto
+    <!-- App Hero Header -->
+    <div class="reuniones-hero-card">
+        <div class="hero-ambient-accent"></div>
+
+        <div class="hero-top-row">
+            <div class="hero-identity">
+                <div class="hero-app-squircle">
+                    <i class="ph-fill ph-video-camera"></i>
+                </div>
+                <div class="hero-app-text">
+                    <h1>
+                        Historial de Reuniones
+                        <span class="hero-badge-meet">Meet & IA</span>
+                    </h1>
+                    <p>Gestiona tus videollamadas en vivo, grabaciones y minutas automáticas con Gemini IA.</p>
+                </div>
+            </div>
+
+            <div class="hero-app-actions">
+                <button type="button" onclick="syncGeminiNotes()" class="btn-hero-sync" id="btn-sync-notes" title="Sincronizar con correos de Gemini">
+                    <i class="ph-bold ph-arrows-clockwise"></i>
+                    <span>Sincronizar IA</span>
                 </button>
-                <button class="swal2-confirm swal2-styled" style="background-color: #128C7E; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="executeSendWA('${clientPhone}', \`${escapedMsg}\`)">
-                    <i class="ph ph-user"></i> Enviar al Cliente Directo
+                <button type="button" onclick="if(window.openMeetModal) window.openMeetModal();" class="btn-hero-create" title="Programar nueva reunión de Meet">
+                    <i class="ph-bold ph-calendar-plus"></i>
+                    <span>Programar</span>
                 </button>
             </div>
-        `;
-        
-        Swal.fire({
-            title: 'Enviar Invitación',
-            html: optionsHtml,
-            showConfirmButton: false,
-            showCancelButton: true,
-            cancelButtonText: 'Cancelar'
-        });
-    }
-
-    function executeSendWA(phone, msg) {
-        if (!phone || phone === 'undefined' || phone === 'null') {
-            Swal.fire('Atención', 'No hay un número o ID de grupo registrado para esta opción.', 'warning');
-            return;
-        }
-        Swal.fire({
-            title: 'Enviando...',
-            text: 'Por favor espera',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-        
-        fetch('ajax/send_meet_whatsapp.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: phone, message: msg })
-        })
-        .then(r => r.json())
-        .then(res => {
-            if (res.success) {
-                Swal.fire('Enviado', 'La invitación se envió por WhatsApp correctamente.', 'success');
-            } else {
-                Swal.fire('Error', res.error || 'No se pudo enviar el mensaje', 'error');
-            }
-        })
-        .catch(err => {
-            Swal.fire('Error', 'Error de conexión', 'error');
-        });
-    }
-</script>
-
-<!-- Header + Filters Card -->
-<div class="card" style="margin-bottom: 1.5rem;">
-    <div class="reuniones-header">
-        <div style="width: 100%;">
-            <div class="reuniones-tabs">
-                <a href="index.php?module=reuniones&action=index" class="reuniones-tab active">
-                    <i class="ph ph-list-bullets"></i> Historial
-                </a>
-                <a href="index.php?module=reuniones&action=rooms" class="reuniones-tab">
-                    <i class="ph ph-buildings"></i> Salas
-                </a>
-            </div>
-            <h1>
-                <i class="ph ph-video-camera" style="color: #ea4335;"></i> Historial de Reuniones <span style="background: color-mix(in srgb, #ea4335 15%, transparent); color: #ea4335; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; vertical-align: middle; margin-left: 8px; font-weight: 700; border: 1px solid color-mix(in srgb, #ea4335 30%, transparent); text-transform: uppercase; letter-spacing: 0.5px;">Beta</span>
-            </h1>
-            <p>Visualiza tus reuniones, grabaciones y resúmenes de Gemini.</p>
         </div>
-        <div class="reuniones-actions">
-            <button onclick="syncGeminiNotes()" class="btn btn-outline" style="color: #10b981; border-color: #10b981;" id="btn-sync-notes">
-                <i class="ph ph-arrows-clockwise"></i> <span class="btn-label">Sincronizar</span>
-            </button>
-            <button onclick="if(window.openMeetModal) window.openMeetModal();" class="btn btn-primary" style="background: #ea4335; border-color: #ea4335;">
-                <i class="ph ph-calendar-plus"></i> <span class="btn-label">Programar</span>
-            </button>
+
+        <!-- Bento Mini Stats Row -->
+        <div class="hero-bento-stats">
+            <div class="bento-stat-pill">
+                <div class="bento-stat-icon icon-blue"><i class="ph-bold ph-calendar"></i></div>
+                <div class="bento-stat-text">
+                    <span class="bento-stat-val"><?php echo $stat_total; ?></span>
+                    <span class="bento-stat-lbl">Reuniones</span>
+                </div>
+            </div>
+            <div class="bento-stat-pill">
+                <div class="bento-stat-icon icon-amber"><i class="ph-bold ph-clock-countdown"></i></div>
+                <div class="bento-stat-text">
+                    <span class="bento-stat-val"><?php echo $stat_prog; ?></span>
+                    <span class="bento-stat-lbl">Programadas</span>
+                </div>
+            </div>
+            <div class="bento-stat-pill">
+                <div class="bento-stat-icon icon-green"><i class="ph-bold ph-check-circle"></i></div>
+                <div class="bento-stat-text">
+                    <span class="bento-stat-val"><?php echo $stat_comp; ?></span>
+                    <span class="bento-stat-lbl">Completadas</span>
+                </div>
+            </div>
+            <div class="bento-stat-pill">
+                <div class="bento-stat-icon icon-purple"><i class="ph-bold ph-buildings"></i></div>
+                <div class="bento-stat-text">
+                    <span class="bento-stat-val"><?php echo $stat_rooms; ?></span>
+                    <span class="bento-stat-lbl">Salas Activas</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Mobile filter toggle -->
-    <button type="button" class="filter-toggle-btn" id="filter-toggle" onclick="toggleFilters()">
-        <span>
-            <i class="ph ph-funnel"></i> Filtros
-            <?php if($activeFilters): ?>
-                <span class="badge-count"><?php echo $filterCount; ?></span>
-            <?php endif; ?>
-        </span>
-        <i class="ph ph-caret-down chevron"></i>
-    </button>
+    <!-- Search and Filters Form -->
+    <div class="reuniones-filter-card">
+        <form id="reuniones-filter-form" method="GET" action="index.php">
+            <input type="hidden" name="module" value="reuniones">
+            <div class="filters-row">
+                <div class="filter-input-wrap">
+                    <i class="ph-bold ph-magnifying-glass"></i>
+                    <input type="text" name="search" id="filter-search" class="filter-input" placeholder="Buscar por motivo, tema o resumen..." value="<?php echo htmlspecialchars($search); ?>">
+                </div>
 
-    <form id="reuniones-filter-form" method="GET" action="index.php">
-        <input type="hidden" name="module" value="reuniones">
-        
-        <div class="filters-container <?php echo $activeFilters ? 'show' : ''; ?>" id="filters-container">
-            <div class="filter-field">
-                <label><i class="ph ph-magnifying-glass"></i> Buscar Motivo/Resumen</label>
-                <input type="text" name="search" id="filter-search" class="form-control" placeholder="Ej: Estrategia de contenidos..." value="<?php echo htmlspecialchars($search); ?>">
-            </div>
-            
-            <div class="filter-field">
-                <label><i class="ph ph-buildings"></i> Marca</label>
-                <select name="brand_id" id="filter-brand" class="form-control">
-                    <option value="">Todas las marcas</option>
-                    <?php foreach($marcas as $m): ?>
-                        <option value="<?php echo $m['id']; ?>" <?php echo $brand_id == $m['id'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($m['name']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            
-            <div class="filter-field">
-                <label><i class="ph ph-flag"></i> Estado</label>
-                <select name="status" id="filter-status" class="form-control">
-                    <option value="">Todos los estados</option>
-                    <option value="Programada" <?php echo $status == 'Programada' ? 'selected' : ''; ?>>Programada</option>
-                    <option value="Completada" <?php echo $status == 'Completada' ? 'selected' : ''; ?>>Completada</option>
-                    <option value="Cancelada" <?php echo $status == 'Cancelada' ? 'selected' : ''; ?>>Cancelada</option>
-                    <option value="Eliminada" <?php echo $status == 'Eliminada' ? 'selected' : ''; ?>>Papelera (Eliminadas)</option>
-                </select>
-            </div>
-            
-            <div style="display:flex; align-items:flex-end;">
-                <button type="submit" class="btn btn-outline" style="display:none;"><i class="ph ph-funnel"></i> Filtrar</button>
-                <a href="index.php?module=reuniones" class="btn btn-outline" style="color:var(--text-muted); white-space:nowrap;"><i class="ph ph-x"></i> Limpiar</a>
-            </div>
-        </div>
-    </form>
-</div>
+                <div>
+                    <select name="brand_id" id="filter-brand" class="filter-select">
+                        <option value="">Todas las marcas</option>
+                        <?php foreach($marcas as $m): ?>
+                            <option value="<?php echo $m['id']; ?>" <?php echo $brand_id == $m['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($m['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-<!-- List -->
-<div class="card" style="padding: 0;" id="reuniones-list-container">
-    <?php if(empty($reuniones)): ?>
-        <div class="empty-state">
-            <div class="empty-state-icon">
-                <i class="ph ph-video-camera-slash"></i>
-            </div>
-            <h3>No se encontraron reuniones</h3>
-            <p>No hay reuniones que coincidan con los filtros actuales. Intenta ajustar los criterios de búsqueda o programa una nueva reunión.</p>
-        </div>
-    <?php else: ?>
+                <div>
+                    <select name="status" id="filter-status" class="filter-select">
+                        <option value="">Todos los estados</option>
+                        <option value="Programada" <?php echo $status == 'Programada' ? 'selected' : ''; ?>>Programada</option>
+                        <option value="Completada" <?php echo $status == 'Completada' ? 'selected' : ''; ?>>Completada</option>
+                        <option value="Cancelada" <?php echo $status == 'Cancelada' ? 'selected' : ''; ?>>Cancelada</option>
+                        <option value="Eliminada" <?php echo $status == 'Eliminada' ? 'selected' : ''; ?>>Papelera</option>
+                    </select>
+                </div>
 
-        <!-- Desktop Table -->
-        <div class="reuniones-table-wrapper">
-            <table class="reuniones-table">
-                <thead>
-                    <tr>
-                        <th>Reunión</th>
-                        <th>Fecha y Hora</th>
-                        <th class="col-estado">Estado</th>
-                        <th class="col-enlaces">Enlaces</th>
-                        <th class="col-acciones">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($reuniones as $r): ?>
+                <div>
+                    <a href="index.php?module=reuniones" class="btn-filter-reset" title="Limpiar filtros">
+                        <i class="ph-bold ph-arrow-counter-clockwise"></i>
+                        <span>Limpiar</span>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Meetings Container (AJAX Target) -->
+    <div id="reuniones-list-container">
+        <?php if(empty($reuniones)): ?>
+            <div class="reuniones-table-card">
+                <div class="reuniones-empty-state">
+                    <div class="empty-squircle-icon">
+                        <i class="ph ph-video-camera-slash"></i>
+                    </div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem;">No se encontraron reuniones</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; max-width: 380px; margin: 0 auto;">No hay registros que coincidan con los filtros seleccionados. Intenta cambiar los criterios de búsqueda.</p>
+                </div>
+            </div>
+        <?php else: ?>
+
+            <!-- Desktop Modern Table -->
+            <div class="reuniones-table-card">
+                <table class="reuniones-app-table">
+                    <thead>
                         <tr>
-                            <td>
-                                <div style="display:flex; align-items:center; gap:0.75rem;">
-                                    <?php if($r['brand_logo']): ?>
-                                        <img src="<?php echo htmlspecialchars($r['brand_logo']); ?>" class="table-avatar" style="width:40px; height:40px; border-radius:8px; object-fit:cover;">
-                                    <?php else: ?>
-                                        <div class="table-avatar" style="width:40px; height:40px; border-radius:8px; background:var(--primary-color-light); display:flex; align-items:center; justify-content:center; color:var(--primary-color); font-weight:bold;">
-                                            <?php echo substr($r['brand_name'], 0, 1); ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <div>
-                                        <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-title);">
-                                            <?php echo htmlspecialchars($r['motivo']); ?>
-                                        </div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted); display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.15rem;">
-                                            <span><?php echo htmlspecialchars($r['brand_name']); ?></span>
-                                            <?php if(!empty($r['tags'])): ?>
-                                                <?php $tags = explode(',', $r['tags']); foreach($tags as $t): $t = trim($t); if(!$t) continue; ?>
-                                                    <span class="tag-pill"><i class="ph ph-tag" style="margin-right:2px;"></i><?php echo htmlspecialchars($t); ?></span>
-                                                <?php endforeach; ?>
+                            <th style="width: 38%;">Reunión & Marca</th>
+                            <th style="width: 22%;">Fecha y Hora</th>
+                            <th style="width: 15%; text-align: center;">Estado</th>
+                            <th style="width: 12%; text-align: center;">Enlaces</th>
+                            <th style="width: 13%; text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($reuniones as $r): ?>
+                            <tr>
+                                <td>
+                                    <div class="meet-main-cell">
+                                        <div class="brand-squircle-avatar" style="background: linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(147,51,234,0.1) 100%);">
+                                            <?php if(!empty($r['brand_logo']) && file_exists($r['brand_logo'])): ?>
+                                                <img src="<?php echo htmlspecialchars($r['brand_logo']); ?>" alt="<?php echo htmlspecialchars($r['brand_name']); ?>">
+                                            <?php else: ?>
+                                                <span style="color: var(--primary-color, #4f46e5);"><?php echo strtoupper(substr($r['brand_name'] ?: 'R', 0, 1)); ?></span>
                                             <?php endif; ?>
                                         </div>
+                                        <div class="meet-info-text">
+                                            <a href="index.php?module=reuniones&action=view&id=<?php echo $r['id']; ?>" class="meet-title-link">
+                                                <?php echo htmlspecialchars($r['motivo']); ?>
+                                            </a>
+                                            <div class="meet-meta-chips">
+                                                <span class="brand-chip-label"><?php echo htmlspecialchars($r['brand_name'] ?: 'Reunión General'); ?></span>
+                                                <?php if(!empty($r['tags'])): ?>
+                                                    <?php $tags = explode(',', $r['tags']); foreach($tags as $t): $t = trim($t); if(!$t) continue; ?>
+                                                        <span class="tag-micro-pill"><i class="ph-bold ph-tag"></i><?php echo htmlspecialchars($t); ?></span>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="date-time-cell">
+                                        <span class="date-primary"><?php echo date('d M, Y', strtotime($r['fecha_hora'])); ?></span>
+                                        <span class="time-secondary"><i class="ph-bold ph-clock"></i> <?php echo date('h:i A', strtotime($r['fecha_hora'])); ?></span>
+                                    </div>
+                                </td>
+
+                                <td style="text-align: center;">
+                                    <?php
+                                        $pillClass = 'status-pill-programada';
+                                        if($r['estado'] === 'Completada') $pillClass = 'status-pill-completada';
+                                        elseif($r['estado'] === 'Cancelada' || $r['estado'] === 'Eliminada') $pillClass = 'status-pill-cancelada';
+                                    ?>
+                                    <span class="status-pill-modern <?php echo $pillClass; ?>">
+                                        <span class="status-dot"></span>
+                                        <?php echo htmlspecialchars($r['estado']); ?>
+                                    </span>
+                                </td>
+
+                                <td style="text-align: center;">
+                                    <div class="meet-actions-group">
+                                        <?php if(!empty($r['meet_link'])): ?>
+                                            <a href="<?php echo htmlspecialchars($r['meet_link']); ?>" target="_blank" class="squircle-action-btn btn-meet-video" title="Unirse a Google Meet">
+                                                <i class="ph-bold ph-video-camera"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if(!empty($r['recording_link'])): ?>
+                                            <a href="<?php echo htmlspecialchars($r['recording_link']); ?>" target="_blank" class="squircle-action-btn btn-meet-rec" title="Ver Grabación">
+                                                <i class="ph-bold ph-play"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if(!empty($r['resumen'])): ?>
+                                            <a href="index.php?module=reuniones&action=view&id=<?php echo $r['id']; ?>" class="squircle-action-btn btn-meet-gemini" title="Minuta Gemini disponible">
+                                                <i class="ph-bold ph-sparkle"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+
+                                <td style="text-align: right;">
+                                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.45rem;">
+                                        <?php if(!empty($r['meet_link'])): ?>
+                                            <button type="button" class="squircle-action-btn" onclick="copyInvitation('<?php echo addslashes($r['motivo']); ?>', '<?php echo date('h:i A d M, Y', strtotime($r['fecha_hora'])); ?>', '<?php echo $r['meet_link']; ?>')" title="Copiar invitación">
+                                                <i class="ph-bold ph-copy"></i>
+                                            </button>
+                                            <button type="button" class="squircle-action-btn btn-meet-wa" onclick="sendWhatsApp('<?php echo addslashes($r['motivo']); ?>', '<?php echo date('h:i A d M, Y', strtotime($r['fecha_hora'])); ?>', '<?php echo $r['meet_link']; ?>', '<?php echo htmlspecialchars($r['client_whatsapp'] ?? ''); ?>', '<?php echo htmlspecialchars($r['whatsapp_group'] ?? ''); ?>')" title="Enviar por WhatsApp">
+                                                <i class="ph-bold ph-whatsapp-logo"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                        <a href="index.php?module=reuniones&action=view&id=<?php echo $r['id']; ?>" class="btn-detail-link">
+                                            <span>Detalle</span>
+                                            <i class="ph-bold ph-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile Modern Cards Grid -->
+            <div class="reuniones-mobile-grid">
+                <?php foreach($reuniones as $r): ?>
+                    <?php
+                        $pillClass = 'status-pill-programada';
+                        if($r['estado'] === 'Completada') $pillClass = 'status-pill-completada';
+                        elseif($r['estado'] === 'Cancelada' || $r['estado'] === 'Eliminada') $pillClass = 'status-pill-cancelada';
+                    ?>
+                    <div class="meet-mobile-card">
+                        <div class="meet-mobile-top">
+                            <div style="display: flex; gap: 0.75rem; align-items: center; min-width: 0;">
+                                <div class="brand-squircle-avatar" style="width: 40px; height: 40px; border-radius: 11px;">
+                                    <?php if(!empty($r['brand_logo']) && file_exists($r['brand_logo'])): ?>
+                                        <img src="<?php echo htmlspecialchars($r['brand_logo']); ?>" alt="<?php echo htmlspecialchars($r['brand_name']); ?>">
+                                    <?php else: ?>
+                                        <span style="color: var(--primary-color, #4f46e5); font-size: 1rem;"><?php echo strtoupper(substr($r['brand_name'] ?: 'R', 0, 1)); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div style="min-width: 0;">
+                                    <a href="index.php?module=reuniones&action=view&id=<?php echo $r['id']; ?>" class="meet-title-link" style="font-size: 0.92rem;">
+                                        <?php echo htmlspecialchars($r['motivo']); ?>
+                                    </a>
+                                    <div class="brand-chip-label" style="margin-top: 2px;">
+                                        <?php echo htmlspecialchars($r['brand_name'] ?: 'Reunión General'); ?>
                                     </div>
                                 </div>
-                            </td>
-                            <td>
-                                <div style="font-size: 0.9rem; font-weight: 500;">
-                                    <?php echo date('d M, Y', strtotime($r['fecha_hora'])); ?>
-                                </div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted);">
-                                    <?php echo date('h:i A', strtotime($r['fecha_hora'])); ?>
-                                </div>
-                            </td>
-                            <td class="col-estado">
-                                <?php
-                                    $statusClass = 'status-programada';
-                                    if($r['estado'] === 'Completada') $statusClass = 'status-completada';
-                                    elseif($r['estado'] === 'Cancelada') $statusClass = 'status-cancelada';
-                                ?>
-                                <span class="status-badge <?php echo $statusClass; ?>"><?php echo $r['estado']; ?></span>
-                            </td>
-                            <td class="col-enlaces">
-                                <div style="display:flex; justify-content:center; gap:0.35rem;">
-                                    <?php if($r['meet_link']): ?>
-                                        <a href="<?php echo htmlspecialchars($r['meet_link']); ?>" target="_blank" class="icon-btn meet" title="Abrir Google Meet">
-                                            <i class="ph ph-video-camera"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if($r['recording_link']): ?>
-                                        <a href="<?php echo htmlspecialchars($r['recording_link']); ?>" target="_blank" class="icon-btn recording" title="Ver Grabación">
-                                            <i class="ph ph-play-circle"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if($r['resumen']): ?>
-                                        <span class="icon-btn gemini" title="Notas Gemini Guardadas" style="cursor:default;">
-                                            <i class="ph ph-sparkle"></i>
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                            <td class="col-acciones">
-                                <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
-                                    <?php if($r['meet_link']): ?>
-                                    <button class="icon-btn copy" onclick="copyInvitation('<?php echo addslashes($r['motivo']); ?>', '<?php echo date('h:i A d M, Y', strtotime($r['fecha_hora'])); ?>', '<?php echo $r['meet_link']; ?>')" title="Copiar Invitación">
-                                        <i class="ph ph-copy"></i>
-                                    </button>
-                                    <button class="icon-btn" style="color: #25D366; border-color: #25D366; background: transparent;" onmouseover="this.style.background='#dcf8c6'" onmouseout="this.style.background='transparent'" onclick="sendWhatsApp('<?php echo addslashes($r['motivo']); ?>', '<?php echo date('h:i A d M, Y', strtotime($r['fecha_hora'])); ?>', '<?php echo $r['meet_link']; ?>', '<?php echo htmlspecialchars($r['client_whatsapp'] ?? ''); ?>', '<?php echo htmlspecialchars($r['whatsapp_group'] ?? ''); ?>')" title="Enviar por WhatsApp">
-                                        <i class="ph ph-whatsapp-logo"></i>
-                                    </button>
-                                    <?php endif; ?>
-                                    <a href="index.php?module=reuniones&action=view&id=<?php echo $r['id']; ?>" class="btn btn-primary" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; border-radius: 8px;">
-                                        Detalle <i class="ph ph-arrow-right"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                            </div>
+                            <span class="status-pill-modern <?php echo $pillClass; ?>" style="font-size: 0.68rem; padding: 0.2rem 0.55rem;">
+                                <span class="status-dot"></span>
+                                <?php echo htmlspecialchars($r['estado']); ?>
+                            </span>
+                        </div>
 
-        <!-- Mobile Cards -->
-        <div class="reuniones-mobile-cards" style="padding: 0.75rem;">
-            <?php foreach($reuniones as $idx => $r): ?>
-                <?php
-                    $cardStatusClass = 'card-programada';
-                    if($r['estado'] === 'Completada') $cardStatusClass = 'card-completada';
-                    elseif($r['estado'] === 'Cancelada') $cardStatusClass = 'card-cancelada';
-                ?>
-                <div class="reunion-card <?php echo $cardStatusClass; ?>" style="animation-delay: <?php echo $idx * 0.05; ?>s;">
-                    <div class="reunion-card-header">
-                        <?php if($r['brand_logo']): ?>
-                            <img src="<?php echo htmlspecialchars($r['brand_logo']); ?>" class="reunion-card-avatar">
-                        <?php else: ?>
-                            <div class="reunion-card-avatar-placeholder">
-                                <?php echo substr($r['brand_name'], 0, 1); ?>
+                        <?php if(!empty($r['tags'])): ?>
+                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                <?php $tags = explode(',', $r['tags']); foreach($tags as $t): $t = trim($t); if(!$t) continue; ?>
+                                    <span class="tag-micro-pill"><i class="ph-bold ph-tag"></i><?php echo htmlspecialchars($t); ?></span>
+                                <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
-                        <div style="flex:1; min-width:0;">
-                            <div class="reunion-card-title"><?php echo htmlspecialchars($r['motivo']); ?></div>
-                            <div class="reunion-card-brand"><?php echo htmlspecialchars($r['brand_name']); ?></div>
-                        </div>
-                        <?php
-                            $statusClass = 'status-programada';
-                            if($r['estado'] === 'Completada') $statusClass = 'status-completada';
-                            elseif($r['estado'] === 'Cancelada') $statusClass = 'status-cancelada';
-                        ?>
-                        <span class="status-badge <?php echo $statusClass; ?>" style="flex-shrink:0;"><?php echo $r['estado']; ?></span>
-                    </div>
 
-                    <?php if(!empty($r['tags'])): ?>
-                        <div class="reunion-card-tags">
-                            <?php $tags = explode(',', $r['tags']); foreach($tags as $t): $t = trim($t); if(!$t) continue; ?>
-                                <span class="tag-pill"><i class="ph ph-tag" style="margin-right:2px;"></i><?php echo htmlspecialchars($t); ?></span>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
+                        <div class="meet-mobile-footer">
+                            <div class="time-secondary">
+                                <i class="ph-bold ph-calendar-blank"></i>
+                                <span><?php echo date('d M', strtotime($r['fecha_hora'])); ?> · <?php echo date('h:i A', strtotime($r['fecha_hora'])); ?></span>
+                            </div>
 
-                    <div class="reunion-card-meta">
-                        <div class="reunion-card-date">
-                            <i class="ph ph-calendar-blank"></i>
-                            <?php echo date('d M, Y', strtotime($r['fecha_hora'])); ?> · <?php echo date('h:i A', strtotime($r['fecha_hora'])); ?>
-                        </div>
-                        <div class="reunion-card-actions">
-                            <?php if($r['meet_link']): ?>
-                                <a href="<?php echo htmlspecialchars($r['meet_link']); ?>" target="_blank" class="icon-btn meet" title="Meet">
-                                    <i class="ph ph-video-camera"></i>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <?php if(!empty($r['meet_link'])): ?>
+                                    <a href="<?php echo htmlspecialchars($r['meet_link']); ?>" target="_blank" class="squircle-action-btn btn-meet-video" style="width: 32px; height: 32px; font-size: 0.95rem;" title="Meet">
+                                        <i class="ph-bold ph-video-camera"></i>
+                                    </a>
+                                    <button type="button" class="squircle-action-btn btn-meet-wa" style="width: 32px; height: 32px; font-size: 0.95rem;" onclick="sendWhatsApp('<?php echo addslashes($r['motivo']); ?>', '<?php echo date('h:i A d M, Y', strtotime($r['fecha_hora'])); ?>', '<?php echo $r['meet_link']; ?>', '<?php echo htmlspecialchars($r['client_whatsapp'] ?? ''); ?>', '<?php echo htmlspecialchars($r['whatsapp_group'] ?? ''); ?>')" title="WhatsApp">
+                                        <i class="ph-bold ph-whatsapp-logo"></i>
+                                    </button>
+                                <?php endif; ?>
+                                <a href="index.php?module=reuniones&action=view&id=<?php echo $r['id']; ?>" class="btn-detail-link" style="padding: 0.38rem 0.75rem; font-size: 0.76rem;">
+                                    <span>Ver</span>
+                                    <i class="ph-bold ph-arrow-right"></i>
                                 </a>
-                            <?php endif; ?>
-                            <?php if($r['recording_link']): ?>
-                                <a href="<?php echo htmlspecialchars($r['recording_link']); ?>" target="_blank" class="icon-btn recording" title="Grabación">
-                                    <i class="ph ph-play-circle"></i>
-                                </a>
-                            <?php endif; ?>
-                            <?php if($r['meet_link']): ?>
-                                <button class="icon-btn copy" onclick="copyInvitation('<?php echo addslashes($r['motivo']); ?>', '<?php echo date('h:i A d M, Y', strtotime($r['fecha_hora'])); ?>', '<?php echo $r['meet_link']; ?>')" title="Copiar">
-                                    <i class="ph ph-copy"></i>
-                                </button>
-                                <button class="icon-btn" style="color: #25D366; border-color: #25D366; background: transparent;" onclick="sendWhatsApp('<?php echo addslashes($r['motivo']); ?>', '<?php echo date('h:i A d M, Y', strtotime($r['fecha_hora'])); ?>', '<?php echo $r['meet_link']; ?>', '<?php echo htmlspecialchars($r['client_whatsapp'] ?? ''); ?>', '<?php echo htmlspecialchars($r['whatsapp_group'] ?? ''); ?>')" title="Enviar por WhatsApp">
-                                    <i class="ph ph-whatsapp-logo"></i>
-                                </button>
-                            <?php endif; ?>
-                            <a href="index.php?module=reuniones&action=view&id=<?php echo $r['id']; ?>" class="icon-btn" style="background:var(--primary-color); color:white; border-color:var(--primary-color);" title="Ver detalle">
-                                <i class="ph ph-arrow-right"></i>
-                            </a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                <?php endforeach; ?>
+            </div>
 
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
 </div>
 
 <script>
-function toggleFilters() {
-    const container = document.getElementById('filters-container');
-    const btn = document.getElementById('filter-toggle');
-    container.classList.toggle('show');
-    btn.classList.toggle('active');
+function copyInvitation(title, datetime, link) {
+    const textToCopy = `${title}\n${datetime}\n${link}\nTe esperamos en la reunión.`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        Swal.fire({
+            title: '¡Copiado!',
+            text: 'Enlace e invitación copiada al portapapeles.',
+            icon: 'success',
+            timer: 1600,
+            showConfirmButton: false
+        });
+    }).catch(err => {
+        Swal.fire('Error', 'No se pudo copiar la invitación.', 'error');
+    });
+}
+
+function sendWhatsApp(title, datetime, link, clientPhone, groupPhone) {
+    const textToCopy = `Hola, te comparto el enlace para nuestra reunión:\n\n*${title}*\n📅 ${datetime}\n🔗 ${link}\n\nTe esperamos.`;
+    const escapedMsg = textToCopy.replace(/`/g, '\\`');
+
+    const optionsHtml = `
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+            <button class="swal2-confirm swal2-styled" style="background-color: #25D366; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px; border-radius: 12px;" onclick="executeSendWA('${groupPhone}', \`${escapedMsg}\`)">
+                <i class="ph ph-users"></i> Enviar al Grupo del Proyecto
+            </button>
+            <button class="swal2-confirm swal2-styled" style="background-color: #128C7E; width:100%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px; border-radius: 12px;" onclick="executeSendWA('${clientPhone}', \`${escapedMsg}\`)">
+                <i class="ph ph-user"></i> Enviar al Cliente Directo
+            </button>
+        </div>
+    `;
+    
+    Swal.fire({
+        title: 'Enviar Invitación',
+        html: optionsHtml,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Cancelar'
+    });
+}
+
+function executeSendWA(phone, msg) {
+    if (!phone || phone === 'undefined' || phone === 'null') {
+        Swal.fire('Atención', 'No hay un número o ID de grupo registrado para esta opción.', 'warning');
+        return;
+    }
+    Swal.fire({
+        title: 'Enviando...',
+        text: 'Por favor espera',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+    
+    fetch('ajax/send_meet_whatsapp.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone, message: msg })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            Swal.fire('Enviado', 'La invitación se envió por WhatsApp correctamente.', 'success');
+        } else {
+            Swal.fire('Error', res.error || 'No se pudo enviar el mensaje', 'error');
+        }
+    })
+    .catch(err => {
+        Swal.fire('Error', 'Error de conexión', 'error');
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -936,39 +1329,30 @@ document.addEventListener('DOMContentLoaded', () => {
         url.search = params.toString();
 
         const skeletonHtml = `
-            <div style="padding: 1.5rem;">
-                <div class="sk-row" style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:1.5rem; margin-bottom:1.5rem;">
-                    <div style="display:flex; gap:1rem; width:40%;">
-                        <div class="sk-box" style="width:40px; height:40px; border-radius:8px;"></div>
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
-                            <div class="sk-box" style="width:80%; height:16px;"></div>
-                            <div class="sk-box" style="width:50%; height:12px;"></div>
+            <div class="reuniones-table-card" style="padding: 1.5rem;">
+                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; gap:1rem; width:45%;">
+                            <div class="sk-box" style="width:44px; height:44px; border-radius:13px;"></div>
+                            <div style="display:flex; flex-direction:column; gap:0.5rem; width:80%;">
+                                <div class="sk-box" style="width:80%; height:16px;"></div>
+                                <div class="sk-box" style="width:40%; height:12px;"></div>
+                            </div>
                         </div>
+                        <div class="sk-box" style="width:20%; height:24px;"></div>
+                        <div class="sk-box" style="width:15%; height:32px;"></div>
                     </div>
-                    <div class="sk-box" style="width:20%; height:20px; align-self:center;"></div>
-                    <div class="sk-box" style="width:10%; height:30px; align-self:center;"></div>
-                </div>
-                <div class="sk-row" style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:1.5rem; margin-bottom:1.5rem;">
-                    <div style="display:flex; gap:1rem; width:40%;">
-                        <div class="sk-box" style="width:40px; height:40px; border-radius:8px; animation-delay:0.1s;"></div>
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
-                            <div class="sk-box" style="width:70%; height:16px; animation-delay:0.1s;"></div>
-                            <div class="sk-box" style="width:60%; height:12px; animation-delay:0.1s;"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; gap:1rem; width:45%;">
+                            <div class="sk-box" style="width:44px; height:44px; border-radius:13px;"></div>
+                            <div style="display:flex; flex-direction:column; gap:0.5rem; width:80%;">
+                                <div class="sk-box" style="width:70%; height:16px;"></div>
+                                <div class="sk-box" style="width:50%; height:12px;"></div>
+                            </div>
                         </div>
+                        <div class="sk-box" style="width:20%; height:24px;"></div>
+                        <div class="sk-box" style="width:15%; height:32px;"></div>
                     </div>
-                    <div class="sk-box" style="width:20%; height:20px; align-self:center; animation-delay:0.1s;"></div>
-                    <div class="sk-box" style="width:10%; height:30px; align-self:center; animation-delay:0.1s;"></div>
-                </div>
-                <div class="sk-row" style="display:flex; justify-content:space-between; padding-bottom:1.5rem;">
-                    <div style="display:flex; gap:1rem; width:40%;">
-                        <div class="sk-box" style="width:40px; height:40px; border-radius:8px; animation-delay:0.2s;"></div>
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
-                            <div class="sk-box" style="width:75%; height:16px; animation-delay:0.2s;"></div>
-                            <div class="sk-box" style="width:45%; height:12px; animation-delay:0.2s;"></div>
-                        </div>
-                    </div>
-                    <div class="sk-box" style="width:20%; height:20px; align-self:center; animation-delay:0.2s;"></div>
-                    <div class="sk-box" style="width:10%; height:30px; align-self:center; animation-delay:0.2s;"></div>
                 </div>
             </div>
         `;
@@ -984,23 +1368,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const newTable = doc.getElementById('reuniones-list-container');
             if (newTable) {
                 listContainer.innerHTML = newTable.innerHTML;
-                // Update URL without reloading
                 window.history.replaceState({}, '', url.toString());
             }
         });
     };
 
-    // Listen to changes in selects
     document.getElementById('filter-brand').addEventListener('change', fetchResults);
     document.getElementById('filter-status').addEventListener('change', fetchResults);
 
-    // Listen to typing in search (with debounce)
     document.getElementById('filter-search').addEventListener('input', () => {
         clearTimeout(timeout);
-        timeout = setTimeout(fetchResults, 400);
+        timeout = setTimeout(fetchResults, 350);
     });
 
-    // Prevent default form submission to keep it pure AJAX
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         fetchResults();
@@ -1025,16 +1405,15 @@ async function syncGeminiNotes() {
         try {
             data = await res.json();
         } catch (e) {
-            // Fallback en caso de que devuelva texto (errores de PHP)
             const text = await res.text();
             data = { success: false, log: [text] };
         }
         
         let logHtml = '';
         if (data.log && data.log.length > 0) {
-            logHtml = '<ul style="text-align: left; background: var(--bg-color, #f8fafc); padding: 1rem 1rem 1rem 2rem; border-radius: 8px; font-size: 0.9rem; max-height: 300px; overflow-y: auto; margin: 0; color: var(--text-main, #334155); border: 1px solid var(--border-color, #e2e8f0);">';
+            logHtml = '<ul style="text-align: left; background: var(--bg-color, #f8fafc); padding: 1rem 1rem 1rem 2rem; border-radius: 8px; font-size: 0.88rem; max-height: 280px; overflow-y: auto; margin: 0; color: var(--text-main, #334155); border: 1px solid var(--border-color, #e2e8f0);">';
             data.log.forEach(item => {
-                logHtml += `<li style="margin-bottom: 0.5rem; line-height: 1.4;">${item}</li>`;
+                logHtml += `<li style="margin-bottom: 0.4rem; line-height: 1.4;">${item}</li>`;
             });
             logHtml += '</ul>';
         } else {
