@@ -264,11 +264,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_locked) {
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-500/20 selection:text-emerald-500">
+<body class="min-h-screen min-h-[100dvh] bg-[var(--bg-card)] lg:bg-[var(--bg-body)] selection:bg-emerald-500/20 selection:text-emerald-500 overflow-x-hidden">
 
-<!-- Top Floating Theme Toggle Button -->
-<div class="fixed top-5 right-5 z-50">
-    <button id="themeToggleBtn" onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm hover:scale-105 active:scale-95 transition-all" title="Cambiar tema (Claro/Oscuro)">
+<!-- Desktop Floating Theme Toggle Button -->
+<div class="hidden lg:block fixed top-6 right-6 z-50">
+    <button id="themeToggleBtn" onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer" title="Cambiar tema (Claro/Oscuro)">
         <i class="ph ph-sun text-lg hidden" id="iconLight"></i>
         <i class="ph ph-moon text-lg" id="iconDark"></i>
     </button>
@@ -346,18 +346,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_locked) {
     </section>
 
     <!-- RIGHT PANEL: Authentication Form Zone -->
-    <section class="w-full lg:w-5/12 flex flex-col justify-center items-center p-6 sm:p-10 xl:p-14 bg-[var(--bg-card)] relative">
+    <section class="w-full lg:w-5/12 min-h-screen min-h-[100dvh] flex-1 flex flex-col justify-between items-center p-5 sm:p-8 xl:p-14 bg-[var(--bg-card)] relative">
         
-        <div class="w-full max-w-[420px] mx-auto">
-            
+        <!-- Mobile Header Bar: Theme Toggle -->
+        <div class="w-full max-w-[420px] flex justify-end items-center mb-3 lg:hidden">
+            <button type="button" onclick="toggleTheme()" class="w-9 h-9 rounded-full flex items-center justify-center border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm active:scale-95 transition-all cursor-pointer" title="Cambiar tema (Claro/Oscuro)">
+                <i class="ph ph-sun text-base hidden mobile-icon-light"></i>
+                <i class="ph ph-moon text-base mobile-icon-dark"></i>
+            </button>
+        </div>
 
+        <div class="w-full max-w-[420px] mx-auto my-auto">
+            
             <!-- Segmented Control Tab Switcher (iOS / Mac Style) -->
             <div class="bg-[var(--tab-bg)] p-1 rounded-xl flex items-center mb-6 relative border border-[var(--border)]">
-                <button type="button" id="tabBtnAgency" onclick="switchAuthTab('agency')" class="flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm">
+                <button type="button" id="tabBtnAgency" onclick="switchAuthTab('agency')" class="flex-1 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm">
                     <i class="ph-bold ph-briefcase"></i>
                     <span>Equipo Agencia</span>
                 </button>
-                <button type="button" id="tabBtnClient" onclick="switchAuthTab('client')" class="flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]">
+                <button type="button" id="tabBtnClient" onclick="switchAuthTab('client')" class="flex-1 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]">
                     <i class="ph-bold ph-user-circle"></i>
                     <span>Soy Cliente</span>
                 </button>
@@ -470,15 +477,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_locked) {
                     </button>
                 </div>
             </div>
+        </div>
 
-            <!-- Footer Security Guarantee -->
-            <div class="mt-8 pt-5 border-t border-[var(--border)] text-center">
-                <div class="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] font-medium">
-                    <i class="ph-fill ph-shield-check text-emerald-500 text-sm"></i>
-                    <span>Sesión Blindada con Protección Anti-Fuerza Bruta &bull; Roma Shield</span>
-                </div>
+        <!-- Footer Security Guarantee -->
+        <div class="w-full max-w-[420px] mx-auto mt-6 pt-4 border-t border-[var(--border)] text-center">
+            <div class="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] font-medium">
+                <i class="ph-fill ph-shield-check text-emerald-500 text-sm"></i>
+                <span>Sesión Blindada con Protección Anti-Fuerza Bruta &bull; Roma Shield</span>
             </div>
-
         </div>
     </section>
 </main>
@@ -497,17 +503,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_locked) {
         localStorage.setItem('roma_theme', theme);
         const iconLight = document.getElementById('iconLight');
         const iconDark = document.getElementById('iconDark');
+        const mobileIconLight = document.querySelector('.mobile-icon-light');
+        const mobileIconDark = document.querySelector('.mobile-icon-dark');
         const logosLight = document.querySelectorAll('.logo-for-light');
         const logosDark = document.querySelectorAll('.logo-for-dark');
 
         if (theme === 'dark') {
-            iconLight.classList.remove('hidden');
-            iconDark.classList.add('hidden');
+            if (iconLight) iconLight.classList.remove('hidden');
+            if (iconDark) iconDark.classList.add('hidden');
+            if (mobileIconLight) mobileIconLight.classList.remove('hidden');
+            if (mobileIconDark) mobileIconDark.classList.add('hidden');
             logosLight.forEach(el => el.classList.add('hidden'));
             logosDark.forEach(el => el.classList.remove('hidden'));
         } else {
-            iconLight.classList.add('hidden');
-            iconDark.classList.remove('hidden');
+            if (iconLight) iconLight.classList.add('hidden');
+            if (iconDark) iconDark.classList.remove('hidden');
+            if (mobileIconLight) mobileIconLight.classList.add('hidden');
+            if (mobileIconDark) mobileIconDark.classList.remove('hidden');
             logosLight.forEach(el => el.classList.remove('hidden'));
             logosDark.forEach(el => el.classList.add('hidden'));
         }
@@ -529,13 +541,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_locked) {
         const formClient = document.getElementById('formClient');
 
         if (tab === 'agency') {
-            tabAgency.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm';
-            tabClient.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]';
+            tabAgency.className = 'flex-1 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm';
+            tabClient.className = 'flex-1 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]';
             formAgency.classList.remove('hidden');
             formClient.classList.add('hidden');
         } else {
-            tabClient.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm';
-            tabAgency.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]';
+            tabClient.className = 'flex-1 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm';
+            tabAgency.className = 'flex-1 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]';
             formAgency.classList.add('hidden');
             formClient.classList.remove('hidden');
         }
