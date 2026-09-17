@@ -107,26 +107,6 @@ $seo_title = $site_name_seo . ($global_settings['seo_title_suffix'] ?? ' | Gesti
 $seo_desc = $global_settings['seo_description'] ?? 'Eleve su productividad al siguiente nivel. Gestione sus proyectos, analice datos en tiempo real y coordine a su equipo.';
 $seo_keys = $global_settings['seo_keywords'] ?? 'CRM, Gestión de Proyectos, Análisis de Datos, Productividad, Agencia';
 $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
-
-// Canales y contacto desde configuración
-$company_email = !empty($global_settings['company_email']) ? $global_settings['company_email'] : 'agencia@romaagencia.com';
-$company_whatsapp = !empty($global_settings['company_whatsapp']) ? $global_settings['company_whatsapp'] : '';
-
-$social_fb = !empty($global_settings['social_facebook']) ? $global_settings['social_facebook'] : '#';
-$social_ig = !empty($global_settings['social_instagram']) ? $global_settings['social_instagram'] : '#';
-
-// Manejo inteligente de TikTok y LinkedIn
-$social_tt = !empty($global_settings['social_tiktok']) ? $global_settings['social_tiktok'] : '';
-$social_li = !empty($global_settings['social_linkedin']) ? $global_settings['social_linkedin'] : '';
-if (empty($social_tt) && !empty($social_li) && strpos($social_li, 'tiktok') !== false) {
-    $social_tt = $social_li;
-    $social_li = '#';
-}
-if (empty($social_tt)) $social_tt = '#';
-if (empty($social_li)) $social_li = '#';
-
-$logo_light = !empty($global_settings['logo_light']) ? $global_settings['logo_light'] : '';
-$logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark'] : '';
 ?>
 <!DOCTYPE html>
 <html lang="es" data-theme="light">
@@ -152,6 +132,11 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
     <link rel="icon" href="<?php echo htmlspecialchars($global_settings['favicon']); ?>">
     <link rel="apple-touch-icon" href="<?php echo htmlspecialchars($global_settings['favicon']); ?>">
     <?php endif; ?>
+
+    <!-- Preload Slider Images for Butter-Smooth Transitions -->
+    <link rel="preload" as="image" href="assets/img/login_slide_1.jpg">
+    <link rel="preload" as="image" href="assets/img/login_slide_2.jpg">
+    <link rel="preload" as="image" href="assets/img/login_slide_3.jpg">
 
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -185,11 +170,6 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
             --text-subtitle: #a1a1aa;
             --text-label: #f4f4f5;
             --text-muted: #a1a1aa;
-            --contact-bg: rgba(26, 26, 34, 0.9);
-            --contact-border: rgba(255, 255, 255, 0.12);
-            --social-btn-bg: #27272a;
-            --social-btn-border: rgba(255, 255, 255, 0.15);
-            --tiktok-color: #ffffff;
             --input-bg: #18181f;
             --input-border: #3f3f46;
             --input-text: #ffffff;
@@ -213,11 +193,6 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
             --text-subtitle: #475569;
             --text-label: #1e293b;
             --text-muted: #64748b;
-            --contact-bg: #f8fafc;
-            --contact-border: #e2e8f0;
-            --social-btn-bg: #ffffff;
-            --social-btn-border: #cbd5e1;
-            --tiktok-color: #000000;
             --input-bg: #ffffff;
             --input-border: #cbd5e1;
             --input-text: #0f172a;
@@ -235,7 +210,7 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
+            background-color: #030306;
             color: var(--text-title);
         }
 
@@ -247,12 +222,57 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
             font-family: var(--font-serif);
         }
 
-        /* Full Background Art Landscape */
-        .art-background-container {
-            background-image: url('assets/img/login_art_bg.jpg');
+        /* --- Modern Cinematic Background Slider --- */
+        .slider-container {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+            background-color: #030306;
+            pointer-events: none;
+        }
+
+        .slider-slide {
+            position: absolute;
+            inset: -4%;
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
+            opacity: 0;
+            transform: scale(1.0);
+            transition: opacity 1.8s cubic-bezier(0.25, 1, 0.5, 1), transform 9s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: opacity, transform;
+        }
+
+        .slider-slide.active {
+            opacity: 1;
+            transform: scale(1.08);
+        }
+
+        /* Modern Slide Indicators (Pills with Progress) */
+        .slide-nav-track {
+            width: 36px;
+            height: 3px;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.25);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .slide-nav-track:hover {
+            background: rgba(255, 255, 255, 0.45);
+            height: 4px;
+        }
+        .slide-nav-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 0%;
+            background: #ffffff;
+            border-radius: 9999px;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
         }
 
         /* Bottom Defocus Blur Overlay */
@@ -262,7 +282,7 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
             left: 0;
             right: 0;
             height: 48%;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.35) 45%, transparent 100%);
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.35) 45%, transparent 100%);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
             mask-image: linear-gradient(to top, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 100%);
@@ -359,7 +379,14 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
         }
     </style>
 </head>
-<body class="min-h-screen min-h-[100dvh] art-background-container relative overflow-x-hidden selection:bg-black selection:text-white flex flex-col justify-between">
+<body class="min-h-screen min-h-[100dvh] relative overflow-x-hidden selection:bg-black selection:text-white flex flex-col justify-between">
+
+    <!-- Background Modern Slider -->
+    <div class="slider-container" id="bgSlider">
+        <div class="slider-slide active" style="background-image: url('assets/img/login_slide_1.jpg');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_2.jpg');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_3.jpg');"></div>
+    </div>
 
     <!-- Subtle Gradients for Legibility -->
     <div class="top-subtle-gradient"></div>
@@ -379,19 +406,46 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
     <!-- MAIN VIEWPORT: Content Grid with Bottom Quote & Floating Login Card -->
     <main class="relative z-20 flex-1 w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-6 sm:py-10 flex flex-col lg:flex-row items-center justify-between gap-10">
 
-        <!-- LEFT SIDE: Frase Motivadora en Español -->
-        <div class="hidden lg:flex flex-col justify-end self-end max-w-xl pb-6 select-none">
-            <h1 class="font-display text-4xl xl:text-5xl font-extrabold text-white leading-[1.14] tracking-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.6)]">
+        <!-- LEFT SIDE: Frase Motivadora en Español y Controles del Slider -->
+        <div class="hidden lg:flex flex-col justify-end self-end max-w-xl pb-6 select-none z-20">
+            <h1 class="font-display text-4xl xl:text-5xl font-extrabold text-white leading-[1.14] tracking-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.65)]">
                 Convertimos tu<br/>
                 proyecto soñado en una <span class="font-quote-serif italic font-normal text-amber-200/95">realidad</span>
             </h1>
             <p class="text-white/90 text-sm mt-3 font-medium drop-shadow-md max-w-md">
                 Plataforma de alta productividad para coordinar proyectos, entregables y finanzas en tiempo real.
             </p>
+
+            <!-- Modern Interactive Slider Navigation -->
+            <div class="flex items-center gap-2.5 mt-6 pointer-events-auto">
+                <button type="button" onclick="goToSlide(0)" class="focus:outline-none p-1" title="Pasear: Río Celestial">
+                    <div class="slide-nav-track">
+                        <div class="slide-nav-progress" id="slideProg-0"></div>
+                    </div>
+                </button>
+                <button type="button" onclick="goToSlide(1)" class="focus:outline-none p-1" title="Pasear: Horizonte Prismático">
+                    <div class="slide-nav-track">
+                        <div class="slide-nav-progress" id="slideProg-1"></div>
+                    </div>
+                </button>
+                <button type="button" onclick="goToSlide(2)" class="focus:outline-none p-1" title="Pasear: Portal Cósmico">
+                    <div class="slide-nav-track">
+                        <div class="slide-nav-progress" id="slideProg-2"></div>
+                    </div>
+                </button>
+                <div class="flex items-center gap-1.5 ml-3">
+                    <button type="button" onclick="prevSlide()" class="w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 border border-white/20 text-white flex items-center justify-center text-xs transition-all active:scale-90 cursor-pointer shadow-sm" title="Anterior">
+                        <i class="ph-bold ph-caret-left"></i>
+                    </button>
+                    <button type="button" onclick="nextSlide()" class="w-7 h-7 rounded-full bg-black/35 hover:bg-black/55 border border-white/20 text-white flex items-center justify-center text-xs transition-all active:scale-90 cursor-pointer shadow-sm" title="Siguiente">
+                        <i class="ph-bold ph-caret-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- RIGHT SIDE: The Redesigned Floating Login Card (High Contrast) -->
-        <div class="w-full max-w-[430px] lg:ml-auto">
+        <div class="w-full max-w-[430px] lg:ml-auto z-20">
             <div class="rounded-[2.2rem] p-6 sm:p-8 login-card-shadow transition-all duration-300" style="background-color: var(--card-bg);">
                 
                 <!-- 1. SALUDO SUPERIOR -->
@@ -423,7 +477,7 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
                     <div class="flex-1" id="loginErrorMessage"><?php echo htmlspecialchars($error); ?></div>
                 </div>
 
-                <!-- 5. FORMULARIO 1: EQUIPO AGENCIA -->
+                <!-- 3. FORMULARIO 1: EQUIPO AGENCIA -->
                 <form id="formAgency" onsubmit="handleAgencyLogin(event)" method="POST" class="space-y-4">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="ajax" value="1">
@@ -475,7 +529,7 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
                     </button>
                 </form>
 
-                <!-- 6. FORMULARIO 2: SOY CLIENTE (Keypad Fintech DNI) -->
+                <!-- 4. FORMULARIO 2: SOY CLIENTE (Keypad Fintech DNI) -->
                 <div id="formClient" class="hidden space-y-4">
                     <div class="text-center">
                         <p class="text-xs font-semibold" style="color: var(--text-subtitle);">Ingresa tu número de documento para consultar proyectos, entregables y pagos.</p>
@@ -496,14 +550,14 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
                     <!-- Teclado Numérico -->
                     <div class="grid grid-cols-3 gap-2 max-w-[260px] mx-auto">
                         <?php for($i = 1; $i <= 9; $i++): ?>
-                            <button type="button" onclick="typeDigit('<?php echo $i; ?>')" class="h-12 rounded-xl text-[var(--keypad-text)] font-display font-bold text-lg active:scale-90 transition-all flex items-center justify-center shadow-xs cursor-pointer border" style="background-color: var(--keypad-btn); border-color: var(--contact-border);">
+                            <button type="button" onclick="typeDigit('<?php echo $i; ?>')" class="h-12 rounded-xl text-[var(--keypad-text)] font-display font-bold text-lg active:scale-90 transition-all flex items-center justify-center shadow-xs cursor-pointer border" style="background-color: var(--keypad-btn); border-color: var(--tab-border);">
                                 <?php echo $i; ?>
                             </button>
                         <?php endfor; ?>
                         <button type="button" onclick="deleteDigit()" class="h-12 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 font-display font-bold text-lg active:scale-90 transition-all flex items-center justify-center border border-rose-500/20 cursor-pointer" title="Borrar">
                             <i class="ph-bold ph-backspace"></i>
                         </button>
-                        <button type="button" onclick="typeDigit('0')" class="h-12 rounded-xl text-[var(--keypad-text)] font-display font-bold text-lg active:scale-90 transition-all flex items-center justify-center shadow-xs cursor-pointer border" style="background-color: var(--keypad-btn); border-color: var(--contact-border);">
+                        <button type="button" onclick="typeDigit('0')" class="h-12 rounded-xl text-[var(--keypad-text)] font-display font-bold text-lg active:scale-90 transition-all flex items-center justify-center shadow-xs cursor-pointer border" style="background-color: var(--keypad-btn); border-color: var(--tab-border);">
                             0
                         </button>
                         <button type="button" id="btnClientSubmit" onclick="submitClientLogin()" class="h-12 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-display font-bold text-lg active:scale-90 transition-all flex items-center justify-center shadow-md cursor-pointer" title="Ingresar">
@@ -513,7 +567,7 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
                 </div>
 
                 <!-- Footer Garantía de Seguridad -->
-                <div class="mt-5 pt-3.5 border-t text-center" style="border-color: var(--contact-border);">
+                <div class="mt-5 pt-3.5 border-t text-center" style="border-color: var(--tab-border);">
                     <div class="inline-flex items-center gap-1.5 text-xs font-semibold" style="color: var(--security-text);">
                         <i class="ph-fill ph-shield-check text-emerald-500 text-sm"></i>
                         <span>Sesión Segura &bull; Roma Shield TLS 1.3</span>
@@ -530,9 +584,21 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
         <h3 class="font-display text-lg font-bold text-white leading-tight drop-shadow">
             Convertimos tu proyecto soñado en una <span class="font-quote-serif italic font-normal text-amber-200">realidad</span>
         </h3>
+        <!-- Mobile Progress Pills -->
+        <div class="flex items-center justify-center gap-2 mt-3 pointer-events-auto">
+            <button type="button" onclick="goToSlide(0)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 1">
+                <div class="slide-nav-progress h-full" id="slideProgMobile-0"></div>
+            </button>
+            <button type="button" onclick="goToSlide(1)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 2">
+                <div class="slide-nav-progress h-full" id="slideProgMobile-1"></div>
+            </button>
+            <button type="button" onclick="goToSlide(2)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 3">
+                <div class="slide-nav-progress h-full" id="slideProgMobile-2"></div>
+            </button>
+        </div>
     </div>
 
-    <!-- 7. OVERLAY TRANSICIÓN A BLANCO Y SALUDO PERSONALIZADO -->
+    <!-- OVERLAY TRANSICIÓN A BLANCO Y SALUDO PERSONALIZADO -->
     <div id="whiteWelcomeOverlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-700 ease-out">
         <div class="text-center px-6 transform translate-y-6 transition-transform duration-700 ease-out" id="whiteWelcomeBox">
             <!-- Icono de Saludo -->
@@ -551,6 +617,83 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
     </div>
 
 <script>
+    // --- Modern Background Slider Controller ---
+    const slides = document.querySelectorAll('.slider-slide');
+    const totalSlides = slides.length;
+    let currentSlide = 0;
+    const slideDuration = 7000; // 7 seconds per slide
+    let slideTimer = null;
+    let progressAnimation = null;
+    let progressStartTime = null;
+
+    function animateSlideProgress(timestamp) {
+        if (!progressStartTime) progressStartTime = timestamp;
+        const elapsed = timestamp - progressStartTime;
+        const percentage = Math.min((elapsed / slideDuration) * 100, 100);
+
+        for (let i = 0; i < totalSlides; i++) {
+            const barDesktop = document.getElementById('slideProg-' + i);
+            const barMobile = document.getElementById('slideProgMobile-' + i);
+            let w = '0%';
+            if (i === currentSlide) {
+                w = percentage + '%';
+            } else if (i < currentSlide) {
+                w = '100%';
+            } else {
+                w = '0%';
+            }
+            if (barDesktop) barDesktop.style.width = w;
+            if (barMobile) barMobile.style.width = w;
+        }
+
+        if (elapsed < slideDuration) {
+            progressAnimation = requestAnimationFrame(animateSlideProgress);
+        }
+    }
+
+    function showSlide(index) {
+        if (progressAnimation) cancelAnimationFrame(progressAnimation);
+        if (slideTimer) clearTimeout(slideTimer);
+
+        slides.forEach((slide, i) => {
+            if (i === index) {
+                slide.classList.add('active');
+            } else {
+                slide.classList.remove('active');
+            }
+        });
+
+        currentSlide = index;
+        progressStartTime = null;
+        progressAnimation = requestAnimationFrame(animateSlideProgress);
+
+        slideTimer = setTimeout(() => {
+            nextSlide();
+        }, slideDuration);
+    }
+
+    function nextSlide() {
+        const next = (currentSlide + 1) % totalSlides;
+        showSlide(next);
+    }
+
+    function prevSlide() {
+        const prev = (currentSlide - 1 + totalSlides) % totalSlides;
+        showSlide(prev);
+    }
+
+    function goToSlide(index) {
+        if (index === currentSlide) return;
+        showSlide(index);
+    }
+
+    // Initialize Slider
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => showSlide(0));
+    } else {
+        showSlide(0);
+    }
+
     // --- Theme Switcher (Dark / Light) ---
     function initTheme() {
         const savedTheme = localStorage.getItem('roma_theme');
