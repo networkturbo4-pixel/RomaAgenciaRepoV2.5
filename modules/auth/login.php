@@ -365,20 +365,8 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
     <div class="top-subtle-gradient"></div>
     <div class="bottom-defocus-overlay"></div>
 
-    <!-- TOP BAR: Solo el Logotipo Corporativo y Conmutador de Tema -->
-    <header class="relative z-20 w-full px-6 sm:px-10 lg:px-12 pt-6 sm:pt-8 flex items-center justify-between">
-        <!-- Solo Logo (Sin texto redundante) -->
-        <div class="flex items-center">
-            <?php if (!empty($logo_light)): ?>
-                <img src="<?php echo htmlspecialchars($logo_light); ?>" alt="<?php echo htmlspecialchars($site_name_seo); ?>" class="h-8 sm:h-9 w-auto object-contain drop-shadow-lg brightness-0 invert" />
-            <?php else: ?>
-                <div class="flex items-center gap-2 text-white font-display font-extrabold text-xl tracking-tight drop-shadow-md">
-                    <i class="ph-fill ph-crown text-amber-300 text-2xl"></i>
-                    <span><?php echo htmlspecialchars($site_name_seo); ?></span>
-                </div>
-            <?php endif; ?>
-        </div>
-
+    <!-- TOP BAR: Conmutador de Tema (Sin logo) -->
+    <header class="relative z-20 w-full px-6 sm:px-10 lg:px-12 pt-6 sm:pt-8 flex items-center justify-end">
         <!-- Right Controls: Theme Toggle Button -->
         <div class="flex items-center gap-3">
             <button id="themeToggleBtn" onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md bg-black/40 hover:bg-black/60 border border-white/25 text-white shadow-lg active:scale-95 transition-all cursor-pointer" title="Cambiar tema (Claro/Oscuro)">
@@ -417,57 +405,13 @@ $logo_dark = !empty($global_settings['logo_dark']) ? $global_settings['logo_dark
                     </p>
                 </div>
 
-                <!-- 2. CARD DE CORREO DE CONTACTO Y REDES SOCIALES (Alto Contraste) -->
-                <div class="rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-xs mb-4" style="background-color: var(--contact-bg); border: 1.5px solid var(--contact-border);">
-                    <!-- Email de Contacto Oficial -->
-                    <div class="min-w-0 flex-1 pl-1">
-                        <span class="block text-[11px] font-bold uppercase tracking-wider leading-none mb-1.5" style="color: var(--text-muted);">Escríbenos a</span>
-                        <a href="mailto:<?php echo htmlspecialchars($company_email); ?>" class="text-xs sm:text-[13px] font-bold text-blue-600 hover:text-blue-700 dark:text-sky-400 dark:hover:text-sky-300 hover:underline truncate block" title="<?php echo htmlspecialchars($company_email); ?>">
-                            <?php echo htmlspecialchars($company_email); ?>
-                        </a>
-                    </div>
-
-                    <!-- Iconos Redes Sociales (Facebook, Instagram, TikTok, LinkedIn) -->
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        <!-- Facebook -->
-                        <a href="<?php echo htmlspecialchars($social_fb); ?>" target="<?php echo $social_fb !== '#' ? '_blank' : '_self'; ?>" rel="noopener noreferrer" class="w-8 h-8 rounded-xl flex items-center justify-center text-[#1877F2] hover:scale-105 active:scale-95 transition-all shadow-xs" style="background-color: var(--social-btn-bg); border: 1.5px solid var(--social-btn-border);" title="Facebook">
-                            <i class="ph-bold ph-facebook-logo text-base"></i>
-                        </a>
-
-                        <!-- Instagram -->
-                        <a href="<?php echo htmlspecialchars($social_ig); ?>" target="<?php echo $social_ig !== '#' ? '_blank' : '_self'; ?>" rel="noopener noreferrer" class="w-8 h-8 rounded-xl flex items-center justify-center text-[#E4405F] hover:scale-105 active:scale-95 transition-all shadow-xs" style="background-color: var(--social-btn-bg); border: 1.5px solid var(--social-btn-border);" title="Instagram">
-                            <i class="ph-bold ph-instagram-logo text-base"></i>
-                        </a>
-
-                        <!-- TikTok -->
-                        <a href="<?php echo htmlspecialchars($social_tt); ?>" target="<?php echo $social_tt !== '#' ? '_blank' : '_self'; ?>" rel="noopener noreferrer" class="w-8 h-8 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xs" style="background-color: var(--social-btn-bg); border: 1.5px solid var(--social-btn-border); color: var(--tiktok-color);" title="TikTok">
-                            <svg class="w-4 h-4" style="fill: var(--tiktok-color);" viewBox="0 0 24 24">
-                                <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-2.887 2.766 2.896 2.896 0 0 1-2.896-2.896 2.896 2.896 0 0 1 2.896-2.896c.328 0 .641.055.932.156V9.28a6.34 6.34 0 0 0-.932-.07 6.346 6.346 0 0 0-6.34 6.347 6.346 6.346 0 0 0 6.34 6.346 6.346 6.346 0 0 0 6.34-6.346V9.014a8.217 8.217 0 0 0 4.76 1.488V7.057a4.774 4.774 0 0 1-1.002-.371z"/>
-                            </svg>
-                        </a>
-
-                        <!-- LinkedIn -->
-                        <a href="<?php echo htmlspecialchars($social_li); ?>" target="<?php echo $social_li !== '#' ? '_blank' : '_self'; ?>" rel="noopener noreferrer" class="w-8 h-8 rounded-xl flex items-center justify-center text-[#0A66C2] hover:scale-105 active:scale-95 transition-all shadow-xs" style="background-color: var(--social-btn-bg); border: 1.5px solid var(--social-btn-border);" title="LinkedIn">
-                            <i class="ph-bold ph-linkedin-logo text-base"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- 3. SEPARADOR OR -->
-                <div class="relative my-4 text-center">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t" style="border-color: var(--contact-border);"></div>
-                    </div>
-                    <span class="relative px-3 text-[10px] font-extrabold uppercase tracking-widest" style="background-color: var(--card-bg); color: var(--text-muted);">OR</span>
-                </div>
-
-                <!-- 4. BOTÓN SWITCHER: EQUIPO AGENCIA / SOY CLIENTE -->
-                <div class="p-1 rounded-xl flex items-center mb-4.5" style="background-color: var(--tab-bg); border: 1.5px solid var(--tab-border);">
-                    <button type="button" id="tabBtnAgency" onclick="switchAuthTab('agency')" class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-xs border" style="background-color: var(--tab-active-bg); color: var(--tab-active-text); border-color: var(--tab-border);">
+                <!-- 2. BOTÓN SWITCHER: EQUIPO AGENCIA / SOY CLIENTE -->
+                <div class="p-1 rounded-xl flex items-center mb-5" style="background-color: var(--tab-bg); border: 1.5px solid var(--tab-border);">
+                    <button type="button" id="tabBtnAgency" onclick="switchAuthTab('agency')" class="flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-xs border" style="background-color: var(--tab-active-bg); color: var(--tab-active-text); border-color: var(--tab-border);">
                         <i class="ph-bold ph-briefcase text-sm"></i>
                         <span>Equipo Agencia</span>
                     </button>
-                    <button type="button" id="tabBtnClient" onclick="switchAuthTab('client')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 border border-transparent" style="color: var(--tab-inactive-text); background-color: transparent;">
+                    <button type="button" id="tabBtnClient" onclick="switchAuthTab('client')" class="flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 border border-transparent" style="color: var(--tab-inactive-text); background-color: transparent;">
                         <i class="ph-bold ph-user-circle text-sm"></i>
                         <span>Soy Cliente</span>
                     </button>
