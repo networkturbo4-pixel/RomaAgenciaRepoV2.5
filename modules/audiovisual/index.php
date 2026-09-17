@@ -4,212 +4,380 @@ require_once 'includes/header.php';
 ?>
 
 <style>
-/* 
-    Modern Audiovisual Production UI
-    Matching Design System & Modern UI Setup
-*/
+/* ==========================================================================
+   MODERN AUDIOVISUAL APP DESIGN SYSTEM
+   Apple Bento UI + Glassmorphic Off-Canvas Drawer
+   ========================================================================== */
+
 :root {
     --av-primary: #f59e0b;
+    --av-primary-rgb: 245, 158, 11;
     --av-secondary: #ef4444;
+    --av-accent: #f97316;
     --av-bg: var(--bg-color, #09090b);
-    --av-card-bg: var(--bg-surface, #141417);
-    --av-text-main: var(--color-title, #f8fafc);
-    --av-text-muted: var(--color-text, #94a3b8);
-    --av-border: var(--border-color, rgba(255, 255, 255, 0.08));
+    --av-card-bg: var(--bg-surface, #ffffff);
+    --av-text-main: var(--color-title, #0f172a);
+    --av-text-muted: var(--color-text, #64748b);
+    --av-border: var(--border-color, rgba(0, 0, 0, 0.08));
+    --av-radius-card: 26px;
+    --av-radius-sub: 18px;
+    --av-radius-pill: 9999px;
+    --av-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --av-shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    --av-shadow-hover: 0 20px 35px -8px rgba(245, 158, 11, 0.12), 0 12px 16px -8px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] {
     --av-primary: #f59e0b;
+    --av-primary-rgb: 245, 158, 11;
     --av-secondary: #ef4444;
-    --av-bg: var(--bg-color, #09090b);
-    --av-card-bg: var(--bg-surface, #141417);
-    --av-text-main: var(--color-title, #f8fafc);
-    --av-text-muted: var(--color-text, #94a3b8);
-    --av-border: var(--border-color, rgba(255, 255, 255, 0.08));
+    --av-accent: #f97316;
+    --av-card-bg: #141721;
+    --av-text-main: #f8fafc;
+    --av-text-muted: #94a3b8;
+    --av-border: rgba(255, 255, 255, 0.08);
+    --av-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --av-shadow-md: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    --av-shadow-hover: 0 22px 40px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(245, 158, 11, 0.15);
 }
 
 .brand-container {
-    padding: 1.5rem;
+    padding: 1.75rem 2rem;
     max-width: 1440px;
     margin: 0 auto;
     font-family: var(--font-family, 'Inter', sans-serif);
 }
 
-/* Header Section App Style */
+/* --- APP HEADER BAR --- */
 .brand-header {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    padding: 1.25rem 1.75rem;
+    background: var(--av-card-bg);
+    border: 1px solid var(--av-border);
+    border-radius: var(--av-radius-card);
+    padding: 1.15rem 1.75rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
     flex-wrap: wrap;
-    gap: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    gap: 1.25rem;
+    box-shadow: var(--av-shadow-md);
+    transition: all 0.3s ease;
 }
 
 .brand-title-group {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.1rem;
 }
 
-.btn-app-cancel {
-    background: var(--bg-color);
-    color: var(--text-main);
-    border: 1px solid var(--border-color);
-    padding: 0.55rem 0.95rem;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 0.88rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: inline-flex;
+.brand-back-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--av-border);
+    display: flex;
     align-items: center;
     justify-content: center;
-    text-decoration: none;
-}
-.btn-app-cancel:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-
-.brand-title h1 {
-    font-size: 1.45rem;
-    font-weight: 700;
     color: var(--av-text-main);
-    margin: 0;
-    letter-spacing: -0.3px;
+    font-size: 1.2rem;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
-.brand-title span {
+[data-theme="dark"] .brand-back-btn {
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+}
+
+.brand-back-btn:hover {
+    background: var(--av-primary);
+    color: #ffffff !important;
+    border-color: var(--av-primary);
+    transform: translateX(-3px) scale(1.05);
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.brand-title-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.brand-kicker {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--av-text-muted);
+    color: var(--av-primary);
 }
 
-.brand-actions .btn-primary {
-    background: var(--color-title, #0f172a);
-    color: var(--bg-surface, #ffffff);
-    border: 1px solid var(--border-color);
-    padding: 0.65rem 1.5rem;
-    border-radius: 9999px;
+.brand-kicker i {
+    font-size: 0.95rem;
+}
+
+.brand-main-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.brand-main-title h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--av-text-main);
+}
+
+.app-count-badge {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    font-size: 0.75rem;
     font-weight: 700;
-    font-size: 0.9rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--av-radius-pill);
+    letter-spacing: 0.2px;
+}
+
+[data-theme="dark"] .app-count-badge {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.brand-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+/* App Search Box */
+.app-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 260px;
+    transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.app-search-box:focus-within {
+    width: 320px;
+}
+
+.app-search-box .search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--av-text-muted);
+    font-size: 1.05rem;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.app-search-box:focus-within .search-icon {
+    color: var(--av-primary);
+}
+
+.app-search-input {
+    width: 100%;
+    padding: 0.62rem 2.4rem 0.62rem 2.6rem;
+    border-radius: var(--av-radius-pill);
+    background: var(--bg-body, #f8fafc);
+    border: 1.5px solid var(--av-border);
+    color: var(--av-text-main);
+    font-size: 0.88rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.25s ease;
+}
+
+[data-theme="dark"] .app-search-input {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.app-search-input:focus {
+    border-color: var(--av-primary);
+    background: var(--av-card-bg);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+.app-search-box .clear-btn {
+    position: absolute;
+    right: 0.85rem;
+    background: transparent;
+    border: none;
+    color: var(--av-text-muted);
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.app-search-box .clear-btn:hover {
+    color: var(--av-text-main);
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.btn-app-primary {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    color: #ffffff !important;
+    border: none;
+    padding: 0.68rem 1.45rem;
+    border-radius: var(--av-radius-pill);
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 6px 20px -4px rgba(245, 158, 11, 0.45);
+}
+
+.btn-app-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 24px -4px rgba(239, 68, 68, 0.5);
+    filter: brightness(1.06);
+}
+
+/* --- SEGMENTED TABS FILTER (APPLE STYLE) --- */
+.app-segmented-container {
+    margin-bottom: 1.75rem;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.app-segmented-control {
+    display: inline-flex;
+    background: var(--av-card-bg);
+    border: 1px solid var(--av-border);
+    padding: 0.35rem;
+    border-radius: var(--av-radius-pill);
+    gap: 0.35rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.segmented-tab {
+    background: transparent;
+    border: none;
+    padding: 0.48rem 1.15rem;
+    border-radius: var(--av-radius-pill);
+    color: var(--av-text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-[data-theme="dark"] .brand-actions .btn-primary {
+.segmented-tab i {
+    font-size: 0.95rem;
+}
+
+.segmented-tab:hover {
+    color: var(--av-text-main);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .segmented-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.segmented-tab.active {
+    background: var(--av-text-main);
+    color: var(--av-card-bg);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .segmented-tab.active {
     background: #ffffff;
     color: #0f172a;
-    border: none;
 }
 
-.brand-actions .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-    filter: brightness(1.08);
+.tab-badge {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--av-radius-pill);
+    font-size: 0.72rem;
+    font-weight: 800;
 }
 
-/* Project Cards Grid */
+.segmented-tab.active .tab-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: inherit;
+}
+
+[data-theme="dark"] .segmented-tab.active .tab-badge {
+    background: rgba(15, 23, 42, 0.15);
+    color: #0f172a;
+}
+
+/* --- APPLE BENTO GRID --- */
 .brand-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.6rem;
 }
-@media (max-width: 480px) {
+
+@media (max-width: 540px) {
     .brand-grid {
         grid-template-columns: 1fr;
         gap: 1.25rem;
     }
 }
 
-.brand-tabs-container {
-    margin-bottom: 1.75rem;
-    display: flex;
-}
-.brand-tabs {
-    display: inline-flex;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    padding: 0.35rem;
-    border-radius: 9999px;
-    gap: 0.35rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-.brand-tab {
-    background: transparent;
-    border: none;
-    padding: 0.55rem 1.35rem;
-    border-radius: 9999px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--av-text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    transition: all 0.2s ease;
-}
-.brand-tab:hover {
-    color: var(--av-text-main);
-}
-.brand-tab.active {
-    background: var(--bg-color);
-    color: var(--av-text-main);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-.brand-tab.active i {
-    color: #f59e0b;
-}
-
-/* Ultra Modern App Style Project Card */
+/* Project Card Bento Style */
 .project-card {
-    background: var(--bg-surface, #141417);
-    border-radius: 24px;
-    padding: 1.4rem;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    background: var(--av-card-bg);
+    border: 1px solid var(--av-border);
+    border-radius: var(--av-radius-card);
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    gap: 1.25rem;
+    box-shadow: var(--av-shadow-sm);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative;
     overflow: hidden;
 }
 
-[data-theme="light"] .project-card {
-    background: #ffffff;
-    border-color: #e2e8f0;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+.project-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #f59e0b, #ef4444);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .project-card:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, #f59e0b 40%, var(--border-color, rgba(255, 255, 255, 0.08)));
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.35), 0 0 20px color-mix(in srgb, #f59e0b 10%, transparent);
+    transform: translateY(-5px);
+    box-shadow: var(--av-shadow-hover);
+    border-color: rgba(245, 158, 11, 0.3);
 }
 
-[data-theme="light"] .project-card:hover {
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12), 0 0 15px color-mix(in srgb, #f59e0b 8%, transparent);
+.project-card:hover::before {
+    opacity: 1;
 }
 
-/* Card Top Bar (Status, Timer, Menu) */
+/* Card Top Bar */
 .app-card-top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
 }
 
 .app-card-badges-left {
@@ -217,72 +385,58 @@ require_once 'includes/header.php';
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    flex: 1;
 }
 
+/* Status Pill with Pulsing LED */
 .app-status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: 9999px;
+    gap: 0.45rem;
+    padding: 0.28rem 0.75rem;
+    border-radius: var(--av-radius-pill);
     font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+    font-weight: 800;
     text-transform: uppercase;
+    letter-spacing: 0.6px;
     border: 1px solid transparent;
 }
-.app-status-badge .status-dot {
+
+.status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     display: inline-block;
 }
+
 .app-status-badge.active,
 .app-status-badge.activo {
-    background: rgba(16, 185, 129, 0.14);
-    color: #10b981;
-    border-color: rgba(16, 185, 129, 0.35);
-}
-[data-theme="light"] .app-status-badge.active,
-[data-theme="light"] .app-status-badge.activo {
     background: rgba(16, 185, 129, 0.12);
-    color: #047857;
-    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.25);
 }
 .app-status-badge.active .status-dot,
 .app-status-badge.activo .status-dot {
     background: #10b981;
-    box-shadow: 0 0 6px #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: ledPulse 2s infinite;
 }
 
 .app-status-badge.pending,
 .app-status-badge.pendiente {
-    background: rgba(245, 158, 11, 0.14);
-    color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.35);
-}
-[data-theme="light"] .app-status-badge.pending,
-[data-theme="light"] .app-status-badge.pendiente {
     background: rgba(245, 158, 11, 0.12);
-    color: #b45309;
+    color: #f59e0b;
     border-color: rgba(245, 158, 11, 0.3);
 }
 .app-status-badge.pending .status-dot,
 .app-status-badge.pendiente .status-dot {
     background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
 }
 
 .app-status-badge.completed,
 .app-status-badge.completado {
-    background: rgba(99, 102, 241, 0.14);
-    color: #818cf8;
-    border-color: rgba(99, 102, 241, 0.35);
-}
-[data-theme="light"] .app-status-badge.completed,
-[data-theme="light"] .app-status-badge.completado {
     background: rgba(99, 102, 241, 0.12);
-    color: #4338ca;
+    color: #818cf8;
     border-color: rgba(99, 102, 241, 0.3);
 }
 .app-status-badge.completed .status-dot,
@@ -292,55 +446,39 @@ require_once 'includes/header.php';
 
 .app-status-badge.archived,
 .app-status-badge.archivado {
-    background: rgba(148, 163, 184, 0.14);
+    background: rgba(148, 163, 184, 0.12);
     color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.35);
-}
-[data-theme="light"] .app-status-badge.archived,
-[data-theme="light"] .app-status-badge.archivado {
-    background: rgba(100, 116, 139, 0.12);
-    color: #475569;
-    border-color: rgba(100, 116, 139, 0.3);
+    border-color: rgba(148, 163, 184, 0.3);
 }
 .app-status-badge.archived .status-dot,
 .app-status-badge.archivado .status-dot {
     background: #94a3b8;
 }
 
+@keyframes ledPulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Timer Pill */
 .modern-timer {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: rgba(245, 158, 11, 0.14);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fbbf24;
-    padding: 0.22rem 0.65rem;
-    border-radius: 9999px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #f59e0b;
+    padding: 0.24rem 0.65rem;
+    border-radius: var(--av-radius-pill);
     font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.3px;
-    font-variant-numeric: tabular-nums;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.2px;
 }
-.modern-timer i {
-    color: #fbbf24;
-    font-size: 0.85rem;
-}
-[data-theme="light"] .modern-timer {
-    background: #fffbeb;
-    border-color: #fde68a;
-    color: #b45309;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-[data-theme="light"] .modern-timer i {
-    color: #d97706;
-}
+
 .modern-timer.expired {
-    background: rgba(239, 68, 68, 0.18) !important;
-    border-color: rgba(239, 68, 68, 0.4) !important;
-    color: #ef4444 !important;
-}
-.modern-timer.expired i {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
     color: #ef4444 !important;
 }
 
@@ -348,92 +486,107 @@ require_once 'includes/header.php';
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: var(--bg-color, #09090b);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    color: var(--text-muted, #94a3b8);
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--av-border);
+    color: var(--av-text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.15rem;
     transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-.app-btn-more:hover {
-    background: var(--border-color);
-    color: var(--text-main, #ffffff);
-    transform: scale(1.05);
 }
 
-/* Project Hero Header */
-.app-card-hero {
+[data-theme="dark"] .app-btn-more {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.app-btn-more:hover {
+    background: var(--av-text-main);
+    color: var(--av-card-bg);
+    transform: scale(1.08);
+}
+
+/* Card Hero (Avatar + Title + Client) */
+.app-bento-hero {
     display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
+    align-items: flex-start;
+    gap: 1rem;
     cursor: pointer;
 }
 
-.app-card-title {
-    margin: 0;
-    font-size: 1.15rem;
+.app-av-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transition: transform 0.25s ease;
+}
+
+.project-card:hover .app-av-avatar {
+    transform: scale(1.06);
+}
+
+.app-av-grad-0 { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); }
+.app-av-grad-1 { background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); }
+.app-av-grad-2 { background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%); }
+.app-av-grad-3 { background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%); }
+
+.app-hero-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.app-bento-title {
+    margin: 0 0 0.4rem 0;
+    font-size: 1.12rem;
     font-weight: 800;
-    color: var(--text-main, #ffffff);
+    color: var(--av-text-main);
     line-height: 1.35;
     letter-spacing: -0.3px;
     transition: color 0.2s ease;
 }
-.project-card:hover .app-card-title {
-    color: #f59e0b;
+
+.project-card:hover .app-bento-title {
+    color: var(--av-primary);
 }
 
-.app-client-row {
+.app-hero-meta {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-}
-.app-client-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 9px;
-    background: color-mix(in srgb, #f97316 18%, transparent);
-    color: #fb923c;
-    border: 1px solid color-mix(in srgb, #f97316 35%, transparent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-}
-.app-client-info {
-    display: flex;
-    align-items: baseline;
-    gap: 0.55rem;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-.app-client-name {
-    font-size: 0.84rem;
-    font-weight: 600;
-    color: var(--text-main, #ffffff);
-}
-.app-client-date {
-    font-size: 0.72rem;
-    color: var(--text-muted, #94a3b8);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
+    flex-wrap: wrap;
 }
 
-/* Meta: Tags & Collaborators */
+.app-client-chip,
+.app-date-chip {
+    font-size: 0.76rem;
+    color: var(--av-text-muted);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.app-client-chip {
+    color: var(--av-text-main);
+}
+
+/* Tags & Collaborators Stack */
 .app-card-meta-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.65rem;
-    min-height: 30px;
+    gap: 0.75rem;
+    min-height: 28px;
 }
+
 .app-card-tags {
     display: flex;
     flex-wrap: wrap;
@@ -442,93 +595,85 @@ require_once 'includes/header.php';
 }
 
 .tag-pill {
-    padding: 0.2rem 0.65rem;
+    padding: 0.22rem 0.65rem;
     border-radius: 8px;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.2px;
-    display: inline-flex;
-    align-items: center;
     border: 1px solid transparent;
 }
 
-/* Assigned Users Stack */
 .assigned-users-stack {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    flex-direction: row;
-    height: 28px;
-    flex-shrink: 0;
-}
-.assigned-users-stack .avatar-sm,
-.assigned-users-stack .avatar-placeholder,
-.assigned-users-stack .avatar-more {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    min-height: 28px;
-    border-radius: 50%;
-    object-fit: cover;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--bg-surface, #141417);
-    margin-left: -8px;
-    position: relative;
-    flex-shrink: 0;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    box-sizing: border-box;
-    vertical-align: middle;
-    transition: transform 0.2s ease;
-}
-.assigned-users-stack > *:first-child {
-    margin-left: 0 !important;
-}
-.assigned-users-stack > *:hover {
-    transform: scale(1.15) translateY(-2px);
-    z-index: 20 !important;
-}
-.assigned-users-stack .avatar-placeholder {
-    background: #f59e0b;
-    color: #ffffff;
-}
-.assigned-users-stack .avatar-more {
-    background: var(--border-color, #27272a);
-    color: var(--av-text-muted, #94a3b8);
-}
-.app-unassigned-pill {
-    font-size: 0.72rem;
-    color: var(--text-muted, #94a3b8);
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: color-mix(in srgb, var(--border-color) 40%, transparent);
-    padding: 0.2rem 0.55rem;
-    border-radius: 8px;
-    border: 1px dashed var(--border-color);
 }
 
-/* Card Progress Section */
+.avatar-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--av-card-bg);
+    margin-left: -8px;
+    transition: transform 0.2s;
+}
+
+.avatar-placeholder {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--av-card-bg);
+    margin-left: -8px;
+}
+
+.avatar-more {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-body, #f1f5f9);
+    border: 2px solid var(--av-card-bg);
+    color: var(--av-text-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: -8px;
+}
+
+.avatar-sm:hover,
+.avatar-placeholder:hover {
+    transform: translateY(-2px) scale(1.15);
+    z-index: 5;
+}
+
+/* Progress Box Apple Fitness Style */
 .card-progress-section {
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
-    padding: 0.95rem 1.1rem;
-    border-radius: 18px;
-    background: var(--bg-color, #09090b);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    transition: border-color 0.2s ease;
+    padding: 1rem 1.15rem;
+    border-radius: var(--av-radius-sub);
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--av-border);
+    cursor: pointer;
+    transition: all 0.25s ease;
 }
-[data-theme="light"] .card-progress-section {
-    background: #f8fafc;
-    border-color: #e2e8f0;
+
+[data-theme="dark"] .card-progress-section {
+    background: rgba(255, 255, 255, 0.02);
 }
+
 .card-progress-section:hover {
-    border-color: color-mix(in srgb, #f59e0b 30%, var(--border-color));
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.03);
 }
 
 .card-progress-header {
@@ -539,327 +684,763 @@ require_once 'includes/header.php';
 
 .progress-header-title {
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: var(--text-muted, #94a3b8);
+    color: var(--av-text-muted);
     display: flex;
     align-items: center;
     gap: 0.45rem;
 }
+
 .progress-header-title i {
     font-size: 1rem;
-    color: #f59e0b;
+    color: var(--av-primary);
 }
 
 .progress-percentage-badge {
     font-size: 0.78rem;
     font-weight: 800;
-    padding: 0.15rem 0.6rem;
-    border-radius: 9999px;
+    padding: 0.18rem 0.65rem;
+    border-radius: var(--av-radius-pill);
     letter-spacing: 0.3px;
     font-variant-numeric: tabular-nums;
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid transparent;
 }
+
 .progress-percentage-badge.low {
     background: rgba(148, 163, 184, 0.15);
     color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.25);
 }
 .progress-percentage-badge.mid {
-    background: color-mix(in srgb, #f59e0b 18%, transparent);
+    background: rgba(245, 158, 11, 0.15);
     color: #f59e0b;
-    border-color: color-mix(in srgb, #f59e0b 35%, transparent);
 }
 .progress-percentage-badge.high {
-    background: color-mix(in srgb, #10b981 18%, transparent);
+    background: rgba(16, 185, 129, 0.15);
     color: #10b981;
-    border-color: color-mix(in srgb, #10b981 35%, transparent);
 }
 
 .card-progress-track {
     width: 100%;
-    height: 7px;
-    border-radius: 9999px;
-    background: color-mix(in srgb, var(--border-color) 70%, transparent);
+    height: 8px;
+    border-radius: var(--av-radius-pill);
+    background: rgba(0, 0, 0, 0.06);
     overflow: hidden;
-    position: relative;
 }
+
+[data-theme="dark"] .card-progress-track {
+    background: rgba(255, 255, 255, 0.08);
+}
+
 .card-progress-fill {
     height: 100%;
-    border-radius: 9999px;
-    background: linear-gradient(90deg, #f59e0b, #ef4444);
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: var(--av-radius-pill);
+    background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-progress-stats {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.75rem;
-    color: var(--text-muted, #94a3b8);
-    font-weight: 600;
+    font-size: 0.74rem;
+    color: var(--av-text-muted);
+    font-weight: 700;
 }
+
 .stat-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
 }
-.stat-chip i {
-    font-size: 0.85rem;
-}
 
-/* Card Dates Box */
+/* Twin Date Capsules */
 .app-card-dates-box {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
-    padding: 0.85rem 1rem;
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--bg-color, #09090b) 60%, transparent);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    gap: 0.75rem;
 }
-[data-theme="light"] .app-card-dates-box {
-    background: #f1f5f9;
-    border-color: #e2e8f0;
-}
-.app-date-col {
+
+.app-date-capsule {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    padding: 0.65rem 0.95rem;
+    border-radius: 14px;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--av-border);
 }
-.app-date-col.border-right {
-    border-right: 1px solid var(--border-color);
-    padding-right: 0.5rem;
+
+[data-theme="dark"] .app-date-capsule {
+    background: rgba(255, 255, 255, 0.02);
 }
-.app-date-label {
+
+.app-date-capsule-label {
     font-size: 0.65rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: var(--text-muted, #94a3b8);
+    color: var(--av-text-muted);
     display: flex;
     align-items: center;
     gap: 0.3rem;
 }
-.app-date-value {
-    font-size: 0.85rem;
+
+.app-date-capsule-value {
+    font-size: 0.84rem;
     font-weight: 700;
-    color: var(--text-main, #ffffff);
+    color: var(--av-text-main);
     font-variant-numeric: tabular-nums;
 }
-.app-date-value.empty {
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 0.78rem;
+
+/* Google Drive CTA Pill */
+.app-drive-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    text-decoration: none;
+    transition: all 0.22s ease;
+    cursor: pointer;
+}
+
+.app-drive-cta:hover {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.4);
+    transform: translateY(-2px);
+}
+
+.drive-cta-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.drive-cta-left i {
+    font-size: 1.25rem;
+    color: #3b82f6;
+}
+
+.drive-cta-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.drive-cta-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--av-text-main);
+}
+
+.drive-cta-sub {
+    font-size: 0.7rem;
+    color: #3b82f6;
+    font-weight: 600;
+}
+
+.drive-cta-arrow {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: transform 0.2s ease;
+}
+
+.app-drive-cta:hover .drive-cta-arrow {
+    transform: translateX(2px) scale(1.08);
+}
+
+/* Card Footer Link */
+.app-bento-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--av-border);
+    color: var(--av-text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.app-bento-footer:hover {
+    color: var(--av-primary);
+}
+
+.app-bento-footer i {
+    font-size: 0.95rem;
+    transition: transform 0.2s ease;
+}
+
+.app-bento-footer:hover i {
+    transform: translateX(4px);
 }
 
 /* Empty State */
 .brand-empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 4rem 2rem;
-    background: var(--bg-surface);
-    border-radius: 24px;
-    border: 1px dashed var(--border-color);
-}
-.brand-empty-icon {
-    font-size: 3.5rem;
-    color: var(--av-text-muted);
-    margin-bottom: 1rem;
-    display: inline-block;
+    padding: 4.5rem 2rem;
+    background: var(--av-card-bg);
+    border-radius: var(--av-radius-card);
+    border: 1.5px dashed var(--av-border);
+    box-shadow: var(--av-shadow-sm);
 }
 
-/* Slide Drawer Styles */
+.brand-empty-icon-box {
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--av-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    margin: 0 auto 1.25rem auto;
+}
+
+/* ==========================================================================
+   ULTRA-MODERN OFF-CANVAS DRAWER (APP STYLE)
+   ========================================================================== */
+
 .brand-drawer-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
+    transition: opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.32s;
 }
+
 .brand-drawer-overlay.active {
     opacity: 1;
     visibility: visible;
 }
+
 .brand-drawer {
     position: fixed;
     top: 0;
-    right: -600px;
+    right: -720px;
     width: 100%;
-    max-width: 580px;
+    max-width: 620px;
     height: 100vh;
-    background: var(--bg-surface);
-    border-left: 1px solid var(--border-color);
-    box-shadow: -10px 0 40px rgba(0,0,0,0.3);
+    background: var(--av-card-bg);
+    border-left: 1px solid var(--av-border);
+    border-top-left-radius: 28px;
+    border-bottom-left-radius: 28px;
+    box-shadow: -25px 0 60px rgba(0, 0, 0, 0.35);
     z-index: 10000;
     display: flex;
     flex-direction: column;
-    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: right 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
 }
+
 .brand-drawer-overlay.active .brand-drawer,
 .brand-drawer.active {
     right: 0;
 }
+
+/* Drawer Header */
 .drawer-header {
-    padding: 1.5rem 2rem;
-    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem 2rem 1.25rem 2rem;
+    border-bottom: 1px solid var(--av-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: var(--av-card-bg);
+    flex-shrink: 0;
 }
-.drawer-header h2 {
+
+.drawer-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+}
+
+.drawer-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+    flex-shrink: 0;
+}
+
+.drawer-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.drawer-kicker {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--av-primary);
+}
+
+.drawer-header-titles h2 {
     margin: 0;
     font-size: 1.25rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--av-text-main);
+    letter-spacing: -0.3px;
 }
+
+.drawer-close-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--av-border);
+    color: var(--av-text-muted);
+    font-size: 1.15rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme="dark"] .drawer-close-btn {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.drawer-close-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.25);
+    transform: rotate(90deg) scale(1.08);
+}
+
+/* Drawer Body with Structured Field Cards */
 .drawer-body {
-    padding: 2rem;
+    padding: 1.75rem 2rem;
     overflow-y: auto;
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
-.drawer-footer {
-    padding: 1.25rem 2rem;
-    border-top: 1px solid var(--border-color);
+
+.drawer-card-section {
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--av-border);
+    border-radius: 20px;
+    padding: 1.35rem 1.45rem;
     display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    background: var(--bg-surface);
+    flex-direction: column;
+    gap: 1.15rem;
+    transition: border-color 0.2s;
 }
 
+[data-theme="dark"] .drawer-card-section {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.drawer-card-section:hover {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.section-badge-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--av-primary);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--av-border);
+}
+
+.section-badge-header i {
+    font-size: 1rem;
+}
+
+/* Form Controls App Style */
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-}
-.form-group label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--av-text-main);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-.form-control {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    color: var(--av-text-main);
-    font-size: 0.92rem;
-    outline: none;
-    transition: border-color 0.2s;
-    width: 100%;
-    box-sizing: border-box;
-}
-.form-control:focus {
-    border-color: #f59e0b;
+    gap: 0.45rem;
 }
 
+.form-group label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--av-text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.form-group label i {
+    color: var(--av-primary);
+    font-size: 0.95rem;
+}
+
+.form-control {
+    background: var(--av-card-bg);
+    border: 1.5px solid var(--av-border);
+    padding: 0.8rem 1.1rem;
+    border-radius: 14px;
+    color: var(--av-text-main);
+    font-size: 0.92rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    border-color: var(--av-primary);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+.form-control::placeholder {
+    color: var(--av-text-muted);
+    opacity: 0.6;
+}
+
+.form-helper-text {
+    font-size: 0.74rem;
+    color: var(--av-text-muted);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.2rem;
+}
+
+.dates-twin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.duration-live-container {
+    margin-top: -0.4rem;
+}
+
+/* Client Search with Glass Dropdown */
 .client-search-wrapper {
     position: relative;
 }
+
 .client-results-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
+    background: var(--av-card-bg);
+    border: 1px solid var(--av-border);
+    border-radius: 16px;
     margin-top: 0.4rem;
-    max-height: 200px;
+    max-height: 220px;
     overflow-y: auto;
-    z-index: 10;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 100;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2);
     display: none;
+    backdrop-filter: blur(12px);
 }
+
 .client-result-item {
-    padding: 0.65rem 1rem;
+    padding: 0.75rem 1.15rem;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
     cursor: pointer;
     transition: background 0.2s;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--av-border);
 }
+
 .client-result-item:last-child {
     border-bottom: none;
 }
+
 .client-result-item:hover {
-    background: rgba(245, 158, 11, 0.1);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+/* Tag Manager */
+.tag-manager-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
 }
 
 .tag-list-editable {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.45rem;
 }
+
 .tag-badge-select {
-    padding: 0.35rem 0.8rem;
-    border-radius: 9999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s;
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--av-radius-pill);
+    font-size: 0.76rem;
+    font-weight: 700;
     display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1.5px solid transparent;
+    user-select: none;
+}
+
+.tag-badge-select:hover {
+    transform: scale(1.05);
+}
+
+.tag-badge-select.selected {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    filter: brightness(1.1);
+}
+
+.add-tag-form {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.color-picker-input {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: transparent;
+    padding: 0;
+}
+
+.new-tag-input {
+    flex: 1;
+    padding: 0.65rem 1rem;
+}
+
+.btn-tag-add {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--av-text-main);
+    color: var(--av-card-bg);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-tag-add:hover {
+    background: var(--av-primary);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* Upload Dropzone */
+.upload-zone-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.file-input-hidden {
+    display: none;
+}
+
+.upload-dropzone {
+    border: 2px dashed var(--av-border);
+    border-radius: 16px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--av-card-bg);
+    display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 0.35rem;
 }
-.tag-badge-select.selected {
-    outline: 2px solid #ffffff;
-    outline-offset: 1px;
+
+.upload-dropzone:hover {
+    border-color: var(--av-primary);
+    background: rgba(245, 158, 11, 0.03);
 }
 
-/* SweetAlert Modern Popup */
-.swal2-modern-popup {
-    border-radius: 20px !important;
-    border: 1px solid var(--border-color) !important;
-    background: var(--bg-surface) !important;
-    color: var(--text-main) !important;
+.upload-icon {
+    font-size: 2rem;
+    color: var(--av-primary);
+    margin-bottom: 0.25rem;
+}
+
+.upload-dropzone span {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--av-text-main);
+}
+
+.upload-dropzone small {
+    font-size: 0.72rem;
+    color: var(--av-text-muted);
+}
+
+.cover-previews-grid {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.cover-thumb-preview {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid var(--av-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Tagify Overrides */
+.tagify {
+    border-radius: 14px !important;
+    border: 1.5px solid var(--av-border) !important;
+    background: var(--av-card-bg) !important;
+    padding: 0.4rem 0.6rem !important;
+}
+
+.tagify:focus-within {
+    border-color: var(--av-primary) !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15) !important;
+}
+
+.tagify__tag {
+    border-radius: 8px !important;
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: var(--av-text-main) !important;
+}
+
+/* Drawer Sticky Footer */
+.drawer-footer {
+    padding: 1.25rem 2rem;
+    border-top: 1px solid var(--av-border);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.85rem;
+    background: var(--av-card-bg);
+    flex-shrink: 0;
+}
+
+.btn-drawer-cancel {
+    background: var(--bg-body, #f8fafc);
+    color: var(--av-text-muted);
+    border: 1px solid var(--av-border);
+    padding: 0.75rem 1.35rem;
+    border-radius: var(--av-radius-pill);
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .btn-drawer-cancel {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-drawer-cancel:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--av-text-main);
+}
+
+.btn-drawer-save {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--av-radius-pill);
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 6px 20px -4px rgba(245, 158, 11, 0.45);
+}
+
+.btn-drawer-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -4px rgba(239, 68, 68, 0.55);
+    filter: brightness(1.06);
 }
 </style>
 
 <div class="brand-container">
-    <!-- Header App Style -->
+    <!-- Ultra-Modern Header App Style -->
     <div class="brand-header">
         <div class="brand-title-group">
-            <a href="index.php?module=workspace&action=index" class="btn-app-cancel" title="Volver al Workspace">
-                <i class="ph-bold ph-arrow-left" style="font-size: 1.1rem;"></i>
+            <a href="index.php?module=workspace&action=index" class="brand-back-btn" title="Volver al Workspace">
+                <i class="ph-bold ph-arrow-left"></i>
             </a>
-            <div class="brand-title">
-                <span>Catálogo General</span>
-                <h1>Audiovisual</h1>
+            <div class="brand-title-wrapper">
+                <span class="brand-kicker"><i class="ph-fill ph-sparkle"></i> Catálogo General</span>
+                <div class="brand-main-title">
+                    <h1>Audiovisual</h1>
+                    <span id="active-projects-badge" class="app-count-badge">0 activos</span>
+                </div>
             </div>
         </div>
-        <div class="brand-actions">
-            <button class="btn-primary" onclick="openCreateDrawer()">
-                <i class="ph-bold ph-plus"></i> Nuevo Proyecto
+        <div class="brand-toolbar">
+            <div class="app-search-box">
+                <i class="ph-bold ph-magnifying-glass search-icon"></i>
+                <input type="text" id="avSearchInput" class="app-search-input" placeholder="Buscar proyecto o cliente..." oninput="filterProjectsBySearch(this.value)">
+                <button type="button" class="clear-btn" id="avSearchClear" onclick="clearAudiovisualSearch()" style="display:none;" title="Limpiar"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <button class="btn-app-primary" onclick="openCreateDrawer()">
+                <i class="ph-bold ph-plus"></i> <span>Nuevo Proyecto</span>
             </button>
         </div>
     </div>
 
-    <!-- Tabs Filtering (Active / Archived) -->
-    <div class="brand-tabs-container">
-        <div class="brand-tabs">
-            <button class="brand-tab active" data-tab="Active" onclick="switchTab('Active')">
-                <i class="ph-bold ph-lightning"></i> Activo
+    <!-- Segmented Tabs Filter (Apple Style) -->
+    <div class="app-segmented-container">
+        <div class="app-segmented-control">
+            <button class="segmented-tab active" data-tab="Active" onclick="switchTab('Active')">
+                <i class="ph-bold ph-lightning"></i> <span>Activos</span> <span class="tab-badge" id="badge-count-active">0</span>
             </button>
-            <button class="brand-tab" data-tab="Archived" onclick="switchTab('Archived')">
-                <i class="ph-bold ph-archive"></i> Archivado
+            <button class="segmented-tab" data-tab="Archived" onclick="switchTab('Archived')">
+                <i class="ph-bold ph-archive"></i> <span>Archivados</span> <span class="tab-badge" id="badge-count-archived">0</span>
+            </button>
+            <button class="segmented-tab" data-tab="All" onclick="switchTab('All')">
+                <i class="ph-bold ph-squares-four"></i> <span>Todos</span> <span class="tab-badge" id="badge-count-all">0</span>
             </button>
         </div>
     </div>
@@ -867,108 +1448,166 @@ require_once 'includes/header.php';
     <!-- Projects Grid Container -->
     <div class="brand-grid" id="projects-grid">
         <!-- Rendered dynamically -->
-        <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--av-text-muted);">
-            <i class="ph-bold ph-spinner-gap" style="font-size: 2rem; animation: spin 1s linear infinite;"></i>
-            <p style="margin-top: 0.5rem;">Cargando proyectos audiovisuales...</p>
+        <div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(--av-text-muted);">
+            <i class="ph-bold ph-spinner-gap" style="font-size: 2.2rem; animation: spin 1s linear infinite;"></i>
+            <p style="margin-top: 0.75rem; font-weight: 600; font-size: 0.95rem;">Cargando producciones audiovisuales...</p>
         </div>
     </div>
 </div>
 
-<!-- Project Create/Edit Drawer Modal -->
+<!-- Project Create/Edit Drawer Modal (Apple / iPadOS App Drawer) -->
 <div class="brand-drawer-overlay" id="brand-drawer">
     <div class="brand-drawer" onclick="event.stopPropagation()">
+        <!-- Drawer Header -->
         <div class="drawer-header">
-            <h2 id="drawer-title">Nuevo Proyecto Audiovisual</h2>
-            <button class="btn-app-cancel" onclick="closeDrawer()"><i class="ph-bold ph-x"></i></button>
+            <div class="drawer-header-left">
+                <div class="drawer-badge">
+                    <i class="ph-bold ph-video-camera"></i>
+                </div>
+                <div class="drawer-header-titles">
+                    <span class="drawer-kicker">Producción Audiovisual</span>
+                    <h2 id="drawer-title">Nuevo Proyecto</h2>
+                </div>
+            </div>
+            <button type="button" class="drawer-close-btn" onclick="closeDrawer()" title="Cerrar">
+                <i class="ph-bold ph-x"></i>
+            </button>
         </div>
+
+        <!-- Drawer Body with Structured Cards -->
         <div class="drawer-body">
             <input type="hidden" id="p_id" value="0">
             <input type="hidden" id="existing_covers" value="">
 
-            <div class="form-group">
-                <label><i class="ph-bold ph-text-t"></i> Título del Proyecto *</label>
-                <input type="text" id="p_title" class="form-control" placeholder="Ej: Video Comercial de Temporada, Spot Corporativo...">
-            </div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-user"></i> Cliente Asociado</label>
-                <div class="client-search-wrapper">
-                    <input type="text" id="p_client_search" class="form-control" placeholder="Buscar cliente por nombre o empresa..." oninput="searchClients(this.value)">
-                    <input type="hidden" id="p_client_name" value="">
-                    <div class="client-results-dropdown" id="client-results"></div>
+            <!-- Card 1: Información Básica -->
+            <div class="drawer-card-section">
+                <div class="section-badge-header">
+                    <i class="ph-bold ph-film-strip"></i> Información Principal
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-notebook"></i> Vincular Brief / Formulario (Opcional)</label>
-                <select id="p_form_submission" class="form-control">
-                    <option value="">-- Sin formulario vinculado --</option>
-                </select>
-                <small style="color: var(--av-text-muted); font-size: 0.75rem;">Vincula respuestas de un brief de video para visualizarlas dentro del proyecto.</small>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                
                 <div class="form-group">
-                    <label><i class="ph-bold ph-calendar-blank"></i> Fecha de Inicio</label>
-                    <input type="date" id="p_start" class="form-control" onchange="calcFormDuration()">
+                    <label><i class="ph-bold ph-text-t"></i> Título de la Producción *</label>
+                    <input type="text" id="p_title" class="form-control" placeholder="Ej: Video Comercial Temporada, Spot Corporativo, Reels Pack...">
                 </div>
+
                 <div class="form-group">
-                    <label><i class="ph-bold ph-calendar-check"></i> Fecha Límite</label>
-                    <input type="date" id="p_due" class="form-control" onchange="calcFormDuration()">
-                </div>
-            </div>
-            <div id="form-duration-calc" style="font-size: 0.78rem; font-weight: 600; color: var(--av-text-muted); margin-top: -0.5rem;"></div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-flag"></i> Estado</label>
-                <select id="p_status" class="form-control">
-                    <option value="Active">Activo</option>
-                    <option value="Pending">Pendiente</option>
-                    <option value="Completed">Completado</option>
-                    <option value="Archived">Archivado</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-google-drive-logo" style="color: #3b82f6;"></i> Enlace Carpeta Google Drive</label>
-                <input type="url" id="p_drive_url" class="form-control" placeholder="https://drive.google.com/drive/folders/..." oninput="extractDriveId(this.value)">
-                <input type="hidden" id="p_drive_id" value="">
-            </div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-users-three"></i> Miembros del Equipo Asignados</label>
-                <input type="text" id="p_users" placeholder="Escribe para buscar colaboradores...">
-            </div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-image"></i> Portada / Referencias del Proyecto</label>
-                <input type="file" id="p_cover_files" class="form-control" accept="image/*" multiple>
-                <div id="cover-preview-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;"></div>
-            </div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-article"></i> Descripción / Notas del Proyecto</label>
-                <textarea id="p_description" class="form-control" rows="3" placeholder="Detalles de la producción, objetivos del video o instrucciones..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label><i class="ph-bold ph-tag"></i> Etiquetas del Proyecto</label>
-                <div class="tag-manager-wrapper" style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 1rem;">
-                    <div class="tag-list-editable" id="tag-selector-list" style="margin-bottom: 0.85rem;">
-                        <!-- Tags rendered here -->
-                    </div>
-                    <div class="add-tag-form" style="display: flex; gap: 0.5rem; align-items: center;">
-                        <input type="color" id="new_tag_color" value="#f59e0b" style="width: 36px; height: 36px; border: none; border-radius: 10px; cursor: pointer; background: transparent; padding: 0;">
-                        <input type="text" id="new_tag_name" class="form-control" placeholder="Nueva etiqueta..." style="flex:1; padding: 0.55rem 0.85rem; font-size: 0.88rem;">
-                        <button class="btn-primary" onclick="createNewTag()" style="padding: 0.55rem 1rem; border-radius: 10px;"><i class="ph-bold ph-plus"></i></button>
+                    <label><i class="ph-bold ph-buildings"></i> Cliente Asociado</label>
+                    <div class="client-search-wrapper">
+                        <input type="text" id="p_client_search" class="form-control" placeholder="Buscar cliente por nombre o empresa..." oninput="searchClients(this.value)" autocomplete="off">
+                        <input type="hidden" id="p_client_name" value="">
+                        <div class="client-results-dropdown" id="client-results"></div>
                     </div>
                 </div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-notebook"></i> Brief Vinculado (Opcional)</label>
+                    <select id="p_form_submission" class="form-control">
+                        <option value="">-- Sin formulario vinculado --</option>
+                    </select>
+                    <span class="form-helper-text">
+                        <i class="ph-bold ph-info"></i> Asocia respuestas de briefs o requerimientos recibidos del cliente.
+                    </span>
+                </div>
             </div>
 
+            <!-- Card 2: Cronograma & Estado -->
+            <div class="drawer-card-section">
+                <div class="section-badge-header">
+                    <i class="ph-bold ph-calendar-check"></i> Cronograma & Estado
+                </div>
+
+                <div class="dates-twin-grid">
+                    <div class="form-group">
+                        <label><i class="ph-bold ph-calendar-blank"></i> Fecha de Inicio</label>
+                        <input type="date" id="p_start" class="form-control" onchange="calcFormDuration()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="ph-bold ph-clock"></i> Fecha Límite</label>
+                        <input type="date" id="p_due" class="form-control" onchange="calcFormDuration()">
+                    </div>
+                </div>
+                <div id="form-duration-calc" class="duration-live-container"></div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-flag"></i> Estado del Proyecto</label>
+                    <select id="p_status" class="form-control">
+                        <option value="Active">Activo</option>
+                        <option value="Pending">Pendiente</option>
+                        <option value="Completed">Completado</option>
+                        <option value="Archived">Archivado</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Card 3: Recursos & Equipo -->
+            <div class="drawer-card-section">
+                <div class="section-badge-header">
+                    <i class="ph-bold ph-users-three"></i> Equipo & Almacenamiento
+                </div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-users"></i> Colaboradores Asignados</label>
+                    <input type="text" id="p_users" placeholder="Escribe para buscar y asignar colaboradores...">
+                </div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-google-drive-logo" style="color: #3b82f6;"></i> Enlace Carpeta Google Drive</label>
+                    <input type="url" id="p_drive_url" class="form-control" placeholder="https://drive.google.com/drive/folders/..." oninput="extractDriveId(this.value)">
+                    <input type="hidden" id="p_drive_id" value="">
+                    <span class="form-helper-text">
+                        <i class="ph-bold ph-link"></i> Acceso directo a los rushes, assets y entregables finales.
+                    </span>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-image"></i> Portada / Referencias Visuales</label>
+                    <div class="upload-zone-wrapper">
+                        <label class="upload-dropzone" for="p_cover_files">
+                            <i class="ph-bold ph-cloud-arrow-up upload-icon"></i>
+                            <span>Seleccionar o soltar imágenes</span>
+                            <small>Formatos admitidos: PNG, JPG, WEBP</small>
+                        </label>
+                        <input type="file" id="p_cover_files" class="file-input-hidden" accept="image/*" multiple>
+                        <div id="cover-preview-container" class="cover-previews-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Notas & Etiquetas -->
+            <div class="drawer-card-section">
+                <div class="section-badge-header">
+                    <i class="ph-bold ph-tag"></i> Clasificación & Notas
+                </div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-article"></i> Descripción / Requerimientos Técnicos</label>
+                    <textarea id="p_description" class="form-control" rows="3" placeholder="Aspectos clave de la producción, resolución, codecs, formato (16:9, 9:16) o notas del rodaje..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-tags"></i> Etiquetas del Proyecto</label>
+                    <div class="tag-manager-wrapper">
+                        <div class="tag-list-editable" id="tag-selector-list">
+                            <!-- Tags rendered dynamically -->
+                        </div>
+                        <div class="add-tag-form">
+                            <input type="color" id="new_tag_color" value="#f59e0b" class="color-picker-input" title="Color de la etiqueta">
+                            <input type="text" id="new_tag_name" class="form-control new-tag-input" placeholder="Nueva etiqueta (ej: 4K, Drone, Spot TV)...">
+                            <button type="button" class="btn-tag-add" onclick="createNewTag()" title="Añadir Etiqueta">
+                                <i class="ph-bold ph-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Frosted Sticky Drawer Footer -->
         <div class="drawer-footer">
-            <button class="btn-app-cancel" onclick="closeDrawer()">Cancelar</button>
-            <button class="btn-primary" onclick="saveProject()"><i class="ph-bold ph-check"></i> Guardar Proyecto</button>
+            <button type="button" class="btn-drawer-cancel" onclick="closeDrawer()">Cancelar</button>
+            <button type="button" class="btn-drawer-save" onclick="saveProject()">
+                <i class="ph-bold ph-check"></i> Guardar Proyecto
+            </button>
         </div>
     </div>
 </div>
@@ -980,6 +1619,7 @@ let allProjects = [];
 let systemUsers = [];
 let usersTagify;
 let activeTab = 'Active';
+let searchQuery = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     loadTags();
@@ -990,7 +1630,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close drawer on overlay click
     const drawerOverlay = document.getElementById('brand-drawer');
     if (drawerOverlay) {
-        drawerOverlay.addEventListener('click', closeDrawer);
+        drawerOverlay.addEventListener('click', (e) => {
+            if (e.target === drawerOverlay) {
+                closeDrawer();
+            }
+        });
     }
 
     // Close on Escape key
@@ -1013,15 +1657,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     reader.onload = (e) => {
                         const img = document.createElement('img');
                         img.src = e.target.result;
-                        img.style.width = '60px';
-                        img.style.height = '60px';
-                        img.style.objectFit = 'cover';
-                        img.style.borderRadius = '10px';
-                        img.style.border = '1px solid var(--border-color)';
+                        img.className = 'cover-thumb-preview';
                         preview.appendChild(img);
                     };
                     reader.readAsDataURL(file);
                 });
+            }
+        });
+    }
+
+    // Drag and drop support for dropzone
+    const dropzone = document.querySelector('.upload-dropzone');
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = 'var(--av-primary)';
+                dropzone.style.background = 'rgba(245, 158, 11, 0.08)';
+            });
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = '';
+                dropzone.style.background = '';
+            });
+        });
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                const fileInput = document.getElementById('p_cover_files');
+                if (fileInput) {
+                    fileInput.files = dt.files;
+                    const changeEvent = new Event('change');
+                    fileInput.dispatchEvent(changeEvent);
+                }
             }
         });
     }
@@ -1223,32 +1895,96 @@ function loadProjects() {
     });
 }
 
+function filterProjectsBySearch(query) {
+    searchQuery = (query || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('avSearchClear');
+    if (clearBtn) {
+        clearBtn.style.display = searchQuery ? 'flex' : 'none';
+    }
+    renderProjects();
+}
+
+function clearAudiovisualSearch() {
+    const input = document.getElementById('avSearchInput');
+    if (input) input.value = '';
+    filterProjectsBySearch('');
+}
+
 function switchTab(tab) {
     activeTab = tab;
-    document.querySelectorAll('.brand-tab').forEach(b => {
+    document.querySelectorAll('.segmented-tab').forEach(b => {
         b.classList.toggle('active', b.dataset.tab === tab);
     });
     renderProjects();
 }
 
 function renderProjects() {
-    let container = document.getElementById('projects-grid');
+    const container = document.getElementById('projects-grid');
+    if (!container) return;
+
+    // Calculate dynamic counts across all projects
+    const activeCount = allProjects.filter(p => p.status === 'Active' || p.status === 'Pending').length;
+    const archivedCount = allProjects.filter(p => p.status === 'Archived' || p.status === 'Completed').length;
+    const allCount = allProjects.length;
+
+    const elAct = document.getElementById('badge-count-active');
+    const elArc = document.getElementById('badge-count-archived');
+    const elAll = document.getElementById('badge-count-all');
+    const elMainBadge = document.getElementById('active-projects-badge');
+
+    if (elAct) elAct.textContent = activeCount;
+    if (elArc) elArc.textContent = archivedCount;
+    if (elAll) elAll.textContent = allCount;
+    if (elMainBadge) elMainBadge.textContent = `${activeCount} activo${activeCount === 1 ? '' : 's'}`;
+
+    // Filter by tab
     let filtered = allProjects.filter(p => {
-        if (activeTab === 'Archived') {
-            return p.status === 'Archived';
+        if (activeTab === 'Active') {
+            return p.status === 'Active' || p.status === 'Pending';
         }
-        return p.status !== 'Archived';
+        if (activeTab === 'Archived') {
+            return p.status === 'Archived' || p.status === 'Completed';
+        }
+        return true; // 'All'
     });
 
+    // Filter by live search query
+    if (searchQuery) {
+        filtered = filtered.filter(p => {
+            const titleMatch = (p.title || '').toLowerCase().includes(searchQuery);
+            const clientMatch = (p.client_name || '').toLowerCase().includes(searchQuery);
+            const descMatch = (p.description || '').toLowerCase().includes(searchQuery);
+            const tagMatch = (p.tags || []).some(t => (t.name || '').toLowerCase().includes(searchQuery));
+            return titleMatch || clientMatch || descMatch || tagMatch;
+        });
+    }
+
     if (filtered.length === 0) {
+        let emptyTitle = 'No hay producciones encontradas';
+        let emptySub = 'Crea tu primera producción audiovisual o ajusta los filtros de búsqueda.';
+        if (searchQuery) {
+            emptyTitle = 'Sin resultados';
+            emptySub = `No se encontraron producciones que coincidan con "${searchQuery}".`;
+        } else if (activeTab === 'Active') {
+            emptyTitle = 'No hay proyectos activos';
+            emptySub = 'No tienes producciones en curso actualmente.';
+        } else if (activeTab === 'Archived') {
+            emptyTitle = 'No hay proyectos archivados';
+            emptySub = 'No hay producciones archivadas o completadas.';
+        }
+
         container.innerHTML = `
             <div class="brand-empty-state">
-                <i class="ph-bold ph-video-camera brand-empty-icon"></i>
-                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--av-text-main); margin-bottom: 0.5rem;">
-                    No hay proyectos ${activeTab === 'Archived' ? 'archivados' : 'activos'}
+                <div class="brand-empty-icon-box">
+                    <i class="ph-bold ph-video-camera"></i>
+                </div>
+                <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--av-text-main); margin-bottom: 0.5rem; letter-spacing: -0.3px;">
+                    ${emptyTitle}
                 </h3>
-                <p style="color: var(--av-text-muted); margin-bottom: 1.5rem;">Crea tu primer proyecto audiovisual o desarchiva proyectos existentes.</p>
-                <button class="btn-primary" onclick="openCreateDrawer()">
+                <p style="color: var(--av-text-muted); font-size: 0.92rem; max-width: 440px; margin: 0 auto 1.75rem auto; line-height: 1.5;">
+                    ${emptySub}
+                </p>
+                <button type="button" class="btn-app-primary" onclick="openCreateDrawer()">
                     <i class="ph-bold ph-plus"></i> Crear Nuevo Proyecto
                 </button>
             </div>
@@ -1256,8 +1992,7 @@ function renderProjects() {
         return;
     }
 
-    container.innerHTML = filtered.map(p => {
-        let clientInitials = p.client_name ? p.client_name.charAt(0).toUpperCase() : 'C';
+    container.innerHTML = filtered.map((p, idx) => {
         let clientDisplayName = p.client_name || 'Cliente sin asignar';
         let formattedDate = p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
         
@@ -1270,33 +2005,38 @@ function renderProjects() {
         let usersHtml = '';
         if (p.assigned_users && p.assigned_users.length > 0) {
             usersHtml = '<div class="assigned-users-stack">';
-            p.assigned_users.slice(0, 3).forEach(u => {
-                if (u.avatar) {
-                    usersHtml += `<img src="${u.avatar}" class="avatar-sm" title="${u.name}">`;
+            p.assigned_users.slice(0, 4).forEach((u, i) => {
+                let initial = (u.name || 'U').charAt(0).toUpperCase();
+                let zIndex = 10 - i;
+                let safeName = (u.name || 'Usuario').replace(/"/g, '&quot;');
+                if (u.avatar && u.avatar !== 'default.png') {
+                    usersHtml += `<img src="${u.avatar}" class="avatar-sm" style="z-index:${zIndex};" title="${safeName}" alt="${safeName}" onerror="this.outerHTML='<div class=\\'avatar-placeholder\\' style=\\'z-index:${zIndex};\\' title=\\'${safeName}\\'>${initial}</div>'">`;
                 } else {
-                    usersHtml += `<span class="avatar-placeholder" title="${u.name}">${u.name.charAt(0)}</span>`;
+                    usersHtml += `<div class="avatar-placeholder" style="z-index:${zIndex};" title="${safeName}">${initial}</div>`;
                 }
             });
-            if (p.assigned_users.length > 3) {
-                usersHtml += `<span class="avatar-more">+${p.assigned_users.length - 3}</span>`;
+            if (p.assigned_users.length > 4) {
+                usersHtml += `<div class="avatar-more" style="z-index:1;" title="${p.assigned_users.length - 4} colaboradores más">+${p.assigned_users.length - 4}</div>`;
             }
             usersHtml += '</div>';
         }
 
-        let progress = p.progress || 0;
+        let progress = Math.min(100, Math.max(0, parseInt(p.progress || 0)));
         let progressClass = progress < 35 ? 'low' : (progress < 75 ? 'mid' : 'high');
-        let totalTasks = p.total_tasks || 0;
-        let completedTasks = p.completed_tasks || 0;
-        let totalSubtasks = p.total_subtasks || 0;
-        let completedSubtasks = p.completed_subtasks || 0;
+        let totalTasks = parseInt(p.total_tasks || 0);
+        let completedTasks = parseInt(p.completed_tasks || 0);
+        let totalSubtasks = parseInt(p.total_subtasks || 0);
+        let completedSubtasks = parseInt(p.completed_subtasks || 0);
 
         // Timer calculation
+        let isOverdue = false;
         let timerHtml = '';
         if (p.due_date) {
             let due = new Date(p.due_date + 'T23:59:59');
             let now = new Date();
             let diff = due - now;
             if (diff < 0) {
+                isOverdue = true;
                 timerHtml = `<span class="modern-timer expired"><i class="ph-bold ph-hourglass-simple-low"></i> Tiempo agotado</span>`;
             } else {
                 let days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -1305,10 +2045,16 @@ function renderProjects() {
         }
 
         let statusClass = (p.status || 'Active').toLowerCase();
-        let statusLabel = p.status === 'Active' ? 'Activo' : (p.status === 'Completed' ? 'Completado' : (p.status === 'Pending' ? 'Pendiente' : 'Archivado'));
+        let statusMap = { 'Active': 'Activo', 'Pending': 'Pendiente', 'Completed': 'Listo', 'Archived': 'Archivado' };
+        let statusLabel = statusMap[p.status] || p.status || 'Activo';
+
+        let cleanTitle = p.title || 'Producción Audiovisual';
+        let avatarLetter = cleanTitle.charAt(0).toUpperCase();
+        let gradIdx = idx % 4;
 
         return `
             <div class="project-card">
+                <!-- Top Status Bar & Options -->
                 <div class="app-card-top-bar">
                     <div class="app-card-badges-left">
                         <span class="app-status-badge ${statusClass}">
@@ -1316,28 +2062,35 @@ function renderProjects() {
                         </span>
                         ${timerHtml}
                     </div>
-                    <button class="app-btn-more" onclick="openProjectMenu(${p.id}, event)" title="Opciones">
+                    <button type="button" class="app-btn-more" onclick="openProjectMenu(${p.id}, event)" title="Opciones">
                         <i class="ph-bold ph-dots-three"></i>
                     </button>
                 </div>
 
-                <div class="app-card-hero" onclick="window.location.href='index.php?module=audiovisual&action=view&id=${p.id}'" title="Abrir tablero de proyecto">
-                    <h3 class="app-card-title">${p.title}</h3>
-                    <div class="app-client-row">
-                        <div class="app-client-avatar">${clientInitials}</div>
-                        <div class="app-client-info">
-                            <span class="app-client-name">${clientDisplayName}</span>
-                            <span class="app-client-date"><i class="ph-bold ph-calendar"></i> ${formattedDate}</span>
+                <!-- Hero Section: Squircle Avatar + Title + Client -->
+                <div class="app-bento-hero" onclick="window.location.href='index.php?module=audiovisual&action=view&id=${p.id}'" title="Abrir tablero de producción">
+                    <div class="app-av-avatar app-av-grad-${gradIdx}">
+                        ${avatarLetter}
+                    </div>
+                    <div class="app-hero-info">
+                        <h3 class="app-bento-title">${p.title}</h3>
+                        <div class="app-hero-meta">
+                            <span class="app-client-chip"><i class="ph-bold ph-buildings"></i> ${clientDisplayName}</span>
+                            <span class="app-date-chip"><i class="ph-bold ph-calendar-blank"></i> ${formattedDate}</span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Tags & Collabs Meta Row -->
                 <div class="app-card-meta-row">
-                    <div class="app-card-tags">${tagsHtml}</div>
-                    ${usersHtml}
+                    <div class="app-card-tags">
+                        ${tagsHtml ? tagsHtml : '<span class="tag-pill" style="background:rgba(148,163,184,0.12);color:var(--av-text-muted);"><i class="ph-bold ph-tag"></i> General</span>'}
+                    </div>
+                    ${usersHtml ? usersHtml : '<span style="font-size:0.75rem;color:var(--av-text-muted);font-weight:600;"><i class="ph-bold ph-user-plus"></i> Sin asignar</span>'}
                 </div>
 
-                <div class="card-progress-section" onclick="window.location.href='index.php?module=audiovisual&action=view&id=${p.id}'" style="cursor: pointer;" title="Ver fases y tareas">
+                <!-- Apple Fitness Activity Box -->
+                <div class="card-progress-section" onclick="window.location.href='index.php?module=audiovisual&action=view&id=${p.id}'" title="Ver fases y tareas">
                     <div class="card-progress-header">
                         <span class="progress-header-title">
                             <i class="ph-bold ph-chart-donut"></i> Escala de Progreso
@@ -1351,23 +2104,44 @@ function renderProjects() {
                     </div>
                     <div class="card-progress-stats">
                         <span class="stat-chip">
-                            <i class="ph-bold ph-check-circle" style="color: #10b981;"></i> ${completedTasks}/${totalTasks} tareas
+                            <i class="ph-bold ph-check-circle" style="color: #10b981;"></i> <b>${completedTasks}</b>/${totalTasks} tareas
                         </span>
                         <span class="stat-chip">
-                            <i class="ph-bold ph-list-checks" style="color: #6366f1;"></i> ${completedSubtasks}/${totalSubtasks} subtareas
+                            <i class="ph-bold ph-list-checks" style="color: #6366f1;"></i> <b>${completedSubtasks}</b>/${totalSubtasks} subtareas
                         </span>
                     </div>
                 </div>
 
+                <!-- Twin Date Capsules -->
                 <div class="app-card-dates-box">
-                    <div class="app-date-col border-right">
-                        <span class="app-date-label"><i class="ph-bold ph-calendar-blank"></i> Inicio</span>
-                        <span class="app-date-value ${!p.start_date ? 'empty' : ''}">${p.start_date ? formatDateDisplay(p.start_date) : 'Sin fecha'}</span>
+                    <div class="app-date-capsule">
+                        <span class="app-date-capsule-label"><i class="ph-bold ph-calendar-blank"></i> Inicio</span>
+                        <span class="app-date-capsule-value">${p.start_date ? formatDateDisplay(p.start_date) : 'Sin definir'}</span>
                     </div>
-                    <div class="app-date-col">
-                        <span class="app-date-label"><i class="ph-bold ph-clock"></i> Límite</span>
-                        <span class="app-date-value ${!p.due_date ? 'empty' : ''}" style="${p.due_date ? 'color: #ef4444;' : ''}">${p.due_date ? formatDateDisplay(p.due_date) : 'Sin fecha'}</span>
+                    <div class="app-date-capsule">
+                        <span class="app-date-capsule-label"><i class="ph-bold ph-clock"></i> Límite</span>
+                        <span class="app-date-capsule-value" style="${p.due_date ? 'color: #ef4444;' : ''}">${p.due_date ? formatDateDisplay(p.due_date) : 'Sin definir'}</span>
                     </div>
+                </div>
+
+                <!-- Google Drive Folder CTA -->
+                ${p.drive_folder_url ? `
+                    <a href="${p.drive_folder_url}" target="_blank" class="app-drive-cta" onclick="event.stopPropagation()" title="Abrir carpeta en Google Drive">
+                        <div class="drive-cta-left">
+                            <i class="ph-fill ph-google-drive-logo"></i>
+                            <div class="drive-cta-info">
+                                <span class="drive-cta-title">Material en la Nube</span>
+                                <span class="drive-cta-sub">Abrir en Google Drive</span>
+                            </div>
+                        </div>
+                        <div class="drive-cta-arrow"><i class="ph-bold ph-arrow-up-right"></i></div>
+                    </a>
+                ` : ''}
+
+                <!-- Direct Access Footer -->
+                <div class="app-bento-footer" onclick="window.location.href='index.php?module=audiovisual&action=view&id=${p.id}'">
+                    <span>Abrir Tablero Audiovisual</span>
+                    <i class="ph-bold ph-arrow-right"></i>
                 </div>
             </div>
         `;
@@ -1469,7 +2243,7 @@ function confirmDeleteProject(id) {
 }
 
 function openCreateDrawer() {
-    document.getElementById('drawer-title').innerText = 'Nuevo Proyecto Audiovisual';
+    document.getElementById('drawer-title').innerText = 'Nuevo Proyecto';
     document.getElementById('p_id').value = '0';
     document.getElementById('p_title').value = '';
     document.getElementById('p_client_search').value = '';
@@ -1505,13 +2279,11 @@ function openCreateDrawer() {
     // Show overlay and drawer
     const overlay = document.getElementById('brand-drawer');
     if (overlay) overlay.classList.add('active');
-    const drawerPanel = document.querySelector('.brand-drawer');
-    if (drawerPanel) drawerPanel.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
 
 function openEditDrawer(p) {
-    document.getElementById('drawer-title').innerText = 'Editar Proyecto Audiovisual';
+    document.getElementById('drawer-title').innerText = 'Editar Proyecto';
     document.getElementById('p_id').value = p.id;
     document.getElementById('p_title').value = p.title || '';
     document.getElementById('p_client_search').value = p.client_name || '';
@@ -1539,11 +2311,7 @@ function openEditDrawer(p) {
                 if (trimmed) {
                     const img = document.createElement('img');
                     img.src = trimmed;
-                    img.style.width = '60px';
-                    img.style.height = '60px';
-                    img.style.objectFit = 'cover';
-                    img.style.borderRadius = '10px';
-                    img.style.border = '1px solid var(--border-color)';
+                    img.className = 'cover-thumb-preview';
                     previewContainer.appendChild(img);
                 }
             });
@@ -1567,16 +2335,12 @@ function openEditDrawer(p) {
     // Show overlay and drawer
     const overlay = document.getElementById('brand-drawer');
     if (overlay) overlay.classList.add('active');
-    const drawerPanel = document.querySelector('.brand-drawer');
-    if (drawerPanel) drawerPanel.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
 
 function closeDrawer() {
     const overlay = document.getElementById('brand-drawer');
     if (overlay) overlay.classList.remove('active');
-    const drawerPanel = document.querySelector('.brand-drawer');
-    if (drawerPanel) drawerPanel.classList.remove('active');
     document.body.style.overflow = '';
 }
 
