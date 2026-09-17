@@ -103,6 +103,11 @@
             </div>
             
             <div class="social-card">
+                <i class="ph ph-tiktok-logo" style="color: #000000;"></i>
+                <input type="url" name="social_tiktok" placeholder="https://tiktok.com/@tuempresa" value="<?php echo htmlspecialchars($settings['social_tiktok'] ?? ''); ?>">
+            </div>
+
+            <div class="social-card">
                 <i class="ph ph-linkedin-logo" style="color: #0A66C2;"></i>
                 <input type="url" name="social_linkedin" placeholder="https://linkedin.com/company/tuempresa" value="<?php echo htmlspecialchars($settings['social_linkedin'] ?? ''); ?>">
             </div>

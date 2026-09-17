@@ -32,7 +32,7 @@ try {
                 $db->prepare("INSERT INTO client_portal_logs (client_id, ip_address, user_agent) VALUES (?, ?, ?)")
                    ->execute([$client['id'], $ip, $ua]);
                    
-                echo json_encode(['success' => true]);
+                echo json_encode(['success' => true, 'name' => $client['name']]);
             } else {
                 echo json_encode(['success' => false, 'error' => 'DNI incorrecto o acceso deshabilitado']);
             }
