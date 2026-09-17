@@ -266,6 +266,16 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
             background: rgba(255, 255, 255, 0.45);
             height: 4px;
         }
+        .slide-nav-track-mobile {
+            width: 28px;
+            height: 4px;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.25);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
         .slide-nav-progress {
             position: absolute;
             top: 0;
@@ -600,20 +610,30 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
         </h3>
         <!-- Mobile Progress Pills -->
         <div class="flex items-center justify-center gap-2 mt-3 pointer-events-auto">
-            <button type="button" onclick="goToSlide(0)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 1">
-                <div class="slide-nav-progress h-full" id="slideProgMobile-0"></div>
+            <button type="button" onclick="goToSlide(0)" class="p-1 focus:outline-none" title="Slide 1">
+                <div class="slide-nav-track-mobile">
+                    <div class="slide-nav-progress" id="slideProgMobile-0"></div>
+                </div>
             </button>
-            <button type="button" onclick="goToSlide(1)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 2">
-                <div class="slide-nav-progress h-full" id="slideProgMobile-1"></div>
+            <button type="button" onclick="goToSlide(1)" class="p-1 focus:outline-none" title="Slide 2">
+                <div class="slide-nav-track-mobile">
+                    <div class="slide-nav-progress" id="slideProgMobile-1"></div>
+                </div>
             </button>
-            <button type="button" onclick="goToSlide(2)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 3">
-                <div class="slide-nav-progress h-full" id="slideProgMobile-2"></div>
+            <button type="button" onclick="goToSlide(2)" class="p-1 focus:outline-none" title="Slide 3">
+                <div class="slide-nav-track-mobile">
+                    <div class="slide-nav-progress" id="slideProgMobile-2"></div>
+                </div>
             </button>
-            <button type="button" onclick="goToSlide(3)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 4">
-                <div class="slide-nav-progress h-full" id="slideProgMobile-3"></div>
+            <button type="button" onclick="goToSlide(3)" class="p-1 focus:outline-none" title="Slide 4">
+                <div class="slide-nav-track-mobile">
+                    <div class="slide-nav-progress" id="slideProgMobile-3"></div>
+                </div>
             </button>
-            <button type="button" onclick="goToSlide(4)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 5">
-                <div class="slide-nav-progress h-full" id="slideProgMobile-4"></div>
+            <button type="button" onclick="goToSlide(4)" class="p-1 focus:outline-none" title="Slide 5">
+                <div class="slide-nav-track-mobile">
+                    <div class="slide-nav-progress" id="slideProgMobile-4"></div>
+                </div>
             </button>
         </div>
     </div>
