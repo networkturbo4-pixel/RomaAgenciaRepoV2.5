@@ -31,7 +31,7 @@ try {
 $next_meet = null;
 if (has_perm('reuniones')) {
     try {
-        $stmt_next_meet = $db->prepare("SELECT r.*, b.name as brand_name FROM reuniones r LEFT JOIN client_brands b ON r.brand_id = b.id WHERE r.fecha_hora > NOW() AND r.estado = 'Programada' ORDER BY r.fecha_hora ASC LIMIT 1");
+        $stmt_next_meet = $db->prepare("SELECT r.*, b.name as brand_name, b.logo as brand_logo FROM reuniones r LEFT JOIN client_brands b ON r.brand_id = b.id WHERE r.fecha_hora > NOW() AND r.estado = 'Programada' ORDER BY r.fecha_hora ASC LIMIT 1");
         $stmt_next_meet->execute();
         $next_meet = $stmt_next_meet->fetch(PDO::FETCH_ASSOC);
     } catch(Exception $e) {}
@@ -99,10 +99,11 @@ if (has_perm('quotes')) {
 $active_projects = [];
 try {
     $stmt_proj = $db->query("
-        SELECT pm.id, p.id as project_id, w.brand_name as name, pm.month, pm.year, p.team_members
+        SELECT pm.id, p.id as project_id, w.brand_name as name, pm.month, pm.year, p.team_members, cb.logo as brand_logo
         FROM project_months pm 
         JOIN projects p ON pm.project_id = p.id 
         JOIN work_orders w ON p.work_order_id = w.id
+        LEFT JOIN client_brands cb ON TRIM(LOWER(w.brand_name)) = TRIM(LOWER(cb.name))
         WHERE p.status = 'active' 
         ORDER BY pm.id DESC
     ");
@@ -170,6 +171,7 @@ try {
                 'id' => $p['id'],
                 'project_id' => $p['project_id'],
                 'name' => $p['name'] ? $p['name'] : 'Proyecto sin nombre',
+                'brand_logo' => !empty($p['brand_logo']) ? $p['brand_logo'] : null,
                 'month' => $mes_nombre . ' ' . $p['year'],
                 'total' => (int)$prog['total_posts'],
                 'aprobado' => (int)$prog['aprobado'],
@@ -246,82 +248,209 @@ try {
     <!-- Dashboard Grid -->
     <div class="dashboard-grid modern-grid" id="dashboardGrid">
         
-        <!-- Widget 1: Workspace -->
-        <div class="widget widget-workspace-premium modern-card" data-id="widget-workspace" style="animation-delay: 0s;">
-            <div class="badge-workspace-premium">HUB</div>
-            <div class="workspace-premium-bg"></div>
-            <div class="workspace-premium-content">
-                <div class="workspace-premium-header">
-                    <div class="icon-circle workspace-premium-icon"><i class="ph ph-briefcase"></i></div>
-                    <h3>Workspace</h3>
-                </div>
-                <div class="workspace-premium-body">
-                    <p>Gestiona tus proyectos, marcas y herramientas de trabajo.</p>
-                    <a href="index.php?module=workspace&action=index" class="btn-glass-workspace">
-                        <span>Entrar al Workspace</span> <i class="ph ph-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Widget 2: Asistencia -->
-        <div class="widget widget-asistencia modern-card" data-id="widget-asistencia" style="animation-delay: 0.1s;">
-            <div class="asistencia-header">
-                <div class="asistencia-date" id="live-date">...</div>
-                <div class="asistencia-status-pill" id="asistencia-status-text">
-                    <span class="status-dot"></span>Cargando...
-                </div>
-            </div>
-            <div class="asistencia-time" id="live-clock">--:--</div>
-            <div class="asistencia-actions" id="asistencia-buttons"></div>
-        </div>
-
-        <!-- Widget 3: Reuniones -->
-        <div class="widget widget-reuniones modern-card" data-id="widget-reuniones" style="animation-delay: 0.2s;">
-            <div class="widget-header">
-                <h3 class="widget-title">
-                    <div class="icon-circle meet-icon"><i class="ph ph-video-camera"></i></div>
-                    Próxima Reunión
-                </h3>
-            </div>
-            <?php if ($next_meet): ?>
-                <div class="meet-info modern-meet">
-                    <h4 class="meet-brand"><?php echo htmlspecialchars($next_meet['brand_name']); ?></h4>
-                    <p class="meet-motivo"><?php echo htmlspecialchars($next_meet['motivo']); ?></p>
-                    <div id="meet-countdown" class="meet-countdown modern-countdown" data-time="<?php echo $next_meet['fecha_hora']; ?>">
-                        <span class="countdown-value">--:--:--</span>
+        <!-- Widget Asistencia (Hero Full Width: 4 Columnas Bento Style) -->
+        <div class="widget widget-asistencia modern-card bento-hero-asistencia" data-id="widget-asistencia" style="animation-delay: 0s;">
+            <div class="asistencia-ambient-glow"></div>
+            
+            <div class="asistencia-bento-container">
+                <!-- Columna Izquierda: Reloj Apple & Fecha -->
+                <div class="asistencia-bento-clock">
+                    <div class="asistencia-date-pill">
+                        <i class="ph ph-calendar-blank"></i>
+                        <span id="live-date">...</span>
+                    </div>
+                    <div class="asistencia-time" id="live-clock">--:--:-- <span class="ampm">--</span></div>
+                    <div class="asistencia-status-pill" id="asistencia-status-text">
+                        <span class="status-dot"></span>Cargando estado...
                     </div>
                 </div>
-                <?php if ($next_meet['meet_link']): ?>
-                    <a href="<?php echo htmlspecialchars($next_meet['meet_link']); ?>" target="_blank" class="btn-modern-action btn-meet">
-                        Unirse <i class="ph ph-arrow-right"></i>
-                    </a>
-                <?php endif; ?>
-            <?php else: ?>
-                <div class="meet-empty modern-empty">
-                    <div class="empty-icon-circle"><i class="ph ph-calendar-blank"></i></div>
-                    <p>Sin reuniones hoy</p>
-                    <a href="index.php?module=reuniones&action=index" class="btn-modern-action btn-outline-modern">
-                        Agendar
-                    </a>
+
+                <!-- Columna Central: Línea de Tiempo de Hitos del Día -->
+                <div class="asistencia-bento-timeline">
+                    <div class="timeline-header">
+                        <span class="timeline-title"><i class="ph ph-clock-countdown"></i> MI JORNADA HOY</span>
+                        <span class="timeline-info" id="asistencia-tolerancia-info"><i class="ph ph-shield-check"></i> Tolerancia 5m</span>
+                    </div>
+                    <div class="milestones-track" id="asistencia-milestones">
+                        <div class="milestone-step" id="step-entrada" data-step="entrada">
+                            <div class="step-node"><i class="ph ph-sign-in"></i></div>
+                            <div class="step-content">
+                                <span class="step-label">ENTRADA</span>
+                                <span class="step-time" id="time-entrada">--:--</span>
+                            </div>
+                        </div>
+                        <div class="step-connector" id="conn-1"></div>
+                        <div class="milestone-step" id="step-refrigerio-ini" data-step="refrigerio_ini">
+                            <div class="step-node"><i class="ph ph-coffee"></i></div>
+                            <div class="step-content">
+                                <span class="step-label">ALMUERZO (I)</span>
+                                <span class="step-time" id="time-refrigerio-ini">--:--</span>
+                            </div>
+                        </div>
+                        <div class="step-connector" id="conn-2"></div>
+                        <div class="milestone-step" id="step-refrigerio-fin" data-step="refrigerio_fin">
+                            <div class="step-node"><i class="ph ph-play"></i></div>
+                            <div class="step-content">
+                                <span class="step-label">ALMUERZO (F)</span>
+                                <span class="step-time" id="time-refrigerio-fin">--:--</span>
+                            </div>
+                        </div>
+                        <div class="step-connector" id="conn-3"></div>
+                        <div class="milestone-step" id="step-salida" data-step="salida">
+                            <div class="step-node"><i class="ph ph-sign-out"></i></div>
+                            <div class="step-content">
+                                <span class="step-label">SALIDA</span>
+                                <span class="step-time" id="time-salida">--:--</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            <?php endif; ?>
+
+                <!-- Columna Derecha: Controles Táctiles iOS -->
+                <div class="asistencia-bento-actions">
+                    <div class="actions-header">
+                        <span class="actions-label">REGISTRO RÁPIDO</span>
+                    </div>
+                    <div class="asistencia-actions" id="asistencia-buttons">
+                        <!-- Generados dinámicamente vía JS -->
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Widget 4: Mensajes -->
-        <div class="widget widget-mensajes-premium modern-card" data-id="widget-mensajes" style="animation-delay: 0.3s;">
-            <div class="msg-premium-bg"></div>
-            <div class="msg-premium-content">
-                <div class="msg-premium-header">
-                    <div class="icon-circle msg-premium-icon"><i class="ph ph-chat-circle-dots"></i></div>
-                    <h3>Mensajes</h3>
+        <!-- Widget 1: Workspace -->
+        <div class="widget widget-workspace-bento modern-card bento-card" data-id="widget-workspace" style="animation-delay: 0.1s;">
+            <div class="bento-card-header">
+                <div class="bento-icon-squircle icon-workspace">
+                    <i class="ph ph-briefcase"></i>
                 </div>
-                <div class="msg-premium-body">
-                    <p>Comunícate en tiempo real con tu equipo de trabajo.</p>
-                    <a href="index.php?module=mensajes&action=index" class="btn-glass-msg">
-                        <span>Abrir Chat</span> <i class="ph ph-arrow-right"></i>
+                <span class="bento-badge-pill badge-hub">HUB</span>
+            </div>
+            <div class="bento-card-body">
+                <h3 class="bento-title">Workspace</h3>
+                <p class="bento-desc">Gestiona tus proyectos, marcas y herramientas activas.</p>
+                <div class="bento-mini-chips">
+                    <span class="mini-chip"><i class="ph ph-folder"></i> Proyectos</span>
+                    <span class="mini-chip"><i class="ph ph-sparkle"></i> Marcas</span>
+                </div>
+            </div>
+            <div class="bento-card-footer">
+                <a href="index.php?module=workspace&action=index" class="btn-bento-action btn-workspace">
+                    <span>Entrar</span> <i class="ph ph-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Widget 2: Reuniones -->
+        <div class="widget widget-reuniones-bento modern-card bento-card" data-id="widget-reuniones" style="animation-delay: 0.15s;">
+            <div class="bento-card-header">
+                <div class="bento-icon-squircle icon-meet">
+                    <i class="ph ph-video-camera"></i>
+                </div>
+                <?php if ($next_meet): ?>
+                    <span class="bento-badge-pill badge-live-pulse"><span class="pulse-dot"></span> Próxima</span>
+                <?php else: ?>
+                    <span class="bento-badge-pill badge-idle">Al día</span>
+                <?php endif; ?>
+            </div>
+            <div class="bento-card-body">
+                <h3 class="bento-title">Reuniones</h3>
+                <?php if ($next_meet): ?>
+                    <div class="meet-brand-wrapper">
+                        <?php if (!empty($next_meet['brand_logo']) && file_exists($next_meet['brand_logo'])): ?>
+                            <img src="<?php echo htmlspecialchars($next_meet['brand_logo']); ?>" alt="<?php echo htmlspecialchars($next_meet['brand_name']); ?>" class="meet-brand-logo-img">
+                        <?php endif; ?>
+                        <div class="meet-brand-badge"><?php echo htmlspecialchars($next_meet['brand_name'] ?: 'Reunión General'); ?></div>
+                    </div>
+                    <p class="bento-desc meet-subject"><?php echo htmlspecialchars($next_meet['motivo']); ?></p>
+                    <div id="meet-countdown" class="bento-countdown" data-time="<?php echo $next_meet['fecha_hora']; ?>">
+                        <i class="ph ph-timer"></i>
+                        <span class="countdown-value">--:--:--</span>
+                    </div>
+                <?php else: ?>
+                    <p class="bento-desc">No tienes reuniones programadas para hoy.</p>
+                    <div class="bento-empty-icon"><i class="ph ph-calendar-check"></i> Agenda libre</div>
+                <?php endif; ?>
+            </div>
+            <div class="bento-card-footer">
+                <?php if ($next_meet && $next_meet['meet_link']): ?>
+                    <a href="<?php echo htmlspecialchars($next_meet['meet_link']); ?>" target="_blank" class="btn-bento-action btn-meet-live">
+                        <span>Unirse a Meet</span> <i class="ph ph-arrow-up-right"></i>
                     </a>
+                <?php else: ?>
+                    <a href="index.php?module=reuniones&action=index" class="btn-bento-action btn-outline-bento">
+                        <span>Ver Agenda</span> <i class="ph ph-arrow-right"></i>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Widget 3: Mensajes -->
+        <div class="widget widget-mensajes-bento modern-card bento-card" data-id="widget-mensajes" style="animation-delay: 0.2s;">
+            <div class="bento-card-header">
+                <div class="bento-icon-squircle icon-chat">
+                    <i class="ph ph-chat-circle-dots"></i>
                 </div>
+                <span class="bento-badge-pill badge-chat">TEAM</span>
+            </div>
+            <div class="bento-card-body">
+                <h3 class="bento-title">Mensajes</h3>
+                <p class="bento-desc">Comunícate en tiempo real con tu equipo de trabajo.</p>
+                <div class="bento-soundwave">
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                </div>
+            </div>
+            <div class="bento-card-footer">
+                <a href="index.php?module=mensajes&action=index" class="btn-bento-action btn-chat">
+                    <span>Abrir Chat</span> <i class="ph ph-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Widget 4: Actividad y Métricas -->
+        <div class="widget widget-metricas-bento modern-card bento-card" data-id="widget-metricas" style="animation-delay: 0.25s;">
+            <div class="bento-card-header">
+                <div class="bento-icon-squircle icon-activity">
+                    <i class="ph ph-chart-bar"></i>
+                </div>
+                <span class="bento-badge-pill badge-stats">KPIs</span>
+            </div>
+            <div class="bento-card-body">
+                <h3 class="bento-title">Resumen Activo</h3>
+                <div class="bento-kpi-grid">
+                    <?php if(!empty($stats)): ?>
+                        <?php foreach(array_slice($stats, 0, 4) as $st): ?>
+                            <a href="<?php echo htmlspecialchars($st['link']); ?>" class="bento-kpi-item" title="<?php echo htmlspecialchars($st['label']); ?>">
+                                <div class="kpi-icon" style="color: <?php echo $st['color']; ?>; background: <?php echo $st['bg']; ?>;">
+                                    <i class="ph <?php echo $st['icon']; ?>"></i>
+                                </div>
+                                <div class="kpi-info">
+                                    <span class="kpi-val"><?php echo $st['value']; ?></span>
+                                    <span class="kpi-lbl"><?php echo htmlspecialchars($st['label']); ?></span>
+                                </div>
+                            </a>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="bento-kpi-item">
+                            <div class="kpi-icon" style="color: #10b981; background: rgba(16,185,129,0.1);">
+                                <i class="ph ph-check-circle"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <span class="kpi-val">100%</span>
+                                <span class="kpi-lbl">Operativo</span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="bento-card-footer">
+                <a href="<?php echo !empty($stats[0]['link']) ? $stats[0]['link'] : 'index.php?module=projects&action=index'; ?>" class="btn-bento-action btn-kpi">
+                    <span>Detalles</span> <i class="ph ph-arrow-right"></i>
+                </a>
             </div>
         </div>
         
@@ -361,7 +490,7 @@ try {
 
 
     <!-- Widget 4: Proyectos (Full Width) -->
-    <div class="projects-full-section" style="animation-delay: 0.3s;">
+    <div class="projects-full-section" style="animation-delay: 0.3s; margin-top: 2rem;">
         <div class="section-header">
             <h2>Proyectos Asignados</h2>
         </div>
@@ -369,36 +498,45 @@ try {
         <div class="projects-grid">
             <?php if(count($active_projects) > 0): ?>
                 <?php foreach($active_projects as $idx => $ap): ?>
-                <a href="index.php?module=project_board&id=<?php echo $ap['project_id']; ?>" class="modern-proj-card">
-                    <div class="proj-card-top">
-                        <div class="proj-brand-info">
-                            <div class="proj-avatar"><?php echo strtoupper(substr($ap['name'], 0, 1)); ?></div>
-                            <div>
+                <a href="index.php?module=project_board&id=<?php echo $ap['project_id']; ?>" class="modern-proj-card bento-proj-card">
+                    <div class="bento-proj-top">
+                        <div class="bento-proj-brand-info">
+                            <?php if (!empty($ap['brand_logo']) && file_exists($ap['brand_logo'])): ?>
+                                <img src="<?php echo htmlspecialchars($ap['brand_logo']); ?>" alt="<?php echo htmlspecialchars($ap['name']); ?>" class="proj-avatar proj-avatar-img">
+                            <?php else: ?>
+                                <div class="proj-avatar proj-avatar-grad-<?php echo ($idx % 4); ?>">
+                                    <?php echo strtoupper(substr($ap['name'], 0, 1)); ?>
+                                </div>
+                            <?php endif; ?>
+                            <div class="bento-proj-brand-text">
                                 <h4><?php echo htmlspecialchars($ap['name']); ?></h4>
-                                <span class="proj-date"><?php echo $ap['month']; ?></span>
+                                <span class="proj-date-pill"><i class="ph ph-calendar-blank"></i> <?php echo $ap['month']; ?></span>
                             </div>
                         </div>
-                        <?php if($ap['progress'] < 100): ?>
-                            <span class="badge-status badge-pending">En curso</span>
-                        <?php else: ?>
-                            <span class="badge-status badge-completed">Completado</span>
-                        <?php endif; ?>
+                        <div class="bento-proj-top-actions">
+                            <?php if($ap['progress'] < 100): ?>
+                                <span class="bento-badge-pill badge-proj-active"><span class="pulse-dot"></span> En curso</span>
+                            <?php else: ?>
+                                <span class="bento-badge-pill badge-proj-done"><i class="ph ph-check-circle"></i> Listo</span>
+                            <?php endif; ?>
+                            <div class="bento-proj-arrow"><i class="ph ph-arrow-up-right"></i></div>
+                        </div>
                     </div>
                     
-                    <div class="proj-stats-modern">
-                        <div class="stat-item"><i class="ph ph-files"></i> <?php echo $ap['total']; ?> posts</div>
-                        <div class="stat-item"><i class="ph ph-chat-circle"></i> <?php echo $ap['comments']; ?> msgs</div>
+                    <div class="bento-proj-chips">
+                        <span class="proj-chip"><i class="ph ph-file-text"></i> <b><?php echo $ap['total']; ?></b> posts</span>
+                        <span class="proj-chip"><i class="ph ph-chat-circle-dots"></i> <b><?php echo $ap['comments']; ?></b> msgs</span>
                         <?php if(isset($ap['board_count']) && $ap['board_count'] > 0): ?>
-                        <div class="stat-item"><i class="ph ph-chalkboard"></i> <?php echo $ap['board_count']; ?> pizar.</div>
+                        <span class="proj-chip"><i class="ph ph-chalkboard"></i> <b><?php echo $ap['board_count']; ?></b> pizarras</span>
                         <?php endif; ?>
                     </div>
 
-                    <div class="prog-container-modern">
-                        <div class="prog-labels">
-                            <span>Avance</span>
-                            <span><?php echo $ap['progress']; ?>%</span>
+                    <div class="bento-proj-progress">
+                        <div class="prog-labels-bento">
+                            <span class="prog-lbl-title">Avance</span>
+                            <span class="prog-lbl-val"><?php echo $ap['progress']; ?>%</span>
                         </div>
-                        <div class="prog-bar-wrapper">
+                        <div class="prog-bar-bento">
                             <?php if($ap['total'] > 0): ?>
                                 <?php 
                                     $pubW = round(($ap['publicado'] / $ap['total']) * 100, 1);
@@ -719,9 +857,15 @@ body.system-locked-late header {
             const widgets = Array.from(grid.children);
             savedLayout.forEach(id => {
                 if (id === 'widget-biometric') id = 'widget-workspace';
+                if (id === 'widget-asistencia') return; // Se fijará al inicio
                 const widget = widgets.find(w => w.getAttribute('data-id') === id);
                 if (widget) grid.appendChild(widget);
             });
+        }
+        // Fijar el widget de asistencia hero siempre en la posición inicial (4 columnas)
+        const heroAsistencia = grid.querySelector('.bento-hero-asistencia');
+        if (heroAsistencia) {
+            grid.prepend(heroAsistencia);
         }
 
         new Sortable(grid, {
@@ -844,49 +988,121 @@ body.system-locked-late header {
         renderButtons: function(data) {
             const container = document.getElementById('asistencia-buttons');
             const statusText = document.getElementById('asistencia-status-text');
+            if (!container || !statusText) return;
             container.innerHTML = '';
             
+            const formatTime = (dtStr) => dtStr ? dtStr.split(' ')[1].substring(0, 5) : '--:--';
+
+            // Hitos DOM
+            const stepEntrada = document.getElementById('step-entrada');
+            const stepRefIni = document.getElementById('step-refrigerio-ini');
+            const stepRefFin = document.getElementById('step-refrigerio-fin');
+            const stepSalida = document.getElementById('step-salida');
+            const timeEntrada = document.getElementById('time-entrada');
+            const timeRefIni = document.getElementById('time-refrigerio-ini');
+            const timeRefFin = document.getElementById('time-refrigerio-fin');
+            const timeSalida = document.getElementById('time-salida');
+            const conn1 = document.getElementById('conn-1');
+            const conn2 = document.getElementById('conn-2');
+            const conn3 = document.getElementById('conn-3');
+
+            [stepEntrada, stepRefIni, stepRefFin, stepSalida].forEach(el => {
+                if (el) el.className = 'milestone-step';
+            });
+            [conn1, conn2, conn3].forEach(c => {
+                if (c) c.className = 'step-connector';
+            });
+            if (timeEntrada) timeEntrada.innerText = '--:--';
+            if (timeRefIni) timeRefIni.innerText = '--:--';
+            if (timeRefFin) timeRefFin.innerText = '--:--';
+            if (timeSalida) timeSalida.innerText = '--:--';
+
+            // Botón Permiso
             const btnPermiso = document.createElement('button');
-            btnPermiso.className = 'btn-asistencia';
-            btnPermiso.style.background = 'rgba(255, 255, 255, 0.2)';
-            btnPermiso.style.marginRight = '0.5rem';
-            btnPermiso.innerHTML = `<i class="ph ph-hand-palm"></i> Permiso`;
+            btnPermiso.type = 'button';
+            btnPermiso.className = 'btn-asistencia-permiso';
+            btnPermiso.innerHTML = `<i class="ph ph-hand-palm"></i> Solicitar Permiso`;
             btnPermiso.onclick = () => document.getElementById('modal-permiso').classList.add('active');
-            container.appendChild(btnPermiso);
             
-            const createBtn = (label, action, icon, isDanger=false) => {
+            const createBtn = (label, action, icon, variant='primary') => {
                 const btn = document.createElement('button');
-                btn.className = 'btn-asistencia' + (isDanger ? ' btn-danger' : '');
+                btn.type = 'button';
+                let varClass = 'btn-asistencia-primary';
+                if (variant === 'danger') varClass += ' btn-asistencia-danger';
+                if (variant === 'warning') varClass += ' btn-asistencia-warning';
+                btn.className = varClass;
                 btn.innerHTML = `<i class="ph ${icon}"></i> ${label}`;
                 btn.onclick = () => this.mark(action);
                 container.appendChild(btn);
             };
 
-            const formatTime = (dtStr) => dtStr ? dtStr.split(' ')[1].substring(0, 5) : '';
-
-            const tardanzaBadge = (data && (data.es_tardanza == 1 || data.minutos_tarde > 0))
-                ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-warning-circle"></i> Tardanza (${data.minutos_tarde}m)</span>`
-                : (data && data.entrada ? `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-check-circle"></i> Puntual</span>` : '');
+            const isTardanza = (data && (data.es_tardanza == 1 || data.minutos_tarde > 0));
+            const tardanzaBadge = isTardanza
+                ? `<span class="badge-status-pill pill-tardanza" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-warning-circle"></i> Tardanza (${data.minutos_tarde}m)</span>`
+                : (data && data.entrada ? `<span class="badge-status-pill pill-puntual" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-check-circle"></i> Puntual</span>` : '');
 
             const horasExtrasBadge = (data && data.realiza_horas_extras == 1)
-                ? `<span style="background: rgba(139, 92, 246, 0.18); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;" title="${data.motivo_horas_extras || 'Horas extras autorizadas'}"><i class="ph ph-clock-countdown"></i> Horas Extras</span>`
+                ? `<span class="badge-status-pill pill-he" style="background: rgba(139, 92, 246, 0.18); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;" title="${data.motivo_horas_extras || 'Horas extras autorizadas'}"><i class="ph ph-clock-countdown"></i> Horas Extras</span>`
                 : '';
 
-            if (!data) {
-                statusText.innerHTML = `<span class="status-dot"></span> Esperando entrada`;
-                createBtn('Marcar Entrada', 'entrada', 'ph-sign-in');
-            } else if (data.salida) {
-                statusText.innerHTML = `<span class="status-dot" style="background: #94a3b8; box-shadow: 0 0 8px rgba(148,163,184,0.4);"></span> Jornada Terminada ${tardanzaBadge} ${horasExtrasBadge}`;
-            } else if (!data.inicio_refrigerio) {
-                statusText.innerHTML = `<span class="status-dot"></span> Trabajando · Inició ${formatTime(data.entrada)} ${tardanzaBadge} ${horasExtrasBadge}`;
-                createBtn('Refrigerio', 'inicio_refrigerio', 'ph-coffee');
-                createBtn('Salida', 'salida', 'ph-sign-out', true);
-            } else if (!data.fin_refrigerio) {
-                statusText.innerHTML = `<span class="status-dot" style="background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4);"></span> En Refrigerio ${tardanzaBadge} ${horasExtrasBadge}`;
-                createBtn('Fin Refrigerio', 'fin_refrigerio', 'ph-play');
+            if (data && data.tolerancia_minutos) {
+                const tolEl = document.getElementById('asistencia-tolerancia-info');
+                if (tolEl) tolEl.innerHTML = `<i class="ph ph-shield-check"></i> Tolerancia ${data.tolerancia_minutos}m`;
+            }
+
+            if (!data || !data.entrada) {
+                statusText.innerHTML = `<span class="status-dot status-dot-idle"></span> Esperando entrada`;
+                createBtn('Marcar Entrada', 'entrada', 'ph-sign-in', 'primary');
+                container.appendChild(btnPermiso);
+                if (stepEntrada) stepEntrada.classList.add('step-active');
             } else {
-                statusText.innerHTML = `<span class="status-dot"></span> Trabajando · Ref. terminado ${tardanzaBadge} ${horasExtrasBadge}`;
-                createBtn('Marcar Salida', 'salida', 'ph-sign-out', true);
+                if (timeEntrada) timeEntrada.innerText = formatTime(data.entrada);
+                if (stepEntrada) {
+                    stepEntrada.classList.add('step-completed');
+                    if (isTardanza) stepEntrada.classList.add('step-late');
+                }
+                if (conn1) conn1.classList.add('conn-active');
+
+                if (data.salida) {
+                    if (timeRefIni && data.inicio_refrigerio) timeRefIni.innerText = formatTime(data.inicio_refrigerio);
+                    if (timeRefFin && data.fin_refrigerio) timeRefFin.innerText = formatTime(data.fin_refrigerio);
+                    if (timeSalida) timeSalida.innerText = formatTime(data.salida);
+                    if (stepRefIni && data.inicio_refrigerio) stepRefIni.classList.add('step-completed');
+                    if (stepRefFin && data.fin_refrigerio) stepRefFin.classList.add('step-completed');
+                    if (stepSalida) stepSalida.classList.add('step-completed');
+                    if (conn2 && data.fin_refrigerio) conn2.classList.add('conn-active');
+                    if (conn3) conn3.classList.add('conn-active');
+
+                    statusText.innerHTML = `<span class="status-dot status-dot-done" style="background: #94a3b8; box-shadow: 0 0 8px rgba(148,163,184,0.4);"></span> Jornada Terminada ${tardanzaBadge} ${horasExtrasBadge}`;
+                    container.appendChild(btnPermiso);
+                } else if (!data.inicio_refrigerio) {
+                    statusText.innerHTML = `<span class="status-dot status-dot-live"></span> En Jornada · Inició ${formatTime(data.entrada)} ${tardanzaBadge} ${horasExtrasBadge}`;
+                    createBtn('Iniciar Almuerzo', 'inicio_refrigerio', 'ph-coffee', 'warning');
+                    createBtn('Marcar Salida', 'salida', 'ph-sign-out', 'danger');
+                    container.appendChild(btnPermiso);
+                    if (stepRefIni) stepRefIni.classList.add('step-active');
+                } else if (!data.fin_refrigerio) {
+                    if (timeRefIni) timeRefIni.innerText = formatTime(data.inicio_refrigerio);
+                    if (stepRefIni) stepRefIni.classList.add('step-completed');
+                    if (conn2) conn2.classList.add('conn-active');
+                    if (stepRefFin) stepRefFin.classList.add('step-active');
+
+                    statusText.innerHTML = `<span class="status-dot status-dot-lunch" style="background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4);"></span> En Refrigerio ${tardanzaBadge} ${horasExtrasBadge}`;
+                    createBtn('Finalizar Almuerzo', 'fin_refrigerio', 'ph-play', 'primary');
+                    container.appendChild(btnPermiso);
+                } else {
+                    if (timeRefIni) timeRefIni.innerText = formatTime(data.inicio_refrigerio);
+                    if (timeRefFin) timeRefFin.innerText = formatTime(data.fin_refrigerio);
+                    if (stepRefIni) stepRefIni.classList.add('step-completed');
+                    if (stepRefFin) stepRefFin.classList.add('step-completed');
+                    if (conn2) conn2.classList.add('conn-active');
+                    if (conn3) conn3.classList.add('conn-active');
+                    if (stepSalida) stepSalida.classList.add('step-active');
+
+                    statusText.innerHTML = `<span class="status-dot status-dot-live"></span> En Jornada · Almuerzo finalizado ${tardanzaBadge} ${horasExtrasBadge}`;
+                    createBtn('Marcar Salida', 'salida', 'ph-sign-out', 'danger');
+                    container.appendChild(btnPermiso);
+                }
             }
         },
         mark: function(action) {

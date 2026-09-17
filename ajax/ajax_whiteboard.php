@@ -1,11 +1,23 @@
 <?php
 // ajax/ajax_whiteboard.php
-require_once '../config/database.php';
-session_start();
+require_once __DIR__ . '/../config/database.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 header('Content-Type: application/json');
 
-$db = (new Database())->getConnection();
+try {
+    $db = (new Database())->getConnection();
+    if (!$db) {
+        echo json_encode(['success' => false, 'error' => 'No se pudo conectar a la base de datos.']);
+        exit;
+    }
+} catch (Throwable $e) {
+    echo json_encode(['success' => false, 'error' => 'Error de base de datos: ' . $e->getMessage()]);
+    exit;
+}
+
 $user_id = $_SESSION['user_id'] ?? 1; // Fallback for dev if needed
 
 $input = json_decode(file_get_contents('php://input'), true);
@@ -375,7 +387,7 @@ function process_unified_share($db, $board_id, $users_json, $title) {
     $stmtCheck = $db->prepare("SELECT created_by FROM whiteboards WHERE id = ?");
     $stmtCheck->execute([$board_id]);
     $creator_id = $stmtCheck->fetchColumn();
-    $owner_id = $creator_id ?: $user_id;
+    $owner_id = (int)($creator_id ?: $user_id);
     
     // Save existing invitations to preserve their tokens and avoid resending emails
     $stmtGetInvites = $db->prepare("SELECT email, token FROM whiteboard_invitations WHERE whiteboard_id = ?");
@@ -391,21 +403,37 @@ function process_unified_share($db, $board_id, $users_json, $title) {
     $stmtDel2 = $db->prepare("DELETE FROM whiteboard_invitations WHERE whiteboard_id = ?");
     $stmtDel2->execute([$board_id]);
     
-    $stmtInsertSys = $db->prepare("INSERT INTO whiteboard_users (whiteboard_id, user_id, role) VALUES (?, ?, ?)");
-    $stmtInsertInv = $db->prepare("INSERT INTO whiteboard_invitations (whiteboard_id, email, role, token) VALUES (?, ?, ?, ?)");
+    $stmtInsertSys = $db->prepare("INSERT INTO whiteboard_users (whiteboard_id, user_id, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)");
+    $stmtInsertInv = $db->prepare("INSERT INTO whiteboard_invitations (whiteboard_id, email, role, token) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)");
     
-    $app_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . dirname($_SERVER['PHP_SELF'], 2);
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+    $scriptDir = dirname($_SERVER['PHP_SELF'] ?? '/ajax/ajax_whiteboard.php');
+    $baseDir = dirname($scriptDir);
+    if ($baseDir === '/' || $baseDir === '\\') $baseDir = '';
+    $app_url = $protocol . "://" . $host . $baseDir;
+
+    $processedUserIds = [$owner_id];
+    $processedEmails = [];
     
     foreach($users as $u) {
-        if ($u['id'] === 'OWNER') continue;
+        if (!isset($u['id']) || $u['id'] === 'OWNER') continue;
         
-        $role = in_array($u['role'], ['editor', 'viewer']) ? $u['role'] : 'viewer';
+        $role = in_array($u['role'] ?? '', ['editor', 'viewer']) ? $u['role'] : 'viewer';
         
         if (strpos($u['id'], 'USER:') === 0) {
-            $sys_id = str_replace('USER:', '', $u['id']);
+            $sys_id = (int)str_replace('USER:', '', $u['id']);
+            if ($sys_id <= 0 || in_array($sys_id, $processedUserIds, true)) {
+                continue;
+            }
+            $processedUserIds[] = $sys_id;
             $stmtInsertSys->execute([$board_id, $sys_id, $role]);
         } else {
-            $email = filter_var($u['email'], FILTER_SANITIZE_EMAIL);
+            $email = filter_var($u['email'] ?? $u['id'], FILTER_SANITIZE_EMAIL);
+            if (empty($email) || in_array(strtolower($email), $processedEmails, true)) {
+                continue;
+            }
+            $processedEmails[] = strtolower($email);
             
             $isNew = false;
             if (isset($existingInvites[$email])) {
@@ -443,12 +471,15 @@ function process_unified_share($db, $board_id, $users_json, $title) {
                 $bodyText .= "Puedes acceder mediante el siguiente enlace:\r\n$link\r\n\r\n";
                 $bodyText .= "Rol: " . $roleName;
                 
-                require_once '../includes/Mailer.php';
-                try {
-                    $mailer = new Mailer($db);
-                    $mailer->sendCustomEmail($email, $email, $subject, $bodyHtml, $bodyText);
-                } catch (Exception $e) {
-                    error_log("Error enviando email de invitación: " . $e->getMessage());
+                $mailerPath = __DIR__ . '/../includes/Mailer.php';
+                if (file_exists($mailerPath)) {
+                    require_once $mailerPath;
+                    try {
+                        $mailer = new Mailer($db);
+                        $mailer->sendCustomEmail($email, $email, $subject, $bodyHtml, $bodyText);
+                    } catch (Throwable $e) {
+                        error_log("Error enviando email de invitación: " . $e->getMessage());
+                    }
                 }
             }
         }
@@ -456,76 +487,86 @@ function process_unified_share($db, $board_id, $users_json, $title) {
 }
 
 if ($action === 'create_unified') {
-    $title = $input['title'] ?? 'Sin título';
-    $access_type = in_array($input['access_type'] ?? '', ['restricted', 'public']) ? $input['access_type'] : 'restricted';
-    $public_role = in_array($input['public_role'] ?? '', ['viewer', 'editor']) ? $input['public_role'] : 'viewer';
-    
-    $profile_pic = null;
-    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = '../uploads/whiteboards/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-        $fileName = uniqid() . '_' . basename($_FILES['profile_pic']['name']);
-        $destPath = $uploadDir . $fileName;
-        if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $destPath)) {
-            $profile_pic = 'uploads/whiteboards/' . $fileName;
+    try {
+        $title = $input['title'] ?? 'Sin título';
+        $access_type = in_array($input['access_type'] ?? '', ['restricted', 'public']) ? $input['access_type'] : 'restricted';
+        $public_role = in_array($input['public_role'] ?? '', ['viewer', 'editor']) ? $input['public_role'] : 'viewer';
+        
+        $profile_pic = null;
+        if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../uploads/whiteboards/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            $fileName = uniqid() . '_' . basename($_FILES['profile_pic']['name']);
+            $destPath = $uploadDir . $fileName;
+            if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $destPath)) {
+                $profile_pic = 'uploads/whiteboards/' . $fileName;
+            }
         }
-    }
-    
-    $stmt = $db->prepare("INSERT INTO whiteboards (title, created_by, profile_pic, access_type, public_role) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt->execute([$title, $user_id, $profile_pic, $access_type, $public_role])) {
-        $board_id = $db->lastInsertId();
         
-        $stmtCreator = $db->prepare("INSERT INTO whiteboard_users (whiteboard_id, user_id, role) VALUES (?, ?, 'editor')");
-        $stmtCreator->execute([$board_id, $user_id]);
-        
-        process_unified_share($db, $board_id, $input['users'] ?? '[]', $title);
-        
-        echo json_encode(['success' => true, 'id' => $board_id]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'No se pudo crear la pizarra.']);
+        $stmt = $db->prepare("INSERT INTO whiteboards (title, created_by, profile_pic, access_type, public_role) VALUES (?, ?, ?, ?, ?)");
+        if ($stmt->execute([$title, $user_id, $profile_pic, $access_type, $public_role])) {
+            $board_id = $db->lastInsertId();
+            
+            $stmtCreator = $db->prepare("INSERT INTO whiteboard_users (whiteboard_id, user_id, role) VALUES (?, ?, 'editor') ON DUPLICATE KEY UPDATE role = 'editor'");
+            $stmtCreator->execute([$board_id, $user_id]);
+            
+            process_unified_share($db, $board_id, $input['users'] ?? '[]', $title);
+            
+            echo json_encode(['success' => true, 'id' => $board_id]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'No se pudo crear la pizarra.']);
+        }
+    } catch (Throwable $e) {
+        error_log("Error in create_unified: " . $e->getMessage());
+        echo json_encode(['success' => false, 'error' => 'Error al crear la pizarra: ' . $e->getMessage()]);
     }
     exit;
 }
 
 if ($action === 'update_unified') {
-    $id = $input['id'] ?? 0;
-    $title = $input['title'] ?? 'Sin título';
-    $access_type = in_array($input['access_type'] ?? '', ['restricted', 'public']) ? $input['access_type'] : 'restricted';
-    $public_role = in_array($input['public_role'] ?? '', ['viewer', 'editor']) ? $input['public_role'] : 'viewer';
-    
-    $stmtCheck = $db->prepare("SELECT created_by FROM whiteboards WHERE id = ?");
-    $stmtCheck->execute([$id]);
-    $creator_id = $stmtCheck->fetchColumn();
-    
-    if (!$is_admin && $creator_id != $user_id) {
-        echo json_encode(['success' => false, 'error' => 'No tienes permisos para editar esta pizarra.']);
-        exit;
-    }
-    
-    $profile_pic = null;
-    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = '../uploads/whiteboards/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-        $fileName = uniqid() . '_' . basename($_FILES['profile_pic']['name']);
-        $destPath = $uploadDir . $fileName;
-        if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $destPath)) {
-            $profile_pic = 'uploads/whiteboards/' . $fileName;
+    try {
+        $id = $input['id'] ?? 0;
+        $title = $input['title'] ?? 'Sin título';
+        $access_type = in_array($input['access_type'] ?? '', ['restricted', 'public']) ? $input['access_type'] : 'restricted';
+        $public_role = in_array($input['public_role'] ?? '', ['viewer', 'editor']) ? $input['public_role'] : 'viewer';
+        
+        $stmtCheck = $db->prepare("SELECT created_by FROM whiteboards WHERE id = ?");
+        $stmtCheck->execute([$id]);
+        $creator_id = $stmtCheck->fetchColumn();
+        
+        if (!$is_admin && $creator_id != $user_id) {
+            echo json_encode(['success' => false, 'error' => 'No tienes permisos para editar esta pizarra.']);
+            exit;
         }
-    }
-    
-    if ($profile_pic) {
-        $stmt = $db->prepare("UPDATE whiteboards SET title = ?, profile_pic = ?, access_type = ?, public_role = ?, updated_at = NOW() WHERE id = ?");
-        $res = $stmt->execute([$title, $profile_pic, $access_type, $public_role, $id]);
-    } else {
-        $stmt = $db->prepare("UPDATE whiteboards SET title = ?, access_type = ?, public_role = ?, updated_at = NOW() WHERE id = ?");
-        $res = $stmt->execute([$title, $access_type, $public_role, $id]);
-    }
-    
-    if ($res) {
-        process_unified_share($db, $id, $input['users'] ?? '[]', $title);
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'No se pudo actualizar la pizarra.']);
+        
+        $profile_pic = null;
+        if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../uploads/whiteboards/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            $fileName = uniqid() . '_' . basename($_FILES['profile_pic']['name']);
+            $destPath = $uploadDir . $fileName;
+            if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $destPath)) {
+                $profile_pic = 'uploads/whiteboards/' . $fileName;
+            }
+        }
+        
+        if ($profile_pic) {
+            $stmt = $db->prepare("UPDATE whiteboards SET title = ?, profile_pic = ?, access_type = ?, public_role = ?, updated_at = NOW() WHERE id = ?");
+            $res = $stmt->execute([$title, $profile_pic, $access_type, $public_role, $id]);
+        } else {
+            $stmt = $db->prepare("UPDATE whiteboards SET title = ?, access_type = ?, public_role = ?, updated_at = NOW() WHERE id = ?");
+            $res = $stmt->execute([$title, $access_type, $public_role, $id]);
+        }
+        
+        if ($res) {
+            process_unified_share($db, $id, $input['users'] ?? '[]', $title);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'No se pudo actualizar la pizarra.']);
+        }
+    } catch (Throwable $e) {
+        error_log("Error in update_unified: " . $e->getMessage());
+        echo json_encode(['success' => false, 'error' => 'Error al actualizar la pizarra: ' . $e->getMessage()]);
     }
     exit;
 }

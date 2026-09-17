@@ -137,7 +137,7 @@ require_once 'includes/header.php';
 .icon-tools { background: linear-gradient(135deg, #f59e0b, #d97706); }
 .icon-app { background: linear-gradient(135deg, #71717a, #52525b); }
 .icon-web { background: linear-gradient(135deg, #52525b, #3f3f46); }
-.icon-audio { background: linear-gradient(135deg, #52525b, #3f3f46); }
+.icon-audio { background: linear-gradient(135deg, #f97316, #ef4444); }
 
 /* Disabled Card State */
 .workspace-card.is-disabled {
@@ -312,15 +312,16 @@ require_once 'includes/header.php';
             <p class="workspace-card-desc">Proyectos web, sitios corporativos, e-commerce y landing pages.</p>
         </div>
 
-        <!-- Audiovisual (Desactivado) -->
-        <div class="workspace-card is-disabled" style="animation-delay: 0.45s;">
-            <span class="workspace-card-badge-disabled"><i class="ph ph-lock-key"></i> Desactivado</span>
+        <!-- Audiovisual (Activo) -->
+        <?php if (in_array('audiovisual', $perms)): ?>
+        <a href="index.php?module=audiovisual&action=index" class="workspace-card" style="animation-delay: 0.45s;">
             <div class="workspace-card-icon icon-audio">
                 <i class="ph ph-video-camera"></i>
             </div>
             <h3 class="workspace-card-title">Audiovisual</h3>
             <p class="workspace-card-desc">Producción de videos, fotografía, edición y material multimedia.</p>
-        </div>
+        </a>
+        <?php endif; ?>
 
     </div>
 </div>

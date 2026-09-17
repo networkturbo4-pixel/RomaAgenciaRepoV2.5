@@ -29,158 +29,353 @@ require_once 'includes/header.php';
 }
 
 .brand-container {
-    padding: 1.5rem;
+    padding: 1.75rem 2rem;
     max-width: 1440px;
     margin: 0 auto;
     font-family: var(--font-family, 'Inter', sans-serif);
 }
 
-/* Header Section App Style */
+/* Modern App Header Bar */
 .brand-header {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    padding: 1.25rem 1.75rem;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 26px;
+    padding: 1.15rem 1.75rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
     flex-wrap: wrap;
-    gap: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    gap: 1.25rem;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .brand-header {
+    background: #141721;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 14px 35px -8px rgba(0, 0, 0, 0.5);
 }
 
 .brand-title-group {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.1rem;
 }
 
-.brand-title h1 {
-    font-size: 1.45rem;
-    font-weight: 700;
-    color: var(--brand-text-main);
-    margin: 0;
-    letter-spacing: -0.3px;
+.brand-back-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main, #0f172a);
+    font-size: 1.2rem;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
-.brand-title span {
-    font-size: 0.72rem;
-    font-weight: 700;
+[data-theme="dark"] .brand-back-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.brand-back-btn:hover {
+    background: var(--primary-color, #4f46e5);
+    color: #ffffff !important;
+    border-color: var(--primary-color, #4f46e5);
+    transform: translateX(-3px) scale(1.05);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color, #4f46e5) 35%, transparent);
+}
+
+.brand-title-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.brand-kicker {
+    font-size: 0.68rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--brand-text-muted);
+    letter-spacing: 0.8px;
+    color: var(--text-muted, #64748b);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
-.brand-actions .btn-primary {
-    background: var(--secondary-color, #10b981);
-    color: white;
-    border: none;
-    padding: 0.65rem 1.5rem;
+.brand-kicker i {
+    color: var(--primary-color, #6366f1);
+    font-size: 0.8rem;
+}
+
+.brand-title-wrapper h1 {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--text-main, #0f172a);
+    margin: 0;
+    letter-spacing: -0.4px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+[data-theme="dark"] .brand-title-wrapper h1 {
+    color: #ffffff;
+}
+
+.brand-count-pill {
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 0.2rem 0.65rem;
     border-radius: 9999px;
-    font-weight: 600;
+    background: color-mix(in srgb, var(--primary-color, #6366f1) 12%, transparent);
+    color: var(--primary-color, #6366f1);
+    border: 1px solid color-mix(in srgb, var(--primary-color, #6366f1) 25%, transparent);
+    letter-spacing: 0.2px;
+}
+
+.brand-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+/* Real-time search box */
+.brand-search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 0.45rem 1rem;
+    border-radius: 9999px;
+    width: 250px;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+}
+
+[data-theme="dark"] .brand-search-box {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.brand-search-box:focus-within {
+    width: 280px;
+    border-color: var(--primary-color, #6366f1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #6366f1) 15%, transparent);
+    background: var(--bg-surface, #ffffff);
+}
+
+.brand-search-box i.ph-magnifying-glass {
+    color: var(--text-muted, #64748b);
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.brand-search-box input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.84rem;
+    font-family: inherit;
+    color: var(--text-main, #0f172a);
+    width: 100%;
+}
+
+[data-theme="dark"] .brand-search-box input {
+    color: #ffffff;
+}
+
+.brand-search-box button {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
     font-size: 0.9rem;
+}
+
+/* + Nuevo Proyecto Button */
+.btn-new-brand-project {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: #ffffff !important;
+    border: none;
+    padding: 0.7rem 1.6rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.88rem;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px color-mix(in srgb, var(--secondary-color, #10b981) 35%, transparent);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 22px -4px rgba(79, 70, 229, 0.45);
+    letter-spacing: -0.2px;
 }
 
-.brand-actions .btn-primary:hover {
+.btn-new-brand-project:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--secondary-color, #10b981) 50%, transparent);
+    box-shadow: 0 12px 28px -4px rgba(79, 70, 229, 0.6);
     filter: brightness(1.08);
 }
 
-/* Project Cards Grid */
+/* Toolbar & Segmented Control */
+.brand-toolbar {
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.brand-segmented-control {
+    display: inline-flex;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 0.35rem;
+    border-radius: 9999px;
+    gap: 0.35rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .brand-segmented-control {
+    background: #141721;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.brand-tab {
+    background: transparent;
+    border: none;
+    padding: 0.55rem 1.25rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.brand-tab:hover {
+    color: var(--text-main, #0f172a);
+}
+
+[data-theme="dark"] .brand-tab:hover {
+    color: #ffffff;
+}
+
+.brand-tab.active {
+    background: var(--bg-body, #f1f5f9);
+    color: var(--text-main, #0f172a);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .brand-tab.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.brand-tab.active i {
+    color: var(--primary-color, #6366f1);
+}
+
+.tab-count-pill {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-muted, #64748b);
+}
+
+[data-theme="dark"] .tab-count-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+.brand-tab.active .tab-count-pill {
+    background: color-mix(in srgb, var(--primary-color, #6366f1) 15%, transparent);
+    color: var(--primary-color, #6366f1);
+}
+
+/* Projects Grid */
 .brand-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.6rem;
 }
-@media (max-width: 480px) {
+
+@media (max-width: 680px) {
     .brand-grid {
         grid-template-columns: 1fr;
         gap: 1.25rem;
     }
-}
-
-.brand-tabs-container {
-    margin-bottom: 1.75rem;
-    display: flex;
-}
-.brand-tabs {
-    display: inline-flex;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    padding: 0.35rem;
-    border-radius: 9999px;
-    gap: 0.35rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-.brand-tab {
-    background: transparent;
-    border: none;
-    padding: 0.55rem 1.35rem;
-    border-radius: 9999px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--brand-text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    transition: all 0.2s ease;
-}
-.brand-tab:hover {
-    color: var(--brand-text-main);
-}
-.brand-tab.active {
-    background: var(--bg-color);
-    color: var(--brand-text-main);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-.brand-tab.active i {
-    color: var(--secondary-color, #10b981);
+    .brand-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .brand-header-actions {
+        flex-direction: column;
+    }
+    .brand-search-box {
+        width: 100% !important;
+    }
+    .btn-new-brand-project {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* ==========================================================================
-   Ultra Modern App Style Project Card (Light & Dark Theme)
+   Ultra Modern App Project Card (iOS / Apple Bento Style)
    ========================================================================== */
-.project-card {
-    background: var(--bg-surface, #141417);
-    border-radius: 24px;
-    padding: 1.4rem;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+.project-card.app-proj-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 26px;
+    padding: 1.45rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    gap: 1.15rem;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s;
     position: relative;
     overflow: hidden;
 }
 
-[data-theme="light"] .project-card {
-    background: #ffffff;
-    border-color: #e2e8f0;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+[data-theme="dark"] .project-card.app-proj-card {
+    background: #141721;
+    border-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 14px 35px -8px rgba(0, 0, 0, 0.45);
 }
 
-.project-card:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 40%, var(--border-color, rgba(255, 255, 255, 0.08)));
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.35), 0 0 20px color-mix(in srgb, var(--primary-color) 10%, transparent);
+.project-card.app-proj-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 22px 45px -10px rgba(0, 0, 0, 0.08), 0 0 20px color-mix(in srgb, var(--primary-color, #6366f1) 12%, transparent);
+    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 45%, var(--border-color, #e2e8f0));
 }
 
-[data-theme="light"] .project-card:hover {
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12), 0 0 15px color-mix(in srgb, var(--primary-color) 8%, transparent);
+[data-theme="dark"] .project-card.app-proj-card:hover {
+    box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.65), 0 0 24px color-mix(in srgb, var(--primary-color, #6366f1) 20%, transparent);
+    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 50%, rgba(255, 255, 255, 0.15));
 }
 
-/* Card Top Bar (Status, Timer, Menu) */
+/* Card Top Bar */
 .app-card-top-bar {
     display: flex;
     justify-content: space-between;
@@ -200,49 +395,40 @@ require_once 'includes/header.php';
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.25rem 0.65rem;
+    padding: 0.28rem 0.75rem;
     border-radius: 9999px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.4px;
     text-transform: uppercase;
     border: 1px solid transparent;
 }
+
 .app-status-badge .status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     display: inline-block;
 }
+
 .app-status-badge.active,
 .app-status-badge.activo {
-    background: rgba(16, 185, 129, 0.14);
-    color: #10b981;
-    border-color: rgba(16, 185, 129, 0.35);
-}
-[data-theme="light"] .app-status-badge.active,
-[data-theme="light"] .app-status-badge.activo {
     background: rgba(16, 185, 129, 0.12);
-    color: #047857;
-    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.28);
 }
 .app-status-badge.active .status-dot,
 .app-status-badge.activo .status-dot {
     background: #10b981;
     box-shadow: 0 0 6px #10b981;
+    animation: pulse-ring 2s infinite;
 }
 
 .app-status-badge.pending,
 .app-status-badge.pendiente {
-    background: rgba(245, 158, 11, 0.14);
-    color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.35);
-}
-[data-theme="light"] .app-status-badge.pending,
-[data-theme="light"] .app-status-badge.pendiente {
     background: rgba(245, 158, 11, 0.12);
-    color: #b45309;
-    border-color: rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.28);
 }
 .app-status-badge.pending .status-dot,
 .app-status-badge.pendiente .status-dot {
@@ -250,198 +436,232 @@ require_once 'includes/header.php';
 }
 
 .app-status-badge.completed,
-.app-status-badge.completado {
-    background: rgba(99, 102, 241, 0.14);
-    color: #818cf8;
-    border-color: rgba(99, 102, 241, 0.35);
-}
-[data-theme="light"] .app-status-badge.completed,
-[data-theme="light"] .app-status-badge.completado {
+.app-status-badge.completado,
+.app-status-badge.listo {
     background: rgba(99, 102, 241, 0.12);
-    color: #4338ca;
-    border-color: rgba(99, 102, 241, 0.3);
+    color: #818cf8;
+    border-color: rgba(99, 102, 241, 0.28);
 }
 .app-status-badge.completed .status-dot,
-.app-status-badge.completado .status-dot {
+.app-status-badge.completado .status-dot,
+.app-status-badge.listo .status-dot {
     background: #818cf8;
 }
 
 .app-status-badge.archived,
 .app-status-badge.archivado {
-    background: rgba(148, 163, 184, 0.14);
-    color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.35);
-}
-[data-theme="light"] .app-status-badge.archived,
-[data-theme="light"] .app-status-badge.archivado {
-    background: rgba(100, 116, 139, 0.12);
-    color: #475569;
-    border-color: rgba(100, 116, 139, 0.3);
+    background: rgba(148, 163, 184, 0.12);
+    color: #64748b;
+    border-color: rgba(148, 163, 184, 0.25);
 }
 .app-status-badge.archived .status-dot,
 .app-status-badge.archivado .status-dot {
     background: #94a3b8;
 }
 
-.modern-timer {
+/* Timer Badge */
+.app-timer-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: rgba(245, 158, 11, 0.14);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fbbf24;
-    padding: 0.22rem 0.65rem;
+    padding: 0.26rem 0.7rem;
     border-radius: 9999px;
     font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
     font-variant-numeric: tabular-nums;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
-.modern-timer i {
-    color: #fbbf24;
-    font-size: 0.85rem;
-}
-[data-theme="light"] .modern-timer {
-    background: #fffbeb;
-    border-color: #fde68a;
-    color: #b45309;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-[data-theme="light"] .modern-timer i {
+
+.app-timer-badge.modern-timer {
+    background: rgba(245, 158, 11, 0.1);
     color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.25);
 }
-.modern-timer.expired {
-    background: rgba(239, 68, 68, 0.18) !important;
-    border-color: rgba(239, 68, 68, 0.4) !important;
-    color: #ef4444 !important;
+[data-theme="dark"] .app-timer-badge.modern-timer {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.15);
 }
-.modern-timer.expired i {
-    color: #ef4444 !important;
+
+.app-timer-badge.expired {
+    background: rgba(244, 63, 94, 0.12);
+    color: #f43f5e;
+    border: 1px solid rgba(244, 63, 94, 0.28);
 }
 
 .app-btn-more {
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: var(--bg-color, #09090b);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    color: var(--text-muted, #94a3b8);
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    color: var(--text-muted, #64748b);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.15rem;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     flex-shrink: 0;
 }
+
+[data-theme="dark"] .app-btn-more {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
 .app-btn-more:hover {
-    background: var(--border-color);
-    color: var(--text-main, #ffffff);
-    transform: scale(1.05);
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color, #6366f1);
+    border-color: var(--primary-color, #6366f1);
+    transform: scale(1.08);
 }
 
-.btn-icon {
-    background: transparent;
-    border: none;
-    color: var(--brand-text-muted);
-    cursor: pointer;
-    font-size: 1.25rem;
-    padding: 0.25rem;
-    border-radius: 4px;
-    transition: background 0.2s;
-}
-
-.btn-icon:hover {
-    background: rgba(0,0,0,0.05);
-    color: var(--brand-text-main);
-}
-[data-theme="dark"] .btn-icon:hover { background: rgba(255,255,255,0.1); }
-
-/* SweetAlert Modern App Style */
-.swal2-modern-popup {
-    border-radius: 20px !important;
-    border: 1px solid rgba(0,0,0,0.05) !important;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important;
-}
-[data-theme="dark"] .swal2-modern-popup {
-    border-color: rgba(255,255,255,0.05) !important;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
-}
-.swal2-modern-popup .swal2-title {
-    font-size: 1.4rem !important;
-    font-weight: 700 !important;
-}
-.swal2-modern-popup .swal2-confirm, 
-.swal2-modern-popup .swal2-cancel {
-    border-radius: 12px !important;
-    font-weight: 600 !important;
-    padding: 0.6rem 1.5rem !important;
-}
-
-/* ==========================================================================
-   Modern App Style Project Card Components
-   ========================================================================== */
-
-/* Project Hero Header */
-.app-card-hero {
-    display: flex;
+.dropdown-menu.app-glass-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.15);
+    padding: 0.4rem;
+    min-width: 170px;
+    z-index: 100;
+    display: none;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 2px;
+    backdrop-filter: blur(16px);
+}
+
+[data-theme="dark"] .dropdown-menu.app-glass-dropdown {
+    background: #181b26;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.6);
+}
+
+.dropdown-menu.app-glass-dropdown.show {
+    display: flex;
+}
+
+.dropdown-menu.app-glass-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-main, #0f172a);
     cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .dropdown-menu.app-glass-dropdown .dropdown-item {
+    color: #f1f5f9;
+}
+
+.dropdown-menu.app-glass-dropdown .dropdown-item:hover {
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    color: var(--primary-color, #6366f1);
+}
+
+.dropdown-menu.app-glass-dropdown .dropdown-item.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* Brand & Title Identity Row */
+.app-card-hero {
+    cursor: pointer;
+}
+
+.app-brand-identity-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+
+.app-brand-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: #ffffff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.project-card.app-proj-card:hover .app-brand-avatar {
+    transform: scale(1.08);
+}
+
+.app-brand-grad-0 { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+.app-brand-grad-1 { background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); }
+.app-brand-grad-2 { background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%); }
+.app-brand-grad-3 { background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); }
+
+.app-brand-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 3px;
+    border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.app-brand-header-text {
+    flex: 1;
+    min-width: 0;
 }
 
 .app-card-title {
     margin: 0;
     font-size: 1.15rem;
     font-weight: 800;
-    color: var(--text-main, #ffffff);
+    color: var(--text-main, #0f172a);
     line-height: 1.35;
     letter-spacing: -0.3px;
     transition: color 0.2s ease;
 }
-.project-card:hover .app-card-title {
-    color: var(--primary-color, #818cf8);
+
+[data-theme="dark"] .app-card-title {
+    color: #ffffff;
 }
 
-.app-client-row {
+.project-card.app-proj-card:hover .app-card-title {
+    color: var(--primary-color, #6366f1);
+}
+
+.app-client-meta {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    margin-top: 0.35rem;
 }
-.app-client-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 9px;
-    background: color-mix(in srgb, #f97316 18%, transparent);
-    color: #fb923c;
-    border: 1px solid color-mix(in srgb, #f97316 35%, transparent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-}
-.app-client-info {
-    display: flex;
-    align-items: baseline;
-    gap: 0.55rem;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-.app-client-name {
-    font-size: 0.84rem;
-    font-weight: 600;
-    color: var(--text-main, #ffffff);
-}
-.app-client-date {
+
+.app-meta-chip {
     font-size: 0.72rem;
-    color: var(--text-muted, #94a3b8);
+    font-weight: 600;
+    color: var(--text-muted, #64748b);
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.3rem;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+}
+
+[data-theme="dark"] .app-meta-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Meta: Tags & Collaborators */
@@ -452,6 +672,7 @@ require_once 'includes/header.php';
     gap: 0.65rem;
     min-height: 30px;
 }
+
 .app-card-tags {
     display: flex;
     flex-wrap: wrap;
@@ -460,24 +681,30 @@ require_once 'includes/header.php';
 }
 
 .tag-pill {
-    padding: 0.2rem 0.65rem;
+    padding: 0.25rem 0.65rem;
     border-radius: 8px;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.2px;
     display: inline-flex;
     align-items: center;
     border: 1px solid transparent;
 }
 
+.tag-pill.tag-empty {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text-muted);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
 /* Assigned Users Stack */
 .assigned-users-stack {
     display: inline-flex;
     align-items: center;
-    flex-direction: row;
     height: 28px;
     flex-shrink: 0;
 }
+
 .assigned-users-stack .avatar-sm,
 .assigned-users-stack .avatar-placeholder,
 .assigned-users-stack .avatar-more {
@@ -490,33 +717,43 @@ require_once 'includes/header.php';
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--bg-surface, #141417);
+    border: 2.5px solid var(--bg-surface, #ffffff);
     margin-left: -8px;
     position: relative;
     flex-shrink: 0;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     box-sizing: border-box;
-    vertical-align: middle;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+[data-theme="dark"] .assigned-users-stack .avatar-sm,
+[data-theme="dark"] .assigned-users-stack .avatar-placeholder,
+[data-theme="dark"] .assigned-users-stack .avatar-more {
+    border-color: #141721;
+}
+
 .assigned-users-stack > *:first-child {
     margin-left: 0 !important;
 }
+
 .assigned-users-stack > *:hover {
-    transform: scale(1.15) translateY(-2px);
-    z-index: 20 !important;
+    transform: scale(1.18) translateY(-2px);
+    z-index: 25 !important;
 }
+
 .assigned-users-stack .avatar-placeholder {
-    background: var(--brand-secondary, #6366f1);
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     color: #ffffff;
 }
+
 .assigned-users-stack .avatar-more {
-    background: var(--border-color, #27272a);
-    color: var(--brand-text-muted, #94a3b8);
+    background: var(--border-color, #e2e8f0);
+    color: var(--text-muted, #64748b);
 }
+
 .app-unassigned-pill {
     font-size: 0.72rem;
     color: var(--text-muted, #94a3b8);
@@ -524,29 +761,36 @@ require_once 'includes/header.php';
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background: color-mix(in srgb, var(--border-color) 40%, transparent);
+    background: var(--bg-body, #f8fafc);
     padding: 0.2rem 0.55rem;
     border-radius: 8px;
-    border: 1px dashed var(--border-color);
+    border: 1px dashed var(--border-color, #e2e8f0);
 }
 
-/* Card Progress Section */
+[data-theme="dark"] .app-unassigned-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Card Progress Section (Apple Fitness Activity Box) */
 .card-progress-section {
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
-    padding: 0.95rem 1.1rem;
+    padding: 1rem 1.15rem;
     border-radius: 18px;
-    background: var(--bg-color, #09090b);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    transition: border-color 0.2s ease;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    transition: all 0.2s ease;
 }
-[data-theme="light"] .card-progress-section {
-    background: #f8fafc;
-    border-color: #e2e8f0;
+
+[data-theme="dark"] .card-progress-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
 }
+
 .card-progress-section:hover {
-    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 30%, var(--border-color));
+    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 35%, var(--border-color));
 }
 
 .card-progress-header {
@@ -556,24 +800,25 @@ require_once 'includes/header.php';
 }
 
 .progress-header-title {
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted, #64748b);
     display: flex;
     align-items: center;
     gap: 0.45rem;
 }
+
 .progress-header-title i {
     font-size: 1rem;
     color: var(--primary-color, #6366f1);
 }
 
 .progress-percentage-badge {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 800;
-    padding: 0.15rem 0.6rem;
+    padding: 0.18rem 0.65rem;
     border-radius: 9999px;
     letter-spacing: 0.3px;
     font-variant-numeric: tabular-nums;
@@ -581,40 +826,44 @@ require_once 'includes/header.php';
     align-items: center;
     border: 1px solid transparent;
 }
+
 .progress-percentage-badge.low {
     background: rgba(148, 163, 184, 0.15);
-    color: #94a3b8;
+    color: #64748b;
     border-color: rgba(148, 163, 184, 0.25);
 }
+
 .progress-percentage-badge.mid {
-    background: color-mix(in srgb, var(--primary-color, #6366f1) 18%, transparent);
-    color: #818cf8;
-    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 35%, transparent);
+    background: color-mix(in srgb, var(--primary-color, #6366f1) 15%, transparent);
+    color: #6366f1;
+    border-color: color-mix(in srgb, var(--primary-color, #6366f1) 30%, transparent);
 }
+
 .progress-percentage-badge.high {
-    background: color-mix(in srgb, var(--secondary-color, #10b981) 18%, transparent);
+    background: rgba(16, 185, 129, 0.14);
     color: #10b981;
-    border-color: color-mix(in srgb, var(--secondary-color, #10b981) 35%, transparent);
+    border-color: rgba(16, 185, 129, 0.3);
 }
 
 .card-progress-track {
     width: 100%;
     height: 8px;
     border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.06);
     overflow: hidden;
     position: relative;
 }
-[data-theme="light"] .card-progress-track {
-    background: #e2e8f0;
+
+[data-theme="dark"] .card-progress-track {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .card-progress-fill {
     height: 100%;
     border-radius: 9999px;
     background: linear-gradient(90deg, #6366f1 0%, #06b6d4 50%, #10b981 100%);
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
 }
 
 .card-progress-stats {
@@ -623,33 +872,42 @@ require_once 'includes/header.php';
     align-items: center;
     gap: 0.5rem;
 }
+
 .stat-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     font-size: 0.74rem;
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted, #64748b);
     font-weight: 600;
-    background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
-    padding: 0.25rem 0.6rem;
+    background: var(--bg-surface, #ffffff);
+    padding: 0.25rem 0.65rem;
     border-radius: 8px;
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border: 1px solid var(--border-color, #e2e8f0);
 }
+
+[data-theme="dark"] .stat-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
 .stat-chip i {
     font-size: 0.95rem;
 }
-.stat-chip.tasks i {
-    color: #818cf8;
-}
-.stat-chip.subtasks i {
-    color: #34d399;
-}
+
+.stat-chip.tasks i { color: #6366f1; }
+.stat-chip.subtasks i { color: #10b981; }
+
 .stat-chip b {
-    color: var(--text-main, #ffffff);
-    font-weight: 700;
+    color: var(--text-main, #0f172a);
+    font-weight: 800;
 }
 
-/* Modern Split Dates Grid */
+[data-theme="dark"] .stat-chip b {
+    color: #ffffff;
+}
+
+/* Dates Split Grid */
 .app-card-dates {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -659,103 +917,201 @@ require_once 'includes/header.php';
 .app-date-chip {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    background: var(--bg-color, #09090b);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    padding: 0.75rem 0.9rem;
+    gap: 0.25rem;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 0.75rem 0.95rem;
     border-radius: 16px;
     transition: all 0.2s ease;
 }
-[data-theme="light"] .app-date-chip {
-    background: #f8fafc;
-    border-color: #e2e8f0;
+
+[data-theme="dark"] .app-date-chip {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
 }
+
 .app-date-chip span.label {
     font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-muted, #94a3b8);
-    font-weight: 700;
+    letter-spacing: 0.7px;
+    color: var(--text-muted, #64748b);
+    font-weight: 800;
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.35rem;
 }
-.app-date-chip span.label i {
-    font-size: 0.85rem;
-}
-.app-date-chip.start span.label i {
-    color: var(--secondary-color, #10b981);
-}
-.app-date-chip.due span.label i {
-    color: #ef4444;
-}
+
+.app-date-chip.start span.label i { color: #10b981; }
+.app-date-chip.due span.label i { color: #f59e0b; }
+.app-date-chip.due.overdue span.label i { color: #f43f5e; }
+
 .app-date-chip span.value {
-    font-size: 0.84rem;
-    font-weight: 700;
-    color: var(--text-main, #ffffff);
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--text-main, #0f172a);
     letter-spacing: -0.2px;
 }
 
-/* Modern App Drive CTA */
+[data-theme="dark"] .app-date-chip span.value {
+    color: #ffffff;
+}
+
+.app-date-chip.due.overdue span.value {
+    color: #f43f5e !important;
+}
+
+/* Google Drive Asset CTA */
 .app-drive-cta {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    background: color-mix(in srgb, #3b82f6 12%, var(--bg-color));
-    border: 1px solid color-mix(in srgb, #3b82f6 30%, transparent);
+    background: color-mix(in srgb, #3b82f6 10%, var(--bg-body, #f8fafc));
+    border: 1px solid color-mix(in srgb, #3b82f6 25%, transparent);
     border-radius: 16px;
-    color: #60a5fa;
+    color: #3b82f6;
     text-decoration: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 .app-drive-cta:hover {
-    background: color-mix(in srgb, #3b82f6 20%, var(--bg-color));
-    border-color: color-mix(in srgb, #3b82f6 50%, transparent);
+    background: color-mix(in srgb, #3b82f6 18%, var(--bg-body, #f8fafc));
+    border-color: color-mix(in srgb, #3b82f6 45%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px color-mix(in srgb, #3b82f6 20%, transparent);
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.2);
 }
+
 .drive-cta-left {
     display: flex;
     align-items: center;
     gap: 0.65rem;
 }
+
 .drive-cta-icon {
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: color-mix(in srgb, #3b82f6 20%, transparent);
+    background: rgba(59, 130, 246, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.15rem;
     color: #3b82f6;
 }
+
 .drive-cta-text {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
     text-align: left;
 }
+
 .drive-cta-text span {
     font-size: 0.84rem;
-    font-weight: 700;
-    color: var(--text-main, #ffffff);
+    font-weight: 800;
+    color: var(--text-main, #0f172a);
 }
+
+[data-theme="dark"] .drive-cta-text span {
+    color: #ffffff;
+}
+
 .drive-cta-text small {
     font-size: 0.7rem;
-    color: #93c5fd;
-    font-weight: 500;
+    color: #3b82f6;
+    font-weight: 600;
 }
-.drive-cta-arrow {
-    font-size: 1.1rem;
-    color: #60a5fa;
-    opacity: 0.8;
-    transition: transform 0.2s ease;
+
+.drive-cta-arrow-chip {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: #3b82f6;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.app-drive-cta:hover .drive-cta-arrow {
-    transform: translateX(2px) translateY(-2px);
-    opacity: 1;
+
+.app-drive-cta:hover .drive-cta-arrow-chip {
+    background: #3b82f6;
+    color: #ffffff;
+    transform: translate(2px, -2px);
+}
+
+/* Board Footer CTA */
+.app-card-board-footer {
+    margin-top: 0.2rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--border-color, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--primary-color, #4f46e5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.app-card-board-footer i {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.project-card.app-proj-card:hover .app-card-board-footer i {
+    transform: translateX(4px);
+}
+
+.app-card-board-footer:hover {
+    color: var(--color-link-hover, #4338ca);
+}
+
+/* Empty State */
+.brand-empty-state {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: var(--bg-surface, #ffffff);
+    border: 1px dashed var(--border-color, #e2e8f0);
+    border-radius: 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+[data-theme="dark"] .brand-empty-state {
+    background: #141721;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.empty-icon-squircle {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.brand-empty-state h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.brand-empty-state p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 400px;
 }
 
 .detail-row {
@@ -1176,29 +1532,37 @@ select.form-control option {
 <div class="brand-container">
     <div class="brand-header">
         <div class="brand-title-group">
-            <a href="index.php?module=workspace" class="btn-app-cancel" style="padding: 0.5rem 0.85rem; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;" title="Volver">
-                <i class="ph-bold ph-arrow-left" style="font-size: 1.1rem;"></i>
+            <a href="index.php?module=workspace" class="brand-back-btn" title="Volver al Workspace">
+                <i class="ph ph-arrow-left"></i>
             </a>
-            <div class="brand-title" style="display: flex; flex-direction: column; gap: 0.15rem;">
-                <span>Catálogo General</span>
-                <h1>Desarrollo de Marca</h1>
+            <div class="brand-title-wrapper">
+                <span class="brand-kicker"><i class="ph ph-sparkle"></i> Catálogo General</span>
+                <h1>Desarrollo de Marca <span id="brand-project-counter" class="brand-count-pill">0</span></h1>
             </div>
         </div>
-        <div class="brand-actions">
-            <button class="btn-primary" onclick="openDrawer()">
-                <i class="ph-bold ph-plus"></i> Nuevo Proyecto
+        <div class="brand-header-actions">
+            <div class="brand-search-box">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="brand-search-input" placeholder="Buscar proyecto o cliente..." oninput="filterProjectsBySearch(this.value)">
+                <button type="button" id="brand-search-clear" onclick="clearBrandSearch()" style="display:none;" title="Limpiar búsqueda"><i class="ph ph-x"></i></button>
+            </div>
+            <button class="btn-new-brand-project" onclick="openDrawer()">
+                <i class="ph ph-plus"></i> <span>Nuevo Proyecto</span>
             </button>
         </div>
     </div>
 
-    <!-- Tabs / Filter -->
-    <div class="brand-tabs-container">
-        <div class="brand-tabs">
+    <!-- Tabs / Filter Segmented Control -->
+    <div class="brand-toolbar">
+        <div class="brand-segmented-control">
             <button class="brand-tab active" data-filter="Active" onclick="filterProjects('Active')">
-                <i class="ph-bold ph-lightning"></i> Activo
+                <i class="ph ph-lightning"></i> <span>Activos</span> <span class="tab-count-pill" id="count-active">0</span>
             </button>
             <button class="brand-tab" data-filter="Archived" onclick="filterProjects('Archived')">
-                <i class="ph-bold ph-archive-box"></i> Archivado
+                <i class="ph ph-archive-box"></i> <span>Archivados</span> <span class="tab-count-pill" id="count-archived">0</span>
+            </button>
+            <button class="brand-tab" data-filter="All" onclick="filterProjects('All')">
+                <i class="ph ph-squares-four"></i> <span>Todos</span> <span class="tab-count-pill" id="count-all">0</span>
             </button>
         </div>
     </div>
@@ -1206,7 +1570,8 @@ select.form-control option {
     <!-- Container for Projects -->
     <div class="brand-grid" id="projects-container">
         <!-- Projects loaded via AJAX -->
-        <div style="text-align:center; padding: 2rem; color: var(--brand-text-muted); grid-column: 1/-1;">
+        <div style="text-align:center; padding: 3rem; color: var(--text-muted); grid-column: 1/-1;">
+            <i class="ph ph-spinner-gap ph-spin" style="font-size:2rem; margin-bottom:0.5rem; display:block;"></i>
             Cargando proyectos...
         </div>
     </div>
@@ -1475,11 +1840,29 @@ function loadProjects() {
 }
 
 let currentFilter = 'Active';
+let searchQuery = '';
+
+function filterProjectsBySearch(val) {
+    searchQuery = (val || '').trim().toLowerCase();
+    const clearBtn = document.getElementById('brand-search-clear');
+    if (clearBtn) clearBtn.style.display = searchQuery ? 'block' : 'none';
+    renderProjects();
+}
+
+function clearBrandSearch() {
+    const input = document.getElementById('brand-search-input');
+    if (input) input.value = '';
+    searchQuery = '';
+    const clearBtn = document.getElementById('brand-search-clear');
+    if (clearBtn) clearBtn.style.display = 'none';
+    renderProjects();
+}
 
 function filterProjects(status) {
     currentFilter = status;
     document.querySelectorAll('.brand-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector(`.brand-tab[data-filter="${status}"]`).classList.add('active');
+    const targetTab = document.querySelector(`.brand-tab[data-filter="${status}"]`);
+    if (targetTab) targetTab.classList.add('active');
     renderProjects();
 }
 
@@ -1487,38 +1870,87 @@ function renderProjects() {
     const container = document.getElementById('projects-container');
     container.innerHTML = '';
     
+    // Calculate live counts across all projects
+    const activeCount = allProjects.filter(p => p.status === 'Active' || p.status === 'Pending').length;
+    const archivedCount = allProjects.filter(p => p.status === 'Archived' || p.status === 'Completed').length;
+    const allCount = allProjects.length;
+
+    const elAct = document.getElementById('count-active');
+    const elArc = document.getElementById('count-archived');
+    const elAll = document.getElementById('count-all');
+    const elCounter = document.getElementById('brand-project-counter');
+    if (elAct) elAct.textContent = activeCount;
+    if (elArc) elArc.textContent = archivedCount;
+    if (elAll) elAll.textContent = allCount;
+    if (elCounter) elCounter.textContent = activeCount + ' activo' + (activeCount === 1 ? '' : 's');
+
     let filtered = allProjects.filter(p => {
         if (currentFilter === 'Active') return p.status === 'Active' || p.status === 'Pending';
         if (currentFilter === 'Archived') return p.status === 'Archived' || p.status === 'Completed';
         return true;
     });
 
+    if (searchQuery) {
+        filtered = filtered.filter(p => {
+            const titleMatch = (p.title || '').toLowerCase().includes(searchQuery);
+            const clientMatch = (p.client_name || '').toLowerCase().includes(searchQuery);
+            const tagMatch = (p.tags || []).some(t => (t.name || '').toLowerCase().includes(searchQuery));
+            return titleMatch || clientMatch || tagMatch;
+        });
+    }
+
     if(filtered.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding: 3rem 1.5rem; color: var(--brand-text-muted); grid-column: 1/-1; font-weight: 500; font-size: 0.95rem;">No hay proyectos en esta categoría.</div>';
+        container.innerHTML = `
+            <div class="brand-empty-state" style="grid-column: 1/-1;">
+                <div class="empty-icon-squircle"><i class="ph ph-folder-dashed"></i></div>
+                <h3>No hay proyectos en esta sección</h3>
+                <p>No se encontraron proyectos ${currentFilter === 'Active' ? 'activos' : (currentFilter === 'Archived' ? 'archivados' : '')} ${searchQuery ? 'que coincidan con "' + searchQuery + '"' : ''}.</p>
+                <button class="btn-new-brand-project" onclick="openDrawer()" style="margin-top:0.75rem;">
+                    <i class="ph ph-plus"></i> Crear Nuevo Proyecto
+                </button>
+            </div>
+        `;
         return;
     }
 
-    filtered.forEach(p => {
+    filtered.forEach((p, idx) => {
         let dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
-        let avatarLetter = p.client_name ? p.client_name.charAt(0).toUpperCase() : 'C';
-        let clientName = p.client_name || 'Cliente sin asignar';
         
-        let timerHtml = p.due_date ? `<div class="modern-timer" data-start="${p.start_date || ''}" data-due="${p.due_date}"><i class="ph-bold ph-hourglass-medium"></i> <span class="timer-text">Calculando...</span></div>` : '';
+        // Brand / Client Name & Monogram
+        let clientName = p.client_name || 'Cliente sin asignar';
+        let brandClean = p.title || 'Proyecto sin título';
+        if (brandClean.includes(' - ')) {
+            brandClean = brandClean.split(' - ').slice(1).join(' - ');
+        }
+        let avatarLetter = brandClean ? brandClean.charAt(0).toUpperCase() : (p.client_name ? p.client_name.charAt(0).toUpperCase() : 'M');
 
-        let tagsHtml = p.tags && p.tags.length > 0 ? p.tags.map(t => `<span class="tag-pill" style="background: color-mix(in srgb, ${t.color || '#6366f1'} 15%, transparent); color: ${t.color || '#6366f1'}; border: 1px solid color-mix(in srgb, ${t.color || '#6366f1'} 30%, transparent);">${t.name}</span>`).join('') : '';
-        let startDateFormatted = p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin definir';
-        let dueDateFormatted = p.due_date ? new Date(p.due_date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin definir';
-
+        // Timer calculation
         let isOverdue = false;
         if (p.due_date && p.status !== 'Completed') {
             isOverdue = new Date(p.due_date + 'T23:59:59') < new Date();
         }
 
-        const statusMap = { 'Active': 'Activo', 'Pending': 'Pendiente', 'Completed': 'Completado', 'Archived': 'Archivado' };
+        let timerHtml = '';
+        if (p.due_date) {
+            if (isOverdue) {
+                timerHtml = `<div class="app-timer-badge expired"><i class="ph ph-warning-circle"></i> <span>Tiempo agotado</span></div>`;
+            } else {
+                timerHtml = `<div class="app-timer-badge modern-timer" data-start="${p.start_date || ''}" data-due="${p.due_date}"><i class="ph ph-hourglass-medium"></i> <span class="timer-text">Calculando...</span></div>`;
+            }
+        }
+
+        // Tags
+        let tagsHtml = p.tags && p.tags.length > 0 ? p.tags.map(t => `<span class="tag-pill" style="background: color-mix(in srgb, ${t.color || '#6366f1'} 12%, transparent); color: ${t.color || '#6366f1'}; border-color: color-mix(in srgb, ${t.color || '#6366f1'} 28%, transparent);">${t.name}</span>`).join('') : '';
+
+        // Formatted dates
+        let startDateFormatted = p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin definir';
+        let dueDateFormatted = p.due_date ? new Date(p.due_date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin definir';
+
+        const statusMap = { 'Active': 'Activo', 'Pending': 'Pendiente', 'Completed': 'Listo', 'Archived': 'Archivado' };
         let displayStatus = statusMap[p.status] || p.status || 'Activo';
         let statusKey = (p.status || 'Active').toLowerCase();
-        
-        // Perfectly aligned assigned users avatar stack
+
+        // Collaborators Stack
         let avatarsHtml = '';
         if (p.assigned_users && p.assigned_users.length > 0) {
             avatarsHtml = `<div class="assigned-users-stack">`;
@@ -1538,16 +1970,18 @@ function renderProjects() {
             avatarsHtml += `</div>`;
         }
 
-        // Progress Scale Calculation and Component
+        // Progress Calculation
         let progressVal = Math.min(100, Math.max(0, parseInt(p.progress || 0)));
-        let progressBadgeClass = progressVal >= 100 ? 'high' : (progressVal > 20 ? 'mid' : 'low');
+        let progressBadgeClass = progressVal >= 100 ? 'high' : (progressVal > 25 ? 'mid' : 'low');
         let totalTasks = parseInt(p.total_tasks || 0);
         let completedTasks = parseInt(p.completed_tasks || 0);
         let totalSubtasks = parseInt(p.total_subtasks || 0);
         let completedSubtasks = parseInt(p.completed_subtasks || 0);
 
+        let gradIdx = idx % 4;
+
         let card = document.createElement('div');
-        card.className = 'project-card';
+        card.className = 'project-card app-proj-card';
         card.innerHTML = `
             <!-- Top Action & Status Bar -->
             <div class="app-card-top-bar">
@@ -1558,45 +1992,49 @@ function renderProjects() {
                     </span>
                     ${timerHtml}
                 </div>
-                <div style="position:relative;">
+                <div class="app-card-menu-wrapper" style="position:relative;">
                     <button class="app-btn-more" onclick="toggleMenu(event, ${p.id})" title="Opciones de Proyecto">
-                        <i class="ph-bold ph-dots-three"></i>
+                        <i class="ph ph-dots-three"></i>
                     </button>
-                    <div class="dropdown-menu" id="menu-${p.id}">
-                        <div class="dropdown-item" onclick="openDrawer(${p.id})"><i class="ph-bold ph-pencil-simple"></i> Editar</div>
-                        <div class="dropdown-item" onclick="archiveProject(${p.id}, '${p.status === 'Archived' ? 'Active' : 'Archived'}')"><i class="ph-bold ${p.status === 'Archived' ? 'ph-arrow-u-up-left' : 'ph-archive-box'}"></i> ${p.status === 'Archived' ? 'Restaurar' : 'Archivar'}</div>
-                        <div class="dropdown-item danger" onclick="deleteProject(${p.id})"><i class="ph-bold ph-trash"></i> Eliminar</div>
+                    <div class="dropdown-menu app-glass-dropdown" id="menu-${p.id}">
+                        <div class="dropdown-item" onclick="openDrawer(${p.id})"><i class="ph ph-pencil-simple"></i> Editar Proyecto</div>
+                        <div class="dropdown-item" onclick="archiveProject(${p.id}, '${p.status === 'Archived' ? 'Active' : 'Archived'}')"><i class="ph ${p.status === 'Archived' ? 'ph-arrow-u-up-left' : 'ph-archive-box'}"></i> ${p.status === 'Archived' ? 'Restaurar' : 'Archivar'}</div>
+                        <div class="dropdown-item danger" onclick="deleteProject(${p.id})"><i class="ph ph-trash"></i> Eliminar</div>
                     </div>
                 </div>
             </div>
 
             <!-- Project Hero & Client -->
             <div class="app-card-hero" onclick="window.location.href='index.php?module=desarrollo_marca&action=view&id=${p.id}'" title="Abrir tablero de proyecto">
-                <h3 class="app-card-title">${p.title}</h3>
-                <div class="app-client-row">
-                    <div class="app-client-avatar">${avatarLetter}</div>
-                    <div class="app-client-info">
-                        <span class="app-client-name">${clientName}</span>
-                        <span class="app-client-date"><i class="ph-bold ph-calendar-plus"></i> ${dateStr}</span>
+                <div class="app-brand-identity-row">
+                    <div class="app-brand-avatar app-brand-grad-${gradIdx}">
+                        ${p.client_avatar ? `<img src="${p.client_avatar}" alt="${avatarLetter}" class="app-brand-avatar-img">` : avatarLetter}
+                    </div>
+                    <div class="app-brand-header-text">
+                        <h3 class="app-card-title">${p.title}</h3>
+                        <div class="app-client-meta">
+                            <span class="app-meta-chip"><i class="ph ph-buildings"></i> ${clientName}</span>
+                            <span class="app-meta-chip"><i class="ph ph-calendar-blank"></i> ${dateStr}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Meta: Tags & Assigned Collaborators -->
+            <!-- Meta: Tags & Collaborators -->
             <div class="app-card-meta-row">
                 <div class="app-card-tags">
-                    ${tagsHtml ? tagsHtml : '<span style="font-size:0.72rem; color:var(--text-muted); opacity:0.6;"><i class="ph-bold ph-tag"></i> Sin etiquetas</span>'}
+                    ${tagsHtml ? tagsHtml : '<span class="tag-pill tag-empty"><i class="ph ph-tag"></i> General</span>'}
                 </div>
                 <div>
-                    ${avatarsHtml ? avatarsHtml : '<span class="app-unassigned-pill"><i class="ph-bold ph-user-plus"></i> Sin asignar</span>'}
+                    ${avatarsHtml ? avatarsHtml : '<span class="app-unassigned-pill"><i class="ph ph-user-plus"></i> Sin asignar</span>'}
                 </div>
             </div>
 
-            <!-- Escala de Progreso App Widget -->
+            <!-- Escala de Progreso (Apple Fitness Activity Box) -->
             <div class="card-progress-section" onclick="window.location.href='index.php?module=desarrollo_marca&action=view&id=${p.id}'" style="cursor: pointer;" title="Ver fases y tareas">
                 <div class="card-progress-header">
                     <span class="progress-header-title">
-                        <i class="ph-fill ph-chart-donut"></i> Escala de Progreso
+                        <i class="ph-fill ph-chart-donut"></i> ESCALA DE PROGRESO
                     </span>
                     <span class="progress-percentage-badge ${progressBadgeClass}">
                         ${progressVal}%
@@ -1607,11 +2045,11 @@ function renderProjects() {
                 </div>
                 <div class="card-progress-stats">
                     <div class="stat-chip tasks" title="${completedTasks} de ${totalTasks} tareas completadas">
-                        <i class="ph-bold ph-check-circle"></i>
+                        <i class="ph ph-check-circle"></i>
                         <span><b>${completedTasks}</b>/${totalTasks} tareas</span>
                     </div>
                     <div class="stat-chip subtasks" title="${completedSubtasks} de ${totalSubtasks} subtareas completadas">
-                        <i class="ph-bold ph-list-checks"></i>
+                        <i class="ph ph-list-checks"></i>
                         <span><b>${completedSubtasks}</b>/${totalSubtasks} subtareas</span>
                     </div>
                 </div>
@@ -1620,12 +2058,12 @@ function renderProjects() {
             <!-- Dates Timeline Grid -->
             <div class="app-card-dates">
                 <div class="app-date-chip start">
-                    <span class="label"><i class="ph-bold ph-calendar-blank"></i> Inicio</span>
+                    <span class="label"><i class="ph ph-calendar-blank"></i> INICIO</span>
                     <span class="value">${startDateFormatted}</span>
                 </div>
                 <div class="app-date-chip due ${isOverdue ? 'overdue' : ''}">
-                    <span class="label"><i class="ph-bold ph-clock"></i> Límite</span>
-                    <span class="value" style="${isOverdue ? 'color:#ef4444;' : ''}">${dueDateFormatted}</span>
+                    <span class="label"><i class="ph ph-clock"></i> LÍMITE</span>
+                    <span class="value">${dueDateFormatted}</span>
                 </div>
             </div>
 
@@ -1639,9 +2077,17 @@ function renderProjects() {
                             <small>Abrir en Google Drive</small>
                         </div>
                     </div>
-                    <i class="ph-bold ph-arrow-square-out drive-cta-arrow"></i>
+                    <div class="drive-cta-arrow-chip">
+                        <i class="ph ph-arrow-up-right"></i>
+                    </div>
                 </a>
             ` : ''}
+
+            <!-- Bottom Direct Access Footer -->
+            <div class="app-card-board-footer" onclick="window.location.href='index.php?module=desarrollo_marca&action=view&id=${p.id}'">
+                <span>Abrir Tablero de Marca</span>
+                <i class="ph ph-arrow-right"></i>
+            </div>
         `;
         container.appendChild(card);
     });

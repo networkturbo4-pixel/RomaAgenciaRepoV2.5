@@ -209,7 +209,7 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             <?php endif; ?>
             
             <?php if (in_array('workspace', $perms) || in_array('dashboard', $perms)): ?>
-            <a href="index.php?module=workspace&action=index" class="nav-item <?php echo $current_module === 'workspace' ? 'active' : ''; ?>" data-title="Workspace">
+            <a href="index.php?module=workspace&action=index" class="nav-item <?php echo in_array($current_module, ['workspace', 'desarrollo_marca', 'audiovisual', 'project_board', 'month_board']) ? 'active' : ''; ?>" data-title="Workspace">
                 <i class="ph ph-briefcase"></i>
                 <span>Workspace</span>
             </a>
