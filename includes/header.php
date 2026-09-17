@@ -1,5 +1,7 @@
 <?php
 // includes/header.php
+require_once __DIR__ . '/csrf.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -17,6 +19,7 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="<?php echo csrf_token(); ?>">
     <?php
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? '') == 443) ? "https" : "http";
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -113,6 +116,40 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     <link rel="stylesheet" href="assets/css/notifications.css?v=<?php echo file_exists('assets/css/notifications.css') ? filemtime('assets/css/notifications.css') : '1'; ?>">
     <script>
         window.CURRENT_USER_ID = <?php echo (int)($_SESSION['user_id'] ?? 0); ?>;
+        window.CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
+
+        // Auto-inyectar CSRF Token en todas las llamadas jQuery AJAX
+        if (typeof jQuery !== 'undefined') {
+            jQuery.ajaxPrefilter(function(options, originalOptions, xhr) {
+                if (!options.crossDomain && !['GET', 'HEAD', 'OPTIONS'].includes(options.type.toUpperCase())) {
+                    xhr.setRequestHeader('X-CSRF-TOKEN', window.CSRF_TOKEN);
+                }
+            });
+        }
+
+        // Auto-inyectar CSRF Token en peticiones fetch nativas del navegador
+        (function() {
+            const originalFetch = window.fetch;
+            window.fetch = function(url, config) {
+                config = config || {};
+                const method = (config.method || 'GET').toUpperCase();
+                if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+                    config.headers = config.headers || {};
+                    if (config.headers instanceof Headers) {
+                        if (!config.headers.has('X-CSRF-TOKEN')) {
+                            config.headers.append('X-CSRF-TOKEN', window.CSRF_TOKEN);
+                        }
+                    } else if (Array.isArray(config.headers)) {
+                        config.headers.push(['X-CSRF-TOKEN', window.CSRF_TOKEN]);
+                    } else {
+                        if (!config.headers['X-CSRF-TOKEN']) {
+                            config.headers['X-CSRF-TOKEN'] = window.CSRF_TOKEN;
+                        }
+                    }
+                }
+                return originalFetch(url, config);
+            };
+        })();
     </script>
     <style>
         :root {
@@ -418,8 +455,11 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                     </span>
                 <?php endif; ?>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <button class="btn-icon" onclick="if(typeof DriveExplorer !== 'undefined') DriveExplorer.openGlobalModal()" title="Archivos" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.1rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <button class="btn-icon" onclick="window.dispatchEvent(new CustomEvent('toggle-command-palette'));" title="Buscar (Ctrl+K)" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.25rem;">
+                    <i class="ph ph-magnifying-glass"></i>
+                </button>
+                <button class="btn-icon" onclick="if(typeof DriveExplorer !== 'undefined') DriveExplorer.openGlobalModal()" title="Archivos" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.15rem;">
                     <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i>
                 </button>
                 <button class="notif-bell-btn" id="mobileNotifBtn" title="Notificaciones" type="button">
@@ -441,9 +481,6 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                     <span class="notif-header-count" id="notifCountText">0 nuevas</span>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button class="notif-test-btn" id="notifSendTestBtn" type="button" title="Enviar notificación de prueba" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); color: var(--primary-color, #6366f1); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
-                        <i class="ph ph-paper-plane-tilt"></i> Probar
-                    </button>
                     <button class="notif-mark-all-btn" id="notifMarkAllBtn" type="button" title="Marcar todas como leídas">
                         Marcar leídas
                     </button>
@@ -466,55 +503,148 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
         </div>
         <?php endif; ?>
 
-        <!-- Global Toast Container -->
-        <div id="global-toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+        <!-- Global Toast Container & Modern Notification Engine -->
+        <style>
+            #global-toast-container {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 999999;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                pointer-events: none;
+                max-width: 400px;
+            }
+            .app-toast-item {
+                background: var(--bg-surface, #ffffff);
+                color: var(--text-main, #0f172a);
+                border: 1px solid var(--border-color, #e2e8f0);
+                border-radius: 16px;
+                box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                font-size: 0.88rem;
+                font-weight: 500;
+                transform: translateY(20px) scale(0.96);
+                opacity: 0;
+                transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+                pointer-events: auto;
+                cursor: pointer;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+            .app-toast-item.toast-visible {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            .app-toast-item.toast-hiding {
+                transform: translateY(-15px) scale(0.95);
+                opacity: 0;
+            }
+            .app-toast-icon-wrap {
+                width: 34px;
+                height: 34px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                font-size: 1.25rem;
+            }
+            .app-toast-close {
+                margin-left: auto;
+                color: var(--text-muted, #94a3b8);
+                font-size: 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 4px;
+                border-radius: 6px;
+                transition: background 0.15s ease;
+            }
+            .app-toast-close:hover {
+                background: var(--primary-bg, rgba(0,0,0,0.05));
+                color: var(--text-main, #0f172a);
+            }
+            @media (max-width: 768px) {
+                #global-toast-container {
+                    bottom: auto;
+                    top: 16px;
+                    left: 50%;
+                    right: auto;
+                    transform: translateX(-50%);
+                    width: calc(100% - 32px);
+                    max-width: 420px;
+                }
+                .app-toast-item {
+                    transform: translateY(-20px) scale(0.96);
+                }
+                .app-toast-item.toast-visible {
+                    transform: translateY(0) scale(1);
+                }
+            }
+        </style>
+        <div id="global-toast-container"></div>
         <script>
-            window.showToast = function(msg, type = 'info') {
+            window.showToast = function(msg, type = 'info', duration = 3500) {
                 const container = document.getElementById('global-toast-container');
                 if (!container) return;
                 const toast = document.createElement('div');
+                toast.className = 'app-toast-item';
                 
                 let icon = 'ph-info';
-                let bgColor = '#3b82f6'; // info blue
-                if (type === 'success') { icon = 'ph-check-circle'; bgColor = '#10b981'; }
-                if (type === 'error') { icon = 'ph-warning-circle'; bgColor = '#ef4444'; }
-                if (type === 'warning') { icon = 'ph-warning'; bgColor = '#f59e0b'; }
-
-                toast.style.cssText = `
-                    background: var(--bg-surface, #fff);
-                    color: var(--text-main, #1e293b);
-                    border-left: 4px solid ${bgColor};
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    font-size: 0.9rem;
-                    font-weight: 500;
-                    transform: translateX(120%);
-                    opacity: 0;
-                    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-                    pointer-events: auto;
-                    max-width: 350px;
-                `;
+                let accent = 'var(--primary-color, #4f46e5)';
+                let bgWrap = 'var(--primary-bg, rgba(79, 70, 229, 0.12))';
                 
-                toast.innerHTML = `<i class="ph ${icon}" style="font-size: 1.4rem; color: ${bgColor};"></i> <div>${msg}</div>`;
+                if (type === 'success') { 
+                    icon = 'ph-check'; 
+                    accent = '#10b981'; 
+                    bgWrap = 'rgba(16, 185, 129, 0.14)'; 
+                } else if (type === 'error') { 
+                    icon = 'ph-warning-circle'; 
+                    accent = '#ef4444'; 
+                    bgWrap = 'rgba(239, 68, 68, 0.14)'; 
+                } else if (type === 'warning') { 
+                    icon = 'ph-warning'; 
+                    accent = '#f59e0b'; 
+                    bgWrap = 'rgba(245, 158, 11, 0.14)'; 
+                }
+
+                toast.innerHTML = `
+                    <div class="app-toast-icon-wrap" style="background: ${bgWrap}; color: ${accent};">
+                        <i class="ph-bold ${icon}"></i>
+                    </div>
+                    <div style="flex: 1; line-height: 1.35;">${msg}</div>
+                    <span class="app-toast-close" title="Cerrar"><i class="ph ph-x"></i></span>
+                `;
                 
                 container.appendChild(toast);
                 
-                // Animate in
+                const closeToast = () => {
+                    toast.classList.remove('toast-visible');
+                    toast.classList.add('toast-hiding');
+                    setTimeout(() => toast.remove(), 280);
+                };
+
+                const closeBtn = toast.querySelector('.app-toast-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        closeToast();
+                    });
+                }
+                toast.addEventListener('click', closeToast);
+
                 requestAnimationFrame(() => {
-                    toast.style.transform = 'translateX(0)';
-                    toast.style.opacity = '1';
+                    toast.classList.add('toast-visible');
                 });
                 
-                // Animate out and remove
-                setTimeout(() => {
-                    toast.style.transform = 'translateX(120%)';
-                    toast.style.opacity = '0';
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
+                if (duration > 0) {
+                    setTimeout(closeToast, duration);
+                }
             };
         </script>
 

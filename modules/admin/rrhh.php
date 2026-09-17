@@ -679,6 +679,12 @@ require_once 'includes/header.php';
         background: transparent !important;
     }
 
+    .rrhh-table td::before,
+    .rrhh-table tr.emp-row-card td::before {
+        display: none !important;
+        content: none !important;
+    }
+
     .rrhh-table td.col-user {
         grid-area: user;
         display: flex;

@@ -1,40 +1,76 @@
 <?php
 // modules/auth/login.php
+require_once __DIR__ . '/../../includes/csrf.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
+// Rate Limiting contra ataques de fuerza bruta (5 intentos / 15 minutos)
+$max_attempts = 5;
+$lockout_seconds = 15 * 60;
+$user_ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+$rate_limit_key = 'login_attempts_' . md5($user_ip);
+$lockout_key = 'login_locked_until_' . md5($user_ip);
+$now = time();
 
-    if (!empty($email) && !empty($password)) {
-        global $db;
-        $stmt = $db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
-        $stmt->bindParam(':email', $email);
-        $stmt->execute();
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+$is_locked = false;
+if (!empty($_SESSION[$lockout_key]) && $_SESSION[$lockout_key] > $now) {
+    $is_locked = true;
+    $remaining_mins = (int)ceil(($_SESSION[$lockout_key] - $now) / 60);
+    $error = "Demasiados intentos fallidos. Por seguridad, el acceso está bloqueado temporalmente. Intente de nuevo en {$remaining_mins} minuto(s).";
+}
 
-        if ($user && password_verify($password, $user['password'])) {
-            session_regenerate_id(true);
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_role'] = $user['role_id'] ?? null;
-            header("Location: index.php?module=dashboard&action=index");
-            exit();
-        } else {
-            $error = 'Credenciales inválidas. Por favor intente de nuevo.';
-        }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_locked) {
+    if (isset($_POST['csrf_token']) && !csrf_validate($_POST['csrf_token'])) {
+        $error = 'Token de seguridad inválido. Por favor recargue la página.';
     } else {
-        $error = 'Por favor ingrese su correo y contraseña.';
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if (!empty($email) && !empty($password)) {
+            global $db;
+            $stmt = $db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user && password_verify($password, $user['password'])) {
+                // Éxito: Limpiar contadores de intentos
+                unset($_SESSION[$rate_limit_key]);
+                unset($_SESSION[$lockout_key]);
+
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_name'] = $user['name'];
+                $_SESSION['user_role'] = $user['role_id'] ?? null;
+                header("Location: index.php?module=dashboard&action=index");
+                exit();
+            } else {
+                // Fallo: Incrementar contador
+                $_SESSION[$rate_limit_key] = ($_SESSION[$rate_limit_key] ?? 0) + 1;
+                $current_attempts = $_SESSION[$rate_limit_key];
+
+                if ($current_attempts >= $max_attempts) {
+                    $_SESSION[$lockout_key] = $now + $lockout_seconds;
+                    $_SESSION[$rate_limit_key] = 0;
+                    $error = "Ha superado el número máximo de intentos fallidos ({$max_attempts}). Su acceso ha sido bloqueado por 15 minutos.";
+                } else {
+                    $restantes = $max_attempts - $current_attempts;
+                    $error = "Credenciales inválidas. Le quedan {$restantes} intento(s) antes del bloqueo de seguridad.";
+                }
+            }
+        } else {
+            $error = 'Por favor ingrese su correo y contraseña.';
+        }
     }
 }
 ?>
 <?php global $global_settings; ?>
 <!DOCTYPE html>
-<html class="light" lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
@@ -43,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $seo_title = $site_name_seo . ($global_settings['seo_title_suffix'] ?? ' | Gestión Integral para su Empresa');
     $seo_desc = $global_settings['seo_description'] ?? 'Eleve su productividad al siguiente nivel. Gestione sus proyectos, analice datos en tiempo real y coordine a su equipo.';
     $seo_keys = $global_settings['seo_keywords'] ?? 'CRM, Gestión de Proyectos, Análisis de Datos, Productividad, Agencia';
+    $primaryColor = $global_settings['primary_color'] ?? '#004e36';
     ?>
     <title><?php echo htmlspecialchars($seo_title); ?></title>
     
@@ -52,18 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="author" content="<?php echo htmlspecialchars($site_name_seo); ?>">
     <meta name="robots" content="index, follow">
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="<?php echo htmlspecialchars($seo_title); ?>">
-    <meta property="og:description" content="<?php echo htmlspecialchars($seo_desc); ?>">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:title" content="<?php echo htmlspecialchars($seo_title); ?>">
-    <meta property="twitter:description" content="<?php echo htmlspecialchars($seo_desc); ?>">
-
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="<?php echo htmlspecialchars($global_settings['primary_color'] ?? '#004e36'); ?>">
+    <meta name="theme-color" content="<?php echo htmlspecialchars($primaryColor); ?>">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="<?php echo htmlspecialchars($global_settings['site_name'] ?? 'RomaAgencia'); ?>">
@@ -74,408 +101,529 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="apple-touch-icon" href="<?php echo htmlspecialchars($global_settings['favicon']); ?>">
     <?php endif; ?>
 
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-    <!-- Material Symbols Outlined -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         :root {
-            --primary-color: <?php echo htmlspecialchars($global_settings['primary_color'] ?? '#004e36'); ?>;
+            --primary: <?php echo htmlspecialchars($primaryColor); ?>;
+            --primary-glow: color-mix(in srgb, var(--primary) 25%, transparent);
+            --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
         }
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+
+        /* Dark / Light Theme Tokens */
+        [data-theme="dark"] {
+            --bg-body: #09090b;
+            --bg-card: rgba(18, 18, 23, 0.85);
+            --bg-surface: #121216;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --input-bg: rgba(24, 24, 30, 0.8);
+            --tab-bg: rgba(24, 24, 30, 0.9);
+            --keypad-btn: #18181b;
+            --keypad-btn-hover: #27272a;
+            --keypad-text: #f4f4f5;
+            --shadow-elevation: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
         }
-        .soft-elevation {
-            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.04);
+
+        [data-theme="light"] {
+            --bg-body: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --bg-surface: #ffffff;
+            --border: rgba(226, 232, 240, 0.85);
+            --border-hover: rgba(203, 213, 225, 1);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --input-bg: #f8fafc;
+            --tab-bg: #f1f5f9;
+            --keypad-btn: #f1f5f9;
+            --keypad-btn-hover: #e2e8f0;
+            --keypad-text: #0f172a;
+            --shadow-elevation: 0 20px 45px -10px rgba(0, 0, 0, 0.06);
         }
-        .transition-primary {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        /* Custom Checkbox Style */
-        .custom-checkbox:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        /* Simple fade in animation */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-            animation: fadeInUp 0.5s ease-out forwards;
-        }
-        /* Prevent scroll on body to ensure clean split view if desired */
+
         body {
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
-        /* Animated Mesh Gradient (Stacked Gradients) */
-        @keyframes meshGradient {
-            0% {
-                background-position: 
-                    0% 0%, 
-                    100% 100%, 
-                    0% 100%, 
-                    100% 0%;
-            }
-            33% {
-                background-position: 
-                    100% 100%, 
-                    0% 50%, 
-                    100% 0%, 
-                    0% 100%;
-            }
-            66% {
-                background-position: 
-                    50% 0%, 
-                    100% 0%, 
-                    0% 0%, 
-                    100% 100%;
-            }
-            100% {
-                background-position: 
-                    0% 0%, 
-                    100% 100%, 
-                    0% 100%, 
-                    100% 0%;
-            }
+
+        .font-display {
+            font-family: var(--font-display);
         }
-        .bg-animated-gradient {
-            background-color: color-mix(in srgb, var(--primary-color) 20%, black);
+
+        /* Left Hero Mesh Gradient */
+        .hero-mesh-background {
+            background-color: #050508;
             background-image: 
-                radial-gradient(circle at center, color-mix(in srgb, var(--primary-color) 80%, white) 0%, transparent 60%),
-                radial-gradient(circle at center, color-mix(in srgb, var(--primary-color) 60%, black) 0%, transparent 65%),
-                radial-gradient(circle at center, var(--primary-color) 0%, transparent 70%),
-                radial-gradient(circle at center, color-mix(in srgb, var(--primary-color) 40%, black) 0%, transparent 60%);
-            background-size: 200% 200%, 250% 250%, 200% 200%, 300% 300%;
-            background-repeat: no-repeat;
-            animation: meshGradient 20s infinite ease-in-out;
+                radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--primary) 70%, transparent) 0%, transparent 45%),
+                radial-gradient(circle at 85% 75%, color-mix(in srgb, #6366f1 45%, transparent) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--primary) 35%, transparent) 0%, transparent 60%);
+            background-size: 150% 150%;
+            animation: meshShift 22s ease infinite alternate;
+        }
+
+        @keyframes meshShift {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 50% 0%; }
+        }
+
+        /* Glassmorphism Card Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        /* Floating Cards Float Animation */
+        @keyframes subtleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float-1 { animation: subtleFloat 6s ease-in-out infinite; }
+        .animate-float-2 { animation: subtleFloat 7s ease-in-out 1.5s infinite; }
+
+        /* Floating Input Focus Halos */
+        .modern-input {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modern-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+            background: var(--bg-surface);
+        }
+
+        /* Primary Button Shimmer */
+        .btn-primary-glow {
+            background: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 8px 24px -4px var(--primary-glow);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-primary-glow:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px -4px var(--primary-glow);
+        }
+        .btn-primary-glow:active {
+            transform: translateY(1px) scale(0.99);
+        }
+
+        /* Biometric Neon Pulse */
+        @keyframes pulseRing {
+            0% { box-shadow: 0 0 0 0 var(--primary-glow); }
+            70% { box-shadow: 0 0 0 10px transparent; }
+            100% { box-shadow: 0 0 0 0 transparent; }
+        }
+        .biometric-btn {
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-main);
+            transition: all 0.2s ease;
+        }
+        .biometric-btn:hover {
+            border-color: var(--primary);
+            animation: pulseRing 1.5s infinite;
+        }
+
+        /* DNI Slot Boxes */
+        .dni-slot {
+            width: 32px;
+            height: 42px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--input-bg);
+            transition: all 0.15s ease;
+        }
+        .dni-slot.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            transform: scale(1.05);
+        }
+        .dni-slot.filled {
+            border-color: color-mix(in srgb, var(--primary) 60%, var(--border));
+            color: var(--text-main);
         }
     </style>
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "secondary-fixed-dim": "#c3c7c6",
-                        "on-tertiary": "#ffffff",
-                        "surface-tint": "var(--primary-color)",
-                        "tertiary-fixed": "#dde3eb",
-                        "primary-fixed-dim": "color-mix(in srgb, var(--primary-color) 40%, white)",
-                        "on-primary-fixed": "color-mix(in srgb, var(--primary-color) 80%, black)",
-                        "error": "#ba1a1a",
-                        "on-secondary-fixed-variant": "#434847",
-                        "on-background": "#1c1b1b",
-                        "surface-container-highest": "#e5e2e1",
-                        "primary-fixed": "color-mix(in srgb, var(--primary-color) 20%, white)",
-                        "surface-container-lowest": "#ffffff",
-                        "surface-container-low": "#f6f3f2",
-                        "on-primary-fixed-variant": "color-mix(in srgb, var(--primary-color) 60%, black)",
-                        "on-error-container": "#93000a",
-                        "error-container": "#ffdad6",
-                        "on-primary-container": "color-mix(in srgb, var(--primary-color) 20%, white)",
-                        "on-secondary-container": "#5d6260",
-                        "on-surface-variant": "#3f4943",
-                        "tertiary-fixed-dim": "#c1c7cf",
-                        "on-tertiary-fixed-variant": "#41474e",
-                        "surface-dim": "#dcd9d9",
-                        "outline-variant": "#bec9c1",
-                        "tertiary": "#3e444b",
-                        "on-tertiary-container": "#ced4dc",
-                        "primary": "var(--primary-color)",
-                        "inverse-primary": "color-mix(in srgb, var(--primary-color) 50%, white)",
-                        "surface-container-high": "#ebe7e7",
-                        "inverse-on-surface": "#f3f0ef",
-                        "primary-container": "color-mix(in srgb, var(--primary-color) 80%, white)",
-                        "inverse-surface": "#313030",
-                        "surface": "#fcf9f8",
-                        "surface-variant": "#e5e2e1",
-                        "secondary-container": "#dadedc",
-                        "tertiary-container": "#555c63",
-                        "on-tertiary-fixed": "#161c22",
-                        "on-secondary": "#ffffff",
-                        "outline": "#6f7a73",
-                        "on-primary": "#ffffff",
-                        "surface-bright": "#fcf9f8",
-                        "secondary": "#5b5f5e",
-                        "background": "#fcf9f8",
-                        "on-secondary-fixed": "#181c1c",
-                        "on-error": "#ffffff",
-                        "surface-container": "#f0edec",
-                        "on-surface": "#1c1b1b",
-                        "secondary-fixed": "#dfe3e1"
-                    },
-                    "borderRadius": {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
-                    "spacing": {
-                        "gutter": "24px",
-                        "md": "24px",
-                        "lg": "40px",
-                        "sm": "12px",
-                        "xl": "64px",
-                        "container-max": "1280px",
-                        "xs": "4px",
-                        "base": "8px"
-                    },
-                    "fontFamily": {
-                        "title-md": ["Inter"],
-                        "display-lg": ["Inter"],
-                        "headline-lg-mobile": ["Inter"],
-                        "body-md": ["Inter"],
-                        "label-sm": ["Inter"],
-                        "headline-lg": ["Inter"],
-                        "body-lg": ["Inter"]
-                    },
-                    "fontSize": {
-                        "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
-                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
-                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
-                        "label-sm": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
-                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
-                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
-                    }
-                },
-            },
-        }
-    </script>
 </head>
-<body class="bg-background font-body-md text-on-surface overflow-x-hidden md:overflow-hidden">
-<!-- Main Container: Split Screen Layout -->
-<main class="min-h-screen md:h-screen w-full flex flex-col md:flex-row">
-    <!-- Left Pane: Hero Section -->
-    <section class="hidden md:flex w-full md:w-1/2 bg-animated-gradient flex-col justify-end p-lg md:p-xl relative overflow-hidden order-2 md:order-1 min-h-[409px] md:h-full">
-        <!-- Subtle atmospheric overlay -->
-        <div class="absolute inset-0 opacity-10 pointer-events-none">
-            <div class="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent"></div>
-        </div>
-        <!-- Content Container -->
-        <div class="relative z-10 max-w-xl animate-fade-in-up" style="animation-delay: 0.1s;">
-            <h1 class="font-display-lg text-display-lg text-white mb-md leading-tight md:text-[56px]">
-                Eleve su productividad al siguiente nivel.
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-500/20 selection:text-emerald-500">
+
+<!-- Top Floating Theme Toggle Button -->
+<div class="fixed top-5 right-5 z-50">
+    <button id="themeToggleBtn" onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center border border-[var(--border)] bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm hover:scale-105 active:scale-95 transition-all" title="Cambiar tema (Claro/Oscuro)">
+        <i class="ph ph-sun text-lg hidden" id="iconLight"></i>
+        <i class="ph ph-moon text-lg" id="iconDark"></i>
+    </button>
+</div>
+
+<!-- Main Split Screen Layout -->
+<main class="min-h-screen w-full flex flex-col lg:flex-row">
+    
+    <!-- LEFT PANEL: Hero Product Showcase (Desktop Only) -->
+    <section class="hidden lg:flex w-7/12 hero-mesh-background flex-col justify-between p-12 xl:p-16 relative overflow-hidden text-white">
+        <!-- Background Ambient Light Spheres -->
+        <div class="absolute -top-32 -left-32 w-96 h-96 bg-[var(--primary)] rounded-full blur-[140px] opacity-35 pointer-events-none"></div>
+        <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-600 rounded-full blur-[150px] opacity-30 pointer-events-none"></div>
+
+        <!-- Top Spacer -->
+        <div></div>
+
+        <!-- Center: Floating Product Showcase Mockup -->
+        <div class="relative z-10 my-auto py-10 max-w-xl">
+            <h1 class="font-display text-4xl xl:text-5xl font-extrabold tracking-tight text-white leading-tight mb-4">
+                Gestión inteligente, <br/>
+                <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">productividad sin límites.</span>
             </h1>
-            <p class="font-body-lg text-body-lg text-on-primary-container mb-md opacity-90 max-w-lg">
-                Gestione sus proyectos, analice datos en tiempo real y coordine a su equipo en una plataforma diseñada para la excelencia operativa.
+            <p class="text-white/70 text-base leading-relaxed mb-8 max-w-lg font-normal">
+                Coordina equipos, supervisa campañas y visualiza balances financieros en una plataforma diseñada para agencias de alto impacto.
             </p>
+
+            <!-- Floating Glass Widget 1: Live Campaign Performance -->
+            <div class="glass-card rounded-2xl p-5 mb-4 max-w-md shadow-2xl animate-float-1">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+                            <i class="ph-bold ph-trend-up text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-white/60 uppercase tracking-wider">Crecimiento Mensual</div>
+                            <div class="text-lg font-extrabold text-white">S/ 48,250.00 <span class="text-xs font-bold text-emerald-400 ml-1">+34.8%</span></div>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full">En tiempo real</span>
+                </div>
+                <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                    <div class="bg-gradient-to-r from-emerald-400 to-teal-300 h-full rounded-full" style="width: 78%;"></div>
+                </div>
+            </div>
+
+            <!-- Floating Glass Widget 2: Romita AI Co-Pilot Active -->
+            <div class="glass-card rounded-2xl p-4 max-w-sm ml-auto shadow-2xl animate-float-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/25 border border-indigo-400/30 flex items-center justify-center text-indigo-300 text-xl flex-shrink-0">
+                        <i class="ph-fill ph-sparkle"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span>Romita AI Co-Pilot</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        </div>
+                        <div class="text-[12px] text-white/70 truncate">Generando grilla de contenidos para 3 marcas...</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <!-- Branding Accent -->
-        <div class="mt-xl hidden md:block">
-            <div class="w-16 h-1 bg-white opacity-40 rounded-full"></div>
+
+        <!-- Bottom Trust Indicators -->
+        <div class="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-white/60">
+            <div class="flex items-center gap-2">
+                <i class="ph-bold ph-lock-key text-emerald-400"></i>
+                <span>Cifrado TLS 1.3 de Extremo a Extremo</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i class="ph-bold ph-lightning text-yellow-400"></i>
+                <span>99.98% Disponibilidad Garantizada</span>
+            </div>
         </div>
     </section>
 
-    <!-- Right Pane: Utility Zone (Form) -->
-    <section class="flex-1 w-full md:w-1/2 bg-white flex flex-col items-center justify-center p-md md:p-xl order-1 md:order-2">
-        <div class="w-full max-w-md space-y-xl">
+    <!-- RIGHT PANEL: Authentication Form Zone -->
+    <section class="w-full lg:w-5/12 flex flex-col justify-center items-center p-6 sm:p-10 xl:p-14 bg-[var(--bg-card)] relative">
+        
+        <div class="w-full max-w-[420px] mx-auto">
+            
 
-            <!-- Auth Mode Switcher -->
-            <div class="bg-surface-container-low p-1.5 rounded-xl flex items-center soft-elevation animate-fade-in-up" style="animation-delay: 0.1s;">
-                <button class="flex-1 py-3 px-4 rounded-lg font-label-sm text-label-sm transition-primary bg-white text-primary soft-elevation" id="toggleAgencia" onclick="switchTab('agencia')">
-                    Agencia
+            <!-- Segmented Control Tab Switcher (iOS / Mac Style) -->
+            <div class="bg-[var(--tab-bg)] p-1 rounded-xl flex items-center mb-6 relative border border-[var(--border)]">
+                <button type="button" id="tabBtnAgency" onclick="switchAuthTab('agency')" class="flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm">
+                    <i class="ph-bold ph-briefcase"></i>
+                    <span>Equipo Agencia</span>
                 </button>
-                <button class="flex-1 py-3 px-4 rounded-lg font-label-sm text-label-sm transition-primary text-secondary hover:text-primary" id="toggleCliente" onclick="switchTab('cliente')">
-                    Soy Cliente
+                <button type="button" id="tabBtnClient" onclick="switchAuthTab('client')" class="flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]">
+                    <i class="ph-bold ph-user-circle"></i>
+                    <span>Soy Cliente</span>
                 </button>
             </div>
 
+            <!-- Error Banner -->
             <?php if ($error): ?>
-                <div class="bg-error-container text-on-error-container p-4 rounded-xl font-label-sm flex items-center gap-2 animate-fade-in-up">
-                    <span class="material-symbols-outlined">error</span>
-                    <?php echo htmlspecialchars($error); ?>
+                <div class="mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400">
+                    <i class="ph-fill ph-warning-circle text-lg flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-1"><?php echo htmlspecialchars($error); ?></div>
                 </div>
             <?php endif; ?>
 
-            <!-- Form Section Agencia -->
-            <form id="form-agency" action="index.php?module=auth&action=login" method="POST" class="space-y-lg animate-fade-in-up" style="animation-delay: 0.2s;">
-                <div class="space-y-md">
-                    <!-- Email Field -->
-                    <div class="space-y-xs">
-                        <label class="font-label-sm text-label-sm text-on-surface-variant block" for="email">Correo Electrónico</label>
-                        <div class="relative group">
-                            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">
-                                mail
-                            </span>
-                            <input class="w-full pl-12 pr-4 py-4 rounded-xl border border-outline-variant bg-surface focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-primary font-body-md text-on-surface" id="email" name="email" placeholder="ejemplo@roma.com" type="email" required/>
-                        </div>
-                    </div>
-                    <!-- Password Field -->
-                    <div class="space-y-xs">
-                        <label class="font-label-sm text-label-sm text-on-surface-variant block" for="password">Contraseña</label>
-                        <div class="relative group">
-                            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">
-                                lock
-                            </span>
-                            <input class="w-full pl-12 pr-12 py-4 rounded-xl border border-outline-variant bg-surface focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-primary font-body-md text-on-surface" id="password" name="password" type="password" placeholder="••••••••" required/>
-                            <button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors" onclick="togglePasswordVisibility()" type="button">
-                                <span class="material-symbols-outlined" id="eyeIcon">visibility</span>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Keep Logged In -->
-                    <div class="flex items-center space-x-base">
-                        <input checked="" class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary transition-all custom-checkbox" id="remember" name="remember" type="checkbox"/>
-                        <label class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer select-none" for="remember">Mantener sesión iniciada</label>
+            <!-- FORM 1: Equipo Agencia (Email & Password) -->
+            <form id="formAgency" action="index.php?module=auth&action=login" method="POST" class="space-y-4">
+                <?php echo csrf_field(); ?>
+
+                <!-- Email Input -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5" for="email">
+                        Correo Corporativo
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-lg pointer-events-none">
+                            <i class="ph ph-envelope-simple"></i>
+                        </span>
+                        <input type="email" id="email" name="email" class="w-full pl-11 pr-4 py-3.5 rounded-xl modern-input text-sm font-medium outline-none" placeholder="nombre@romaagencia.com" required autocomplete="email" />
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="space-y-md">
-                    <button class="w-full py-4 bg-primary text-white font-label-sm text-label-sm rounded-xl hover:bg-primary-container active:scale-[0.98] transition-primary soft-elevation" type="submit">
-                        Iniciar Sesión
-                    </button>
-
-                    <div class="relative py-2 flex items-center justify-center">
-                        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-outline-variant"></div></div>
-                        <span class="relative bg-white px-4 text-outline font-label-sm text-[12px] uppercase tracking-widest">O entrar con</span>
+                <!-- Password Input -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]" for="password">
+                            Contraseña
+                        </label>
+                        <span class="text-[11px] text-[var(--text-muted)] hover:text-[var(--primary)] cursor-pointer select-none">¿Olvidaste tu clave?</span>
                     </div>
-
-                    <button class="w-full py-4 border border-outline-variant text-primary font-label-sm text-label-sm rounded-xl flex items-center justify-center space-x-base hover:bg-surface-container-low transition-primary active:scale-[0.98]" type="button" onclick="loginWithBiometrics()">
-                        <span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
-                        <span>Ingresar con Huella / FaceID</span>
-                    </button>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-lg pointer-events-none">
+                            <i class="ph ph-lock"></i>
+                        </span>
+                        <input type="password" id="password" name="password" class="w-full pl-11 pr-11 py-3.5 rounded-xl modern-input text-sm font-medium outline-none" placeholder="••••••••••••" required autocomplete="current-password" />
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-lg transition-colors" title="Mostrar/Ocultar contraseña">
+                            <i class="ph ph-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Remember Me Checkbox -->
+                <div class="flex items-center justify-between pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="remember" name="remember" checked class="w-4 h-4 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)] accent-[var(--primary)]" />
+                        <span class="text-xs font-medium text-[var(--text-muted)]">Recordar en este equipo</span>
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="btnSubmitLogin" class="w-full py-3.5 rounded-xl font-display font-bold text-sm btn-primary-glow flex items-center justify-center gap-2 cursor-pointer mt-2">
+                    <span>Ingresar a la Plataforma</span>
+                    <i class="ph-bold ph-arrow-right"></i>
+                </button>
+
+                <!-- Biometric Divider -->
+                <div class="relative py-2 flex items-center justify-center">
+                    <div class="w-full border-t border-[var(--border)]"></div>
+                    <span class="absolute bg-[var(--bg-card)] px-3 text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-semibold">O rápido con</span>
+                </div>
+
+                <!-- WebAuthn Biometrics Button -->
+                <button type="button" onclick="loginWithBiometrics()" class="w-full py-3 rounded-xl font-display font-semibold text-xs sm:text-sm biometric-btn flex items-center justify-center gap-2.5 cursor-pointer">
+                    <i class="ph-bold ph-fingerprint text-emerald-500 text-lg"></i>
+                    <span>Acceder con Huella Digital / FaceID</span>
+                </button>
             </form>
 
-            <!-- Form Section Cliente -->
-            <div id="form-client" class="hidden space-y-lg animate-fade-in-up" style="animation-delay: 0.2s;">
-                <p class="text-center text-outline font-label-sm">Ingresa tu DNI para acceder a tu portal.</p>
-                
-                <div class="flex justify-center">
-                    <div id="dni-input" class="text-[32px] font-extrabold tracking-[8px] text-on-surface border-b-2 border-outline-variant w-full text-center h-16 flex items-center justify-center font-[tabular-nums]">
-                        <span class="text-outline-variant">------</span>
-                    </div>
+            <!-- FORM 2: Portal de Clientes (Fintech Keypad) -->
+            <div id="formClient" class="hidden space-y-5">
+                <div class="text-center">
+                    <p class="text-xs text-[var(--text-muted)]">Ingresa tu número de documento para consultar tus proyectos, entregables y pagos.</p>
                 </div>
-                
-                <div class="flex justify-center mt-md">
-                    <div class="grid grid-cols-3 gap-4 w-full max-w-[300px]">
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(1)">1</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(2)">2</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(3)">3</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(4)">4</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(5)">5</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(6)">6</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(7)">7</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(8)">8</button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(9)">9</button>
-                        <button class="h-16 rounded-2xl bg-error-container text-on-error-container hover:bg-[#ffb4ab] active:scale-95 transition-primary flex items-center justify-center soft-elevation" onclick="deleteDigit()"><span class="material-symbols-outlined">backspace</span></button>
-                        <button class="h-16 rounded-2xl bg-surface-container hover:bg-surface-container-high active:scale-95 transition-primary font-display-lg text-[24px] text-on-surface soft-elevation" onclick="typeDigit(0)">0</button>
-                        <button class="h-16 rounded-2xl bg-primary text-white hover:bg-primary-container active:scale-95 transition-primary flex items-center justify-center soft-elevation submit-btn" onclick="submitClientLogin()"><span class="material-symbols-outlined">arrow_forward</span></button>
-                    </div>
+
+                <!-- DNI Interactive Display Slot Boxes -->
+                <div class="flex justify-center gap-1.5 sm:gap-2 my-2" id="dniSlotsContainer">
+                    <div class="dni-slot active" id="slot-0">-</div>
+                    <div class="dni-slot" id="slot-1">-</div>
+                    <div class="dni-slot" id="slot-2">-</div>
+                    <div class="dni-slot" id="slot-3">-</div>
+                    <div class="dni-slot" id="slot-4">-</div>
+                    <div class="dni-slot" id="slot-5">-</div>
+                    <div class="dni-slot" id="slot-6">-</div>
+                    <div class="dni-slot" id="slot-7">-</div>
+                </div>
+
+                <!-- Numeric Keypad (Fintech Style) -->
+                <div class="grid grid-cols-3 gap-2.5 max-w-[280px] mx-auto">
+                    <?php for($i = 1; $i <= 9; $i++): ?>
+                        <button type="button" onclick="typeDigit('<?php echo $i; ?>')" class="h-14 rounded-2xl bg-[var(--keypad-btn)] hover:bg-[var(--keypad-btn-hover)] text-[var(--keypad-text)] font-display font-bold text-xl active:scale-90 transition-all flex items-center justify-center border border-[var(--border)] shadow-sm">
+                            <?php echo $i; ?>
+                        </button>
+                    <?php endfor; ?>
+                    <button type="button" onclick="deleteDigit()" class="h-14 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-display font-bold text-xl active:scale-90 transition-all flex items-center justify-center border border-rose-500/20" title="Borrar">
+                        <i class="ph-bold ph-backspace"></i>
+                    </button>
+                    <button type="button" onclick="typeDigit('0')" class="h-14 rounded-2xl bg-[var(--keypad-btn)] hover:bg-[var(--keypad-btn-hover)] text-[var(--keypad-text)] font-display font-bold text-xl active:scale-90 transition-all flex items-center justify-center border border-[var(--border)] shadow-sm">
+                        0
+                    </button>
+                    <button type="button" id="btnClientSubmit" onclick="submitClientLogin()" class="h-14 rounded-2xl btn-primary-glow font-display font-bold text-xl active:scale-90 transition-all flex items-center justify-center shadow-lg" title="Ingresar">
+                        <i class="ph-bold ph-arrow-right"></i>
+                    </button>
                 </div>
             </div>
+
+            <!-- Footer Security Guarantee -->
+            <div class="mt-8 pt-5 border-t border-[var(--border)] text-center">
+                <div class="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] font-medium">
+                    <i class="ph-fill ph-shield-check text-emerald-500 text-sm"></i>
+                    <span>Sesión Blindada con Protección Anti-Fuerza Bruta &bull; Roma Shield</span>
+                </div>
+            </div>
+
         </div>
     </section>
 </main>
 
 <script>
-    // Tab Switching Logic
-    function switchTab(mode) {
-        const btnAgencia = document.getElementById('toggleAgencia');
-        const btnCliente = document.getElementById('toggleCliente');
-        const formAgency = document.getElementById('form-agency');
-        const formClient = document.getElementById('form-client');
-        
-        if (mode === 'agencia') {
-            btnAgencia.classList.add('bg-white', 'text-primary', 'soft-elevation');
-            btnAgencia.classList.remove('text-secondary');
-            btnCliente.classList.remove('bg-white', 'text-primary', 'soft-elevation');
-            btnCliente.classList.add('text-secondary');
-            
-            formClient.classList.add('hidden');
-            formAgency.classList.remove('hidden');
+    // --- Theme Switcher (Dark / Light) ---
+    function initTheme() {
+        const savedTheme = localStorage.getItem('roma_theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+        applyTheme(theme);
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('roma_theme', theme);
+        const iconLight = document.getElementById('iconLight');
+        const iconDark = document.getElementById('iconDark');
+        const logosLight = document.querySelectorAll('.logo-for-light');
+        const logosDark = document.querySelectorAll('.logo-for-dark');
+
+        if (theme === 'dark') {
+            iconLight.classList.remove('hidden');
+            iconDark.classList.add('hidden');
+            logosLight.forEach(el => el.classList.add('hidden'));
+            logosDark.forEach(el => el.classList.remove('hidden'));
         } else {
-            btnCliente.classList.add('bg-white', 'text-primary', 'soft-elevation');
-            btnCliente.classList.remove('text-secondary');
-            btnAgencia.classList.remove('bg-white', 'text-primary', 'soft-elevation');
-            btnAgencia.classList.add('text-secondary');
-            
+            iconLight.classList.add('hidden');
+            iconDark.classList.remove('hidden');
+            logosLight.forEach(el => el.classList.remove('hidden'));
+            logosDark.forEach(el => el.classList.add('hidden'));
+        }
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(newTheme);
+    }
+
+    initTheme();
+
+    // --- Tab Switching Logic ---
+    function switchAuthTab(tab) {
+        const tabAgency = document.getElementById('tabBtnAgency');
+        const tabClient = document.getElementById('tabBtnClient');
+        const formAgency = document.getElementById('formAgency');
+        const formClient = document.getElementById('formClient');
+
+        if (tab === 'agency') {
+            tabAgency.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm';
+            tabClient.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]';
+            formAgency.classList.remove('hidden');
+            formClient.classList.add('hidden');
+        } else {
+            tabClient.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm';
+            tabAgency.className = 'flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)]';
             formAgency.classList.add('hidden');
             formClient.classList.remove('hidden');
         }
     }
 
-    // Toggle password visibility
+    // --- Password Visibility Toggle ---
     function togglePasswordVisibility() {
         const passwordInput = document.getElementById('password');
         const eyeIcon = document.getElementById('eyeIcon');
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
-            eyeIcon.textContent = 'visibility_off';
+            eyeIcon.className = 'ph ph-eye-slash';
         } else {
             passwordInput.type = 'password';
-            eyeIcon.textContent = 'visibility';
+            eyeIcon.className = 'ph ph-eye';
         }
     }
 
-    // Keypad Logic
+    // --- DNI Keypad Logic ---
     let dniValue = '';
-    const dniDisplay = document.getElementById('dni-input');
 
-    function updateDniDisplay() {
-        if (dniValue.length === 0) {
-            dniDisplay.innerHTML = '<span class="text-outline-variant">------</span>';
-        } else {
-            dniDisplay.innerText = dniValue;
+    function updateDniSlots() {
+        for (let i = 0; i < 8; i++) {
+            const slot = document.getElementById('slot-' + i);
+            if (!slot) continue;
+            if (i < dniValue.length) {
+                slot.textContent = dniValue[i];
+                slot.className = 'dni-slot filled';
+            } else if (i === dniValue.length) {
+                slot.textContent = '-';
+                slot.className = 'dni-slot active';
+            } else {
+                slot.textContent = '-';
+                slot.className = 'dni-slot';
+            }
         }
     }
 
     function typeDigit(digit) {
-        if (dniValue.length < 15) { 
+        if (dniValue.length < 8) {
             dniValue += digit;
-            updateDniDisplay();
+            updateDniSlots();
         }
     }
 
     function deleteDigit() {
         if (dniValue.length > 0) {
             dniValue = dniValue.slice(0, -1);
-            updateDniDisplay();
+            updateDniSlots();
         }
     }
 
     function submitClientLogin() {
-        if (dniValue.length < 5) {
-            alert('Ingrese un DNI válido');
+        if (dniValue.length < 8) {
+            alert('Por favor ingresa los 8 dígitos de tu documento.');
             return;
         }
-        
-        const btn = document.querySelector('.submit-btn');
+
+        const btn = document.getElementById('btnClientSubmit');
         const oldContent = btn.innerHTML;
-        btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="animation: spin 1s linear infinite;">refresh</span>';
-        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin text-xl"></i>';
+
         fetch('ajax_portal.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=login&dni=${dniValue}`
+            body: `action=login&dni=${encodeURIComponent(dniValue)}`
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
                 window.location.href = 'portal.php';
             } else {
-                alert(data.error || 'DNI incorrecto o no autorizado');
+                alert(data.error || 'Documento no encontrado o sin acceso al portal.');
                 dniValue = '';
-                updateDniDisplay();
+                updateDniSlots();
+                btn.disabled = false;
                 btn.innerHTML = oldContent;
             }
         })
         .catch(e => {
-            alert('Error de conexión');
+            alert('Error de conexión con el servidor. Intenta de nuevo.');
+            btn.disabled = false;
             btn.innerHTML = oldContent;
         });
     }
 
-    // Initialize display
-    updateDniDisplay();
-
-    // --- WebAuthn Login Logic ---
+    // --- WebAuthn Biometrics Login Logic ---
     function base64ToArrayBuffer(base64) {
         var binary_string = window.atob(base64);
         var len = binary_string.length;
@@ -502,7 +650,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (typeof obj === 'string') {
             if (obj.startsWith(prefix) && obj.endsWith(suffix)) {
                 let b64 = obj.substring(prefix.length, obj.length - suffix.length);
-                b64 = b64.replace(/-/g, '+').replace(/_/g, '/'); // ensure standard base64
+                b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
                 return base64ToArrayBuffer(b64);
             }
         } else if (typeof obj === 'object' && obj !== null) {
@@ -515,14 +663,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     async function loginWithBiometrics() {
         if (!window.PublicKeyCredential) {
-            alert("Autenticación biométrica no soportada en este navegador.");
+            alert("Autenticación biométrica no soportada en este dispositivo/navegador.");
             return;
         }
 
-        // El correo es obligatorio para buscar la credencial vinculada al usuario
         const emailField = document.getElementById('email');
         if (!emailField || !emailField.value.trim()) {
-            alert('Escribe tu correo electrónico primero y luego presiona "Ingresar con Huella / FaceID".');
+            alert('Por favor escribe tu correo electrónico primero para identificar tu usuario.');
             if (emailField) emailField.focus();
             return;
         }
@@ -542,22 +689,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 data = JSON.parse(text);
             } catch (err) {
-                console.error("Respuesta del servidor no es JSON:", text);
-                alert("Error del servidor. Intenta de nuevo.");
+                alert("Error de comunicación con el servidor biométrico.");
                 return;
             }
             
             if (data.error) {
-                alert(data.error); return;
+                alert(data.error);
+                return;
             }
 
             const args = decodeArgs(data.args);
-
-            // Limpiar extensiones incompatibles con Android
-            if (args.publicKey) {
-                if (args.publicKey.extensions) {
-                    delete args.publicKey.extensions;
-                }
+            if (args.publicKey && args.publicKey.extensions) {
+                delete args.publicKey.extensions;
             }
             
             const credential = await navigator.credentials.get(args);
@@ -583,28 +726,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
             
             const verifyText = await verifyRes.text();
-            let verifyData;
-            try {
-                verifyData = JSON.parse(verifyText);
-            } catch(err) {
-                console.error("Verificación no es JSON:", verifyText);
-                alert("Error al verificar en servidor. Intenta de nuevo.");
-                return;
-            }
+            let verifyData = JSON.parse(verifyText);
 
             if (verifyData.success) {
                 window.location.href = 'index.php?module=dashboard&action=index';
             } else {
-                alert(verifyData.error || 'Fallo la verificación biométrica.');
+                alert(verifyData.error || 'Falló la verificación biométrica.');
             }
         } catch (e) {
             console.error('Error biométrico login:', e);
-            if (e.name === 'NotAllowedError') {
-                // El usuario canceló
-            } else if (e.name === 'NotReadableError') {
-                alert('No se pudo acceder al sensor biométrico. Reinicia Chrome e intenta de nuevo.');
-            } else {
-                alert('Error al verificar huella: ' + e.message);
+            if (e.name !== 'NotAllowedError') {
+                alert('No se pudo completar la verificación biométrica: ' + e.message);
             }
         }
     }

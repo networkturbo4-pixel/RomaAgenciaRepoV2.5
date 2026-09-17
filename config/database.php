@@ -2,6 +2,8 @@
 // config/database.php
 date_default_timezone_set('America/Lima');
 
+require_once __DIR__ . '/../includes/env.php';
+
 class Database {
     private $host = "localhost";
     private $db_name;
@@ -18,26 +20,27 @@ class Database {
             $is_local = true;
         }
 
-        $env_db = getenv('DB_NAME');
-        $env_user = getenv('DB_USER');
-        $env_pass = getenv('DB_PASS');
-        $env_host = getenv('DB_HOST');
+        $env_db = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? null);
+        $env_user = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? null);
+        $env_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($_ENV['DB_PASS'] ?? null);
+        $env_host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? 'localhost');
 
-        if ($env_db !== false && $env_user !== false) {
-            $this->host = $env_host ?: "localhost";
+        if (!empty($env_db) && !empty($env_user)) {
+            // Prioridad a variables de entorno (.env o servidor)
+            $this->host = $env_host;
             $this->db_name = $env_db;
             $this->username = $env_user;
-            $this->password = $env_pass !== false ? $env_pass : "";
+            $this->password = $env_pass !== null ? $env_pass : "";
         } elseif ($is_local) {
-            // Credenciales Locales
+            // Credenciales Locales por defecto
+            $this->host = "localhost";
             $this->db_name = "saas_cesar_db";
             $this->username = "root";
             $this->password = "";
         } else {
-            // Credenciales de Producción
-            $this->db_name = "iqxalgre_saasroma";
-            $this->username = "iqxalgre_cesarsaas";
-            $this->password = "RomaAgencia2026@$%&$$$$";
+            // Producción sin .env: Registrar advertencia crítica de seguridad
+            error_log("CRITICAL SECURITY ERROR: El archivo .env con las credenciales de base de datos no está configurado.");
+            die("Error de configuración de entorno. Por favor verifique el archivo .env.");
         }
     }
 

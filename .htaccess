@@ -37,6 +37,7 @@ Options -Indexes
     RewriteRule ^\.git - [F,L]
     RewriteRule ^whatsapp_service/tokens - [F,L]
     RewriteRule ^scratch - [F,L]
+    RewriteRule ^database - [F,L]
 
     # Ignorar archivos o carpetas reales
     RewriteCond %{REQUEST_FILENAME} !-f

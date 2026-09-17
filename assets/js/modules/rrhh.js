@@ -170,7 +170,7 @@ const RrhhModule = (function() {
             }
 
             tr.innerHTML = `
-                <td class="col-user" data-label="USUARIO">
+                <td class="col-user">
                     <div class="emp-user-cell">
                         <div class="emp-avatar" style="background-color: ${emp.color};">
                             ${emp.initials}
@@ -181,25 +181,25 @@ const RrhhModule = (function() {
                         </div>
                     </div>
                 </td>
-                <td class="col-role" data-label="ROL / DEPARTAMENTO">
+                <td class="col-role">
                     <div class="emp-role-cell">
                         <span class="emp-role-title">${emp.role}</span>
                         <span class="emp-dept-title">${emp.department}</span>
                         ${scheduleText}
                     </div>
                 </td>
-                <td class="col-status" data-label="ESTADO">
+                <td class="col-status">
                     <span class="status-badge status-${st}">
                         <i class="ph ${iconClass}"></i> ${emp.status}
                     </span>
                 </td>
-                <td class="col-salary" data-label="SALARIO / CONTRATACIÓN">
+                <td class="col-salary">
                     <div class="emp-salary-cell">
                         <span class="emp-salary-amount">S/ ${parseFloat(emp.salary).toFixed(2)}</span>
                         <span class="emp-hire-date">Ingreso: ${emp.hire_date}</span>
                     </div>
                 </td>
-                <td class="col-actions" data-label="ACCIONES" style="text-align: right;">
+                <td class="col-actions" style="text-align: right;">
                     <div class="action-buttons-group">
                         <button class="action-btn-saas" title="Pagos y Boletas" onclick="RrhhModule.openPaymentsModal(${emp.id})">
                             <i class="ph ph-wallet"></i>

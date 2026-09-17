@@ -18,7 +18,7 @@ $db = $database->getConnection();
 $query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $status = isset($_GET['status']) ? trim($_GET['status']) : '';
 
-$sql = "SELECT q.*, c.name as client_name 
+$sql = "SELECT q.*, c.name as client_name, c.whatsapp as client_whatsapp 
         FROM quotes q 
         LEFT JOIN clients c ON q.client_id = c.id 
         WHERE 1=1";

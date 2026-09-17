@@ -571,6 +571,50 @@ document.querySelectorAll('input[type="text"], input[type="search"]').forEach(fu
         }, { once: true });
     }
 });
+
+// Auto-etiquetado inteligente para tablas responsivas (Card View en Móvil)
+function enhanceResponsiveTables() {
+    document.querySelectorAll('table').forEach(function(table) {
+        // Ignorar tablas que ya tienen su propio diseño responsivo de tarjetas en CSS
+        if (table.classList.contains('quotes-table') || 
+            table.classList.contains('rrhh-table') || 
+            table.classList.contains('custom-cards') ||
+            table.closest('.quotes-list-container') ||
+            table.closest('.rrhh-list-container') ||
+            table.hasAttribute('data-no-auto-cards') ||
+            table.querySelector('.quote-row-card') ||
+            table.querySelector('.emp-row-card') ||
+            table.querySelector('.client-row-card')) {
+            return;
+        }
+
+        const thead = table.querySelector('thead');
+        if (!thead) return;
+        const headers = Array.from(thead.querySelectorAll('th')).map(function(th) {
+            return th.textContent.trim();
+        });
+        if (headers.length === 0) return;
+
+        if (!table.parentElement.classList.contains('table-responsive')) {
+            table.classList.add('table-responsive-ready');
+        }
+
+        table.querySelectorAll('tbody tr').forEach(function(tr) {
+            const cells = tr.querySelectorAll('td');
+            cells.forEach(function(td, idx) {
+                if (!td.hasAttribute('data-label') && headers[idx]) {
+                    const headerLower = headers[idx].toLowerCase();
+                    if (headerLower.includes('acción') || headerLower.includes('accion') || headerLower.includes('opcion') || headerLower.includes('opción')) {
+                        td.classList.add('actions-cell');
+                    }
+                    td.setAttribute('data-label', headers[idx]);
+                }
+            });
+        });
+    });
+}
+document.addEventListener('DOMContentLoaded', enhanceResponsiveTables);
+window.addEventListener('tables-updated', enhanceResponsiveTables);
 </script>
 
 <?php

@@ -215,6 +215,238 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             color: #ffffff;
         }
 
+        /* Proposal Approval & Modal Styles */
+        .btn-action-approve {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            padding: 0.65rem 1.4rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            font-family: inherit;
+        }
+        .btn-action-approve:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+            color: #ffffff;
+        }
+        .badge-approved-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.55rem 1rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .approval-cta-banner {
+            margin: 2rem 3rem 0;
+            background: color-mix(in srgb, #10b981 8%, var(--surface));
+            border: 1px solid color-mix(in srgb, #10b981 25%, transparent);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+        }
+        .cta-banner-text h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .cta-banner-text p {
+            margin: 0.35rem 0 0;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+        .approval-success-banner {
+            margin: 2rem 3rem 0;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 16px;
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Modal Aprobar */
+        .approve-modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(6px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .approve-modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+            animation: approveSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes approveSlideIn {
+            from { opacity: 0; transform: translateY(15px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .approve-modal-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+        .approve-icon-wrap {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+        .approve-modal-body {
+            padding: 1.5rem;
+        }
+        .approve-summary-box {
+            background: color-mix(in srgb, var(--surface-elevated) 60%, var(--surface));
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1.25rem;
+        }
+        .summary-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .summary-total {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #10b981;
+            margin-top: 4px;
+        }
+        .approve-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-family: inherit;
+            box-sizing: border-box;
+            outline: none;
+            transition: var(--transition);
+        }
+        .approve-input:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+        .approve-checkbox-wrap {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            line-height: 1.4;
+        }
+        .approve-checkbox-wrap input {
+            margin-top: 3px;
+            accent-color: #10b981;
+            width: 16px; height: 16px;
+        }
+        .approve-modal-footer {
+            padding: 1.25rem 1.5rem;
+            background: color-mix(in srgb, var(--surface-elevated) 40%, var(--surface));
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        .btn-approve-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.65rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-approve-confirm {
+            background: #10b981;
+            border: none;
+            color: #ffffff;
+            padding: 0.65rem 1.35rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+        }
+        .btn-close-modal {
+            position: absolute;
+            right: 1.25rem;
+            top: 1.25rem;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .approval-cta-banner {
+                margin: 1.5rem 1rem 0;
+                padding: 1.25rem;
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            .approval-cta-banner .btn-action-approve {
+                width: 100%;
+                justify-content: center;
+            }
+            .approval-success-banner {
+                margin: 1.5rem 1rem 0;
+                padding: 1rem;
+            }
+        }
+
         /* Document Wrapper Card */
         .document-card {
             background: var(--surface);
@@ -877,6 +1109,16 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
                 <i class="ph ph-printer"></i>
                 <span>Imprimir / Descargar PDF</span>
             </button>
+            <?php if (strtolower($quote['status']) !== 'aceptada'): ?>
+                <button type="button" class="btn-action-approve" id="topApproveBtn" onclick="openApproveModal()">
+                    <i class="ph-bold ph-check-circle"></i>
+                    <span>Aprobar Propuesta</span>
+                </button>
+            <?php else: ?>
+                <div class="badge-approved-status">
+                    <i class="ph-fill ph-check-circle"></i> Aprobada
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -1091,6 +1333,28 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             <?php endif; ?>
         </div>
 
+        <!-- Bottom Approval CTA Banner -->
+        <?php if (strtolower($quote['status']) !== 'aceptada'): ?>
+        <div class="approval-cta-banner" id="bottomApprovalBanner">
+            <div class="cta-banner-text">
+                <h3>¿Listo para dar inicio a este proyecto?</h3>
+                <p>Aprueba la propuesta comercial para formalizar la orden de trabajo y coordinar el inicio de inmediato.</p>
+            </div>
+            <button type="button" class="btn-action-approve" onclick="openApproveModal()">
+                <i class="ph-bold ph-check-circle"></i>
+                <span>Aprobar Propuesta Comercial</span>
+            </button>
+        </div>
+        <?php else: ?>
+        <div class="approval-success-banner" id="bottomApprovalSuccess">
+            <i class="ph-fill ph-check-circle" style="font-size: 2rem; color: #10b981;"></i>
+            <div>
+                <h4 style="margin: 0; font-size: 1.1rem; color: #10b981; font-weight: 700;">Propuesta Aprobada Formalmente</h4>
+                <p style="margin: 2px 0 0; font-size: 0.85rem; color: var(--text-muted);">Esta cotización se encuentra en proceso de ejecución y seguimiento operativo.</p>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <div class="doc-footer">
             <span>Generado con tecnología RomaAgencia SaaS &bull; Confidencial</span>
         </div>
@@ -1103,8 +1367,129 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
     <span id="copyToastMsg">Copiado al portapapeles</span>
 </div>
 
+<!-- Modal Aprobar Propuesta -->
+<div class="approve-modal-backdrop" id="approveModalBackdrop" style="display:none;" onclick="if(event.target === this) closeApproveModal()">
+    <div class="approve-modal-card">
+        <div class="approve-modal-header">
+            <div class="approve-icon-wrap">
+                <i class="ph-bold ph-handshake"></i>
+            </div>
+            <div>
+                <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">Aprobar Propuesta Comercial</h3>
+                <p style="margin:4px 0 0; font-size:0.83rem; color:var(--text-muted);">Cotización #<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?> &bull; <?php echo htmlspecialchars($quote['client_name'] ?? ''); ?></p>
+            </div>
+            <button type="button" class="btn-close-modal" onclick="closeApproveModal()"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="approveQuoteForm" onsubmit="submitApproval(event)">
+            <div class="approve-modal-body">
+                <div class="approve-summary-box">
+                    <div class="summary-label">Monto Total Acordado</div>
+                    <div class="summary-total"><?php echo htmlspecialchars($quote['currency']); ?> <?php echo number_format($quote['total'], 2); ?></div>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display:block; font-size:0.84rem; font-weight:600; margin-bottom:6px; color:var(--text-main);">Nombre del Representante o Aprobador *</label>
+                    <input type="text" id="approve_signer_name" class="approve-input" placeholder="Ej: Carlos Mendoza" required value="<?php echo htmlspecialchars($quote['client_name'] ?? ''); ?>">
+                </div>
+
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display:block; font-size:0.84rem; font-weight:600; margin-bottom:6px; color:var(--text-main);">DNI / RUC o Documento de Identidad (Opcional)</label>
+                    <input type="text" id="approve_signer_doc" class="approve-input" placeholder="Ej: 72819203">
+                </div>
+
+                <label class="approve-checkbox-wrap">
+                    <input type="checkbox" id="approve_terms_check" required checked>
+                    <span>Confirmo la aceptación de los servicios, montos y condiciones detallados en esta propuesta comercial.</span>
+                </label>
+            </div>
+            <div class="approve-modal-footer">
+                <button type="button" class="btn-approve-cancel" onclick="closeApproveModal()">Cancelar</button>
+                <button type="submit" class="btn-approve-confirm" id="btnConfirmApprove">
+                    <i class="ph-bold ph-check"></i> Confirmar y Aprobar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     const itemsData = <?php echo json_encode($items); ?>;
+    const publicQuoteToken = <?php echo json_encode($token); ?>;
+
+    function openApproveModal() {
+        document.getElementById('approveModalBackdrop').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeApproveModal() {
+        document.getElementById('approveModalBackdrop').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function submitApproval(event) {
+        event.preventDefault();
+        const btn = document.getElementById('btnConfirmApprove');
+        const signerName = document.getElementById('approve_signer_name').value.trim();
+        const signerDoc = document.getElementById('approve_signer_doc').value.trim();
+
+        if (!signerName) {
+            alert('Por favor ingresa tu nombre para confirmar la aprobación.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Procesando aprobación...';
+
+        const payload = new URLSearchParams();
+        payload.append('token', publicQuoteToken);
+        payload.append('signer_name', signerName);
+        payload.append('signer_document', signerDoc);
+
+        fetch('modules/quotes/ajax_public_approve.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: payload.toString()
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                closeApproveModal();
+                showToast('¡Propuesta aprobada con éxito!');
+                
+                // Actualizar UI
+                const topBtn = document.getElementById('topApproveBtn');
+                if (topBtn) {
+                    topBtn.outerHTML = '<div class="badge-approved-status"><i class="ph-fill ph-check-circle"></i> Aprobada</div>';
+                }
+                const btmBanner = document.getElementById('bottomApprovalBanner');
+                if (btmBanner) {
+                    btmBanner.outerHTML = `
+                        <div class="approval-success-banner" id="bottomApprovalSuccess">
+                            <i class="ph-fill ph-check-circle" style="font-size: 2rem; color: #10b981;"></i>
+                            <div>
+                                <h4 style="margin: 0; font-size: 1.1rem; color: #10b981; font-weight: 700;">¡Propuesta Aprobada Formalmente!</h4>
+                                <p style="margin: 2px 0 0; font-size: 0.85rem; color: var(--text-muted);">Muchas gracias por tu confianza. Nuestro equipo ha sido notificado y se pondrá en contacto a la brevedad.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                // Actualizar pill de estado en encabezado
+                document.querySelectorAll('.status-pill').forEach(pill => {
+                    pill.className = 'status-pill status-aceptada';
+                    pill.textContent = 'Aceptada';
+                });
+            } else {
+                alert(data.message || 'Ocurrió un error al procesar la aprobación.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar y Aprobar';
+            }
+        })
+        .catch(err => {
+            alert('Error de conexión con el servidor. Intenta de nuevo.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar y Aprobar';
+        });
+    }
     
     // Gantt rendering
     const ganttColors = [

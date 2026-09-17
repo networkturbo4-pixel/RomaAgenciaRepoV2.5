@@ -41,7 +41,13 @@ try {
     }
 
     // 2. Incomes for the month
-    $stmtIncomes = $db->prepare("SELECT * FROM finance_incomes WHERE DATE_FORMAT(fecha_pago, '%Y-%m') = ? ORDER BY fecha_pago DESC");
+    $stmtIncomes = $db->prepare("
+        SELECT fi.*, c.whatsapp as client_whatsapp 
+        FROM finance_incomes fi 
+        LEFT JOIN clients c ON fi.empresa = c.name 
+        WHERE DATE_FORMAT(fi.fecha_pago, '%Y-%m') = ? 
+        ORDER BY fi.fecha_pago DESC
+    ");
     $stmtIncomes->execute([$month]);
     $incomes = $stmtIncomes->fetchAll(PDO::FETCH_ASSOC);
 

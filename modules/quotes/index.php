@@ -574,6 +574,12 @@ require_once 'includes/header.php';
         background: transparent !important;
     }
 
+    .quotes-table td::before,
+    .quotes-table tr.quote-row-card td::before {
+        display: none !important;
+        content: none !important;
+    }
+
     .quotes-table td.quote-id-col {
         grid-area: id;
         display: flex;
@@ -912,27 +918,33 @@ function renderQuotes(quotes) {
 
         html += `
         <tr class="quote-row-card">
-            <td class="quote-id-col" data-label="ID">
+            <td class="quote-id-col">
                 <span class="quote-id-badge">#${idStr}</span>
             </td>
-            <td class="quote-client-col" data-label="Cliente">
+            <td class="quote-client-col">
                 <span class="quote-client-name">${q.client_name || 'Sin Cliente'}</span>
             </td>
-            <td class="quote-issue-date" data-label="F. Emisión">
+            <td class="quote-issue-date">
                 <span class="date-chip"><i class="ph ph-calendar-plus"></i> ${issueDate}</span>
             </td>
-            <td class="quote-due-date" data-label="Vencimiento">
+            <td class="quote-due-date">
                 <span class="date-chip"><i class="ph ph-clock"></i> ${dueDate}</span>
             </td>
-            <td class="quote-status-col" data-label="Estado">
+            <td class="quote-status-col">
                 <span class="status-badge status-${st}">${q.status}</span>
             </td>
-            <td class="quote-total-col" data-label="Total">
+            <td class="quote-total-col">
                 <span class="total-label-sub">Total</span>
                 <span class="total-val">${q.currency} ${parseFloat(q.total).toFixed(2)}</span>
             </td>
-            <td class="quote-actions-col" data-label="Acciones">
+            <td class="quote-actions-col">
                 <div class="actions-wrapper">
+                    <button class="action-btn-saas" onclick="convertQuote(${q.id}, '${st}')" title="Convertir a Orden y Proyecto" style="color: var(--primary-color);">
+                        <i class="ph ph-rocket-launch"></i>
+                    </button>
+                    <button class="action-btn-saas" onclick="shareQuoteWhatsApp('${q.client_name || 'Cliente'}', '${q.currency} ${parseFloat(q.total).toFixed(2)}', '${publicLink}', '${q.client_whatsapp || ''}')" title="Enviar por WhatsApp" style="color: #22c55e;">
+                        <i class="ph ph-whatsapp-logo"></i>
+                    </button>
                     <a href="index.php?module=quotes&action=form&id=${q.id}" class="action-btn-saas" title="Editar">
                         <i class="ph ph-pencil-simple"></i>
                     </a>
@@ -951,6 +963,89 @@ function renderQuotes(quotes) {
     });
     
     tbody.innerHTML = html;
+}
+
+function convertQuote(quoteId, status) {
+    Swal.fire({
+        title: '¿Convertir Cotización a Orden?',
+        html: 'Esta acción creará automáticamente una <strong>Orden de Trabajo</strong> y un <strong>Proyecto</strong> en Roma SaaS, marcando la cotización como <strong>Aceptada</strong>.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0f766e',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: '<i class="ph ph-rocket-launch"></i> Sí, Convertir',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Generando Orden y Proyecto...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            const payload = new URLSearchParams();
+            payload.append('quote_id', quoteId);
+
+            fetch('modules/quotes/ajax_convert_quote.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: payload.toString()
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Operación Exitosa!',
+                        html: `<p>${res.message}</p>`,
+                        confirmButtonText: '<i class="ph ph-arrow-square-out"></i> Abrir Orden',
+                        showCancelButton: true,
+                        cancelButtonText: 'Permanecer aquí'
+                    }).then((nav) => {
+                        if (nav.isConfirmed && res.redirect_url) {
+                            window.location.href = res.redirect_url;
+                        } else {
+                            loadQuotes();
+                        }
+                    });
+                } else {
+                    Swal.fire('Error', res.message || 'No se pudo convertir la cotización', 'error');
+                }
+            })
+            .catch(err => {
+                Swal.fire('Error', 'Fallo de conexión con el servidor', 'error');
+            });
+        }
+    });
+}
+
+function shareQuoteWhatsApp(clientName, totalStr, publicLink, whatsappNumber) {
+    const textMsg = `Hola *${clientName}*, te saludamos de Roma Agencia. Te compartimos la propuesta comercial preparada para tu marca por un total de *${totalStr}*:\n\n📄 Ver propuesta online:\n${publicLink}\n\nQuedamos atentos a tus comentarios.`;
+    
+    if (whatsappNumber && whatsappNumber.trim().length >= 8) {
+        let cleanPhone = whatsappNumber.replace(/[^0-9]/g, '');
+        if (cleanPhone.length === 9) cleanPhone = '51' + cleanPhone;
+        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(textMsg)}`;
+        window.open(waUrl, '_blank');
+    } else {
+        Swal.fire({
+            title: 'Compartir por WhatsApp',
+            html: `Ingresa el número de WhatsApp de <strong>${clientName}</strong>:`,
+            input: 'text',
+            inputValue: whatsappNumber || '',
+            inputPlaceholder: 'Ej: 51987654321',
+            showCancelButton: true,
+            confirmButtonText: '<i class="ph ph-whatsapp-logo"></i> Abrir WhatsApp',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                let cleanPhone = result.value.replace(/[^0-9]/g, '');
+                if (cleanPhone.length === 9) cleanPhone = '51' + cleanPhone;
+                const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(textMsg)}`;
+                window.open(waUrl, '_blank');
+            }
+        });
+    }
 }
 
 function copyToClipboard(text) {

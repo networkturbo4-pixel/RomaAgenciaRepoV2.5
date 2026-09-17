@@ -6,15 +6,16 @@ document.addEventListener('DOMContentLoaded', () => {
         #command-palette-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 99999;
             display: none;
             align-items: flex-start;
             justify-content: center;
             padding-top: 10vh;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #command-palette-overlay.active {
             display: flex;
@@ -23,100 +24,135 @@ document.addEventListener('DOMContentLoaded', () => {
         #command-palette-modal {
             background: var(--bg-surface, #ffffff);
             width: 90%;
-            max-width: 650px;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 620px;
+            border-radius: 18px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            border: 1px solid var(--border-color, #e5e7eb);
-            transform: scale(0.95);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--border-color, #e2e8f0);
+            transform: scale(0.96) translateY(-8px);
+            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #command-palette-overlay.active #command-palette-modal {
-            transform: scale(1);
+            transform: scale(1) translateY(0);
         }
         #command-palette-input-container {
             display: flex;
             align-items: center;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            padding: 1.15rem 1.4rem;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+            background: var(--bg-surface, #ffffff);
         }
         #command-palette-input-container i {
-            font-size: 1.25rem;
-            color: var(--text-muted, #6b7280);
-            margin-right: 1rem;
+            font-size: 1.35rem;
+            color: var(--primary-color, #4f46e5);
+            margin-right: 0.9rem;
+            flex-shrink: 0;
         }
         #command-palette-input {
             border: none;
             outline: none;
             width: 100%;
-            font-size: 1.15rem;
+            font-size: 1.05rem;
+            font-weight: 500;
             background: transparent;
-            color: var(--text-color, #111827);
+            color: var(--text-main, #0f172a);
+            font-family: inherit;
+        }
+        #command-palette-input::placeholder {
+            color: var(--text-muted, #94a3b8);
+            font-weight: 400;
         }
         #command-palette-results {
-            max-height: 400px;
+            max-height: 420px;
             overflow-y: auto;
-            padding: 0.5rem;
+            padding: 0.65rem;
         }
         .cp-item {
             padding: 0.75rem 1rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.9rem;
             cursor: pointer;
-            border-radius: 8px;
-            color: var(--text-color, #111827);
+            border-radius: 12px;
+            color: var(--text-main, #0f172a);
             text-decoration: none;
-            transition: background 0.1s;
+            transition: background 0.15s ease, transform 0.15s ease;
         }
         .cp-item:hover, .cp-item.selected {
-            background: var(--primary-color-light, rgba(59, 130, 246, 0.1));
-            color: var(--primary-color, #3b82f6);
+            background: var(--primary-bg, rgba(79, 70, 229, 0.08));
+            color: var(--primary-contrast, var(--primary-color, #4f46e5));
         }
         .cp-item i {
-            font-size: 1.2rem;
-            color: var(--text-muted, #6b7280);
+            font-size: 1.25rem;
+            color: var(--text-muted, #64748b);
+            flex-shrink: 0;
+            transition: color 0.15s ease;
         }
         .cp-item:hover i, .cp-item.selected i {
-            color: var(--primary-color, #3b82f6);
+            color: var(--primary-color, #4f46e5);
         }
         .cp-item-details {
             display: flex;
             flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
         }
         .cp-item-title {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .cp-item-subtitle {
-            font-size: 0.75rem;
-            color: var(--text-muted, #6b7280);
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .cp-category {
-            padding: 0.5rem 1rem 0.25rem;
-            font-size: 0.75rem;
+            padding: 0.6rem 0.9rem 0.3rem;
+            font-size: 0.72rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted, #6b7280);
-            margin-top: 0.5rem;
+            letter-spacing: 0.06em;
+            color: var(--text-muted, #94a3b8);
+            margin-top: 0.35rem;
         }
         .cp-category:first-child {
             margin-top: 0;
         }
         .cp-badge {
             margin-left: auto;
-            background: #f3f4f6;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            color: #4b5563;
+            background: var(--primary-bg, rgba(79, 70, 229, 0.1));
+            color: var(--primary-contrast, var(--primary-color, #4f46e5));
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+            border: 1px solid color-mix(in srgb, var(--primary-color) 20%, transparent);
         }
         .cp-item:hover .cp-badge, .cp-item.selected .cp-badge {
-            background: #bfdbfe;
-            color: #1e3a8a;
+            background: var(--primary-color, #4f46e5);
+            color: #ffffff;
+        }
+        @media (max-width: 768px) {
+            #command-palette-overlay {
+                padding: 1rem 0.75rem;
+                padding-top: 4vh;
+            }
+            #command-palette-modal {
+                width: 100%;
+                max-width: 100%;
+                border-radius: 16px;
+            }
+            #command-palette-results {
+                max-height: 60vh;
+            }
         }
     `;
     document.head.appendChild(style);
@@ -171,6 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) togglePalette(false);
     });
+
+    // Custom Triggers (Mobile button, global calls)
+    window.addEventListener('toggle-command-palette', () => {
+        togglePalette(!overlay.classList.contains('active'));
+    });
+    window.openCommandPalette = () => togglePalette(true);
+    window.closeCommandPalette = () => togglePalette(false);
 
     // Navigation (Arrow keys)
     input.addEventListener('keydown', (e) => {

@@ -1,6 +1,7 @@
 <?php
 // public_post.php
 require_once 'config/database.php';
+require_once 'includes/SecurityHelper.php';
 session_start();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -15,9 +16,7 @@ if (time() > $exp) {
     die("Este enlace ha caducado.");
 }
 
-$secret = 'ROMA_SECRET_' . $id;
-$expected_sig = md5($secret . $exp);
-if ($sig !== $expected_sig) {
+if (!SecurityHelper::verifyPostSignature($id, $exp, $sig)) {
     die("Firma inválida o enlace corrupto.");
 }
 

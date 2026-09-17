@@ -199,37 +199,162 @@ require_once 'includes/header.php';
 
 [data-theme="dark"] .service-card { box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
 [data-theme="dark"] .service-card:hover { box-shadow: 0 12px 20px rgba(0,0,0,0.4); }
+
+.services-header-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.services-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.services-icon-box {
+    width: 56px;
+    height: 56px;
+    background: var(--bg-color);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.services-icon-box i {
+    font-size: 1.75rem;
+    color: var(--primary-color);
+}
+
+.services-page-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-title);
+}
+
+.services-subtitle {
+    margin: 0.25rem 0 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.services-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.services-header-actions .btn {
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    box-sizing: border-box;
+}
+
+.services-header-actions .btn-catalog {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.services-header-actions .btn-trash {
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .services-header-panel {
+        padding: 1rem !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+    }
+
+    .services-title-wrap {
+        gap: 0.85rem !important;
+    }
+
+    .services-icon-box {
+        width: 44px !important;
+        height: 44px !important;
+    }
+
+    .services-icon-box i {
+        font-size: 1.35rem !important;
+    }
+
+    .services-page-title {
+        font-size: 1.25rem !important;
+    }
+
+    .services-header-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+    }
+
+    .services-header-actions .btn {
+        width: 100% !important;
+        padding: 0.55rem 0.5rem !important;
+        font-size: 0.8rem !important;
+        justify-content: center !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
+
+    .services-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+}
 </style>
 
-<div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 1.25rem;">
-        <div style="width: 56px; height: 56px; background: var(--bg-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color);">
-            <i class="ph ph-briefcase" style="font-size: 1.75rem; color: var(--primary-color);"></i>
+<div class="services-header-panel">
+    <div class="services-title-wrap">
+        <div class="services-icon-box">
+            <i class="ph ph-briefcase"></i>
         </div>
         <div>
-            <h1 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--color-title);">Servicios</h1>
-            <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Gestiona los servicios y sus categorías.</p>
+            <h1 class="services-page-title">Servicios</h1>
+            <p class="services-subtitle">Gestiona los servicios y sus categorías.</p>
         </div>
     </div>
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <a href="index.php?module=public&action=catalog" target="_blank" class="btn btn-outline" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; color: var(--primary-color); border-color: var(--primary-color);">
+    <div class="services-header-actions">
+        <a href="index.php?module=public&action=catalog" target="_blank" class="btn btn-outline btn-catalog">
             <i class="ph ph-storefront"></i> Ver Catálogo
         </a>
         
         <?php if ($show_trash): ?>
-            <a href="index.php?module=services" class="btn btn-outline" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none;">
+            <a href="index.php?module=services" class="btn btn-outline">
                 <i class="ph ph-arrow-left"></i> Volver
             </a>
         <?php else: ?>
-            <a href="index.php?module=services&trash=1" class="btn btn-outline" title="Ver Papelera" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; color: var(--text-muted);">
+            <a href="index.php?module=services&trash=1" class="btn btn-outline btn-trash" title="Ver Papelera">
                 <i class="ph ph-trash"></i> Papelera
             </a>
         <?php endif; ?>
         
-        <button class="btn btn-outline" onclick="ServiceModule.openCategoryModal()" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px;">
+        <button class="btn btn-outline" onclick="ServiceModule.openCategoryModal()">
             <i class="ph ph-folder-plus"></i> Categorías
         </button>
-        <a href="index.php?module=services&action=form" class="btn btn-primary" title="Atajo: Ctrl + N" style="white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none;">
+        <a href="index.php?module=services&action=form" class="btn btn-primary" title="Atajo: Ctrl + N">
             <i class="ph ph-plus"></i> Nuevo Servicio
         </a>
     </div>

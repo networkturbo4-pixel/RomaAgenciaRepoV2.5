@@ -42,12 +42,16 @@ if (!$apiEnabled) {
 // Obtener clave enviada (cabecera HTTP_X_ROMA_API_KEY o GET/POST api_key)
 $providedKey = $_SERVER['HTTP_X_ROMA_API_KEY'] ?? $_REQUEST['api_key'] ?? '';
 
-if (!empty($expectedKey)) {
-    if (empty($providedKey) || !hash_equals($expectedKey, $providedKey)) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'App Key inválida o no proporcionada. Por favor verifica la App Key en los ajustes de WordPress (Roma Portal).']);
-        exit;
-    }
+if (empty($expectedKey)) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'La App Key no ha sido generada o configurada en Roma CRM. Configure una App Key en Conexiones para habilitar el acceso.']);
+    exit;
+}
+
+if (empty($providedKey) || !hash_equals($expectedKey, $providedKey)) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'App Key inválida o no proporcionada. Por favor verifica la App Key en los ajustes de WordPress (Roma Portal).']);
+    exit;
 }
 
 // Actualizar timestamp de última conexión exitosa

@@ -1,5 +1,7 @@
 <?php
 // modules/month_board/index.php
+require_once 'includes/SecurityHelper.php';
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: index.php?module=auth&action=login");
     exit();
@@ -1274,8 +1276,7 @@ setInterval(updateMonthBoardTimer, 1000);
                     <div class="post-card-actions">
                         <?php
                         $exp = time() + (7 * 24 * 3600); // 7 days
-                        $secret = 'ROMA_SECRET_' . $p['id'];
-                        $sig = md5($secret . $exp);
+                        $sig = SecurityHelper::signPost($p['id'], $exp);
                         $shareUrl = "public_post.php?id={$p['id']}&exp={$exp}&sig={$sig}";
                         ?>
                         <button type="button" class="btn-action" onclick="event.stopPropagation(); window.open('<?php echo $shareUrl; ?>', '_blank')" style="color: <?php echo $sColor['color']; ?>;" title="Abrir en Nueva Pestaña">

@@ -1206,6 +1206,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td data-label="Voucher">${voucherHtml}</td>
                     <td>
                         <div style="display: flex; gap: 0.35rem;">
+                            ${inc.estado === 'pendiente' ? `
+                            <button class="btn-icon-sm whatsapp" onclick="sendWhatsAppReminder('${esc(inc.empresa)}', '${montoStr}', '${esc(inc.servicio)}', '${inc.fecha_pago}', '${inc.client_whatsapp || ''}')" title="Recordatorio por WhatsApp" style="color: #22c55e;">
+                                <i class="ph ph-whatsapp-logo"></i>
+                            </button>` : ''}
                             <button class="btn-icon-sm edit" onclick="editIncome(${inc.id})" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                             <button class="btn-icon-sm delete" onclick="confirmDeleteIncome(${inc.id})" title="Eliminar"><i class="ph ph-trash"></i></button>
                         </div>
@@ -1655,6 +1659,35 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('income-note-info').style.display = 'none';
 
         document.getElementById('modal-income').classList.add('active');
+    };
+
+    window.sendWhatsAppReminder = function(empresa, montoStr, servicio, fechaPago, clientWhatsapp) {
+        const msg = `Hola *${empresa}*, te saludamos de Roma Agencia. Te recordamos cordialmente que el pago de *${montoStr}* correspondiente al servicio *${servicio}* tiene fecha programada para el *${fechaPago}*.\n\nAgradecemos nos puedas compartir el comprobante o voucher por este medio cuando lo realices. ¡Muchas gracias!`;
+        
+        if (clientWhatsapp && clientWhatsapp.trim().length >= 8) {
+            let cleanPhone = clientWhatsapp.replace(/[^0-9]/g, '');
+            if (cleanPhone.length === 9) cleanPhone = '51' + cleanPhone;
+            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+            window.open(waUrl, '_blank');
+        } else {
+            Swal.fire({
+                title: 'Recordatorio por WhatsApp',
+                html: `Ingresa el número de WhatsApp para <strong>${empresa}</strong>:`,
+                input: 'text',
+                inputValue: clientWhatsapp || '',
+                inputPlaceholder: 'Ej: 51987654321',
+                showCancelButton: true,
+                confirmButtonText: '<i class="ph ph-whatsapp-logo"></i> Abrir WhatsApp',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    let cleanPhone = result.value.replace(/[^0-9]/g, '');
+                    if (cleanPhone.length === 9) cleanPhone = '51' + cleanPhone;
+                    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+                    window.open(waUrl, '_blank');
+                }
+            });
+        }
     };
 
     document.getElementById('btn-save-income').addEventListener('click', async () => {

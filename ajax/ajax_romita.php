@@ -146,6 +146,54 @@ function getProjectCalendarContext($db, $project_id) {
     ];
 }
 
+function getAgencyIntelligenceContext($db) {
+    try {
+        $curMonth = date('Y-m');
+        // Ingresos del mes
+        $stmtInc = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total, COUNT(*) as count FROM finance_incomes WHERE DATE_FORMAT(fecha_pago, '%Y-%m') = ?");
+        $stmtInc->execute([$curMonth]);
+        $incData = $stmtInc->fetch(PDO::FETCH_ASSOC);
+
+        // Cobros pendientes del mes
+        $stmtPend = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total_pend, COUNT(*) as count_pend FROM finance_incomes WHERE LOWER(estado) = 'pendiente' AND DATE_FORMAT(fecha_pago, '%Y-%m') = ?");
+        $stmtPend->execute([$curMonth]);
+        $pendData = $stmtPend->fetch(PDO::FETCH_ASSOC);
+
+        // Gastos del mes
+        $stmtExp = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total, COUNT(*) as count FROM finance_expenses WHERE DATE_FORMAT(fecha, '%Y-%m') = ?");
+        $stmtExp->execute([$curMonth]);
+        $expData = $stmtExp->fetch(PDO::FETCH_ASSOC);
+
+        // Proyectos activos
+        $stmtProj = $db->query("SELECT COUNT(*) FROM projects WHERE status = 'active'");
+        $activeProjects = (int)$stmtProj->fetchColumn();
+
+        // Resumen de cotizaciones
+        $stmtQuotes = $db->query("SELECT status, COUNT(*) as qty, COALESCE(SUM(total), 0) as total_amount FROM quotes GROUP BY status");
+        $quotesSummary = $stmtQuotes ? $stmtQuotes->fetchAll(PDO::FETCH_ASSOC) : [];
+
+        $profit = (float)$incData['total'] - (float)$expData['total'];
+
+        $summary = "=== INTELIGENCIA FINANCIERA Y OPERATIVA EN TIEMPO REAL (ROMA AGENCIA - PERIODO {$curMonth}) ===\n";
+        $summary .= "- Proyectos activos en producción: {$activeProjects}\n";
+        $summary .= "- Ingresos registrados este mes: S/ " . number_format((float)$incData['total'], 2) . " ({$incData['count']} pagos registrados)\n";
+        $summary .= "- Gastos operativos este mes: S/ " . number_format((float)$expData['total'], 2) . " ({$expData['count']} gastos)\n";
+        $summary .= "- Utilidad neta operativa estimada: S/ " . number_format($profit, 2) . "\n";
+        $summary .= "- Cuentas por cobrar pendientes este mes: S/ " . number_format((float)$pendData['total_pend'], 2) . " ({$pendData['count_pend']} cobros pendientes)\n";
+        
+        if (!empty($quotesSummary)) {
+            $summary .= "- Estado comercial de Cotizaciones:\n";
+            foreach ($quotesSummary as $qs) {
+                $summary .= "  • {$qs['status']}: {$qs['qty']} cotizaciones (Total acumulado: $" . number_format((float)$qs['total_amount'], 2) . ")\n";
+            }
+        }
+        $summary .= "\nREGLA: Utiliza estos datos verídicos del sistema cuando el usuario te pregunte por las finanzas, rentabilidad, cobros pendientes, cotizaciones ganadas o la marcha operativa de Roma Agencia.";
+        return $summary;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
 try {
     if ($action === 'chat') {
         $message = $_POST['message'] ?? '';
@@ -261,6 +309,24 @@ try {
             $projIntel = getProjectCalendarContext($db, $project_id);
             if ($projIntel) {
                 $sysInstructions[] = $projIntel['context_text'];
+            }
+        }
+
+        // Si el usuario pregunta por finanzas, balance, proyectos o KPIs, inyectar inteligencia ejecutiva
+        $msgLower = mb_strtolower($message);
+        $financialKeywords = ['finanza', 'ingreso', 'gasto', 'balance', 'utilidad', 'kpi', 'cobro', 'rentabilidad', 'cuanto hemos', 'cuánto hemos', 'cotizaciones', 'como vamos', 'cómo vamos', 'rendimiento'];
+        $hasFinanceIntent = false;
+        foreach ($financialKeywords as $kw) {
+            if (mb_strpos($msgLower, $kw) !== false) {
+                $hasFinanceIntent = true;
+                break;
+            }
+        }
+
+        if ($hasFinanceIntent || strpos($skill_prompt, 'Financiero') !== false || strpos($skill_prompt, 'Consultor') !== false) {
+            $agencyIntel = getAgencyIntelligenceContext($db);
+            if ($agencyIntel) {
+                $sysInstructions[] = $agencyIntel;
             }
         }
 
