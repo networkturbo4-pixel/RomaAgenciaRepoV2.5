@@ -137,6 +137,8 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
     <link rel="preload" as="image" href="assets/img/login_slide_1.jpg">
     <link rel="preload" as="image" href="assets/img/login_slide_2.jpg">
     <link rel="preload" as="image" href="assets/img/login_slide_3.jpg">
+    <link rel="preload" as="image" href="assets/img/login_slide_4.jpg">
+    <link rel="preload" as="image" href="assets/img/login_slide_5.jpg">
 
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -386,6 +388,8 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
         <div class="slider-slide active" style="background-image: url('assets/img/login_slide_1.jpg');"></div>
         <div class="slider-slide" style="background-image: url('assets/img/login_slide_2.jpg');"></div>
         <div class="slider-slide" style="background-image: url('assets/img/login_slide_3.jpg');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_4.jpg');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_5.jpg');"></div>
     </div>
 
     <!-- Subtle Gradients for Legibility -->
@@ -431,6 +435,16 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
                 <button type="button" onclick="goToSlide(2)" class="focus:outline-none p-1" title="Pasear: Portal Cósmico">
                     <div class="slide-nav-track">
                         <div class="slide-nav-progress" id="slideProg-2"></div>
+                    </div>
+                </button>
+                <button type="button" onclick="goToSlide(3)" class="focus:outline-none p-1" title="Pasear: Océano de Datos">
+                    <div class="slide-nav-track">
+                        <div class="slide-nav-progress" id="slideProg-3"></div>
+                    </div>
+                </button>
+                <button type="button" onclick="goToSlide(4)" class="focus:outline-none p-1" title="Pasear: Portal Tecnológico">
+                    <div class="slide-nav-track">
+                        <div class="slide-nav-progress" id="slideProg-4"></div>
                     </div>
                 </button>
                 <div class="flex items-center gap-1.5 ml-3">
@@ -594,6 +608,12 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
             </button>
             <button type="button" onclick="goToSlide(2)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 3">
                 <div class="slide-nav-progress h-full" id="slideProgMobile-2"></div>
+            </button>
+            <button type="button" onclick="goToSlide(3)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 4">
+                <div class="slide-nav-progress h-full" id="slideProgMobile-3"></div>
+            </button>
+            <button type="button" onclick="goToSlide(4)" class="w-7 h-1.5 rounded-full bg-white/25 overflow-hidden" title="Slide 5">
+                <div class="slide-nav-progress h-full" id="slideProgMobile-4"></div>
             </button>
         </div>
     </div>
