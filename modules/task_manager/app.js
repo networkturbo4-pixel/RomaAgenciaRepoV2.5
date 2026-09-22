@@ -3153,8 +3153,9 @@ const TM = {
             .then(r => r.json())
             .then(data => {
                 const tbody = document.getElementById('tm-history-tbody');
+                if (!tbody) return;
                 tbody.innerHTML = '';
-                if (data.success && data.history) {
+                if (data.success && data.history && data.history.length > 0) {
                     data.history.forEach(h => {
                         let stars = '';
                         for (let s = 1; s <= 5; s++) {
@@ -3162,16 +3163,26 @@ const TM = {
                                 ? '<i class="ph-fill ph-star" style="color:#f59e0b; margin-right:1px;"></i>'
                                 : '<i class="ph ph-star" style="color:var(--text-muted); opacity:0.35; margin-right:1px;"></i>';
                         }
+                        const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td><strong>${h.evaluation_date}</strong></td>
-                            <td>${this.escapeHtml(h.user_name)}</td>
+                            <td><strong>${this.escapeHtml(h.evaluation_date || '')}</strong></td>
+                            <td>${this.escapeHtml(h.user_name || '')}</td>
                             <td>${h.completed_objectives}/${h.total_objectives}</td>
-                            <td><span class="tm-badge tm-badge-weekly">${Math.round(h.compliance_percentage)}%</span></td>
+                            <td><span class="tm-badge tm-badge-weekly">${Math.round(h.compliance_percentage || 0)}%</span></td>
                             <td>${stars}</td>
-                            <td style="font-size:0.8rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.escapeHtml(h.evaluation_notes || '-')}</td>
+                            <td style="font-size:0.8rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${this.escapeHtml(h.evaluation_notes || '')}">${this.escapeHtml(h.evaluation_notes || '-')}</td>
                         `;
                         tbody.appendChild(tr);
                     });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1.25rem; color:var(--text-muted); font-size:0.85rem;">No hay evaluaciones previas registradas para este usuario.</td></tr>';
+                }
+            })
+            .catch(err => {
+                console.error('Error al cargar historial de evaluaciones:', err);
+                const tbody = document.getElementById('tm-history-tbody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1rem; color:#ef4444; font-size:0.85rem;">Error al cargar el historial.</td></tr>';
                 }
             });
         }
