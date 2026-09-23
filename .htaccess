@@ -74,3 +74,30 @@ Options -Indexes
     RewriteRule ^l/([^/]+)/?$ index.php?module=public&action=linktree&slug=$1 [QSA,L]
 
 </IfModule>
+
+# 4. Límites de carga para subida de archivos grandes (videos / fotos)
+LimitRequestBody 536870912
+
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 512M
+    php_value post_max_size 512M
+    php_value memory_limit 512M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+<IfModule mod_php.c>
+    php_value upload_max_filesize 512M
+    php_value post_max_size 512M
+    php_value memory_limit 512M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+<IfModule litespeed>
+    php_value upload_max_filesize 512M
+    php_value post_max_size 512M
+    php_value memory_limit 512M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>

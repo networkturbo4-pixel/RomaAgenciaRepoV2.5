@@ -8,132 +8,823 @@ require_once 'includes/header.php';
         echo file_get_contents($css_path); 
     }
 ?>
-/* BioLink App-Style Redesign */
+/* ==========================================================================
+   BioLink App-Grade Modern UI & Dark Mode Contrast System
+   ========================================================================== */
+
+/* Main Tab Animation */
+@keyframes fadeInOnly {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.herr-tab-content[data-tool-content="linktree"].active {
+    animation: fadeInOnly 0.25s ease-out;
+}
+
+/* Editor Layout: Sticky right preview, scrollable left controls */
+.biolink-editor-layout {
+    display: flex;
+    gap: 2rem;
+    min-height: 600px;
+    padding: 0.5rem 0 2rem;
+    align-items: flex-start;
+}
+.biolink-editor-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+.biolink-editor-right {
+    flex-shrink: 0;
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: sticky;
+    top: 1.5rem;
+    z-index: 10;
+}
+
+/* App-Style Card Containers */
 .biolink-card {
-    background: var(--bg-card, #ffffff);
-    padding: 1.5rem;
-    border-radius: 16px;
-    border: 1px solid var(--border-color, #e5e7eb);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
+[data-theme="dark"] .biolink-card {
+    background: #16161a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .biolink-card:hover {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.08);
 }
-.biolink-input {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    border-radius: 12px;
-    border: 1.5px solid var(--border-color, #e5e7eb);
-    background: var(--bg-body, #f9fafb);
-    color: var(--text-main, #111827);
-    font-size: 0.95rem;
-    font-family: inherit;
-    transition: all 0.25s ease;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-    outline: none;
+[data-theme="dark"] .biolink-card:hover {
+    box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
 }
-.biolink-input:focus {
-    border-color: var(--primary-color, #4f46e5);
-    background: var(--bg-card, #ffffff);
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-}
-.biolink-input-group {
+
+/* Card Header */
+.biolink-card-header {
     display: flex;
     align-items: center;
-    border: 1.5px solid var(--border-color, #e5e7eb);
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+}
+.biolink-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1));
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+[data-theme="dark"] .biolink-card-icon {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.15));
+    color: #818cf8;
+    border: 1px solid rgba(129, 140, 248, 0.25);
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
+}
+.biolink-card-title-group h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+}
+.biolink-card-title-group p {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Form Controls & Inputs (High Contrast) */
+.biolink-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 1.25rem;
+}
+.biolink-field:last-child {
+    margin-bottom: 0;
+}
+.biolink-label {
+    font-weight: 600;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+[data-theme="dark"] .biolink-label {
+    color: #cbd5e1;
+}
+.biolink-input,
+.biolink-select,
+.biolink-textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+[data-theme="dark"] .biolink-input,
+[data-theme="dark"] .biolink-select,
+[data-theme="dark"] .biolink-textarea {
+    background: #09090b;
+    border-color: #27272a;
+    color: #f8fafc;
+}
+.biolink-input:focus,
+.biolink-select:focus,
+.biolink-textarea:focus {
+    border-color: #6366f1;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+[data-theme="dark"] .biolink-input:focus,
+[data-theme="dark"] .biolink-select:focus,
+[data-theme="dark"] .biolink-textarea:focus {
+    background: #111115;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+}
+.biolink-input::placeholder,
+.biolink-textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+/* Custom Select Chevron */
+.biolink-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+    cursor: pointer;
+}
+[data-theme="dark"] .biolink-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+.biolink-select option {
+    background: #ffffff;
+    color: #0f172a;
+}
+[data-theme="dark"] .biolink-select option {
+    background: #18181b;
+    color: #f8fafc;
+}
+
+/* Slug URL Input Group */
+.biolink-input-group {
+    display: flex;
+    align-items: stretch;
+    border: 1.5px solid #e2e8f0;
     border-radius: 12px;
     overflow: hidden;
-    background: var(--bg-body, #f9fafb);
-    transition: all 0.25s ease;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    background: #f8fafc;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-theme="dark"] .biolink-input-group {
+    background: #09090b;
+    border-color: #27272a;
 }
 .biolink-input-group:focus-within {
-    border-color: var(--primary-color, #4f46e5);
-    background: var(--bg-card, #ffffff);
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
-.biolink-input-group span {
-    padding: 0.875rem 1rem;
-    font-size: 0.95rem;
-    color: var(--text-muted, #6b7280);
-    border-right: 1px solid var(--border-color, #e5e7eb);
-    background: var(--bg-surface, #f3f4f6);
+[data-theme="dark"] .biolink-input-group:focus-within {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+    background: #111115;
+}
+.biolink-input-group span.prefix {
+    padding: 0 1rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.08);
+    border-right: 1.5px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+}
+[data-theme="dark"] .biolink-input-group span.prefix {
+    background: rgba(129, 140, 248, 0.12);
+    border-right-color: #27272a;
+    color: #818cf8;
 }
 .biolink-input-group input {
     flex: 1;
     border: none;
-    padding: 0.875rem 1rem;
+    padding: 0.75rem 1rem;
     background: transparent;
-    color: var(--text-main, #111827);
-    font-size: 0.95rem;
+    color: #0f172a;
+    font-size: 0.92rem;
     outline: none;
-    box-shadow: none;
 }
-.biolink-textarea {
+[data-theme="dark"] .biolink-input-group input {
+    color: #f8fafc;
+}
+
+/* Avatar Modern Uploader */
+.biolink-avatar-uploader {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+[data-theme="dark"] .biolink-avatar-uploader {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: #3f3f46;
+}
+.biolink-avatar-uploader:hover {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.03);
+}
+[data-theme="dark"] .biolink-avatar-uploader:hover {
+    border-color: #818cf8;
+    background: rgba(129, 140, 248, 0.06);
+}
+.biolink-avatar-preview-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+}
+.biolink-avatar-preview-img {
     width: 100%;
-    padding: 0.875rem 1rem;
-    border-radius: 12px;
-    border: 1.5px solid var(--border-color, #e5e7eb);
-    background: var(--bg-body, #f9fafb);
-    color: var(--text-main, #111827);
-    font-size: 0.95rem;
-    font-family: inherit;
-    transition: all 0.25s ease;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-    outline: none;
-    min-height: 100px;
-    resize: vertical;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #6366f1;
+    background: #e2e8f0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
-.biolink-textarea:focus {
-    border-color: var(--primary-color, #4f46e5);
-    background: var(--bg-card, #ffffff);
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-}
-/* Fix: no transform animations on linktree tab */
-@keyframes fadeInOnly {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-.herr-tab-content[data-tool-content="linktree"].active {
-    animation: fadeInOnly 0.3s ease;
-}
-/* BioLink Editor Layout: left scrolls, right fixed */
-.biolink-editor-layout {
+.biolink-avatar-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #6366f1;
+    color: #ffffff;
     display: flex;
-    gap: 2rem;
-    height: calc(100vh - 180px);
-    min-height: 500px;
-    padding: 1rem 0;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    border: 2px solid #ffffff;
 }
-.biolink-editor-left {
+[data-theme="dark"] .biolink-avatar-badge {
+    border-color: #16161a;
+}
+.biolink-avatar-info {
     flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding-right: 0.5rem;
     min-width: 0;
 }
-.biolink-editor-left::-webkit-scrollbar {
-    width: 5px;
+.biolink-avatar-info-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0 0 2px;
 }
-.biolink-editor-left::-webkit-scrollbar-track {
-    background: transparent;
+.biolink-avatar-info-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0;
 }
-.biolink-editor-left::-webkit-scrollbar-thumb {
-    background: var(--border-color, #e5e7eb);
-    border-radius: 999px;
+
+/* Color Controls Modern Grid */
+.biolink-colors-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
 }
-.biolink-editor-left::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted, #9ca3af);
+@media (max-width: 640px) {
+    .biolink-colors-grid {
+        grid-template-columns: 1fr;
+    }
 }
-.biolink-editor-right {
-    flex-shrink: 0;
+.biolink-color-card {
     display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+[data-theme="dark"] .biolink-color-card {
+    background: #09090b;
+    border-color: #27272a;
+}
+.biolink-color-card:focus-within,
+.biolink-color-card:hover {
+    border-color: #6366f1;
+}
+[data-theme="dark"] .biolink-color-card:focus-within,
+[data-theme="dark"] .biolink-color-card:hover {
+    border-color: #818cf8;
+}
+.biolink-color-circle-wrap {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.biolink-color-circle-wrap input[type="color"] {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    border: none;
+    cursor: pointer;
+    opacity: 0;
+}
+.biolink-color-swatch-dot {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+}
+.biolink-color-card:hover .biolink-color-swatch-dot {
+    transform: scale(1.08);
+}
+.biolink-color-texts {
+    flex: 1;
+    min-width: 0;
+}
+.biolink-color-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 0;
+}
+[data-theme="dark"] .biolink-color-name {
+    color: #94a3b8;
+}
+.biolink-color-hex-tag {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--text-main);
+    margin: 2px 0 0;
+    letter-spacing: 0.05em;
+}
+
+/* Watermark Toggle Row */
+.biolink-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    margin-top: 1.25rem;
+}
+[data-theme="dark"] .biolink-toggle-row {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: #27272a;
+}
+.biolink-toggle-row h5 {
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin: 0;
+    color: var(--text-main);
+}
+.biolink-toggle-row p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0.2rem 0 0;
+}
+
+/* Block Action Buttons (App Chips with Brands) */
+.biolink-block-chips-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+.biolink-chip-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.95rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    user-select: none;
+}
+.biolink-chip-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12);
+}
+.biolink-chip-btn:active {
+    transform: scale(0.96);
+}
+.biolink-chip-btn i {
+    font-size: 1.1rem;
+}
+
+/* Block Button Brand Colors */
+.chip-btn-link {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border-color: rgba(99, 102, 241, 0.25);
+}
+[data-theme="dark"] .chip-btn-link {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+    border-color: rgba(99, 102, 241, 0.35);
+}
+.chip-btn-whatsapp {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border-color: rgba(34, 197, 94, 0.25);
+}
+[data-theme="dark"] .chip-btn-whatsapp {
+    background: rgba(34, 197, 94, 0.18);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.35);
+}
+.chip-btn-youtube {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.25);
+}
+[data-theme="dark"] .chip-btn-youtube {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.35);
+}
+.chip-btn-spotify {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.25);
+}
+[data-theme="dark"] .chip-btn-spotify {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.35);
+}
+.chip-btn-map {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.25);
+}
+[data-theme="dark"] .chip-btn-map {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.35);
+}
+.chip-btn-text {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.25);
+}
+[data-theme="dark"] .chip-btn-text {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+    border-color: rgba(59, 130, 246, 0.35);
+}
+.chip-btn-faq {
+    background: rgba(168, 85, 247, 0.1);
+    color: #9333ea;
+    border-color: rgba(168, 85, 247, 0.25);
+}
+[data-theme="dark"] .chip-btn-faq {
+    background: rgba(168, 85, 247, 0.18);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.35);
+}
+
+/* Block Item Cards */
+.biolink-block-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1rem 1.15rem;
+    transition: all 0.2s ease;
+    display: flex;
+    gap: 0.85rem;
     align-items: flex-start;
+}
+[data-theme="dark"] .biolink-block-item {
+    background: #111115;
+    border-color: #27272a;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.biolink-block-item:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.08);
+}
+[data-theme="dark"] .biolink-block-item:hover {
+    border-color: rgba(129, 140, 248, 0.4);
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+}
+
+.biolink-block-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.2rem;
+    user-select: none;
+}
+.biolink-block-handle:active {
+    cursor: grabbing;
+}
+.biolink-block-main {
+    flex: 1;
+    min-width: 0;
+}
+.biolink-block-summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+}
+.biolink-block-summary::-webkit-details-marker {
+    display: none;
+}
+.biolink-block-summary-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+.biolink-block-summary-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.biolink-block-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+.biolink-block-chevron {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+details[open] > .biolink-block-summary .biolink-block-chevron {
+    transform: rotate(180deg);
+    color: var(--primary-color);
+}
+.biolink-block-body {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+[data-theme="dark"] .biolink-block-body {
+    border-top-color: #27272a;
+}
+.biolink-block-delete-btn {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+.biolink-block-delete-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    transform: scale(1.05);
+}
+
+/* Smartphone Mockup (Titanium Edition with Dynamic Island) */
+.biolink-phone-mockup {
+    width: 340px;
+    height: 700px;
+    background: #0f172a;
+    border: 12px solid #1e1e24;
+    border-radius: 46px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 
+        0 25px 60px -12px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 0 0 2px rgba(0, 0, 0, 0.8);
+    transition: all 0.3s ease;
+}
+[data-theme="dark"] .biolink-phone-mockup {
+    border-color: #222228;
+    box-shadow: 
+        0 30px 70px -15px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        inset 0 0 0 2px rgba(0, 0, 0, 0.9);
+}
+
+/* Dynamic Island & Hardware Buttons */
+.biolink-phone-island {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 105px;
+    height: 28px;
+    background: #000000;
+    border-radius: 20px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.biolink-phone-camera-lens {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #1e3a8a, #030712);
+    box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Phone Status Bar */
+.biolink-phone-status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    z-index: 40;
+    pointer-events: none;
+    letter-spacing: -0.01em;
+}
+.biolink-phone-status-icons {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+}
+
+/* Mockup Content Scrollable View */
+.biolink-phone-screen {
+    flex: 1;
+    overflow-y: auto;
+    padding: 3.5rem 1.25rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    scrollbar-width: none;
+}
+.biolink-phone-screen::-webkit-scrollbar {
+    display: none;
+}
+
+/* Home Indicator Bar */
+.biolink-phone-home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.4;
+    border-radius: 999px;
+    z-index: 40;
+    pointer-events: none;
+}
+
+/* Mockup Action Tools */
+.biolink-preview-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+    width: 340px;
     justify-content: center;
 }
+.biolink-preview-tool-btn {
+    padding: 0.45rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+.biolink-preview-tool-btn:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+/* Profile List Card */
+.biolink-profile-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+[data-theme="dark"] .biolink-profile-card {
+    background: #16161a;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+.biolink-profile-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.12);
+}
+[data-theme="dark"] .biolink-profile-card:hover {
+    box-shadow: 0 18px 36px -8px rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.biolink-profile-card-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #6366f1, #3b82f6, #10b981);
+}
+
 </style>
 
 <!-- Module Header -->
@@ -1148,9 +1839,15 @@ require_once 'includes/header.php';
         
         <!-- Lista de perfiles -->
         <div class="paleta-main" style="flex:1" id="linktreeListSection">
-            <div class="paleta-saved-header" style="justify-content:space-between">
-                <div><i class="ph ph-link"></i> Perfiles BioLink</div>
-                <button class="btn btn-primary" onclick="linktreeNew()"><i class="ph ph-plus"></i> Nuevo</button>
+            <div class="paleta-saved-header" style="justify-content:space-between; margin-bottom:1.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,0.3);"><i class="ph ph-link" style="font-size:1.15rem;"></i></div>
+                    <div>
+                        <div style="font-weight:700;font-size:1.15rem;color:var(--text-main);line-height:1.2;">Perfiles BioLink</div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);">Administra y comparte tus páginas personalizadas</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="linktreeNew()" style="border-radius:12px;padding:0.6rem 1.35rem;font-weight:600;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(79,70,229,0.35);display:flex;align-items:center;gap:6px;"><i class="ph ph-plus"></i> Nuevo BioLink</button>
             </div>
             <div id="linktreeList" class="paleta-saved-grid">
                 <!-- Se llenará con JS -->
@@ -1159,11 +1856,17 @@ require_once 'includes/header.php';
 
         <!-- Editor de perfil -->
         <div class="paleta-main" style="flex:2; display:none;" id="linktreeEditorSection">
-            <div class="paleta-saved-header" style="justify-content:space-between; margin-bottom:1rem">
-                <div><i class="ph ph-pencil-simple"></i> Editor de BioLink</div>
-                <div style="display:flex;gap:8px">
-                    <button class="btn btn-outline" onclick="linktreeCancel()"><i class="ph ph-arrow-left"></i> Volver</button>
-                    <button class="btn btn-primary" onclick="linktreeSave()"><i class="ph ph-floppy-disk"></i> Guardar</button>
+            <div class="paleta-saved-header" style="justify-content:space-between; margin-bottom:1.25rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,0.3);"><i class="ph ph-pencil-simple" style="font-size:1.15rem;"></i></div>
+                    <div>
+                        <div style="font-weight:700;font-size:1.15rem;color:var(--text-main);line-height:1.2;">Editor de BioLink</div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);">Personaliza tu página pública y enlaces</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <button class="btn btn-outline" style="border-radius:12px;padding:0.6rem 1.1rem;font-weight:600;display:flex;align-items:center;gap:6px;" onclick="linktreeCancel()"><i class="ph ph-arrow-left"></i> Volver</button>
+                    <button class="btn btn-primary" id="btnSaveBioLink" style="border-radius:12px;padding:0.6rem 1.35rem;font-weight:600;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(79,70,229,0.35);display:flex;align-items:center;gap:6px;" onclick="linktreeSave()"><i class="ph ph-floppy-disk"></i> Guardar</button>
                 </div>
             </div>
 
@@ -1171,41 +1874,71 @@ require_once 'includes/header.php';
                 <div class="biolink-editor-left">
                     <!-- Campos del perfil -->
                     <div class="biolink-card">
-                        <h4 style="margin-bottom:1.5rem;font-weight:700;font-size:1.1rem;color:var(--text-main);"><i class="ph ph-user-circle"></i> Información Básica</h4>
-                        <input type="hidden" id="lt_id" value="">
-                        
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-                            <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Slug (URL Corta) *</label>
-                            <div class="biolink-input-group">
-                                <span>/l/</span>
-                                <input type="text" id="lt_slug" placeholder="mi-marca">
+                        <div class="biolink-card-header">
+                            <div class="biolink-card-icon">
+                                <i class="ph ph-user-circle"></i>
+                            </div>
+                            <div class="biolink-card-title-group">
+                                <h4>Información Básica</h4>
+                                <p>Configura tu identidad, dirección web y presentación.</p>
                             </div>
                         </div>
 
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-                            <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Título *</label>
-                            <input type="text" id="lt_title" class="biolink-input" placeholder="Nombre de la Marca">
+                        <input type="hidden" id="lt_id" value="">
+                        
+                        <div class="biolink-field">
+                            <label class="biolink-label">
+                                <span>Slug (URL Corta) <span style="color:#ef4444">*</span></span>
+                                <span style="font-size:0.75rem;font-weight:normal;opacity:0.8;">Tu link público único</span>
+                            </label>
+                            <div class="biolink-input-group">
+                                <span class="prefix">/l/</span>
+                                <input type="text" id="lt_slug" placeholder="mi-marca" autocomplete="off" spellcheck="false">
+                            </div>
                         </div>
 
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-                            <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Biografía</label>
-                            <textarea id="lt_bio" class="biolink-textarea" placeholder="Descripción corta..."></textarea>
+                        <div class="biolink-field">
+                            <label class="biolink-label">Título de la Marca o Perfil <span style="color:#ef4444">*</span></label>
+                            <input type="text" id="lt_title" class="biolink-input" placeholder="Ej: Roma Agencia Creativa">
                         </div>
 
-                        <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                            <label style="font-weight:600;font-size:0.85rem;color:var(--text-muted)">Imagen de Perfil</label>
-                            <input type="file" id="lt_image" class="biolink-input" style="padding:0.5rem; border:1.5px dashed var(--border-color); cursor:pointer;" accept="image/*">
+                        <div class="biolink-field">
+                            <label class="biolink-label">Biografía o Descripción</label>
+                            <textarea id="lt_bio" class="biolink-textarea" rows="3" placeholder="Escribe una breve presentación atractiva..."></textarea>
+                        </div>
+
+                        <div class="biolink-field">
+                            <label class="biolink-label">Foto de Perfil</label>
+                            <div class="biolink-avatar-uploader" onclick="document.getElementById('lt_image').click()">
+                                <div class="biolink-avatar-preview-wrap">
+                                    <img id="lt_avatar_preview_img" src="assets/images/default-avatar.png" class="biolink-avatar-preview-img" alt="Avatar">
+                                    <div class="biolink-avatar-badge"><i class="ph ph-camera"></i></div>
+                                </div>
+                                <div class="biolink-avatar-info">
+                                    <div class="biolink-avatar-info-title">Subir foto de perfil</div>
+                                    <p class="biolink-avatar-info-sub">Haz clic para elegir un archivo (JPG, PNG o WebP, máx. 5MB)</p>
+                                </div>
+                                <input type="file" id="lt_image" style="display:none;" accept="image/*">
+                            </div>
                         </div>
                     </div>
 
                     <!-- Personalización -->
                     <div class="biolink-card">
-                        <h4 style="margin-bottom:1.5rem;font-weight:700;font-size:1.1rem;color:var(--text-main);"><i class="ph ph-paint-brush"></i> Tema y Diseño</h4>
+                        <div class="biolink-card-header">
+                            <div class="biolink-card-icon" style="color:#ec4899; background:linear-gradient(135deg,rgba(236,72,153,0.15),rgba(244,114,182,0.1)); border-color:rgba(236,72,153,0.25);">
+                                <i class="ph ph-paint-brush-broad"></i>
+                            </div>
+                            <div class="biolink-card-title-group">
+                                <h4>Tema y Diseño</h4>
+                                <p>Personaliza colores, tipografía y estilo visual de tu página.</p>
+                            </div>
+                        </div>
                         
-                        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-                            <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted)">Tema Predefinido</label>
-                            <select id="lt_theme_preset" class="biolink-input" onchange="linktreeApplyTheme(this.value)">
-                                <option value="custom">Personalizado</option>
+                        <div class="biolink-field">
+                            <label class="biolink-label">Estilo Predefinido</label>
+                            <select id="lt_theme_preset" class="biolink-select" onchange="linktreeApplyTheme(this.value)">
+                                <option value="custom">Personalizado (Manual)</option>
                                 <option value="cyberpunk">Neón Oscuro (Cyberpunk)</option>
                                 <option value="minimal">Minimalista Blanco</option>
                                 <option value="pastel">Pastel Elegante</option>
@@ -1213,10 +1946,10 @@ require_once 'includes/header.php';
                             </select>
                         </div>
 
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
-                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted)">Tipografía</label>
-                                <select id="lt_font_family" class="biolink-input">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
+                            <div class="biolink-field" style="margin-bottom:0;">
+                                <label class="biolink-label">Tipografía</label>
+                                <select id="lt_font_family" class="biolink-select">
                                     <option value="Inter">Inter (Moderna)</option>
                                     <option value="Roboto">Roboto (Clásica)</option>
                                     <option value="Playfair Display">Playfair (Elegante)</option>
@@ -1224,48 +1957,69 @@ require_once 'includes/header.php';
                                     <option value="Comic Neue">Comic Neue (Divertida)</option>
                                 </select>
                             </div>
-                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted)">Formato del Botón</label>
-                                <select id="lt_btn_style" class="biolink-input">
-                                    <option value="rounded-md">Redondeado (Suave)</option>
-                                    <option value="rounded-full">Píldora (Redondo total)</option>
-                                    <option value="rounded-none">Cuadrado</option>
+                            <div class="biolink-field" style="margin-bottom:0;">
+                                <label class="biolink-label">Formato de Botones</label>
+                                <select id="lt_btn_style" class="biolink-select">
+                                    <option value="rounded-md">Redondeado Suave</option>
+                                    <option value="rounded-full">Píldora Total (Redondo)</option>
+                                    <option value="rounded-none">Cuadrado Minimal</option>
                                 </select>
                             </div>
                         </div>
 
-                        <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:0.75rem; color:var(--text-muted)">Colores Personalizados</label>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.5rem;">
-                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:500;">Color de Fondo</label>
-                                <div style="display:flex; gap:8px;">
-                                    <input type="color" id="lt_bg_color" value="#f4f4f5" class="qr-color-picker" style="width:40px;height:40px;border-radius:8px;padding:2px;">
+                        <label class="biolink-label" style="margin-bottom:0.75rem;">Paleta de Colores</label>
+                        <div class="biolink-colors-grid">
+                            <!-- Fondo -->
+                            <div class="biolink-color-card" onclick="document.getElementById('lt_bg_color').click()">
+                                <div class="biolink-color-circle-wrap">
+                                    <input type="color" id="lt_bg_color" value="#f4f4f5" oninput="document.getElementById('lt_bg_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_bg_dot').style.background=this.value;">
+                                    <div class="biolink-color-swatch-dot" id="lt_bg_dot" style="background:#f4f4f5"></div>
+                                </div>
+                                <div class="biolink-color-texts">
+                                    <div class="biolink-color-name">Fondo General</div>
+                                    <div class="biolink-color-hex-tag" id="lt_bg_color_hex">#F4F4F5</div>
                                 </div>
                             </div>
-                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:500;">Texto General</label>
-                                <div style="display:flex; gap:8px;">
-                                    <input type="color" id="lt_text_color" value="#18181b" class="qr-color-picker" style="width:40px;height:40px;border-radius:8px;padding:2px;">
+                            <!-- Texto -->
+                            <div class="biolink-color-card" onclick="document.getElementById('lt_text_color').click()">
+                                <div class="biolink-color-circle-wrap">
+                                    <input type="color" id="lt_text_color" value="#18181b" oninput="document.getElementById('lt_text_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_text_dot').style.background=this.value;">
+                                    <div class="biolink-color-swatch-dot" id="lt_text_dot" style="background:#18181b"></div>
+                                </div>
+                                <div class="biolink-color-texts">
+                                    <div class="biolink-color-name">Texto General</div>
+                                    <div class="biolink-color-hex-tag" id="lt_text_color_hex">#18181B</div>
                                 </div>
                             </div>
-                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:500;">Fondo Botón</label>
-                                <div style="display:flex; gap:8px;">
-                                    <input type="color" id="lt_btn_color" value="#ffffff" class="qr-color-picker" style="width:40px;height:40px;border-radius:8px;padding:2px;">
+                            <!-- Fondo Botón -->
+                            <div class="biolink-color-card" onclick="document.getElementById('lt_btn_color').click()">
+                                <div class="biolink-color-circle-wrap">
+                                    <input type="color" id="lt_btn_color" value="#ffffff" oninput="document.getElementById('lt_btn_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_btn_dot').style.background=this.value;">
+                                    <div class="biolink-color-swatch-dot" id="lt_btn_dot" style="background:#ffffff"></div>
+                                </div>
+                                <div class="biolink-color-texts">
+                                    <div class="biolink-color-name">Fondo de Botón</div>
+                                    <div class="biolink-color-hex-tag" id="lt_btn_color_hex">#FFFFFF</div>
                                 </div>
                             </div>
-                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                <label style="font-size:0.85rem; font-weight:500;">Texto Botón</label>
-                                <div style="display:flex; gap:8px;">
-                                    <input type="color" id="lt_btn_text_color" value="#18181b" class="qr-color-picker" style="width:40px;height:40px;border-radius:8px;padding:2px;">
+                            <!-- Texto Botón -->
+                            <div class="biolink-color-card" onclick="document.getElementById('lt_btn_text_color').click()">
+                                <div class="biolink-color-circle-wrap">
+                                    <input type="color" id="lt_btn_text_color" value="#18181b" oninput="document.getElementById('lt_btn_text_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_btn_text_dot').style.background=this.value;">
+                                    <div class="biolink-color-swatch-dot" id="lt_btn_text_dot" style="background:#18181b"></div>
+                                </div>
+                                <div class="biolink-color-texts">
+                                    <div class="biolink-color-name">Texto de Botón</div>
+                                    <div class="biolink-color-hex-tag" id="lt_btn_text_color_hex">#18181B</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div style="display:flex; align-items:center; justify-content:space-between; padding-top:1rem; border-top:1px solid var(--border-color);">
+                        <!-- Watermark -->
+                        <div class="biolink-toggle-row">
                             <div>
-                                <h5 style="font-weight:600; font-size:0.9rem; margin:0;">Ocultar Marca de Agua</h5>
-                                <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Elimina el texto "Creado por Roma Agencia" al final de la página.</p>
+                                <h5>Ocultar Marca de Agua</h5>
+                                <p>Elimina el pie de página de "Creado por Roma Agencia".</p>
                             </div>
                             <label class="app-switch" style="margin:0;">
                                 <input type="checkbox" id="lt_hide_watermark">
@@ -1274,40 +2028,68 @@ require_once 'includes/header.php';
                         </div>
                     </div>
 
-                    <!-- Enlaces -->
+                    <!-- Enlaces y Bloques -->
                     <div class="biolink-card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-                            <h4 style="font-weight:700;font-size:1.1rem;color:var(--text-main);margin:0;"><i class="ph ph-squares-four"></i> Contenido / Bloques</h4>
+                        <div class="biolink-card-header" style="justify-content:space-between; margin-bottom:1.25rem;">
+                            <div style="display:flex; align-items:center; gap:0.85rem;">
+                                <div class="biolink-card-icon" style="color:#10b981; background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(52,211,153,0.1)); border-color:rgba(16,185,129,0.25);">
+                                    <i class="ph ph-squares-four"></i>
+                                </div>
+                                <div class="biolink-card-title-group">
+                                    <h4>Contenido / Bloques</h4>
+                                    <p>Añade y organiza los enlaces o medios que verá tu audiencia.</p>
+                                </div>
+                            </div>
                         </div>
-                        <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap;">
-                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('link')"><i class="ph ph-link"></i> Enlace</button>
-                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('whatsapp')"><i class="ph ph-whatsapp-logo"></i> WhatsApp</button>
-                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('youtube')"><i class="ph ph-youtube-logo"></i> YouTube</button>
-                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('spotify')"><i class="ph ph-spotify-logo"></i> Spotify</button>
-                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('map')"><i class="ph ph-map-pin"></i> Mapa</button>
-                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('text')"><i class="ph ph-text-t"></i> Título</button>
-                            <button class="btn btn-outline" style="padding:6px 14px;font-size:0.85rem; border-radius:12px;" onclick="linktreeAddLink('faq')"><i class="ph ph-question"></i> FAQ</button>
+
+                        <div class="biolink-block-chips-row">
+                            <button type="button" class="biolink-chip-btn chip-btn-link" onclick="linktreeAddLink('link')"><i class="ph ph-link"></i> Enlace</button>
+                            <button type="button" class="biolink-chip-btn chip-btn-whatsapp" onclick="linktreeAddLink('whatsapp')"><i class="ph ph-whatsapp-logo"></i> WhatsApp</button>
+                            <button type="button" class="biolink-chip-btn chip-btn-youtube" onclick="linktreeAddLink('youtube')"><i class="ph ph-youtube-logo"></i> YouTube</button>
+                            <button type="button" class="biolink-chip-btn chip-btn-spotify" onclick="linktreeAddLink('spotify')"><i class="ph ph-spotify-logo"></i> Spotify</button>
+                            <button type="button" class="biolink-chip-btn chip-btn-map" onclick="linktreeAddLink('map')"><i class="ph ph-map-pin"></i> Mapa</button>
+                            <button type="button" class="biolink-chip-btn chip-btn-text" onclick="linktreeAddLink('text')"><i class="ph ph-text-t"></i> Título</button>
+                            <button type="button" class="biolink-chip-btn chip-btn-faq" onclick="linktreeAddLink('faq')"><i class="ph ph-question"></i> FAQ</button>
                         </div>
                         
-                        <div id="lt_links_container" style="display:flex; flex-direction:column; gap:0.75rem;">
+                        <div id="lt_links_container" style="display:flex; flex-direction:column; gap:0.85rem;">
                             <!-- Enlaces dinámicos -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Preview (Mockup de celular) -->
+                <!-- Preview (Mockup de celular interactivo) -->
                 <div class="biolink-editor-right" id="lt_preview_wrapper">
-                    <div style="width:340px; border: 12px solid #1f2937; border-radius: 2.5rem; height: 700px; overflow:hidden; position:relative; background:#f4f4f5; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), inset 0 0 0 2px #374151;" id="lt_preview_box">
-                        <!-- Notch -->
-                        <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:24px; background:#1f2937; border-bottom-left-radius:16px; border-bottom-right-radius:16px; z-index:10;"></div>
-                        <!-- Botones laterales simulados -->
-                        <div style="position:absolute; top:120px; left:-14px; width:4px; height:40px; background:#374151; border-radius: 4px 0 0 4px;"></div>
-                        <div style="position:absolute; top:180px; left:-14px; width:4px; height:60px; background:#374151; border-radius: 4px 0 0 4px;"></div>
-                        <div style="position:absolute; top:140px; right:-14px; width:4px; height:60px; background:#374151; border-radius: 0 4px 4px 0;"></div>
-                        
-                        <div style="padding:3.5rem 1.25rem 2rem; text-align:center; height:100%; display:flex; flex-direction:column; align-items:center;" id="lt_preview_content">
-                            <!-- Generado en vivo -->
+                    <!-- Quick actions toolbar above mockup -->
+                    <div class="biolink-preview-toolbar">
+                        <button type="button" class="biolink-preview-tool-btn" id="btnCopyBioLink" onclick="linktreeCopyCurrentLink()" title="Copiar enlace"><i class="ph ph-copy"></i> Copiar link</button>
+                        <a href="javascript:void(0)" class="biolink-preview-tool-btn" id="btnOpenBioLink" target="_blank" title="Abrir en nueva pestaña"><i class="ph ph-arrow-square-out"></i> Vista en vivo</a>
+                    </div>
+
+                    <!-- Smartphone Device Frame -->
+                    <div class="biolink-phone-mockup" id="lt_preview_box">
+                        <!-- Dynamic Island -->
+                        <div class="biolink-phone-island">
+                            <div class="biolink-phone-camera-lens"></div>
                         </div>
+
+                        <!-- Simulated Status Bar -->
+                        <div class="biolink-phone-status-bar" id="lt_phone_status_bar">
+                            <span>9:41</span>
+                            <div class="biolink-phone-status-icons">
+                                <i class="ph ph-cell-signal-full"></i>
+                                <i class="ph ph-wifi-high"></i>
+                                <i class="ph ph-battery-charging"></i>
+                            </div>
+                        </div>
+
+                        <!-- Scrollable Screen Content -->
+                        <div class="biolink-phone-screen" id="lt_preview_content">
+                            <!-- Generado dinámicamente con JS -->
+                        </div>
+
+                        <!-- Home Indicator -->
+                        <div class="biolink-phone-home-indicator" id="lt_home_indicator"></div>
                     </div>
                 </div>
             </div>
@@ -3667,6 +4449,6 @@ require_once 'includes/header.php';
 
 })(); // IIFE
 </script>
-<script src="modules/herramientas/linktree.js"></script>
+<script src="modules/herramientas/linktree.js?v=<?= filemtime(__DIR__ . '/linktree.js') ?>"></script>
 
 <?php require_once 'includes/footer.php'; ?>

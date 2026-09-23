@@ -2805,7 +2805,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                         <button type="button" id="btn-dibujar" onclick="openPaintEditor()"><i class="ph ph-paint-brush"></i> Dibujar</button>
                                         <button type="button" id="btn-eliminar-recurso" onclick="clearActiveTabImage();"><i class="ph ph-trash"></i> Eliminar</button>
                                     </div>
-                                    <input type="file" id="post-main-image-upload" style="display:none" accept="image/*,video/mp4" multiple onchange="uploadMainImage(this)">
+                                    <input type="file" id="post-main-image-upload" style="display:none" accept="image/*,video/mp4,video/quicktime,video/webm,video/*" multiple onchange="uploadMainImage(this)">
                                     <input type="hidden" name="image_link" id="post-image-link">
                                     <input type="hidden" name="reference_image_link" id="post-reference-link">
                                     <input type="hidden" name="paint_data" id="post-paint-data">
@@ -3356,7 +3356,7 @@ function updateVideoPreview() {
     box.style.display = 'flex'; box.style.padding = '0'; box.style.gridTemplateColumns = ''; box.style.gap = '';
 
     const isDriveImage = url.match(/drive\.google\.com\/(uc\?export=view&id=|thumbnail\?id=)([\w-]+)/i);
-    const isVideoLink = !isDriveImage && url.match(/(youtu\.be|youtube\.com|tiktok\.com|\.mp4|drive\.google\.com|instagram\.com|facebook\.com|fb\.watch|pinterest\.com|pin\.it)/i);
+    const isVideoLink = !isDriveImage && url.match(/(youtu\.be|youtube\.com|tiktok\.com|\.mp4|\.mov|\.webm|\.m4v|drive\.google\.com|instagram\.com|facebook\.com|fb\.watch|pinterest\.com|pin\.it)/i);
 
     if (isVideoLink) {
         if (isRef) {
@@ -3372,13 +3372,14 @@ function updateVideoPreview() {
         if (url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/)) {
             const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
             box.innerHTML = `${refBadge}<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1" frameborder="0" allowfullscreen style="border:none; border-radius:12px;"></iframe>${overlayHtml}`;
-        } else if (url.toLowerCase().endsWith('.mp4')) {
-            // Override container constraints for mp4
+        } else if (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.toLowerCase().endsWith('.webm') || url.toLowerCase().endsWith('.m4v')) {
+            // Override container constraints for video
             box.className = 'preview-box';
             box.style.width = '100%';
             box.style.height = 'auto';
             box.style.maxWidth = 'none';
-            box.innerHTML = `${refBadge}<video controls playsinline style="width: 100%; max-height: 600px; object-fit: contain; border-radius: 12px; background: #000; display: block;"><source src="${url}" type="video/mp4"></video>${overlayHtml}`;
+            const vidMime = url.toLowerCase().endsWith('.mov') ? 'video/quicktime' : (url.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4');
+            box.innerHTML = `${refBadge}<video controls playsinline style="width: 100%; max-height: 600px; object-fit: contain; border-radius: 12px; background: #000; display: block;"><source src="${url}" type="${vidMime}"></video>${overlayHtml}`;
         } else if (url.match(/tiktok\.com\/(?:@[\w.-]+\/video\/|v\/)?(\d+)/)) {
             const tiktokMatch = url.match(/tiktok\.com\/(?:@[\w.-]+\/video\/|v\/)?(\d+)/);
             box.innerHTML = `${refBadge}<iframe width="100%" height="100%" src="https://www.tiktok.com/embed/v2/${tiktokMatch[1]}" frameborder="0" allowfullscreen style="border:none; border-radius:12px;"></iframe>${overlayHtml}`;
@@ -4280,12 +4281,27 @@ async function handleDrop(e) {
 async function performMainImageUpload(originalFile) {
     return new Promise(async (resolve) => {
         const isRef = document.querySelector('input[name="post_type"]:checked').value === 'Referencia Visual';
-        const file = isRef ? await compressImage(originalFile) : originalFile;
+        
+        // Optimizar imágenes grandes si corresponde
+        let file = originalFile;
+        if (originalFile.type && originalFile.type.startsWith('image/')) {
+            if (isRef) {
+                file = await compressImage(originalFile);
+            } else if (originalFile.size > 2 * 1024 * 1024 && typeof compressImageHighQuality === 'function') {
+                file = await compressImageHighQuality(originalFile);
+            }
+        }
+        
+        // Comprobar tamaño antes de subir (Cloudflare 100MB límite directo)
+        if (file.size > 100 * 1024 * 1024) {
+            showToast('El archivo supera los 100 MB (límite del servidor). Por favor sube un archivo más ligero o utiliza un enlace externo.');
+            resolve(null);
+            return;
+        }
         
         const formData = new FormData();
         formData.append('image', file);
         formData.append('month_id', document.querySelector('input[name="month_id"]').value);
-        
         formData.append('post_type', isRef ? 'Referencia Visual' : 'Post Terminado');
 
         const xhr = new XMLHttpRequest();
@@ -4298,7 +4314,11 @@ async function performMainImageUpload(originalFile) {
                 const text = document.getElementById('upload-progress-text');
                 if (fill && text) {
                     fill.style.width = percentComplete + '%';
-                    text.innerText = `Subiendo ${percentComplete}%`;
+                    if (percentComplete >= 100) {
+                        text.innerText = 'Procesando en el servidor...';
+                    } else {
+                        text.innerText = `Subiendo ${percentComplete}%`;
+                    }
                 }
             }
         };
@@ -4314,22 +4334,39 @@ async function performMainImageUpload(originalFile) {
                     if (res.success) {
                         resolve(res.url);
                     } else {
-                        showToast(res.error || 'Error subiendo imagen.');
+                        showToast(res.error || 'Error al guardar el archivo.');
                         resolve(null);
                     }
                 } catch(e) {
                     console.error("Parse error. Raw response:", xhr.responseText);
-                    showToast('Error procesando la respuesta.');
+                    showToast('Error procesando la respuesta del servidor.');
                     resolve(null);
                 }
+            } else if (xhr.status === 413) {
+                showToast('El archivo supera el tamaño máximo permitido por el servidor (HTTP 413). Intenta comprimirlo o pega el enlace externo.');
+                resolve(null);
+            } else if (xhr.status === 504 || xhr.status === 524) {
+                showToast('Tiempo de espera agotado en el servidor al subir el archivo (HTTP 504/524).');
+                resolve(null);
+            } else if (xhr.status === 500) {
+                showToast('Error interno en el servidor (HTTP 500) al procesar la subida.');
+                resolve(null);
+            } else if (xhr.status === 401 || xhr.status === 403) {
+                showToast('Sesión no autorizada o expirada (HTTP ' + xhr.status + '). Recarga la página.');
+                resolve(null);
             } else {
-                showToast('Error de red al subir la imagen.');
+                showToast('Error del servidor al subir el archivo (HTTP ' + xhr.status + ').');
                 resolve(null);
             }
         };
 
         xhr.onerror = function() {
-            showToast('Error de red al subir la imagen.');
+            showToast('Error de red o conexión interrumpida al subir el archivo.');
+            resolve(null);
+        };
+
+        xhr.ontimeout = function() {
+            showToast('Tiempo de conexión agotado al transferir el archivo.');
             resolve(null);
         };
 
@@ -9943,6 +9980,61 @@ async function compressImage(file) {
                     resolve(compressedFile);
                 }, 'image/jpeg', 0.85);
             }
+        };
+    });
+}
+
+async function compressImageHighQuality(file) {
+    if (!file.type || !file.type.startsWith('image/')) return file;
+    if (file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
+
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_DIM = 2560; // 2.5K high resolution
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_DIM) {
+                        height = Math.round(height * (MAX_DIM / width));
+                        width = MAX_DIM;
+                    }
+                } else {
+                    if (height > MAX_DIM) {
+                        width = Math.round(width * (MAX_DIM / height));
+                        height = MAX_DIM;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob(function(blob) {
+                    if (!blob || blob.size >= file.size) {
+                        resolve(file);
+                        return;
+                    }
+                    const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    resolve(compressedFile);
+                }, 'image/jpeg', 0.92);
+            };
+            img.onerror = function() {
+                resolve(file);
+            };
+        };
+        reader.onerror = function() {
+            resolve(file);
         };
     });
 }

@@ -29,6 +29,8 @@
     --bg-color: #f8fafc;
     --bg-surface: #ffffff;
     --bg-sidebar: #ffffff;
+    --bg-card: #ffffff;
+    --bg-body: #f8fafc;
     
     /* Text Colors */
     --text-main: var(--color-title, #1e293b);
@@ -68,6 +70,8 @@
     --bg-color: #000000;
     --bg-surface: #121212;
     --bg-sidebar: #121212;
+    --bg-card: #18181b;
+    --bg-body: #09090b;
     
     /* Adaptive Semantic Colors para contraste OLED */
     --color-blue: #60a5fa;
