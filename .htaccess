@@ -101,3 +101,20 @@ LimitRequestBody 536870912
     php_value max_execution_time 300
     php_value max_input_time 300
 </IfModule>
+
+# 5. Soporte MIME y reproducción de video streaming (Byte-Ranges)
+<IfModule mod_mime.c>
+    AddType video/mp4 .mp4 .m4v .mov
+    AddType video/webm .webm
+    AddType video/ogg .ogv
+    AddType image/webp .webp
+    AddType image/svg+xml .svg .svgz
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(mp4|m4v|mov|webm|ogv)$">
+        Header set Access-Control-Allow-Origin "*"
+        Header set Accept-Ranges bytes
+    </FilesMatch>
+</IfModule>
+

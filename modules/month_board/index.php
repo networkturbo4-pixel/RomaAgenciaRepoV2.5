@@ -3378,8 +3378,33 @@ function updateVideoPreview() {
             box.style.width = '100%';
             box.style.height = 'auto';
             box.style.maxWidth = 'none';
-            const vidMime = url.toLowerCase().endsWith('.mov') ? 'video/quicktime' : (url.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4');
-            box.innerHTML = `${refBadge}<video controls playsinline style="width: 100%; max-height: 600px; object-fit: contain; border-radius: 12px; background: #000; display: block;"><source src="${url}" type="${vidMime}"></video>${overlayHtml}`;
+            box.innerHTML = `${refBadge}
+                <div style="position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000;">
+                    <video id="post-main-video-player" src="${url}" controls playsinline preload="metadata" style="width: 100%; max-height: 520px; object-fit: contain; display: block; border-radius: 12px;">
+                        <source src="${url}" type="video/mp4">
+                        <source src="${url}">
+                        Tu navegador no soporta la reproducción directa de este video.
+                    </video>
+                    <div id="video-unsupported-msg" style="display: none; padding: 1.5rem; text-align: center; color: #cbd5e1; background: #0f172a; border-radius: 12px;">
+                        <i class="ph ph-video-camera-slash" style="font-size: 2.2rem; color: #f59e0b; margin-bottom: 0.5rem; display: block;"></i>
+                        <div style="font-weight: 700; margin-bottom: 0.35rem; color: #fff;">Códec no compatible directamente en este navegador</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 1rem;">El archivo se guardó correctamente. Puedes reproducirlo descargándolo o usando el botón Ver.</div>
+                        <a href="${url}" download class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600;">
+                            <i class="ph ph-download-simple"></i> Descargar Video
+                        </a>
+                    </div>
+                </div>${overlayHtml}`;
+            
+            const vidEl = document.getElementById('post-main-video-player');
+            if (vidEl) {
+                vidEl.addEventListener('error', function() {
+                    const msg = document.getElementById('video-unsupported-msg');
+                    if (msg) {
+                        vidEl.style.display = 'none';
+                        msg.style.display = 'block';
+                    }
+                });
+            }
         } else if (url.match(/tiktok\.com\/(?:@[\w.-]+\/video\/|v\/)?(\d+)/)) {
             const tiktokMatch = url.match(/tiktok\.com\/(?:@[\w.-]+\/video\/|v\/)?(\d+)/);
             box.innerHTML = `${refBadge}<iframe width="100%" height="100%" src="https://www.tiktok.com/embed/v2/${tiktokMatch[1]}" frameborder="0" allowfullscreen style="border:none; border-radius:12px;"></iframe>${overlayHtml}`;
@@ -4124,19 +4149,26 @@ async function uploadMainImage(input) {
     const oldHtml = box.innerHTML;
     box.style.display = 'flex'; box.style.padding = '0'; box.style.gridTemplateColumns = ''; box.style.gap = '';
     box.innerHTML = `
-        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; color: white; width:100%; padding: 1rem;">
-            <i class="ph ph-cloud-arrow-up" style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--primary-color);"></i>
-            <div style="width: 80%; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden;">
-                <div id="upload-progress-fill" style="height: 100%; width: 0%; background: var(--primary-color); transition: width 0.2s;"></div>
+        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; width:100%; padding: 1.5rem; box-sizing: border-box; background: var(--bg-surface-elevated, #f8fafc); border-radius: 12px; border: 1.5px dashed color-mix(in srgb, var(--primary-color) 40%, transparent);">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: color-mix(in srgb, var(--primary-color) 12%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+                <i class="ph ph-cloud-arrow-up" style="font-size: 1.75rem; color: var(--primary-color);"></i>
             </div>
-            <div id="upload-progress-text" style="font-size: 0.8rem; margin-top: 0.5rem; font-weight: 600;">Subiendo 0%</div>
+            <div style="width: 82%; height: 8px; background: rgba(100, 116, 139, 0.2); border-radius: 4px; overflow: hidden;">
+                <div id="upload-progress-fill" style="height: 100%; width: 0%; background: var(--primary-color); border-radius: 4px; transition: width 0.2s ease;"></div>
+            </div>
+            <div id="upload-progress-text" style="font-size: 0.85rem; margin-top: 0.65rem; font-weight: 700; color: var(--text-main, #0f172a); letter-spacing: 0.2px;">Subiendo 0%</div>
         </div>
     `;
     
     let uploadedUrls = [];
     
-    for (let i = 0; i < input.files.length; i++) {
-        const url = await performMainImageUpload(input.files[i]);
+    // Subida concurrente/paralela cuando se seleccionan múltiples archivos para mayor velocidad
+    if (input.files.length > 1) {
+        const uploadPromises = Array.from(input.files).map(f => performMainImageUpload(f));
+        const results = await Promise.all(uploadPromises);
+        uploadedUrls = results.filter(u => u !== null);
+    } else {
+        const url = await performMainImageUpload(input.files[0]);
         if (url) uploadedUrls.push(url);
     }
     

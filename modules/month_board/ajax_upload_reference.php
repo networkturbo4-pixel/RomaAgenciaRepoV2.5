@@ -68,19 +68,17 @@ if (!in_array($mimeType, $allowedTypes) && !in_array($origExt, $validExts)) {
     exit();
 }
 
-// Determinar extensión adecuada
+// Determinar extensión adecuada (videos QuickTime/MOV se guardan como .mp4 para soporte nativo web universal)
 $extension = 'jpg';
 if ($mimeType === 'image/png') $extension = 'png';
 elseif ($mimeType === 'image/webp') $extension = 'webp';
 elseif ($mimeType === 'image/gif') $extension = 'gif';
 elseif ($mimeType === 'image/svg+xml') $extension = 'svg';
-elseif ($mimeType === 'video/mp4') $extension = 'mp4';
-elseif ($mimeType === 'video/quicktime') $extension = 'mov';
-elseif ($mimeType === 'video/webm') $extension = 'webm';
-elseif ($mimeType === 'video/x-m4v') $extension = 'm4v';
+elseif (in_array($mimeType, ['video/mp4', 'video/quicktime', 'video/x-m4v']) || in_array($origExt, ['mp4', 'mov', 'm4v'])) $extension = 'mp4';
+elseif ($mimeType === 'video/webm' || $origExt === 'webm') $extension = 'webm';
 else {
     if ($origExt === 'jpeg') $extension = 'jpg';
-    elseif (in_array($origExt, ['jpg', 'png', 'webp', 'gif', 'svg', 'mp4', 'mov', 'webm', 'm4v', 'heic'])) {
+    elseif (in_array($origExt, ['jpg', 'png', 'webp', 'gif', 'svg', 'heic'])) {
         $extension = $origExt;
     }
 }
