@@ -115,6 +115,99 @@ function processImageToInlineData($imagePathOrUrl) {
     ];
 }
 
+// Motor de respaldo inteligente de Romita cuando la API de Gemini no está activa o tiene cuota agotada
+function generateSmartFallbackCopy($subaction, $concept, $brief, $pillar, $brand, $platforms, $currentText, $instruction) {
+    $brandLabel = !empty($brand) ? $brand : 'Roma Agencia';
+    $conceptLabel = !empty($concept) ? $concept : 'Nuestra propuesta para ti';
+    $briefLabel = !empty($brief) ? $brief : 'Te compartimos una solución pensada para superar tus expectativas y llevar tu experiencia al siguiente nivel.';
+    
+    $p = !empty($pillar) ? mb_strtolower($pillar, 'UTF-8') : 'general';
+
+    if ($subaction === 'hashtags') {
+        $tags = ['#SocialMediaMarketing', '#ContenidoDigital', '#EstrategiaOnline', '#MarketingCreativo', '#Tendencias', '#CrecimientoDigital'];
+        if (!empty($brand)) {
+            $slug = preg_replace('/[^a-zA-Z0-9]/', '', $brand);
+            if (!empty($slug)) array_unshift($tags, '#' . $slug);
+        }
+        if (!empty($pillar)) {
+            $slugP = preg_replace('/[^a-zA-Z0-9]/', '', $pillar);
+            if (!empty($slugP)) array_unshift($tags, '#' . $slugP);
+        }
+        if (!empty($concept)) {
+            $words = explode(' ', $concept);
+            foreach (array_slice($words, 0, 4) as $w) {
+                $cw = preg_replace('/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/u', '', $w);
+                if (mb_strlen($cw) > 3) $tags[] = '#' . ucfirst(mb_strtolower($cw, 'UTF-8'));
+            }
+        }
+        return implode(' ', array_unique($tags));
+    }
+
+    if ($subaction === 'corregir') {
+        $base = !empty($currentText) ? $currentText : ($concept . "\n\n" . $brief);
+        if (empty($base)) $base = "Publicación destacada para redes sociales.";
+        $paragraphs = explode("\n", $base);
+        $cleaned = [];
+        foreach ($paragraphs as $par) {
+            $t = trim($par);
+            if (!empty($t)) {
+                $cleaned[] = ucfirst($t);
+            }
+        }
+        return implode("\n\n", $cleaned);
+    }
+
+    if ($subaction === 'persuasivo') {
+        $hook = "🔥 ¿Estás aprovechando todo tu potencial para destacar?";
+        if (strpos($p, 'vent') !== false) {
+            $hook = "🚀 La oportunidad que estabas buscando llegó a {$brandLabel}.";
+        } elseif (strpos($p, 'edu') !== false) {
+            $hook = "💡 ¿Sabías que el 80% del éxito radica en una estrategia bien ejecutada?";
+        }
+
+        $copy = "{$hook}\n\n";
+        $copy .= "✨ [ATENCIÓN]: {$conceptLabel}\n\n";
+        $copy .= "📌 [INTERÉS]: En {$brandLabel} cuidamos cada detalle para ofrecerte soluciones que realmente marquen la diferencia:\n\n";
+        $copy .= "• " . str_replace("\n", "\n• ", $briefLabel) . "\n\n";
+        $copy .= "🎯 [DESEO]: No se trata de hacer más, sino de hacerlo con impacto, consistencia y visión clara.\n\n";
+        $copy .= "👉 [ACCIÓN]: ¿Listo para comenzar? Déjanos un comentario o envíanos un mensaje directo hoy mismo.\n\n";
+        $cleanBrand = preg_replace('/[^a-zA-Z0-9]/', '', $brandLabel);
+        $copy .= "#{$cleanBrand} #EstrategiaDigital #Crecimiento #SocialMedia #Marketing";
+        return $copy;
+    }
+
+    // Default: desde_concepto, desde_imagen o custom
+    $hook = "✨ Lo que hoy te proponemos marcará la diferencia:";
+    if (strpos($p, 'vent') !== false) {
+        $hook = "🔥 ¡Gran oportunidad! Descubre todo lo que {$brandLabel} tiene preparado para ti:";
+    } elseif (strpos($p, 'edu') !== false) {
+        $hook = "💡 ¿Sabías esto? Guarda este post para ponerlo en práctica hoy mismo:";
+    } elseif (strpos($p, 'brand') !== false) {
+        $hook = "🌟 Detrás de cada paso hay una visión clara. Así construimos valor en {$brandLabel}:";
+    } elseif (strpos($p, 'entre') !== false) {
+        $hook = "👀 Una pausa necesaria en tu feed: cuando las cosas se hacen con pasión, el resultado habla por sí solo.";
+    } elseif (strpos($p, 'comun') !== false) {
+        $hook = "🤝 Crecer juntos es nuestro mayor compromiso. Queremos saber tu opinión:";
+    } elseif (strpos($p, 'testim') !== false) {
+        $hook = "⭐ Historias reales que inspiran. Así acompañamos a nuestros clientes hacia sus metas:";
+    }
+
+    if (!empty($instruction) && $subaction === 'custom') {
+        $hook = "✨ " . ucfirst($instruction) . ":";
+    }
+
+    $copy = "{$hook}\n\n";
+    $copy .= "🎯 {$conceptLabel}\n\n";
+    $copy .= "{$briefLabel}\n\n";
+    $copy .= "👉 ¿Qué te parece esta propuesta? Cuéntanos en los comentarios o escríbenos al DM para más información.\n\n";
+    
+    $cleanBrand = preg_replace('/[^a-zA-Z0-9]/', '', $brandLabel);
+    $tagBrand = !empty($cleanBrand) ? '#' . $cleanBrand : '#RomaAgencia';
+    $copy .= "{$tagBrand} #MarketingDigital #SocialMedia #ContenidoCreativo #EstrategiaDigital";
+    
+    return $copy;
+}
+
 $systemInstruction = "Eres Romita, la estratega senior de contenidos, copywriting de conversión, branding y community management de Roma Agencia.
 Tu especialidad es redactar publicaciones con ganchos magnéticos (Hooks), redacción clara y cautivadora, emojis estratégicos, llamado a la acción persuasivo (CTA) y hashtags optimizados.
 REGLAS OBLIGATORIAS:
@@ -288,7 +381,18 @@ foreach ($apiKeysToTry as $currentKey) {
 if ($successResponse !== null) {
     echo json_encode(['success' => true, 'text' => $successResponse]);
 } else {
-    // Si la clave no está configurada o falló
+    // Motor de contingencia: Generar copia estratégica estructurada para que el usuario nunca se quede bloqueado
+    $fallbackText = generateSmartFallbackCopy($subaction, $concept, $brief, $pillar, $brand, $platforms, $text, $instruction);
+    if (!empty($fallbackText)) {
+        echo json_encode([
+            'success' => true,
+            'text' => $fallbackText,
+            'is_fallback' => true,
+            'notice' => 'Borrador base generado por Romita. Configura tu API Key en Ajustes > IA para respuestas con IA en vivo.'
+        ]);
+        exit();
+    }
+
     if (strpos($lastError, 'API key') !== false || strpos($lastError, 'service account') !== false || strpos($lastError, 'PERMISSION_DENIED') !== false) {
         $lastError = 'La API Key de Gemini necesita ser configurada o actualizada en Ajustes > IA para activar las funciones de Romita.';
     }

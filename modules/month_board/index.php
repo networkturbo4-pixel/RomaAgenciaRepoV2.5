@@ -10771,7 +10771,11 @@ async function executeRomitaPostAction(subaction) {
             updateCopyPreview();
             markDirty();
             updateSaveButtonState();
-            showToast('✨ Publicación redactada por Romita con éxito', 'success');
+            if (resData.is_fallback) {
+                showToast('✨ Borrador estratégico generado por Romita. (Tip: Activa Gemini en Ajustes > IA para IA en vivo)', 'info');
+            } else {
+                showToast('✨ Publicación redactada por Romita con éxito', 'success');
+            }
         } else {
             editor.innerHTML = originalHtml;
             showToast(resData.error || 'No se pudo conectar con Romita.', 'error');
