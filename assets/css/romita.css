@@ -2062,3 +2062,364 @@ body:has(.romita-container) .content-wrapper {
         display: none !important;
     }
 }
+
+/* ==========================================================================
+   MODERNIZACIÓN ROMITA AI MÓDULO (QUANTUM ORBITAL ATOM, LASER SCAN & AURAS)
+   ========================================================================== */
+
+/* 1. Header Laser Scan */
+.romita-header {
+    position: relative;
+}
+
+.romita-header-laser {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2.5px;
+    background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #38bdf8 50%, #ec4899 80%, transparent 100%);
+    background-size: 250% 100%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 15;
+}
+
+.romita-header.is-generating .romita-header-laser {
+    opacity: 1;
+    animation: rgModuleLaserBeam 1.8s infinite linear;
+}
+
+@keyframes rgModuleLaserBeam {
+    0% { background-position: 250% 0; }
+    100% { background-position: -250% 0; }
+}
+
+/* 2. Barra Segmentada de Especialidades */
+.romita-module-specialties {
+    padding: 8px 1.75rem;
+    background: var(--romita-surface);
+    border-bottom: 1px solid var(--romita-border);
+    flex-shrink: 0;
+    z-index: 9;
+}
+
+.romita-module-specialties .rg-specialties-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--romita-card-hover);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--romita-border);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.romita-module-specialties .rg-specialties-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.romita-module-specialties .rg-spec-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--romita-text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.romita-module-specialties .rg-spec-tab:hover {
+    color: var(--romita-text);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .romita-module-specialties .rg-spec-tab:hover {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.romita-module-specialties .rg-spec-tab.active {
+    background: #ffffff;
+    color: #4f46e5 !important;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .romita-module-specialties .rg-spec-tab.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.romita-module-specialties .rg-spec-tab i {
+    font-size: 1rem;
+    opacity: 0.85;
+    transition: transform 0.2s ease;
+}
+
+.romita-module-specialties .rg-spec-tab.active i {
+    color: #6366f1;
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+[data-theme="dark"] .romita-module-specialties .rg-spec-tab.active i {
+    color: #818cf8;
+}
+
+/* 3. Quantum Orbital Atom Generating Indicator */
+.rg-neural-bubble {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(99, 102, 241, 0.32) !important;
+    border-radius: 16px !important;
+    padding: 12px 18px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+[data-theme="dark"] .rg-neural-bubble {
+    background: rgba(18, 18, 24, 0.75) !important;
+    border-color: rgba(99, 102, 241, 0.38) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(99, 102, 241, 0.12);
+}
+
+.romita-chat-orbital-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    width: 100%;
+    max-width: 480px;
+    box-sizing: border-box;
+}
+
+.romita-orbital-core {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.roc-nucleus {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #ec4899);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.82rem;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.85);
+    z-index: 2;
+    animation: rocNucleusPulse 1.4s infinite alternate ease-in-out;
+}
+
+@keyframes rocNucleusPulse {
+    0% { transform: scale(0.92); filter: drop-shadow(0 0 4px #6366f1); }
+    100% { transform: scale(1.08); filter: drop-shadow(0 0 12px #ec4899); }
+}
+
+.roc-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-top-color: #38bdf8;
+    border-right-color: #8b5cf6;
+}
+
+.roc-ring-1 {
+    animation: rocSpinRing1 1.3s infinite linear;
+}
+
+.roc-ring-2 {
+    inset: 3px;
+    border-top-color: #ec4899;
+    border-left-color: #4f46e5;
+    animation: rocSpinRing2 1.8s infinite linear reverse;
+}
+
+.roc-pulse {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.25);
+    filter: blur(4px);
+    animation: rocPulseGlow 1.8s infinite ease-out;
+}
+
+@keyframes rocSpinRing1 {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.08); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes rocSpinRing2 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes rocPulseGlow {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+.roc-chat-details {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex: 1;
+    min-width: 0;
+}
+
+.roc-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.roc-status-ping {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 10px #38bdf8;
+    animation: rocStatusPing 1.2s infinite ease-in-out;
+    flex-shrink: 0;
+}
+
+@keyframes rocStatusPing {
+    0%, 100% { transform: scale(0.85); opacity: 0.4; }
+    50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 6px #38bdf8); }
+}
+
+.roc-status-msg {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6366f1;
+    letter-spacing: -0.01em;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.35;
+    transition: opacity 0.2s ease;
+}
+
+[data-theme="dark"] .roc-status-msg {
+    color: #a5b4fc;
+}
+
+.roc-shimmer-telemetry {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.roc-shimmer-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(56, 189, 248, 0.5) 40%, rgba(236, 72, 153, 0.45) 60%, rgba(99, 102, 241, 0.15) 100%);
+    background-size: 200% 100%;
+    animation: rocBarScan 1.6s infinite linear;
+}
+
+.roc-shimmer-bar.b1 { width: 92%; }
+.roc-shimmer-bar.b2 { width: 65%; animation-delay: 0.25s; }
+
+@keyframes rocBarScan {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 4. Chromatic Avatar Aura */
+.rg-avatar-generating {
+    position: relative;
+    z-index: 2;
+}
+
+.rg-avatar-generating::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 12px;
+    background: conic-gradient(from 0deg, #6366f1, #06b6d4, #a855f7, #ec4899, #6366f1);
+    animation: rgChromaticSpin 2s linear infinite;
+    z-index: -1;
+    filter: blur(3px);
+    opacity: 0.9;
+}
+
+@keyframes rgChromaticSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 5. Composer Scanning Aura while Generating */
+.romita-input-container.is-generating {
+    border-color: rgba(99, 102, 241, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 0 25px rgba(99, 102, 241, 0.2) !important;
+    animation: rgInputScan 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes rgInputScan {
+    0% { border-color: rgba(99, 102, 241, 0.35); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12); }
+    100% { border-color: rgba(56, 189, 248, 0.7); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25), 0 0 22px rgba(56, 189, 248, 0.25); }
+}
+
+/* 6. Responsive móvil para módulo de Romita */
+@media (max-width: 768px) {
+    .romita-module-specialties {
+        padding: 6px 0.75rem;
+    }
+    .romita-module-specialties .rg-specialties-bar {
+        gap: 5px;
+        padding: 3px;
+    }
+    .romita-module-specialties .rg-spec-tab {
+        flex: 0 0 auto !important;
+        padding: 6px 12px;
+        font-size: 0.72rem;
+        gap: 5px;
+        white-space: nowrap;
+    }
+    .romita-chat-orbital-card {
+        gap: 10px !important;
+    }
+    .romita-orbital-core {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    .roc-nucleus {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 0.7rem !important;
+    }
+    .roc-status-msg {
+        font-size: 0.74rem !important;
+        line-height: 1.25 !important;
+    }
+    .roc-shimmer-bar {
+        height: 5px !important;
+    }
+    .rg-avatar-generating::before {
+        inset: -2px;
+        filter: blur(2px);
+    }
+}

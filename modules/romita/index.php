@@ -170,8 +170,8 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     <div class="romita-badge-wrap">
                         <span class="romita-model-badge">
                             <i class="ph ph-lightning"></i>
-                            <span class="badge-text-desktop">Gemini 2.5 Flash • Web Grounding 🌐</span>
-                            <span class="badge-text-mobile">Gemini 2.5 🌐</span>
+                            <span class="badge-text-desktop">Gemini 2.5 Flash • Web Grounding</span>
+                            <span class="badge-text-mobile">Gemini 2.5</span>
                         </span>
                     </div>
                 </div>
@@ -190,7 +190,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     <select id="activeBrandSelect" class="prept-select-custom" onchange="handleBrandSelection(this.value)">
                         <option value="">-- Sin Marca (Modo Libre) --</option>
                         <?php if (!empty($calendarProjects)): ?>
-                            <optgroup label="📅 Proyectos de Calendario (Historial de Meses)">
+                            <optgroup label="Proyectos de Calendario (Historial de Meses)">
                                 <?php foreach($calendarProjects as $cp): ?>
                                     <option value="project_<?php echo $cp['project_id']; ?>" 
                                             data-type="project" 
@@ -204,7 +204,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                             </optgroup>
                         <?php endif; ?>
                         <?php if (!empty($prepts)): ?>
-                            <optgroup label="🏷️ Marcas Prepts (Instrucción Manual)">
+                            <optgroup label="Marcas Prepts (Instrucción Manual)">
                                 <?php foreach($prepts as $p): ?>
                                     <option value="prept_<?php echo $p['id']; ?>" 
                                             data-type="prept" 
@@ -237,7 +237,34 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     <?php endif; ?>
                 </div>
             </div>
+            <div class="romita-header-laser"></div>
         </header>
+
+        <!-- Segmented Specialties Bar (Modern SaaS App Style - Zero Emojis) -->
+        <div class="romita-module-specialties">
+            <div class="rg-specialties-bar">
+                <button type="button" class="rg-spec-tab active" data-spec="director_360" onclick="setModuleSpecialty('director_360', this)">
+                    <i class="ph ph-compass"></i>
+                    <span>Directora 360°</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="community_manager" onclick="setModuleSpecialty('community_manager', this)">
+                    <i class="ph ph-chat-circle-dots"></i>
+                    <span>Senior CM</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="branding" onclick="setModuleSpecialty('branding', this)">
+                    <i class="ph ph-palette"></i>
+                    <span>Branding</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="marketing" onclick="setModuleSpecialty('marketing', this)">
+                    <i class="ph ph-trend-up"></i>
+                    <span>Marketing</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="seo" onclick="setModuleSpecialty('seo', this)">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <span>SEO</span>
+                </button>
+            </div>
+        </div>
 
         <!-- Feed del Chat -->
         <div class="romita-chat-area" id="chatArea">
@@ -399,6 +426,8 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
 <?php endif; ?>
 
 <script>
+    let currentSpecialty = 'director_360';
+    let romitaModuleStatusInterval = null;
     let activeSkill = null;
     let chatHistory = [];
     let currentChatId = null;
@@ -512,51 +541,91 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         `;
     }
 
+    const specialtyHeroData = {
+        'director_360': {
+            sub: 'Soy Romita en rol de Directora 360°. Coordino branding, contenido, desarrollo web, finanzas y performance con visión ejecutiva.',
+            starters: [
+                { icon: 'ph-kanban', title: 'Auditoría 360° de Proyectos', desc: 'Revisión global de producción, entregables y estados en la agencia.', prompt: '¿Cuál es el estado general de los proyectos activos y prioridades en la agencia?' },
+                { icon: 'ph-lightbulb', title: 'Estrategia Multicanal', desc: 'Conexión de branding, redes, web y audiovisual.', prompt: 'Diseña una estrategia multicanal integrada conectando branding, contenido y performance.' },
+                { icon: 'ph-funnel', title: 'Embudo de Conversión', desc: 'Estructura estratégica TOFU-MOFU-BOFU.', prompt: '¿Cómo podemos estructurar un embudo comercial TOFU-MOFU-BOFU de alta conversión?' },
+                { icon: 'ph-chart-line-up', title: 'Optimización de Crecimiento', desc: 'Palancas de rentabilidad y mejora continua.', prompt: '¿Cuáles son las 4 palancas operativas y estratégicas clave para optimizar la rentabilidad de las cuentas?' }
+            ]
+        },
+        'community_manager': {
+            sub: 'Soy Romita como Senior Community Manager. Especialista en copys magnéticos, ganchos virales, calendarios y engagement.',
+            starters: [
+                { icon: 'ph-lightning', title: '5 Ganchos para Reels', desc: 'Fórmulas de retención para primeros 3 segundos.', prompt: 'Dame 5 ganchos magnéticos para Reels de nuestras marcas este mes.' },
+                { icon: 'ph-calendar-plus', title: 'Estructura de Calendario', desc: 'Equilibrio de pilares de venta y valor.', prompt: '¿Cómo estructurar un calendario de 12 posts balanceando venta, valor y engagement?' },
+                { icon: 'ph-chats-circle', title: 'Dinámicas de Engagement', desc: 'Historias interactivas para disparar DMs.', prompt: 'Propón 4 ideas de historias interactivas para aumentar mensajes directos y respuestas.' },
+                { icon: 'ph-target', title: 'Llamados a la Acción (CTA)', desc: 'Fórmulas persuasivas que no suenan a spam.', prompt: 'Dame 5 fórmulas de Call to Action (CTA) de alta conversión para publicaciones.' }
+            ]
+        },
+        'branding': {
+            sub: 'Soy Romita como Especialista en Branding. Construcción de identidad, arquetipos de marca, tono de voz y coherencia visual.',
+            starters: [
+                { icon: 'ph-paint-brush-broad', title: 'Arquetipo de Marca', desc: 'Definición de personalidad y valores de marca.', prompt: '¿Cómo definir el arquetipo de personalidad para una de nuestras marcas?' },
+                { icon: 'ph-megaphone', title: 'Tono y Voz de Marca', desc: 'Guía de comunicación y vocabulario clave.', prompt: 'Estructura una guía de tono de voz: qué decimos, cómo lo decimos y qué evitamos.' },
+                { icon: 'ph-eye', title: 'Auditoría de Identidad', desc: 'Revisión de consistencia visual.', prompt: '¿Qué elementos debemos auditar para garantizar coherencia en manual de marca?' },
+                { icon: 'ph-book-open', title: 'Storytelling Corporativo', desc: 'Narrativa del origen y propuesta de valor.', prompt: '¿Cómo redactar un manifiesto de marca inspirador y memorable?' }
+            ]
+        },
+        'marketing': {
+            sub: 'Soy Romita como Growth Marketer. Embudos de adquisición, pauta publicitaria (Ads), métricas de rendimiento y CRO.',
+            starters: [
+                { icon: 'ph-funnel', title: 'Embudo de Ventas (Funnels)', desc: 'Flujo completo de lead a cliente recurrente.', prompt: 'Diseña un embudo de ventas TOFU-MOFU-BOFU con oferta gancho y retargeting.' },
+                { icon: 'ph-currency-dollar', title: 'Estrategia de Meta Ads', desc: 'Estructura de campañas ABO/CBO y audiencias.', prompt: '¿Cómo estructurar una campaña de Meta Ads rentable para captar clientes calificados?' },
+                { icon: 'ph-chart-pie-slice', title: 'Optimización de CRO', desc: 'Mejora de conversión en páginas de destino.', prompt: '¿Cuáles son los 5 puntos críticos para aumentar la tasa de conversión en una landing page?' },
+                { icon: 'ph-arrows-clockwise', title: 'Reactivación de Clientes', desc: 'Secuencia de remarketing por WhatsApp.', prompt: 'Crea una secuencia de 3 mensajes para reactivar cotizaciones o leads antiguos.' }
+            ]
+        },
+        'seo': {
+            sub: 'Soy Romita como Especialista en SEO. Posicionamiento orgánico en Google, intención de búsqueda y arquitectura web.',
+            starters: [
+                { icon: 'ph-magnifying-glass', title: 'Keyword Research', desc: 'Palabras clave transaccionales de alta intención.', prompt: '¿Cómo investigar palabras clave transaccionales para los servicios de la agencia?' },
+                { icon: 'ph-article', title: 'Optimización On-Page', desc: 'Estructura de H1, H2, meta title y URLs.', prompt: 'Dame una checklist de optimización SEO On-Page para un artículo o servicio.' },
+                { icon: 'ph-tree-structure', title: 'Topic Clusters', desc: 'Arquitectura de pilares y enlaces internos.', prompt: 'Explica cómo armar una estrategia de Topic Clusters para posicionar en Google.' },
+                { icon: 'ph-speedometer', title: 'SEO Técnico Básico', desc: 'Velocidad, Core Web Vitals y schema markup.', prompt: '¿Qué aspectos técnicos de SEO debemos auditar antes de lanzar una página web?' }
+            ]
+        }
+    };
+
+    function setModuleSpecialty(spec, btn) {
+        currentSpecialty = spec;
+        document.querySelectorAll('.romita-module-specialties .rg-spec-tab').forEach(c => c.classList.remove('active'));
+        if (btn) {
+            btn.classList.add('active');
+            try {
+                btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            } catch(e) {}
+        }
+        
+        const heroSub = document.getElementById('heroSubtext');
+        const data = specialtyHeroData[spec] || specialtyHeroData['director_360'];
+        if (heroSub && !selectedBrand) {
+            heroSub.innerText = data.sub;
+        }
+
+        if (!selectedBrand) {
+            renderDefaultPromptStarters();
+        }
+    }
+
     function renderDefaultPromptStarters() {
         const grid = document.getElementById('promptGrid');
         if (!grid) return;
 
-        grid.innerHTML = `
-            <div class="prompt-starter-card" onclick="usePromptStarter('Escribe 3 propuestas de copys persuasivos para redes sociales sobre [Tema / Producto] enfocados en llamar a la acción.')">
-                <div class="prompt-starter-icon copywriting">
-                    <i class="ph ph-pencil-line"></i>
-                </div>
-                <div class="prompt-starter-details">
-                    <h4>Copywriting Persuasivo</h4>
-                    <p>Crea copys de alto impacto para Instagram, Facebook o LinkedIn.</p>
-                </div>
-            </div>
-
-            <div class="prompt-starter-card" onclick="usePromptStarter('Diseña un guión estratégico para responder a clientes que dicen que el precio de [Servicio] es elevado.')">
-                <div class="prompt-starter-icon sales">
-                    <i class="ph ph-handshake"></i>
-                </div>
-                <div class="prompt-starter-details">
-                    <h4>Estrategia Comercial</h4>
-                    <p>Manejo de objeciones y guiones de venta profesionales.</p>
-                </div>
-            </div>
-
-            <div class="prompt-starter-card" onclick="usePromptStarter('Sintetiza y extrae los 5 puntos clave más relevantes sobre las tendencias actuales de...')">
+        const data = specialtyHeroData[currentSpecialty] || specialtyHeroData['director_360'];
+        grid.innerHTML = data.starters.map(s => `
+            <div class="prompt-starter-card" onclick="usePromptStarter('${s.prompt.replace(/'/g, "\\'")}')">
                 <div class="prompt-starter-icon analysis">
-                    <i class="ph ph-chart-bar"></i>
+                    <i class="ph ${s.icon}"></i>
                 </div>
                 <div class="prompt-starter-details">
-                    <h4>Análisis & Síntesis</h4>
-                    <p>Resume textos, investiga con Google y estructura conclusiones.</p>
+                    <h4>${s.title}</h4>
+                    <p>${s.desc}</p>
                 </div>
             </div>
-
-            <div class="prompt-starter-card" onclick="usePromptStarter('Ayúdame a redactar una propuesta de servicios detallada para [Cliente / Proyecto] con fases y entregables.')">
-                <div class="prompt-starter-icon automation">
-                    <i class="ph ph-briefcase"></i>
-                </div>
-                <div class="prompt-starter-details">
-                    <h4>Propuesta de Servicios</h4>
-                    <p>Estructura cotizaciones, fases de proyecto y condiciones comerciales.</p>
-                </div>
-            </div>
-        `;
+        `).join('');
     }
 
     // Búsqueda en conversación activa
@@ -1168,14 +1237,28 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         }
         
         msgDiv.innerHTML = `
-            <div class="message-avatar ai-avatar"><i class="ph ${aiIcon}"></i></div>
+            <div class="message-avatar ai-avatar rg-avatar-generating"><i class="ph-bold ${aiIcon}"></i></div>
             <div class="message-wrapper">
-                <div class="typing-bubble">
-                    <span class="typing-text">Romita está pensando</span>
-                    <div class="typing-dots">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
+                <div class="message-bubble rg-neural-bubble">
+                    <div class="romita-chat-orbital-card">
+                        <div class="romita-orbital-core">
+                            <div class="roc-pulse"></div>
+                            <div class="roc-ring roc-ring-1"></div>
+                            <div class="roc-ring roc-ring-2"></div>
+                            <div class="roc-nucleus">
+                                <i class="ph-bold ph-sparkle"></i>
+                            </div>
+                        </div>
+                        <div class="roc-chat-details">
+                            <div class="roc-status-row">
+                                <span class="roc-status-ping"></span>
+                                <span id="romita-module-status-text" class="roc-status-msg">Romita está procesando el contexto...</span>
+                            </div>
+                            <div class="roc-shimmer-telemetry">
+                                <div class="roc-shimmer-bar b1"></div>
+                                <div class="roc-shimmer-bar b2"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1183,11 +1266,60 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         container.appendChild(msgDiv);
         const chatArea = document.getElementById('chatArea');
         chatArea.scrollTop = chatArea.scrollHeight;
+
+        // Efectos dinámicos en cabecera y composer
+        const header = document.querySelector('.romita-header');
+        if (header) header.classList.add('is-generating');
+        const composer = document.querySelector('.romita-input-container');
+        if (composer) composer.classList.add('is-generating');
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
+        }
+
+        // Ciclado dinámico de frases futuristas de telemetría
+        const statusPhrases = [
+            'Romita está procesando el contexto...',
+            'Consultando base de proyectos y ecosistema...',
+            'Analizando pilares estratégicos y métricas...',
+            'Sintetizando propuesta de alto impacto...',
+            'Generando respuesta final...'
+        ];
+        let phraseIdx = 0;
+        if (romitaModuleStatusInterval) clearInterval(romitaModuleStatusInterval);
+        romitaModuleStatusInterval = setInterval(() => {
+            phraseIdx = (phraseIdx + 1) % statusPhrases.length;
+            const statusEl = document.getElementById('romita-module-status-text');
+            if (statusEl) {
+                statusEl.style.opacity = '0';
+                setTimeout(() => {
+                    if (statusEl) {
+                        statusEl.innerText = statusPhrases[phraseIdx];
+                        statusEl.style.opacity = '1';
+                    }
+                }, 180);
+            }
+        }, 2200);
     }
 
     function removeTypingIndicator() {
+        if (romitaModuleStatusInterval) {
+            clearInterval(romitaModuleStatusInterval);
+            romitaModuleStatusInterval = null;
+        }
         const ind = document.getElementById('typingIndicator');
         if(ind) ind.remove();
+
+        const header = document.querySelector('.romita-header');
+        if (header) header.classList.remove('is-generating');
+        const composer = document.querySelector('.romita-input-container');
+        if (composer) composer.classList.remove('is-generating');
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="ph ph-paper-plane-right"></i>';
+        }
     }
 
     function newConversation() {
@@ -1220,6 +1352,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         const payload = new URLSearchParams();
         payload.append('action', 'chat');
         payload.append('message', text);
+        payload.append('specialty', currentSpecialty || 'director_360');
         if (activeSkill) {
             payload.append('skill_prompt', activeSkill.prompt);
         }
@@ -1254,14 +1387,14 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 chatHistory.push({role: 'assistant', content: data.response});
                 loadChatHistoryList();
             } else {
-                addMessageToUI('assistant', '⚠️ Ocurrió un error: ' + data.error);
+                addMessageToUI('assistant', '<i class="ph ph-warning-circle" style="color:#ef4444;"></i> Ocurrió un error: ' + data.error);
             }
         })
         .catch(err => {
             removeTypingIndicator();
             input.disabled = false;
             btn.disabled = false;
-            addMessageToUI('assistant', '⚠️ Error de conexión con el servidor.');
+            addMessageToUI('assistant', '<i class="ph ph-warning-circle" style="color:#ef4444;"></i> Error de conexión con el servidor.');
         });
     }
 
