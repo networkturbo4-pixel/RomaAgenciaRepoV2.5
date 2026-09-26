@@ -812,7 +812,7 @@ try {
             . "  \"message\": \"Texto completo formateado con emojis y negritas de WhatsApp (*negrita*)\"\n"
             . "}\n"
             . "```\n\n"
-            . "REGLA: Fuera del bloque de acción, explica y desarrolla tu propuesta con tu elocuencia y calidez habitual.";
+            . "REGLA OBLIGATORIA: En el bloque de acción escribe ÚNICAMENTE el JSON puro dentro de ```romita-action:...```. NUNCA generes código HTML, etiquetas <div>, ni snippets de código manual, ya que el sistema Roma SaaS toma automáticamente el JSON y renderiza el componente interactivo y el modal de creación en pantalla. Fuera del bloque de acción, explica y desarrolla tu propuesta con tu elocuencia y calidez habitual.";
         $sysInstructions[] = $agenticInstructions;
 
         // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario con RBAC)

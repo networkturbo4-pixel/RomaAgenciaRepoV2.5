@@ -277,6 +277,59 @@ if ($currentHour >= 5 && $currentHour < 12) {
     </div>
 </div>
 
+<!-- Modal de Creación y Edición de Tareas de Romita AI -->
+<div id="romita-task-modal-overlay" class="romita-task-modal-overlay" style="display:none;" onclick="handleRomitaTaskModalOverlayClick(event)">
+    <div class="romita-task-modal-card" onclick="event.stopPropagation()">
+        <div class="rac-modal-header">
+            <div class="rac-modal-header-left">
+                <span class="rac-icon-pill rac-icon-kanban"><i class="ph-bold ph-kanban"></i></span>
+                <div>
+                    <h3 class="rac-modal-title" id="romita-task-modal-heading">Configurar Tarea en Kanban</h3>
+                    <span class="rac-modal-sub">Edita los detalles antes de insertarla en el tablero</span>
+                </div>
+            </div>
+            <button type="button" class="rac-modal-close" onclick="closeRomitaTaskEditModal()" title="Cerrar"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="rac-modal-body">
+            <input type="hidden" id="rtm-card-id" value="">
+            <input type="hidden" id="rtm-task-index" value="0">
+            
+            <div class="rac-form-group">
+                <label for="rtm-title" class="rac-form-label">Título de la Tarea <span class="rac-required">*</span></label>
+                <input type="text" id="rtm-title" class="rac-form-input" placeholder="Ej: Diseñar una tarjeta de presentación...">
+            </div>
+
+            <div class="rac-form-group">
+                <label for="rtm-desc" class="rac-form-label">Descripción / Entregables</label>
+                <textarea id="rtm-desc" class="rac-form-textarea" rows="3" placeholder="Detalles, especificaciones o enlaces..."></textarea>
+            </div>
+
+            <div class="rac-form-row">
+                <div class="rac-form-group" style="flex:1;">
+                    <label for="rtm-due-date" class="rac-form-label"><i class="ph ph-calendar"></i> Fecha Límite</label>
+                    <input type="date" id="rtm-due-date" class="rac-form-input">
+                </div>
+                <div class="rac-form-group" style="flex:1;">
+                    <label class="rac-form-label"><i class="ph ph-warning"></i> Prioridad</label>
+                    <label class="rac-urgent-toggle" for="rtm-urgent">
+                        <input type="checkbox" id="rtm-urgent" class="rac-toggle-check">
+                        <span class="rac-toggle-label">Marcar como Urgente</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="rac-modal-footer">
+            <button type="button" class="btn-rac-modal-cancel" onclick="closeRomitaTaskEditModal()">Cancelar</button>
+            <button type="button" class="btn-rac-modal-update" onclick="saveRomitaTaskChangesToCard()">
+                <i class="ph ph-check"></i> Actualizar en Chat
+            </button>
+            <button type="button" class="btn-rac-execute" id="btn-rtm-create-now" onclick="createRomitaTaskDirectlyFromModal()">
+                <i class="ph-bold ph-plus-circle"></i> Crear en Kanban Ahora
+            </button>
+        </div>
+    </div>
+</div>
+
 <style>
 /* ==========================================================================
    ROMITA GLOBAL FLOATING ASSISTANT & COMMAND PALETTE (MODERN NATIVE APP STYLE)
@@ -3853,53 +3906,51 @@ function renderRomitaTaskActionCard(jsonContent) {
 
         let tasksHtml = '';
         tasks.forEach((t, i) => {
-            const urgentBadge = t.is_urgent ? '<span class="rac-badge rac-badge-urgent"><i class="ph-bold ph-warning"></i> Urgente</span>' : '';
-            const dueBadge = t.due_date ? `<span class="rac-badge rac-badge-date"><i class="ph ph-calendar"></i> ${escapeRomitaHtml(t.due_date)}</span>` : '';
+            const urgentBadge = t.is_urgent ? `<span class="rac-badge rac-badge-urgent" id="${cardId}-urgent-badge-${i}"><i class="ph-bold ph-warning"></i> Urgente</span>` : `<span id="${cardId}-urgent-badge-${i}"></span>`;
+            const dueBadge = t.due_date ? `<span class="rac-badge rac-badge-date" id="${cardId}-due-badge-${i}"><i class="ph ph-calendar"></i> ${escapeRomitaHtml(t.due_date)}</span>` : `<span id="${cardId}-due-badge-${i}"></span>`;
             
-            tasksHtml += `
-                <label class="rac-task-item" for="${cardId}-t-${i}">
-                    <input type="checkbox" id="${cardId}-t-${i}" class="rac-task-check" checked data-task-index="${i}" onchange="updateRomitaActionTaskCount('${cardId}')">
-                    <div class="rac-task-content">
-                        <div class="rac-task-header">
-                            <span class="rac-task-title">${escapeRomitaHtml(t.title)}</span>
-                            <div class="rac-task-tags">
-                                ${urgentBadge}
-                                ${dueBadge}
-                            </div>
-                        </div>
-                        ${t.description ? `<p class="rac-task-desc">${escapeRomitaHtml(t.description)}</p>` : ''}
-                    </div>
-                </label>
-            `;
+            tasksHtml += `<div class="rac-task-item" id="${cardId}-item-${i}">`
+                + `<input type="checkbox" id="${cardId}-t-${i}" class="rac-task-check" checked data-task-index="${i}" onchange="updateRomitaActionTaskCount('${cardId}')">`
+                + `<div class="rac-task-content">`
+                + `<div class="rac-task-header">`
+                + `<span class="rac-task-title" id="${cardId}-title-${i}">${escapeRomitaHtml(t.title)}</span>`
+                + `<div class="rac-task-tags">`
+                + urgentBadge
+                + dueBadge
+                + `<button type="button" class="rac-btn-edit" onclick="event.preventDefault(); event.stopPropagation(); openRomitaTaskEditModal('${cardId}', ${i})" title="Editar tarea"><i class="ph ph-pencil-simple"></i> <span>Editar</span></button>`
+                + `</div>`
+                + `</div>`
+                + `<p class="rac-task-desc" id="${cardId}-desc-${i}" style="${t.description ? '' : 'display:none;'}">${escapeRomitaHtml(t.description || '')}</p>`
+                + `</div>`
+                + `</div>`;
         });
 
-        return `
-            <div class="romita-action-card rac-tasks-card" id="${cardId}" data-raw-tasks="${encodedData}">
-                <div class="rac-header">
-                    <div class="rac-header-left">
-                        <span class="rac-icon-pill rac-icon-kanban"><i class="ph-bold ph-kanban"></i></span>
-                        <div class="rac-header-titles">
-                            <strong class="rac-title">Acción: Crear tareas en Kanban</strong>
-                            <span class="rac-sub" id="${cardId}-sub">${tasks.length} tareas listas para asignar</span>
-                        </div>
-                    </div>
-                    <span class="rac-chip-status"><i class="ph-bold ph-sparkle"></i> IA Copilot</span>
-                </div>
-                <div class="rac-body">
-                    <div class="rac-tasks-list">
-                        ${tasksHtml}
-                    </div>
-                </div>
-                <div class="rac-footer">
-                    <button type="button" class="btn-rac-execute" onclick="executeRomitaCreateTasks('${cardId}')">
-                        <i class="ph-bold ph-plus-circle"></i> <span class="btn-text">Insertar ${tasks.length} tareas en el Kanban</span>
-                    </button>
-                    <a href="index.php?module=tasks" target="_blank" class="rac-link-kanban" title="Abrir módulo de tareas">
-                        Ir al Kanban <i class="ph ph-arrow-up-right"></i>
-                    </a>
-                </div>
-            </div>
-        `;
+        return `<div class="romita-action-card rac-tasks-card" id="${cardId}" data-raw-tasks="${encodedData}">`
+            + `<div class="rac-header">`
+            + `<div class="rac-header-left">`
+            + `<span class="rac-icon-pill rac-icon-kanban"><i class="ph-bold ph-kanban"></i></span>`
+            + `<div class="rac-header-titles">`
+            + `<strong class="rac-title">Acción: Crear tareas en Kanban</strong>`
+            + `<span class="rac-sub" id="${cardId}-sub">${tasks.length} tareas listas para asignar</span>`
+            + `</div>`
+            + `</div>`
+            + `<span class="rac-chip-status"><i class="ph-bold ph-sparkle"></i> IA Copilot</span>`
+            + `</div>`
+            + `<div class="rac-body">`
+            + `<div class="rac-tasks-list">${tasksHtml}</div>`
+            + `</div>`
+            + `<div class="rac-footer">`
+            + `<button type="button" class="btn-rac-execute" onclick="executeRomitaCreateTasks('${cardId}')">`
+            + `<i class="ph-bold ph-plus-circle"></i> <span class="btn-text">Insertar ${tasks.length} tareas en el Kanban</span>`
+            + `</button>`
+            + `<button type="button" class="btn-rac-modal" onclick="openRomitaTaskEditModal('${cardId}', 0)" title="Abrir y configurar en Modal">`
+            + `<i class="ph ph-sliders-horizontal"></i> <span>Abrir en Modal</span>`
+            + `</button>`
+            + `<a href="index.php?module=tasks" target="_blank" class="rac-link-kanban" title="Abrir módulo de tareas">`
+            + `Ir al Kanban <i class="ph ph-arrow-up-right"></i>`
+            + `</a>`
+            + `</div>`
+            + `</div>`;
     } catch (e) {
         console.warn('Error parsing create_tasks action:', e);
         return `<pre><code>${jsonContent}</code></pre>`;
@@ -3912,52 +3963,30 @@ function renderRomitaMeetingActionCard(jsonContent) {
         const cardId = 'rac-m-' + Math.random().toString(36).substr(2, 9);
         const encodedData = encodeURIComponent(JSON.stringify(data));
 
-        return `
-            <div class="romita-action-card rac-meeting-card" id="${cardId}" data-raw-meeting="${encodedData}">
-                <div class="rac-header">
-                    <div class="rac-header-left">
-                        <span class="rac-icon-pill rac-icon-meeting"><i class="ph-bold ph-calendar-plus"></i></span>
-                        <div class="rac-header-titles">
-                            <strong class="rac-title">Acción: Agendar Reunión</strong>
-                            <span class="rac-sub">Programación en agenda de Roma</span>
-                        </div>
-                    </div>
-                    <span class="rac-chip-status"><i class="ph-bold ph-calendar-check"></i> Agenda</span>
-                </div>
-                <div class="rac-body">
-                    <div class="rac-meeting-details">
-                        <div class="rac-detail-row">
-                            <span class="rac-label"><i class="ph ph-notepad"></i> Motivo:</span>
-                            <span class="rac-value"><strong>${escapeRomitaHtml(data.motivo || 'Sesión de trabajo')}</strong></span>
-                        </div>
-                        <div class="rac-detail-row">
-                            <span class="rac-label"><i class="ph ph-clock"></i> Fecha y Hora:</span>
-                            <span class="rac-value rac-highlight-date">${escapeRomitaHtml(data.fecha_hora || 'Pendiente por coordinar')}</span>
-                        </div>
-                        ${data.meet_link ? `
-                        <div class="rac-detail-row">
-                            <span class="rac-label"><i class="ph ph-video-camera"></i> Meet:</span>
-                            <span class="rac-value"><a href="${escapeRomitaHtml(data.meet_link)}" target="_blank" class="rac-meet-link">${escapeRomitaHtml(data.meet_link)}</a></span>
-                        </div>
-                        ` : ''}
-                        ${data.resumen ? `
-                        <div class="rac-detail-row">
-                            <span class="rac-label"><i class="ph ph-text-align-left"></i> Resumen:</span>
-                            <span class="rac-value">${escapeRomitaHtml(data.resumen)}</span>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-                <div class="rac-footer">
-                    <button type="button" class="btn-rac-execute btn-rac-meeting" onclick="executeRomitaScheduleMeeting('${cardId}')">
-                        <i class="ph-bold ph-calendar-plus"></i> <span class="btn-text">Guardar en Agenda de Reuniones</span>
-                    </button>
-                    <a href="index.php?module=reuniones" target="_blank" class="rac-link-kanban" title="Abrir agenda de reuniones">
-                        Ver Agenda <i class="ph ph-arrow-up-right"></i>
-                    </a>
-                </div>
-            </div>
-        `;
+        return `<div class="romita-action-card rac-meeting-card" id="${cardId}" data-raw-meeting="${encodedData}">`
+            + `<div class="rac-header">`
+            + `<div class="rac-header-left">`
+            + `<span class="rac-icon-pill rac-icon-meeting"><i class="ph-bold ph-calendar-plus"></i></span>`
+            + `<div class="rac-header-titles">`
+            + `<strong class="rac-title">Acción: Agendar Reunión</strong>`
+            + `<span class="rac-sub">Programación en agenda de Roma</span>`
+            + `</div>`
+            + `</div>`
+            + `<span class="rac-chip-status"><i class="ph-bold ph-calendar-check"></i> Agenda</span>`
+            + `</div>`
+            + `<div class="rac-body">`
+            + `<div class="rac-meeting-details">`
+            + `<div class="rac-detail-row"><span class="rac-label"><i class="ph ph-notepad"></i> Motivo:</span><span class="rac-value"><strong>${escapeRomitaHtml(data.motivo || 'Sesión de trabajo')}</strong></span></div>`
+            + `<div class="rac-detail-row"><span class="rac-label"><i class="ph ph-clock"></i> Fecha y Hora:</span><span class="rac-value rac-highlight-date">${escapeRomitaHtml(data.fecha_hora || 'Pendiente por coordinar')}</span></div>`
+            + (data.meet_link ? `<div class="rac-detail-row"><span class="rac-label"><i class="ph ph-video-camera"></i> Meet:</span><span class="rac-value"><a href="${escapeRomitaHtml(data.meet_link)}" target="_blank" class="rac-meet-link">${escapeRomitaHtml(data.meet_link)}</a></span></div>` : '')
+            + (data.resumen ? `<div class="rac-detail-row"><span class="rac-label"><i class="ph ph-text-align-left"></i> Resumen:</span><span class="rac-value">${escapeRomitaHtml(data.resumen)}</span></div>` : '')
+            + `</div>`
+            + `</div>`
+            + `<div class="rac-footer">`
+            + `<button type="button" class="btn-rac-execute btn-rac-meeting" onclick="executeRomitaScheduleMeeting('${cardId}')"><i class="ph-bold ph-calendar-plus"></i> <span class="btn-text">Guardar en Agenda de Reuniones</span></button>`
+            + `<a href="index.php?module=reuniones" target="_blank" class="rac-link-kanban" title="Abrir agenda de reuniones">Ver Agenda <i class="ph ph-arrow-up-right"></i></a>`
+            + `</div>`
+            + `</div>`;
     } catch (e) {
         return `<pre><code>${jsonContent}</code></pre>`;
     }
@@ -3972,35 +4001,25 @@ function renderRomitaWhatsappActionCard(jsonContent) {
         const waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(msg);
         const safeEncodedMsg = encodeURIComponent(msg);
 
-        return `
-            <div class="romita-action-card rac-whatsapp-card" id="${cardId}">
-                <div class="rac-header">
-                    <div class="rac-header-left">
-                        <span class="rac-icon-pill rac-icon-whatsapp"><i class="ph-bold ph-whatsapp-logo"></i></span>
-                        <div class="rac-header-titles">
-                            <strong class="rac-title">Mensaje listo para WhatsApp</strong>
-                            <span class="rac-sub">Para: ${escapeRomitaHtml(recipient)}</span>
-                        </div>
-                    </div>
-                    <span class="rac-chip-status rac-chip-wa"><i class="ph-bold ph-paper-plane-tilt"></i> WhatsApp</span>
-                </div>
-                <div class="rac-body">
-                    <div class="rac-wa-balloon">
-                        <div class="rac-wa-balloon-inner">
-                            ${escapeRomitaHtml(msg).replace(/\n/g, '<br>')}
-                        </div>
-                    </div>
-                </div>
-                <div class="rac-footer">
-                    <a href="${waUrl}" target="_blank" class="btn-rac-execute btn-rac-wa">
-                        <i class="ph-bold ph-whatsapp-logo"></i> <span class="btn-text">Enviar por WhatsApp</span>
-                    </a>
-                    <button type="button" class="btn-rac-copy" onclick="copyActionCardText(this, '${safeEncodedMsg}')">
-                        <i class="ph ph-copy"></i> Copiar texto
-                    </button>
-                </div>
-            </div>
-        `;
+        return `<div class="romita-action-card rac-whatsapp-card" id="${cardId}">`
+            + `<div class="rac-header">`
+            + `<div class="rac-header-left">`
+            + `<span class="rac-icon-pill rac-icon-whatsapp"><i class="ph-bold ph-whatsapp-logo"></i></span>`
+            + `<div class="rac-header-titles">`
+            + `<strong class="rac-title">Mensaje listo para WhatsApp</strong>`
+            + `<span class="rac-sub">Para: ${escapeRomitaHtml(recipient)}</span>`
+            + `</div>`
+            + `</div>`
+            + `<span class="rac-chip-status rac-chip-wa"><i class="ph-bold ph-paper-plane-tilt"></i> WhatsApp</span>`
+            + `</div>`
+            + `<div class="rac-body">`
+            + `<div class="rac-wa-balloon"><div class="rac-wa-balloon-inner">${escapeRomitaHtml(msg).replace(/\n/g, '<br>')}</div></div>`
+            + `</div>`
+            + `<div class="rac-footer">`
+            + `<a href="${waUrl}" target="_blank" class="btn-rac-execute btn-rac-wa"><i class="ph-bold ph-whatsapp-logo"></i> <span class="btn-text">Enviar por WhatsApp</span></a>`
+            + `<button type="button" class="btn-rac-copy" onclick="copyActionCardText(this, '${safeEncodedMsg}')"><i class="ph ph-copy"></i> Copiar texto</button>`
+            + `</div>`
+            + `</div>`;
     } catch (e) {
         return `<pre><code>${jsonContent}</code></pre>`;
     }
@@ -4028,6 +4047,166 @@ function copyActionCardText(btn, encodedText) {
             btn.style.color = '';
         }, 1800);
     });
+}
+
+function openRomitaTaskEditModal(cardId, taskIndex) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    const rawData = card.getAttribute('data-raw-tasks');
+    if (!rawData) return;
+
+    const tasks = JSON.parse(decodeURIComponent(rawData));
+    const t = tasks[taskIndex] || tasks[0];
+    if (!t) return;
+
+    const overlay = document.getElementById('romita-task-modal-overlay');
+    if (!overlay) return;
+
+    document.getElementById('rtm-card-id').value = cardId;
+    document.getElementById('rtm-task-index').value = taskIndex;
+    document.getElementById('rtm-title').value = t.title || '';
+    document.getElementById('rtm-desc').value = t.description || '';
+    document.getElementById('rtm-due-date').value = t.due_date || '';
+    document.getElementById('rtm-urgent').checked = !!t.is_urgent;
+
+    const heading = document.getElementById('romita-task-modal-heading');
+    if (heading) heading.innerText = tasks.length > 1 ? `Configurar Tarea #${taskIndex + 1} de ${tasks.length}` : 'Configurar Tarea en Kanban';
+
+    overlay.style.display = 'flex';
+    setTimeout(() => {
+        const titleInput = document.getElementById('rtm-title');
+        if (titleInput) titleInput.focus();
+    }, 120);
+}
+
+function closeRomitaTaskEditModal() {
+    const overlay = document.getElementById('romita-task-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function handleRomitaTaskModalOverlayClick(e) {
+    if (e.target && e.target.id === 'romita-task-modal-overlay') {
+        closeRomitaTaskEditModal();
+    }
+}
+
+function saveRomitaTaskChangesToCard() {
+    const cardId = document.getElementById('rtm-card-id').value;
+    const taskIndex = parseInt(document.getElementById('rtm-task-index').value) || 0;
+    const card = document.getElementById(cardId);
+    if (!card) return closeRomitaTaskEditModal();
+
+    const title = document.getElementById('rtm-title').value.trim();
+    if (!title) {
+        alert('Por favor escribe un título para la tarea.');
+        return;
+    }
+    const desc = document.getElementById('rtm-desc').value.trim();
+    const dueDate = document.getElementById('rtm-due-date').value;
+    const isUrgent = document.getElementById('rtm-urgent').checked ? 1 : 0;
+
+    const rawData = card.getAttribute('data-raw-tasks');
+    if (!rawData) return closeRomitaTaskEditModal();
+
+    const tasks = JSON.parse(decodeURIComponent(rawData));
+    if (tasks[taskIndex]) {
+        tasks[taskIndex].title = title;
+        tasks[taskIndex].description = desc;
+        tasks[taskIndex].due_date = dueDate;
+        tasks[taskIndex].is_urgent = isUrgent;
+    }
+
+    card.setAttribute('data-raw-tasks', encodeURIComponent(JSON.stringify(tasks)));
+
+    // Actualizar vista visual en la tarjeta del chat
+    const titleEl = document.getElementById(`${cardId}-title-${taskIndex}`);
+    if (titleEl) titleEl.innerText = title;
+
+    const descEl = document.getElementById(`${cardId}-desc-${taskIndex}`);
+    if (descEl) {
+        descEl.innerText = desc;
+        descEl.style.display = desc ? 'block' : 'none';
+    }
+
+    const urgentBadgeEl = document.getElementById(`${cardId}-urgent-badge-${taskIndex}`);
+    if (urgentBadgeEl) {
+        urgentBadgeEl.innerHTML = isUrgent ? '<span class="rac-badge rac-badge-urgent"><i class="ph-bold ph-warning"></i> Urgente</span>' : '';
+    }
+
+    const dueBadgeEl = document.getElementById(`${cardId}-due-badge-${taskIndex}`);
+    if (dueBadgeEl) {
+        dueBadgeEl.innerHTML = dueDate ? `<span class="rac-badge rac-badge-date"><i class="ph ph-calendar"></i> ${escapeRomitaHtml(dueDate)}</span>` : '';
+    }
+
+    closeRomitaTaskEditModal();
+}
+
+async function createRomitaTaskDirectlyFromModal() {
+    const cardId = document.getElementById('rtm-card-id').value;
+    const taskIndex = parseInt(document.getElementById('rtm-task-index').value) || 0;
+    const title = document.getElementById('rtm-title').value.trim();
+    if (!title) {
+        alert('Por favor escribe un título para la tarea.');
+        return;
+    }
+    const desc = document.getElementById('rtm-desc').value.trim();
+    const dueDate = document.getElementById('rtm-due-date').value;
+    const isUrgent = document.getElementById('rtm-urgent').checked ? 1 : 0;
+
+    const btn = document.getElementById('btn-rtm-create-now');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
+    }
+
+    const taskToSave = [{
+        title: title,
+        description: desc,
+        due_date: dueDate,
+        is_urgent: isUrgent
+    }];
+
+    try {
+        const formData = new FormData();
+        formData.append('action', 'tool_create_tasks');
+        formData.append('tasks', JSON.stringify(taskToSave));
+
+        const res = await fetch('ajax/ajax_romita.php', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+            closeRomitaTaskEditModal();
+            const card = document.getElementById(cardId);
+            if (card) {
+                const footer = card.querySelector('.rac-footer');
+                if (footer) {
+                    footer.innerHTML = `
+                        <div class="rac-success-banner">
+                            <i class="ph-fill ph-check-circle"></i>
+                            <span>¡Tarea "${escapeRomitaHtml(title)}" creada en el Kanban!</span>
+                            <a href="index.php?module=tasks" target="_blank" class="rac-btn-view">
+                                Abrir Kanban <i class="ph ph-arrow-up-right"></i>
+                            </a>
+                        </div>
+                    `;
+                }
+            }
+        } else {
+            alert(data.error || 'Error al crear tarea');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    } catch (err) {
+        alert('Error de conexión');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
 }
 
 async function executeRomitaCreateTasks(cardId) {
@@ -4186,28 +4365,55 @@ function renderRomitaMarkdown(text) {
     if (!text) return '';
     let out = preprocessMarkdownTables(text);
 
-    // Interceptar bloques agénticos de Romita Action antes de marked
+    // Lista de bloques agénticos interceptados antes de pasar por marked.parse()
+    const actionPlaceholders = [];
+
     out = out.replace(/```romita-action:create_tasks\s*([\s\S]*?)```/g, function(match, jsonContent) {
-        return renderRomitaTaskActionCard(jsonContent);
+        const placeholder = '<!--ROMITA_ACTION_TASKS_' + actionPlaceholders.length + '-->';
+        actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaTaskActionCard(jsonContent) });
+        return '\n\n' + placeholder + '\n\n';
     });
 
     out = out.replace(/```romita-action:schedule_meeting\s*([\s\S]*?)```/g, function(match, jsonContent) {
-        return renderRomitaMeetingActionCard(jsonContent);
+        const placeholder = '<!--ROMITA_ACTION_MEET_' + actionPlaceholders.length + '-->';
+        actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaMeetingActionCard(jsonContent) });
+        return '\n\n' + placeholder + '\n\n';
     });
 
     out = out.replace(/```romita-action:whatsapp_message\s*([\s\S]*?)```/g, function(match, jsonContent) {
-        return renderRomitaWhatsappActionCard(jsonContent);
+        const placeholder = '<!--ROMITA_ACTION_WA_' + actionPlaceholders.length + '-->';
+        actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaWhatsappActionCard(jsonContent) });
+        return '\n\n' + placeholder + '\n\n';
     });
 
+    let rendered = '';
     // Si marked.js está cargado, usar su motor completo GFM
     if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
         try {
             out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
-            return marked.parse(out);
+            rendered = marked.parse(out);
         } catch (e) {
             console.warn('Error al parsear con marked:', e);
+            rendered = out;
         }
+    } else {
+        // Parser nativo de contingencia
+        out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
+        rendered = out;
     }
+
+    // Inyectar de vuelta las tarjetas de acción limpias sin ser alteradas ni convertidas a código por marked
+    actionPlaceholders.forEach(item => {
+        const pRegex = new RegExp('<p>\\s*' + item.placeholder + '\\s*<\\/p>', 'g');
+        if (pRegex.test(rendered)) {
+            rendered = rendered.replace(pRegex, item.html);
+        } else {
+            rendered = rendered.split(item.placeholder).join(item.html);
+        }
+    });
+
+    return rendered;
+}
 
     // Parser nativo de contingencia con soporte para tablas
     out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
