@@ -22,6 +22,7 @@ if (!isset($_SESSION['user_id'])) return;
 <!-- Global Modal Overlay / Command Palette Spotlight -->
 <div id="romita-global-overlay" class="romita-global-overlay" style="display: none;" onclick="handleRomitaOverlayClick(event)">
     <div id="romita-global-dialog" class="romita-global-dialog" onclick="event.stopPropagation()">
+        <div class="rg-dialog-laser"></div>
         
         <!-- App Header (Native macOS / Modern SaaS style) -->
         <div class="rg-header">
@@ -164,8 +165,26 @@ if (!isset($_SESSION['user_id'])) return;
     position: fixed;
     bottom: 24px;
     right: 24px;
-    z-index: 99990;
+    z-index: 990;
     pointer-events: auto;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+}
+
+/* Ocultar la burbuja automáticamente si hay cualquier modal o ventana superpuesta abierta */
+body:has(.modal-overlay.active) .romita-fab-container,
+body:has(#post-modal.active) .romita-fab-container,
+body:has(.modal.show) .romita-fab-container,
+body:has(.modal.in) .romita-fab-container,
+body:has(.swal2-container) .romita-fab-container,
+body.modal-open .romita-fab-container,
+body.swal2-shown .romita-fab-container,
+body.has-active-modal .romita-fab-container,
+.modal-overlay.active ~ * .romita-fab-container,
+.romita-fab-container.is-hidden-by-modal {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: scale(0.6) translateY(24px) !important;
 }
 
 .romita-fab-btn {
@@ -1033,18 +1052,58 @@ if (!isset($_SESSION['user_id'])) return;
     100% { background-position: -250% 0; }
 }
 
-/* 2. Dialog Ambient Breathing Glow */
-.romita-global-dialog.is-generating {
-    border-color: rgba(99, 102, 241, 0.35);
-    box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.85),
-                0 0 0 1px rgba(99, 102, 241, 0.25),
-                0 0 50px rgba(99, 102, 241, 0.18);
-    animation: rgDialogAuraPulse 3s infinite alternate ease-in-out;
+/* Top Dialog Laser Scan */
+.rg-dialog-laser {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, #38bdf8 30%, #818cf8 60%, #ec4899 85%, transparent 100%);
+    background-size: 200% 100%;
+    opacity: 0;
+    pointer-events: none;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    transition: opacity 0.3s ease;
+    z-index: 15;
 }
 
-@keyframes rgDialogAuraPulse {
-    0% { box-shadow: 0 30px 80px -15px rgba(0,0,0,0.85), 0 0 0 1px rgba(99,102,241,0.2), 0 0 35px rgba(99,102,241,0.12); }
-    100% { box-shadow: 0 30px 80px -15px rgba(0,0,0,0.85), 0 0 0 1px rgba(99,102,241,0.4), 0 0 60px rgba(139,92,246,0.28); }
+.romita-global-dialog.is-generating .rg-dialog-laser {
+    opacity: 1;
+    animation: rgDialogLaserScan 1.6s infinite linear;
+}
+
+@keyframes rgDialogLaserScan {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 2. Dialog Animated Multi-Color Perimeter Aura while Generating */
+.romita-global-dialog.is-generating {
+    border-color: rgba(99, 102, 241, 0.75) !important;
+    animation: rgModalPerimeterAura 2.2s infinite alternate ease-in-out !important;
+}
+
+@keyframes rgModalPerimeterAura {
+    0% {
+        box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.85),
+                    0 0 25px rgba(168, 85, 247, 0.65),
+                    0 0 55px rgba(56, 189, 248, 0.45),
+                    0 30px 80px -10px rgba(0, 0, 0, 0.85);
+    }
+    50% {
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.95),
+                    0 0 35px rgba(56, 189, 248, 0.75),
+                    0 0 70px rgba(168, 85, 247, 0.55),
+                    0 32px 85px -10px rgba(0, 0, 0, 0.9);
+    }
+    100% {
+        box-shadow: 0 0 0 2.5px rgba(236, 72, 153, 0.9),
+                    0 0 40px rgba(236, 72, 153, 0.75),
+                    0 0 85px rgba(99, 102, 241, 0.55),
+                    0 34px 90px -10px rgba(0, 0, 0, 0.95);
+    }
 }
 
 /* 3. Holographic Chromatic Avatar Aura */
@@ -1070,118 +1129,169 @@ if (!isset($_SESSION['user_id'])) return;
     100% { transform: rotate(360deg); }
 }
 
-/* 4. Neural Generating Bubble Card */
+/* 4. Quantum Orbital Atom Generating Card (Modal Chat) */
 .rg-neural-bubble {
     background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+    border: 1px solid rgba(99, 102, 241, 0.3) !important;
     border-radius: 16px !important;
-    padding: 14px 18px !important;
+    padding: 12px 18px !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .rg-neural-bubble {
-    background: rgba(18, 18, 24, 0.7) !important;
-    border-color: rgba(99, 102, 241, 0.3) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(99, 102, 241, 0.08);
+    background: rgba(18, 18, 24, 0.75) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(99, 102, 241, 0.12);
 }
 
-.rg-neural-generating-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 250px;
-}
-
-.rg-neural-header {
+.romita-chat-orbital-card {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    min-width: 290px;
+    max-width: 480px;
 }
 
-/* 5. Audio / Neural Frequency Equalizer Bars */
-.rg-neural-equalizer {
+.romita-orbital-core {
+    position: relative;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
-    gap: 3px;
-    height: 18px;
+    justify-content: center;
     flex-shrink: 0;
 }
 
-.rg-eq-bar {
-    width: 3px;
-    border-radius: 3px;
-    background: linear-gradient(180deg, #38bdf8 0%, #6366f1 50%, #a855f7 100%);
-    animation: rgEqDance 0.9s ease-in-out infinite alternate;
-}
-
-.rg-eq-bar:nth-child(1) { height: 8px; animation-delay: 0.1s; }
-.rg-eq-bar:nth-child(2) { height: 16px; animation-delay: 0.35s; }
-.rg-eq-bar:nth-child(3) { height: 12px; animation-delay: 0.2s; }
-.rg-eq-bar:nth-child(4) { height: 18px; animation-delay: 0.45s; }
-.rg-eq-bar:nth-child(5) { height: 10px; animation-delay: 0.25s; }
-
-@keyframes rgEqDance {
-    0% { height: 5px; opacity: 0.45; transform: scaleY(0.6); }
-    100% { height: 18px; opacity: 1; transform: scaleY(1.15); filter: drop-shadow(0 0 5px #38bdf8); }
-}
-
-/* 6. Dynamic Context Status Pill */
-.rg-neural-status-pill {
-    display: inline-flex;
+.roc-nucleus {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #ec4899);
+    display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 0.76rem;
-    font-weight: 600;
-    color: #818cf8;
-    letter-spacing: 0.01em;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.82rem;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.85);
+    z-index: 2;
+    animation: rocNucleusPulse 1.4s infinite alternate ease-in-out;
 }
 
-[data-theme="dark"] .rg-neural-status-pill {
+@keyframes rocNucleusPulse {
+    0% { transform: scale(0.92); filter: drop-shadow(0 0 4px #6366f1); }
+    100% { transform: scale(1.08); filter: drop-shadow(0 0 12px #ec4899); }
+}
+
+.roc-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-top-color: #38bdf8;
+    border-right-color: #8b5cf6;
+}
+
+.roc-ring-1 {
+    animation: rocSpinRing1 1.3s infinite linear;
+}
+
+.roc-ring-2 {
+    inset: 3px;
+    border-top-color: #ec4899;
+    border-left-color: #4f46e5;
+    animation: rocSpinRing2 1.8s infinite linear reverse;
+}
+
+.roc-pulse {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.25);
+    filter: blur(4px);
+    animation: rocPulseGlow 1.8s infinite ease-out;
+}
+
+@keyframes rocSpinRing1 {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.08); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes rocSpinRing2 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes rocPulseGlow {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+.roc-chat-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.roc-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.roc-status-ping {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 10px #38bdf8;
+    animation: rocStatusPing 1.2s infinite ease-in-out;
+    flex-shrink: 0;
+}
+
+@keyframes rocStatusPing {
+    0%, 100% { transform: scale(0.85); opacity: 0.4; }
+    50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 6px #38bdf8); }
+}
+
+.roc-status-msg {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6366f1;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 0.2s ease;
+}
+
+[data-theme="dark"] .roc-status-msg {
     color: #a5b4fc;
 }
 
-.rg-neural-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #38bdf8;
-    box-shadow: 0 0 8px #38bdf8;
-    animation: rgDotPulse 1.2s infinite ease-in-out;
-    flex-shrink: 0;
-}
-
-@keyframes rgDotPulse {
-    0%, 100% { opacity: 0.35; transform: scale(0.85); }
-    50% { opacity: 1; transform: scale(1.25); filter: drop-shadow(0 0 6px #38bdf8); }
-}
-
-#rg-neural-status-text {
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-/* 7. Holographic Shimmer Lines (Futuristic Waveform Skeleton) */
-.rg-neural-shimmer-lines {
+.roc-shimmer-telemetry {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 6px;
     width: 100%;
-    max-width: 320px;
 }
 
-.rg-shimmer-line {
-    height: 7px;
-    border-radius: 4px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(99, 102, 241, 0.28) 35%, rgba(56, 189, 248, 0.45) 50%, rgba(168, 85, 247, 0.28) 65%, rgba(255, 255, 255, 0.05) 100%);
-    background-size: 250% 100%;
-    animation: rgShimmerWave 2s infinite linear;
+.roc-shimmer-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(56, 189, 248, 0.5) 40%, rgba(236, 72, 153, 0.45) 60%, rgba(99, 102, 241, 0.15) 100%);
+    background-size: 200% 100%;
+    animation: rocBarScan 1.6s infinite linear;
 }
 
-.rg-shimmer-line.l1 { width: 92%; }
-.rg-shimmer-line.l2 { width: 68%; animation-delay: 0.3s; }
+.roc-shimmer-bar.b1 { width: 92%; }
+.roc-shimmer-bar.b2 { width: 65%; animation-delay: 0.25s; }
 
-@keyframes rgShimmerWave {
-    0% { background-position: 250% 0; }
-    100% { background-position: -250% 0; }
+@keyframes rocBarScan {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 /* 8. Input Box Scanning State */
@@ -1652,23 +1762,24 @@ async function sendRomitaMessage() {
         <div class="rg-msg-avatar rg-avatar-generating"><i class="ph-bold ph-sparkle"></i></div>
         <div class="rg-msg-content-wrap">
             <div class="rg-msg-bubble rg-neural-bubble">
-                <div class="rg-neural-generating-card">
-                    <div class="rg-neural-header">
-                        <div class="rg-neural-equalizer">
-                            <span class="rg-eq-bar"></span>
-                            <span class="rg-eq-bar"></span>
-                            <span class="rg-eq-bar"></span>
-                            <span class="rg-eq-bar"></span>
-                            <span class="rg-eq-bar"></span>
-                        </div>
-                        <div class="rg-neural-status-pill">
-                            <span class="rg-neural-dot"></span>
-                            <span id="rg-neural-status-text">Romita está procesando el contexto...</span>
+                <div class="romita-chat-orbital-card">
+                    <div class="romita-orbital-core">
+                        <div class="roc-pulse"></div>
+                        <div class="roc-ring roc-ring-1"></div>
+                        <div class="roc-ring roc-ring-2"></div>
+                        <div class="roc-nucleus">
+                            <i class="ph-bold ph-sparkle"></i>
                         </div>
                     </div>
-                    <div class="rg-neural-shimmer-lines">
-                        <div class="rg-shimmer-line l1"></div>
-                        <div class="rg-shimmer-line l2"></div>
+                    <div class="roc-chat-details">
+                        <div class="roc-status-row">
+                            <span class="roc-status-ping"></span>
+                            <span id="rg-neural-status-text" class="roc-status-msg">Romita está procesando el contexto...</span>
+                        </div>
+                        <div class="roc-shimmer-telemetry">
+                            <div class="roc-shimmer-bar b1"></div>
+                            <div class="roc-shimmer-bar b2"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1850,4 +1961,42 @@ document.addEventListener('keydown', function(e) {
         toggleRomitaGlobalModal();
     }
 });
+
+// 12. Auto-hide floating FAB whenever any modal / overlay / dialog is open
+function setupRomitaFabModalWatcher() {
+    const fab = document.getElementById('romita-fab-container');
+    if (!fab) return;
+
+    function checkActiveModals() {
+        const hasModal = !!(
+            document.querySelector('.modal-overlay.active') ||
+            document.querySelector('#post-modal.active') ||
+            document.querySelector('.modal.show') ||
+            document.querySelector('.modal.in') ||
+            document.querySelector('.swal2-container') ||
+            document.body.classList.contains('modal-open') ||
+            document.body.classList.contains('has-active-modal')
+        );
+        if (hasModal) {
+            fab.classList.add('is-hidden-by-modal');
+        } else {
+            fab.classList.remove('is-hidden-by-modal');
+        }
+    }
+
+    const observer = new MutationObserver(checkActiveModals);
+    observer.observe(document.body, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: ['class', 'style']
+    });
+
+    // Run once on load
+    checkActiveModals();
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupRomitaFabModalWatcher);
+} else {
+    setupRomitaFabModalWatcher();
+}
 </script>
