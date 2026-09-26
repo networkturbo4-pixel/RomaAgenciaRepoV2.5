@@ -305,10 +305,10 @@ if (!isset($_SESSION['user_id'])) return;
 /* Dialog - Spotlight Mode (App Native Window) */
 .romita-global-dialog {
     position: relative;
-    width: 740px;
+    width: 940px;
     max-width: 95vw;
-    height: 690px;
-    max-height: 88vh;
+    height: 90vh;
+    max-height: 92vh;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 20px;
@@ -734,10 +734,10 @@ if (!isset($_SESSION['user_id'])) return;
 
 .rg-welcome-subtitle {
     margin: 0;
-    max-width: 440px;
-    font-size: 0.83rem;
+    max-width: 540px;
+    font-size: 0.88rem;
     color: #64748b;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 [data-theme="dark"] .rg-welcome-subtitle {
@@ -747,10 +747,10 @@ if (!isset($_SESSION['user_id'])) return;
 .rg-suggestions-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
-    max-width: 560px;
-    margin-top: 1rem;
+    max-width: 700px;
+    margin-top: 1.25rem;
 }
 
 @media (max-width: 600px) {
