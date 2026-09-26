@@ -1961,42 +1961,4 @@ document.addEventListener('keydown', function(e) {
         toggleRomitaGlobalModal();
     }
 });
-
-// 12. Auto-hide floating FAB whenever any modal / overlay / dialog is open
-function setupRomitaFabModalWatcher() {
-    const fab = document.getElementById('romita-fab-container');
-    if (!fab) return;
-
-    function checkActiveModals() {
-        const hasModal = !!(
-            document.querySelector('.modal-overlay.active') ||
-            document.querySelector('#post-modal.active') ||
-            document.querySelector('.modal.show') ||
-            document.querySelector('.modal.in') ||
-            document.querySelector('.swal2-container') ||
-            document.body.classList.contains('modal-open') ||
-            document.body.classList.contains('has-active-modal')
-        );
-        if (hasModal) {
-            fab.classList.add('is-hidden-by-modal');
-        } else {
-            fab.classList.remove('is-hidden-by-modal');
-        }
-    }
-
-    const observer = new MutationObserver(checkActiveModals);
-    observer.observe(document.body, {
-        attributes: true,
-        subtree: true,
-        attributeFilter: ['class', 'style']
-    });
-
-    // Run once on load
-    checkActiveModals();
-}
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupRomitaFabModalWatcher);
-} else {
-    setupRomitaFabModalWatcher();
-}
 </script>
