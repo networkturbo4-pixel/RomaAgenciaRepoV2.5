@@ -4075,4 +4075,363 @@ body:has(.romita-container) .content-wrapper {
     transform: translateX(0);
 }
 
+/* ==========================================================================
+   FASE 3: MULTIMODALIDAD, ARCHIVOS, VISIÓN ARTIFICIAL & PROMPTS VISUALES
+   ========================================================================== */
+
+/* Botón de Adjunto en Compositores */
+.rg-attach-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--romita-border);
+    background: transparent;
+    color: var(--romita-text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.15rem;
+    transition: all 0.2s ease;
+}
+
+.rg-attach-btn:hover {
+    background: var(--romita-surface-hover);
+    color: var(--romita-primary);
+    border-color: var(--romita-primary);
+    transform: translateY(-1px);
+}
+
+/* Estado Drag-Over sobre el Compositor */
+.romita-composer.drag-over,
+.rg-composer-card.drag-over,
+.romita-chat-input-box.drag-over {
+    border-color: #3b82f6 !important;
+    background: rgba(59, 130, 246, 0.04) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+    border-style: dashed !important;
+}
+
+/* Caja de Previsualización de Adjunto antes de Enviar */
+.romita-attachment-preview-box {
+    margin: 8px 12px 10px;
+    padding: 10px 14px;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 10px;
+    animation: fadeInPreview 0.25s ease;
+}
+
+@keyframes fadeInPreview {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.romita-attachment-preview-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.romita-att-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.romita-att-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.romita-att-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.romita-att-name {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--romita-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.romita-att-size {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--romita-text-muted);
+}
+
+.romita-att-remove {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--romita-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.15s ease;
+}
+
+.romita-att-remove:hover {
+    background: #ef4444;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* Chips de Sugerencia Rápida para Visión / Auditoría */
+.romita-vision-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(59, 130, 246, 0.2);
+}
+
+.rvc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--romita-surface);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: var(--romita-text);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.rvc-chip:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    transform: translateY(-1px);
+}
+
+/* Adjuntos renderizados dentro del mensaje del usuario */
+.romita-msg-attachment-container {
+    margin-bottom: 10px;
+}
+
+.romita-msg-attachment-img-wrap {
+    max-width: 320px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    background: #000;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.romita-msg-attachment-img-wrap:hover {
+    transform: scale(1.02);
+}
+
+.romita-attached-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 260px;
+    object-fit: cover;
+}
+
+.romita-attachment-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    font-size: 0.72rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    backdrop-filter: blur(4px);
+}
+
+.romita-msg-attachment-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+}
+
+.romita-msg-attachment-file:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+.romita-attachment-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.romita-attachment-filename {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.romita-attachment-filedesc {
+    font-size: 0.68rem;
+    opacity: 0.75;
+}
+
+/* --- TARJETA DE ACCIÓN: PROMPT VISUAL PARA MIDJOURNEY / FLUX (FASE 3) --- */
+.rac-image-prompt-card {
+    background: linear-gradient(135deg, #0b0f19 0%, #17152b 100%);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 14px;
+    margin: 14px 0;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.15);
+    color: #f8fafc;
+}
+
+.rac-imgp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.rac-imgp-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rac-imgp-sparkle {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    color: #ffffff;
+}
+
+.rac-imgp-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+.rac-imgp-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rac-imgp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.rac-imgp-badge.engine {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.rac-imgp-body {
+    padding: 14px 16px;
+}
+
+.rac-imgp-prompt-box {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    user-select: all;
+    position: relative;
+}
+
+.rac-imgp-negative-box {
+    margin-top: 10px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.74rem;
+    color: #fca5a5;
+}
+
+.rac-imgp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-rac-prompt-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-rac-prompt-copy:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+
 

@@ -364,6 +364,28 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     </div>
                 </div>
 
+                <!-- Previsualizador de archivo adjunto (Fase 3: Multimodalidad) -->
+                <div id="romitaModuleAttachmentPreview" class="romita-attachment-preview-box" style="display:none;">
+                    <div class="romita-attachment-preview-inner">
+                        <div id="romitaModuleAttachmentMedia"></div>
+                        <div class="romita-att-info">
+                            <span class="romita-att-name" id="romitaModuleAttachmentName"></span>
+                            <span class="romita-att-size" id="romitaModuleAttachmentSize"></span>
+                        </div>
+                        <button type="button" class="romita-att-remove" onclick="removeRomitaModuleAttachment()" title="Quitar archivo adjunto">
+                            <i class="ph ph-x"></i>
+                        </button>
+                    </div>
+                    <div class="romita-vision-chips" id="romitaModuleVisionChips" style="display:none;">
+                        <span class="rvc-chip" onclick="applyRomitaModuleVisionPrompt('Audita la legibilidad, contraste y jerarquía visual de esta imagen.')"><i class="ph ph-eye"></i> Auditar diseño</span>
+                        <span class="rvc-chip" onclick="applyRomitaModuleVisionPrompt('Verifica si los elementos clave cumplen las zonas seguras para Reels / Stories 9:16 e Instagram.')"><i class="ph ph-bounding-box"></i> Zonas seguras (9:16)</span>
+                        <span class="rvc-chip" onclick="applyRomitaModuleVisionPrompt('Extrae todo el texto que aparece en esta imagen y transcríbelo de forma estructurada.')"><i class="ph ph-text-aa"></i> Extraer texto (OCR)</span>
+                        <span class="rvc-chip" onclick="applyRomitaModuleVisionPrompt('Genera un prompt cinematográfico en inglés para recrear este estilo visual en Midjourney v6.')"><i class="ph ph-sparkle"></i> Prompt Midjourney</span>
+                    </div>
+                </div>
+
+                <input type="file" id="romitaModuleFileInput" accept="image/*,.pdf,.txt,.csv,.json" style="display:none;" onchange="handleRomitaModuleFileSelect(this)" />
+
                 <textarea id="chatInput" class="romita-textarea" placeholder="Escribe tu mensaje, pide un plan o usa / para comandos..." rows="1" oninput="autoResize(this)" onkeydown="handleEnter(event)"></textarea>
                 
                 <!-- In-Composer Generating Indicator Row -->
@@ -391,6 +413,9 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                         <span style="margin-left: 8px;"><kbd class="composer-hint-badge">/</kbd> comandos rápidos</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
+                        <button type="button" class="rg-attach-btn" id="btn-romita-attach" onclick="document.getElementById('romitaModuleFileInput').click()" title="Adjuntar imagen o documento (PDF, CSV, TXT)">
+                            <i class="ph ph-paperclip"></i>
+                        </button>
                         <button type="button" class="rg-mic-btn" id="btn-romita-mic" onclick="toggleRomitaModuleVoiceRecognition()" title="Dictar por voz (Español)">
                             <i class="ph ph-microphone"></i>
                         </button>
@@ -826,6 +851,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         renderDefaultPromptStarters();
         loadChatHistoryList();
         updateRomitaSoundButtons();
+        initRomitaModuleMultimodalListeners();
 
         document.addEventListener('click', function(e) {
             const slashMenu = document.getElementById('rg-slash-menu');
@@ -963,7 +989,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                         actualRole = 'assistant';
                     }
                     chatHistory.push({role: actualRole, content: msg.content, id: msg.id});
-                    addMessageToUI(actualRole, msg.content, msg.id, msg.feedback);
+                    addMessageToUI(actualRole, msg.content, msg.id, msg.feedback, msg.attachment_url, msg.attachment_type, msg.attachment_name);
                 });
             }
         });
@@ -1131,6 +1157,76 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             micBtn.classList.remove('is-recording');
             micBtn.innerHTML = '<i class="ph ph-microphone"></i>';
             micBtn.title = 'Dictar por voz (Español)';
+        }
+    }
+
+    // FASE 3: Gestión de Adjuntos Multimodales (Imágenes, PDF, Documentos)
+    let romitaModuleCurrentAttachment = null;
+    let romitaModuleAttachmentType = null;
+
+    function handleRomitaModuleFileSelect(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        setRomitaModuleAttachment(file);
+    }
+
+    function setRomitaModuleAttachment(file) {
+        if (file.size > 20 * 1024 * 1024) {
+            alert('El archivo excede el tamaño máximo permitido (20MB).');
+            return;
+        }
+
+        romitaModuleCurrentAttachment = file;
+        const ext = file.name.split('.').pop().toLowerCase();
+        const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+        const isPdf = ext === 'pdf';
+        romitaModuleAttachmentType = isImg ? 'image' : (isPdf ? 'pdf' : 'text');
+
+        const box = document.getElementById('romitaModuleAttachmentPreview');
+        const media = document.getElementById('romitaModuleAttachmentMedia');
+        const nameEl = document.getElementById('romitaModuleAttachmentName');
+        const sizeEl = document.getElementById('romitaModuleAttachmentSize');
+        const chipsEl = document.getElementById('romitaModuleVisionChips');
+
+        if (nameEl) nameEl.innerText = file.name;
+        if (sizeEl) sizeEl.innerText = (file.size / 1024 > 1024) ? (file.size / (1024*1024)).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB';
+
+        if (media) {
+            if (isImg) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    media.innerHTML = `<img src="${e.target.result}" class="romita-att-thumb" alt="Preview" />`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const icon = isPdf ? 'ph-file-pdf' : 'ph-file-text';
+                const color = isPdf ? '#ef4444' : '#2563eb';
+                media.innerHTML = `<div class="romita-att-icon-badge" style="color:${color};"><i class="ph ${icon}"></i></div>`;
+            }
+        }
+
+        if (chipsEl) {
+            chipsEl.style.display = isImg ? 'flex' : 'none';
+        }
+
+        if (box) box.style.display = 'block';
+    }
+
+    function removeRomitaModuleAttachment() {
+        romitaModuleCurrentAttachment = null;
+        romitaModuleAttachmentType = null;
+        const box = document.getElementById('romitaModuleAttachmentPreview');
+        if (box) box.style.display = 'none';
+        const fileInput = document.getElementById('romitaModuleFileInput');
+        if (fileInput) fileInput.value = '';
+    }
+
+    function applyRomitaModuleVisionPrompt(promptText) {
+        const input = document.getElementById('chatInput');
+        if (input) {
+            input.value = promptText;
+            autoResize(input);
+            input.focus();
         }
     }
 
@@ -1410,6 +1506,54 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 <i class="ph ph-arrow-square-out"></i> Abrir en Canvas
             </button>
         </div>`;
+    }
+
+    // FASE 3: Renderizar Tarjeta de Prompt Visual (Midjourney, Imagen 3, FLUX)
+    function renderRomitaImagePromptCard(jsonContent) {
+        try {
+            const cleanJson = jsonContent.trim().replace(/^```json/i, '').replace(/```$/i, '').trim();
+            const data = JSON.parse(cleanJson);
+            const cardId = 'ripc-' + Math.random().toString(36).substr(2, 9);
+            const concept = data.concept || 'Concepto Visual IA';
+            const promptEn = data.prompt_en || data.prompt || '';
+            const negPrompt = data.negative_prompt || '';
+            const engine = data.engine || 'Midjourney v6';
+            const ratio = data.ratio || '16:9';
+            const style = data.style || 'Fotografía Profesional';
+            const lighting = data.lighting || '';
+            const encodedPrompt = encodeURIComponent(promptEn);
+
+            return `
+            <div class="rac-image-prompt-card" id="${cardId}">
+                <div class="rac-imgp-header">
+                    <div class="rac-imgp-title-wrap">
+                        <div class="rac-imgp-sparkle"><i class="ph-bold ph-camera"></i></div>
+                        <h4 class="rac-imgp-title">${escapeRomitaHtml(concept)}</h4>
+                    </div>
+                    <span class="rac-imgp-badge engine"><i class="ph ph-cpu"></i> ${escapeRomitaHtml(engine)}</span>
+                </div>
+                <div class="rac-imgp-badges">
+                    <span class="rac-imgp-badge"><i class="ph ph-aspect-ratio"></i> ${escapeRomitaHtml(ratio)}</span>
+                    <span class="rac-imgp-badge"><i class="ph ph-paint-brush"></i> ${escapeRomitaHtml(style)}</span>
+                    ${lighting ? `<span class="rac-imgp-badge"><i class="ph ph-sun"></i> ${escapeRomitaHtml(lighting)}</span>` : ''}
+                </div>
+                <div class="rac-imgp-body">
+                    <div class="rac-imgp-prompt-box">${escapeRomitaHtml(promptEn)}</div>
+                    ${negPrompt ? `<div class="rac-imgp-negative-box"><strong>Negative:</strong> ${escapeRomitaHtml(negPrompt)}</div>` : ''}
+                </div>
+                <div class="rac-imgp-footer">
+                    <button type="button" class="btn-rac-prompt-copy" onclick="copySnippetToClipboard('${encodedPrompt}', this)">
+                        <i class="ph ph-copy"></i> Copiar Prompt en Inglés
+                    </button>
+                    <button type="button" class="btn-rac-modal" onclick="openCanvasWithContent('${escapeRomitaHtml(concept)}', '${encodedPrompt}')">
+                        <i class="ph ph-article"></i> Abrir en Canvas
+                    </button>
+                </div>
+            </div>`;
+        } catch(e) {
+            console.warn('Error rendering image prompt card:', e);
+            return `<pre><code>${jsonContent}</code></pre>`;
+        }
     }
 
     // FASE 2: Controladores de Romita Canvas
@@ -2027,7 +2171,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         }
     }
 
-    function addMessageToUI(role, content, msgId = null, feedbackVal = null) {
+    function addMessageToUI(role, content, msgId = null, feedbackVal = null, attachmentUrl = null, attachmentType = null, attachmentName = null) {
         const container = document.getElementById('chatStreamInner');
         const emptyState = document.getElementById('emptyState');
         if(emptyState) emptyState.style.display = 'none';
@@ -2096,6 +2240,13 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 return '\n\n' + placeholder + '\n\n';
             });
 
+            // FASE 3: Interceptar Prompts Visuales (Midjourney / FLUX)
+            preprocessed = preprocessed.replace(/```romita-action:image_prompt\s*([\s\S]*?)```/g, function(match, jsonContent) {
+                const placeholder = '<!--ROMITA_ACTION_IMGP_' + actionPlaceholders.length + '-->';
+                actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaImagePromptCard(jsonContent) });
+                return '\n\n' + placeholder + '\n\n';
+            });
+
             let rendered = marked.parse(preprocessed);
 
             // Inyectar de vuelta las tarjetas de acción limpias sin ser alteradas ni convertidas a código por marked
@@ -2139,9 +2290,34 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             wrapper.appendChild(bubble);
             wrapper.appendChild(actionsBar);
         } else {
-            const p = document.createElement('div');
-            p.textContent = content;
-            bubble.appendChild(p);
+            if (attachmentUrl) {
+                const attWrap = document.createElement('div');
+                attWrap.className = 'romita-msg-attachment-container';
+                if (attachmentType === 'image') {
+                    attWrap.innerHTML = `
+                        <div class="romita-msg-attachment-img-wrap" onclick="window.open('${escapeRomitaHtml(attachmentUrl)}', '_blank')">
+                            <img src="${escapeRomitaHtml(attachmentUrl)}" alt="${escapeRomitaHtml(attachmentName || 'Imagen adjunta')}" class="romita-attached-image" />
+                            <span class="romita-attachment-label"><i class="ph ph-image"></i> ${escapeRomitaHtml(attachmentName || 'Imagen')}</span>
+                        </div>`;
+                } else {
+                    const iconClass = attachmentType === 'pdf' ? 'ph-file-pdf' : 'ph-file-text';
+                    const iconColor = attachmentType === 'pdf' ? '#ef4444' : '#3b82f6';
+                    attWrap.innerHTML = `
+                        <a href="${escapeRomitaHtml(attachmentUrl)}" target="_blank" class="romita-msg-attachment-file">
+                            <i class="ph ${iconClass}" style="color:${iconColor}; font-size:1.6rem;"></i>
+                            <div class="romita-attachment-info">
+                                <span class="romita-attachment-filename">${escapeRomitaHtml(attachmentName || 'Archivo adjunto')}</span>
+                                <span class="romita-attachment-filedesc">Clic para abrir archivo</span>
+                            </div>
+                        </a>`;
+                }
+                bubble.appendChild(attWrap);
+            }
+            if (content) {
+                const p = document.createElement('div');
+                p.textContent = content;
+                bubble.appendChild(p);
+            }
             wrapper.appendChild(bubble);
         }
 
@@ -2556,29 +2732,40 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         const btn = document.getElementById('sendBtn');
+        const attachmentToSend = romitaModuleCurrentAttachment;
+        const attachmentTypeToSend = romitaModuleAttachmentType;
         
-        if (!text) return;
+        if (!text && !attachmentToSend) return;
         
-        // Bloquear input temporalmente
+        // Preparar preview del mensaje de usuario
+        const tempAttUrl = attachmentToSend ? URL.createObjectURL(attachmentToSend) : null;
+        const tempAttName = attachmentToSend ? attachmentToSend.name : null;
+
+        // Limpiar input y adjunto
         input.value = '';
         input.style.height = 'auto';
         input.disabled = true;
         btn.disabled = true;
+        removeRomitaModuleAttachment();
 
-        // Añadir mensaje del usuario a UI
-        addMessageToUI('user', text);
+        // Añadir mensaje del usuario a UI con adjunto si existe
+        addMessageToUI('user', text, null, null, tempAttUrl, attachmentTypeToSend, tempAttName);
         chatHistory.push({role: 'user', content: text});
         
         showTypingIndicator();
 
-        // Preparar parámetros
-        const payload = new URLSearchParams();
+        // Preparar parámetros multipart con FormData
+        const payload = new FormData();
         payload.append('action', 'chat');
         payload.append('message', text);
         payload.append('specialty', currentSpecialty || 'director_360');
         payload.append('current_module', 'romita');
         if (activeSkill) {
             payload.append('skill_prompt', activeSkill.prompt);
+        }
+
+        if (attachmentToSend) {
+            payload.append('attachment', attachmentToSend);
         }
 
         // Vincular con proyecto de calendario o marca prept seleccionada
@@ -2592,11 +2779,10 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
 
         if (currentChatId) payload.append('chat_id', currentChatId);
 
-        // Envío AJAX
+        // Envío AJAX multipart
         fetch('ajax/ajax_romita.php', {
             method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: payload.toString()
+            body: payload
         })
         .then(res => res.json())
         .then(data => {
@@ -2612,7 +2798,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 loadChatHistoryList();
                 playRomitaChime();
             } else {
-                addMessageToUI('assistant', '<i class="ph ph-warning-circle" style="color:#ef4444;"></i> Ocurrió un error: ' + data.error);
+                addMessageToUI('assistant', '<i class="ph ph-warning-circle" style="color:#ef4444;"></i> Ocurrió un error: ' + (data.error || 'Desconocido'));
             }
         })
         .catch(err => {
@@ -2621,6 +2807,51 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             btn.disabled = false;
             addMessageToUI('assistant', '<i class="ph ph-warning-circle" style="color:#ef4444;"></i> Error de conexión con el servidor.');
         });
+    }
+
+    // FASE 3: Listeners de Drag & Drop y Pegado de Portapapeles (Ctrl+V)
+    function initRomitaModuleMultimodalListeners() {
+        const composer = document.querySelector('.romita-composer') || document.querySelector('.romita-input-box');
+        const input = document.getElementById('chatInput');
+
+        if (composer) {
+            ['dragenter', 'dragover'].forEach(evt => {
+                composer.addEventListener(evt, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    composer.classList.add('drag-over');
+                });
+            });
+            ['dragleave', 'drop'].forEach(evt => {
+                composer.addEventListener(evt, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    composer.classList.remove('drag-over');
+                });
+            });
+            composer.addEventListener('drop', e => {
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    setRomitaModuleAttachment(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        if (input) {
+            input.addEventListener('paste', e => {
+                if (e.clipboardData && e.clipboardData.items) {
+                    for (let i = 0; i < e.clipboardData.items.length; i++) {
+                        const item = e.clipboardData.items[i];
+                        if (item.kind === 'file' && item.type.startsWith('image/')) {
+                            const file = item.getAsFile();
+                            if (file) {
+                                setRomitaModuleAttachment(file);
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
     <?php if($is_admin): ?>

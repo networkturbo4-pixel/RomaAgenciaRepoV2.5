@@ -694,14 +694,133 @@ function getKnowledgeBaseContext($db, $userQuery = '', $currentModule = '', $ent
     }
 }
 
+/**
+ * FASE 3: Lector de Enlaces Web en Vivo
+ * Extrae de forma segura el título, descripción y cuerpo de una URL pública
+ */
+function fetchLiveUrlContent($url) {
+    if (!filter_var($url, FILTER_VALIDATE_URL)) return null;
+    $parsed = parse_url($url);
+    if (!in_array(strtolower($parsed['scheme'] ?? ''), ['http', 'https'])) return null;
+    
+    // SSRF prevention: bloquear IPs locales y privadas
+    $host = strtolower($parsed['host'] ?? '');
+    if (in_array($host, ['localhost', '127.0.0.1', '::1']) || preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/', $host)) {
+        return null;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    $html = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode < 200 || $httpCode >= 400 || empty($html)) {
+        return null;
+    }
+
+    // Extraer Título
+    $title = '';
+    if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $m)) {
+        $title = trim(html_entity_decode(strip_tags($m[1])));
+    }
+
+    // Extraer Meta Descripción
+    $desc = '';
+    if (preg_match('/<meta[^>]+name=[\'"]description[\'"][^>]+content=[\'"]([^\'"]+)[\'"]/i', $html, $m) ||
+        preg_match('/<meta[^>]+property=[\'"]og:description[\'"][^>]+content=[\'"]([^\'"]+)[\'"]/i', $html, $m)) {
+        $desc = trim(html_entity_decode($m[1]));
+    }
+
+    // Limpiar contenido HTML innecesario
+    $clean = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+    $clean = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $clean);
+    $clean = preg_replace('/<svg\b[^>]*>(.*?)<\/svg>/is', '', $clean);
+    $clean = preg_replace('/<nav\b[^>]*>(.*?)<\/nav>/is', '', $clean);
+    $clean = preg_replace('/<footer\b[^>]*>(.*?)<\/footer>/is', '', $clean);
+    $clean = strip_tags($clean);
+    $clean = preg_replace('/\s+/', ' ', $clean);
+    $clean = trim($clean);
+
+    if (mb_strlen($clean) > 5000) {
+        $clean = mb_substr($clean, 0, 5000) . '... [Contenido truncado para análisis]';
+    }
+
+    $result = "";
+    if ($title) $result .= "Título de la página: " . $title . "\n";
+    if ($desc) $result .= "Descripción: " . $desc . "\n";
+    $result .= "Texto extraído del sitio web:\n" . $clean;
+
+    return $result;
+}
+
 try {
     if ($action === 'chat') {
-        $message = $_POST['message'] ?? '';
+        $message = trim($_POST['message'] ?? '');
         $skill_prompt = $_POST['skill_prompt'] ?? '';
         $specialty = $_POST['specialty'] ?? 'director_360';
         $current_module = $_POST['current_module'] ?? '';
         $entity_id = (int)($_POST['entity_id'] ?? 0);
         
+        // FASE 3: Gestión de Adjuntos Multimodales (Imágenes, PDF, Documentos)
+        $attachment_url = null;
+        $attachment_type = null;
+        $attachment_name = null;
+        $attachment_base64 = null;
+        $attachment_mime = null;
+        $attachment_text = null;
+
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['attachment'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $allowedExts = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'txt', 'csv', 'json'];
+            
+            if (in_array($ext, $allowedExts)) {
+                $attachment_name = basename($file['name']);
+                $uploadDir = __DIR__ . '/../uploads/romita/';
+                if (!is_dir($uploadDir)) {
+                    @mkdir($uploadDir, 0755, true);
+                }
+                $uniqueName = 'romita_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                $destPath = $uploadDir . $uniqueName;
+                
+                if (move_uploaded_file($file['tmp_name'], $destPath)) {
+                    $attachment_url = 'uploads/romita/' . $uniqueName;
+                    
+                    if (in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+                        $attachment_type = 'image';
+                        $attachment_mime = mime_content_type($destPath) ?: ('image/' . ($ext === 'jpg' ? 'jpeg' : $ext));
+                        $attachment_base64 = base64_encode(file_get_contents($destPath));
+                    } elseif ($ext === 'pdf') {
+                        $attachment_type = 'pdf';
+                        $attachment_mime = 'application/pdf';
+                        $attachment_base64 = base64_encode(file_get_contents($destPath));
+                    } elseif (in_array($ext, ['txt', 'csv', 'json'])) {
+                        $attachment_type = 'text';
+                        $rawContent = file_get_contents($destPath);
+                        $attachment_text = mb_substr($rawContent, 0, 25000);
+                    }
+                }
+            }
+        }
+
+        // Si el usuario no escribió texto pero adjuntó un archivo, asignar un prompt por defecto
+        if (empty($message) && $attachment_url) {
+            if ($attachment_type === 'image') {
+                $message = "He adjuntado esta imagen/diseño publicitario. Por favor realiza una auditoría creativa integral: evalúa la legibilidad, contraste de tipografía, jerarquía visual, composición y el cumplimiento de zonas seguras para redes sociales, brindando recomendaciones prácticas.";
+            } elseif ($attachment_type === 'pdf') {
+                $message = "He adjuntado este documento PDF. Por favor analízalo exhaustivamente y prepárame un resumen ejecutivo estructurado con los puntos clave, datos cuantitativos y próximos pasos recomendados.";
+            } elseif ($attachment_type === 'text') {
+                $message = "He adjuntado este archivo de datos/texto. Por favor analiza la información contenida y preséntame un resumen estructurado con conclusiones y puntos de acción.";
+            }
+        }
+
         if(empty($message)) {
             echo json_encode(['success' => false, 'error' => 'Mensaje vacío']);
             exit();
@@ -718,9 +837,9 @@ try {
             $chat_id = $db->lastInsertId();
         }
 
-        // Insertar msj usuario
-        $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content) VALUES (?, 'user', ?)");
-        $stmt_user_msg->execute([$chat_id, $message]);
+        // Insertar msj usuario con metadatos de adjunto
+        $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
+        $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
 
         // Recuperar contexto anterior (últimos 10 mensajes)
         $stmt_hist = $db->prepare("SELECT role, content FROM romita_messages WHERE chat_id = ? ORDER BY id ASC LIMIT 10");
@@ -728,12 +847,38 @@ try {
         $history = $stmt_hist->fetchAll(PDO::FETCH_ASSOC);
 
         $contents = [];
-        foreach($history as $h) {
+        $lastIdx = count($history) - 1;
+        foreach($history as $idx => $h) {
             $geminiRole = $h['role'] === 'user' ? 'user' : 'model';
-            $contents[] = [
-                "role" => $geminiRole,
-                "parts" => [["text" => $h['content']]]
-            ];
+            
+            // Si es el mensaje actual recién enviado y tiene adjunto multimodal (imagen o PDF)
+            if ($idx === $lastIdx && $h['role'] === 'user' && !empty($attachment_base64)) {
+                $promptWithAtt = ($attachment_type === 'image' 
+                    ? "IMAGEN ADJUNTA ({$attachment_name}):\n" . $h['content']
+                    : "DOCUMENTO PDF ADJUNTO ({$attachment_name}):\n" . $h['content']);
+                $contents[] = [
+                    "role" => "user",
+                    "parts" => [
+                        [
+                            "inline_data" => [
+                                "mime_type" => $attachment_mime,
+                                "data" => $attachment_base64
+                            ]
+                        ],
+                        ["text" => $promptWithAtt]
+                    ]
+                ];
+            } elseif ($idx === $lastIdx && $h['role'] === 'user' && !empty($attachment_text)) {
+                $contents[] = [
+                    "role" => "user",
+                    "parts" => [["text" => "CONTENIDO DEL ARCHIVO ADJUNTO ({$attachment_name}):\n```\n{$attachment_text}\n```\n\nCONSULTA: " . $h['content']]]
+                ];
+            } else {
+                $contents[] = [
+                    "role" => $geminiRole,
+                    "parts" => [["text" => $h['content']]]
+                ];
+            }
         }
 
         $payload = [ "contents" => $contents ];
@@ -841,8 +986,39 @@ try {
             . "```romita-canvas:title=\"Título del Documento\"\n"
             . "(Contenido completo en Markdown)\n"
             . "```\n\n"
+            . "7. GENERADOR DE PROMPTS VISUALES PARA IA (MIDJOURNEY, IMAGEN 3, FLUX):\n"
+            . "Cuando el usuario te pida un prompt para generar imágenes, arte conceptual, fotografía publicitaria, mockups o ideas visuales con IA, incluye al final un bloque exactamente así:\n"
+            . "```romita-action:image_prompt\n"
+            . "{\n"
+            . "  \"concept\": \"Título claro del concepto visual\",\n"
+            . "  \"prompt_en\": \"Cinematic 8k photograph of latin executive woman, softbox studio rim lighting, 85mm lens, f/1.8, photorealistic --ar 16:9 --style raw --v 6.0\",\n"
+            . "  \"negative_prompt\": \"blurry, low quality, distorted text, ugly, bad anatomy\",\n"
+            . "  \"style\": \"Fotografía Editorial / Publicitaria\",\n"
+            . "  \"ratio\": \"16:9\",\n"
+            . "  \"lighting\": \"Luz suave de estudio + recorte lateral\",\n"
+            . "  \"engine\": \"Midjourney v6\"\n"
+            . "}\n"
+            . "```\n\n"
+            . "8. AUDITORÍA VISUAL Y ANÁLISIS MULTIMODAL:\n"
+            . "Cuando el usuario adjunte una imagen o diseño publicitario:\n"
+            . "- Actúa como Directora Creativa y de Arte Senior.\n"
+            . "- Evalúa con criterio técnico: Contraste y legibilidad de textos, punto focal, armonía cromática, pesos visuales y jerarquía tipográfica.\n"
+            . "- Evalúa zonas seguras para redes (evitar textos tapados por la interfaz de Reels/TikTok 9:16 o avatar/comentarios en historias).\n"
+            . "- Si te piden extraer texto (OCR), transcríbelo con total fidelidad y sin inventar palabras.\n"
+            . "- Ofrece recomendaciones accionables y directas para elevar la tasa de clics y la calidad estética.\n\n"
             . "REGLA OBLIGATORIA: En los bloques de acción escribe ÚNICAMENTE el JSON puro dentro de ```romita-action:...``` o el Markdown puro en ```romita-canvas:...```. NUNCA generes código HTML, etiquetas <div>, ni snippets de código manual, ya que el sistema Roma SaaS toma automáticamente el JSON y renderiza el componente interactivo, el modal de creación y el canvas en pantalla. Fuera del bloque de acción, explica y desarrolla tu propuesta con tu elocuencia y calidez habitual.";
         $sysInstructions[] = $agenticInstructions;
+
+        // FASE 3: Lector de Enlaces Web en Vivo
+        if (preg_match('/https?:\/\/[^\s<>"\'\)]+/i', $message, $urlMatches)) {
+            $detectedUrl = $urlMatches[0];
+            $liveWebContent = fetchLiveUrlContent($detectedUrl);
+            if (!empty($liveWebContent)) {
+                $sysInstructions[] = "--- CONTENIDO EN VIVO EXTRAÍDO DE LA URL ({$detectedUrl}) ---\n"
+                    . $liveWebContent . "\n"
+                    . "INSTRUCCIÓN SOBRE LA URL: Analiza este contenido real para responder a la consulta del usuario con exactitud ejecutiva.";
+            }
+        }
 
         // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario con RBAC)
         $sysInstructions[] = getAgencyFullEcosystemContext($db, $current_module, $entity_id, $role_name, $is_admin, $user_permissions);
@@ -1037,7 +1213,15 @@ try {
             }
         }
 
-        echo json_encode(['success' => true, 'response' => $ia_response, 'chat_id' => $chat_id, 'message_id' => $ai_msg_id]);
+        echo json_encode([
+            'success' => true,
+            'response' => $ia_response,
+            'chat_id' => $chat_id,
+            'message_id' => $ai_msg_id,
+            'attachment_url' => $attachment_url,
+            'attachment_type' => $attachment_type,
+            'attachment_name' => $attachment_name
+        ]);
         exit();
     }
     
@@ -1062,7 +1246,7 @@ try {
             exit();
         }
 
-        $stmt = $db->prepare("SELECT id, role, content, feedback FROM romita_messages WHERE chat_id = ? ORDER BY id ASC");
+        $stmt = $db->prepare("SELECT id, role, content, feedback, attachment_url, attachment_type, attachment_name FROM romita_messages WHERE chat_id = ? ORDER BY id ASC");
         $stmt->execute([$chat_id]);
         $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'messages' => $messages]);
