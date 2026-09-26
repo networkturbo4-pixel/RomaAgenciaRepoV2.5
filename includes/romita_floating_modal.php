@@ -1000,25 +1000,242 @@ body.has-active-modal .romita-fab-container,
     margin: 8px 0;
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
-.rg-msg-bubble table {
-    width: 100%;
-    border-collapse: collapse;
+
+/* Code Blocks Modern Styling */
+.code-block-wrapper {
     margin: 10px 0;
-    font-size: 0.78rem;
     border-radius: 8px;
     overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
-.rg-msg-bubble th, .rg-msg-bubble td {
-    padding: 7px 10px;
-    border: 1px solid #e2e8f0;
-    text-align: left;
-}
-[data-theme="dark"] .rg-msg-bubble th, [data-theme="dark"] .rg-msg-bubble td {
+[data-theme="dark"] .code-block-wrapper {
     border-color: rgba(255, 255, 255, 0.08);
 }
+.code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e1f2f;
+    color: #94a3b8;
+    padding: 5px 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.btn-copy-code {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+}
+.btn-copy-code:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* --- TABLAS MODERNAS RESPONSIVAS Y CON TOOLBAR EN ROMITA MODAL --- */
+.romita-table-container {
+    margin: 12px 0;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    transition: all 0.25s ease;
+}
+[data-theme="dark"] .romita-table-container {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: #161726;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+.romita-table-container:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+}
+.romita-table-container.is-fullscreen {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 9999999;
+    margin: 0;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+}
+[data-theme="dark"] .romita-table-container.is-fullscreen {
+    background: #11121d;
+}
+.romita-table-container.is-fullscreen .table-responsive-wrapper {
+    max-height: none !important;
+    flex: 1;
+}
+.table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.8rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.76rem;
+    gap: 0.75rem;
+}
+[data-theme="dark"] .table-toolbar {
+    background: #1c1d2e;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.table-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+}
+[data-theme="dark"] .table-toolbar-left {
+    color: #94a3b8;
+}
+.table-info-badge {
+    background: #ffffff;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+[data-theme="dark"] .table-info-badge {
+    background: #141522;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+.table-scroll-hint {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.table-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.btn-table-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+[data-theme="dark"] .btn-table-action {
+    background: #25273c;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+.btn-table-action:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+.table-responsive-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 480px;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+.table-responsive-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03);
+}
+[data-theme="dark"] .table-responsive-wrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 4px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.7);
+}
+.rg-msg-bubble table {
+    width: 100%;
+    min-width: 580px;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    text-align: left;
+    margin: 0 !important;
+}
+.rg-msg-bubble thead {
+    background: rgba(99, 102, 241, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+[data-theme="dark"] .rg-msg-bubble thead {
+    background: rgba(99, 102, 241, 0.14);
+}
 .rg-msg-bubble th {
-    background: rgba(99, 102, 241, 0.08);
+    padding: 0.65rem 0.85rem;
+    font-size: 0.74rem;
     font-weight: 700;
+    color: #4338ca;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 2px solid rgba(99, 102, 241, 0.18);
+    border-right: 1px solid rgba(0, 0, 0, 0.04);
+    white-space: nowrap;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+[data-theme="dark"] .rg-msg-bubble th {
+    color: #a5b4fc;
+    border-bottom-color: rgba(99, 102, 241, 0.35);
+    border-right-color: rgba(255, 255, 255, 0.05);
+}
+.rg-msg-bubble th:hover {
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+}
+[data-theme="dark"] .rg-msg-bubble th:hover {
+    background: rgba(99, 102, 241, 0.25);
+    color: #c7d2fe;
+}
+.rg-msg-bubble td {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.79rem;
+    color: inherit;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-right: 1px solid rgba(0, 0, 0, 0.04);
+    line-height: 1.45;
+}
+[data-theme="dark"] .rg-msg-bubble td {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+    border-right-color: rgba(255, 255, 255, 0.03);
+}
+.rg-msg-bubble tr:last-child td {
+    border-bottom: none;
+}
+.rg-msg-bubble tbody tr:hover {
+    background: rgba(99, 102, 241, 0.035);
+}
+[data-theme="dark"] .rg-msg-bubble tbody tr:hover {
+    background: rgba(99, 102, 241, 0.08);
 }
 
 /* ==========================================================================
@@ -1763,6 +1980,9 @@ body.has-active-modal .romita-fab-container,
 }
 </style>
 
+<!-- Marked.js para tablas y Markdown interactivo -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <script>
 // ==========================================================================
 // ROMITA GLOBAL FLOATING ASSISTANT CONTROLLER (TECLA R / SPOTLIGHT)
@@ -2010,17 +2230,108 @@ function handleRomitaInputKeydown(e) {
     }
 }
 
-// 8. Markdown Parser
+// Preprocesador para reparar tablas Markdown que omitan fila separadora
+function preprocessMarkdownTables(text) {
+    if (!text || !text.includes('|')) return text;
+    const lines = text.split('\n');
+    const result = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        result.push(line);
+        
+        const trimmed = line.trim();
+        const isPipeRow = trimmed.startsWith('|') && trimmed.endsWith('|');
+        
+        if (isPipeRow && i + 1 < lines.length) {
+            const nextTrimmed = lines[i + 1].trim();
+            const nextIsPipeRow = nextTrimmed.startsWith('|') && nextTrimmed.endsWith('|');
+            const nextIsSeparator = /^\|(\s*:?-+:?\s*\|)+$/.test(nextTrimmed);
+            
+            const prevTrimmed = i > 0 ? lines[i - 1].trim() : '';
+            const prevIsPipeRow = prevTrimmed.startsWith('|') && prevTrimmed.endsWith('|');
+            
+            // Si es la primera fila de una tabla y no hay fila separadora debajo
+            if (!prevIsPipeRow && nextIsPipeRow && !nextIsSeparator) {
+                const colCount = trimmed.split('|').length - 2;
+                if (colCount > 1) {
+                    result.push('|' + ' :--- |'.repeat(colCount));
+                }
+            }
+        }
+    }
+    return result.join('\n');
+}
+
+// 8. Markdown Parser Avanzado con soporte para Tablas, Listas y Código
 function renderRomitaMarkdown(text) {
     if (!text) return '';
-    let out = text;
+    let out = preprocessMarkdownTables(text);
 
-    // Remove raw json blocks from visual render if any
+    // Si marked.js está cargado, usar su motor completo GFM
+    if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+        try {
+            out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
+            return marked.parse(out);
+        } catch (e) {
+            console.warn('Error al parsear con marked:', e);
+        }
+    }
+
+    // Parser nativo de contingencia con soporte para tablas
     out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
+
+    // Tablas Markdown
+    out = out.replace(/((?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+)/gm, function(tableBlock) {
+        const rows = tableBlock.trim().split('\n').map(r => r.trim()).filter(r => r.length > 0);
+        if (rows.length < 2) return tableBlock;
+
+        let tableHtml = '<table>';
+        let hasHeader = false;
+        let inBody = false;
+
+        for (let r = 0; r < rows.length; r++) {
+            const rowStr = rows[r];
+            if (/^\|(\s*:?-+:?\s*\|)+$/.test(rowStr)) {
+                hasHeader = true;
+                continue;
+            }
+
+            let cells = rowStr.split('|').map(c => c.trim());
+            if (rowStr.startsWith('|')) cells.shift();
+            if (rowStr.endsWith('|')) cells.pop();
+
+            if (!hasHeader && r === 0 && rows.length > 1 && /^\|(\s*:?-+:?\s*\|)+$/.test(rows[1])) {
+                tableHtml += '<thead><tr>';
+                cells.forEach(c => {
+                    let formatted = c.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    tableHtml += `<th>${formatted}</th>`;
+                });
+                tableHtml += '</tr></thead>';
+                tableHtml += '<tbody>';
+                inBody = true;
+            } else {
+                if (!inBody) {
+                    tableHtml += '<tbody>';
+                    inBody = true;
+                }
+                tableHtml += '<tr>';
+                cells.forEach(c => {
+                    let formatted = c.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    tableHtml += `<td>${formatted}</td>`;
+                });
+                tableHtml += '</tr>';
+            }
+        }
+        if (inBody) tableHtml += '</tbody>';
+        tableHtml += '</table>';
+        return tableHtml;
+    });
 
     // Code blocks
     out = out.replace(/```([a-z]*)\n([\s\S]*?)```/g, function(match, lang, code) {
-        return '<pre><code>' + code.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
+        const cleanLang = lang ? ` class="language-${lang}"` : '';
+        return `<pre><code${cleanLang}>` + code.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
     });
 
     // Inline code
@@ -2045,6 +2356,161 @@ function renderRomitaMarkdown(text) {
     out = out.replace(/\n/g, '<br>');
 
     return out;
+}
+
+// Copiar tabla como TSV (directamente compatible con Excel / Google Sheets)
+function copyTableToClipboard(btn) {
+    const container = btn.closest('.romita-table-container');
+    if (!container) return;
+    const table = container.querySelector('table');
+    if (!table) return;
+
+    let tsv = [];
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(r => {
+        let cols = [];
+        r.querySelectorAll('th, td').forEach(c => {
+            let text = c.innerText.trim().replace(/\r?\n|\r/g, ' ').replace(/\t/g, ' ');
+            cols.push(text);
+        });
+        tsv.push(cols.join('\t'));
+    });
+
+    const textToCopy = tsv.join('\n');
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-check" style="color:#10b981;"></i> <span>¡Copiado para Excel!</span>';
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+        }, 2200);
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = textToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Tabla copiada al portapapeles');
+    });
+}
+
+// Alternar pantalla completa para tablas anchas
+function toggleTableFullscreen(btn) {
+    const container = btn.closest('.romita-table-container');
+    if (!container) return;
+    
+    container.classList.toggle('is-fullscreen');
+    const icon = btn.querySelector('i');
+    if (container.classList.contains('is-fullscreen')) {
+        if (icon) icon.className = 'ph ph-corners-in';
+        document.body.style.overflow = 'hidden';
+    } else {
+        if (icon) icon.className = 'ph ph-arrows-out-simple';
+        document.body.style.overflow = '';
+    }
+}
+
+// Copiar snippet de bloque de código
+function copySnippet(btn) {
+    const code = btn.closest('.code-block-wrapper').querySelector('code');
+    if (!code) return;
+    navigator.clipboard.writeText(code.innerText).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-check" style="color:#10b981;"></i> Copiado';
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+    });
+}
+
+// Procesar formateo avanzado para bloques de código y tablas interactivas
+function processRomitaAssistantFormatting(container) {
+    if (!container) return;
+
+    // 1. Estilizar bloques de código normales
+    const codeBlocks = container.querySelectorAll('pre code');
+    codeBlocks.forEach(code => {
+        const pre = code.parentElement;
+        if (!pre || pre.parentElement.classList.contains('code-block-wrapper') || pre.style.display === 'none') return;
+
+        let lang = 'CÓDIGO';
+        const classes = code.className ? code.className.split(' ') : [];
+        for (let c of classes) {
+            if (c.startsWith('language-')) {
+                lang = c.replace('language-', '').toUpperCase();
+                break;
+            }
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        wrapper.innerHTML = `
+            <div class="code-block-header">
+                <span>${lang}</span>
+                <button type="button" class="btn-copy-code" onclick="copySnippet(this)">
+                    <i class="ph ph-copy"></i> Copiar
+                </button>
+            </div>
+        `;
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+    });
+
+    // 2. Tablas ordenables, responsivas con toolbar y exportación para Excel
+    const tables = container.querySelectorAll('table');
+    tables.forEach(table => {
+        if (table.closest('.romita-table-container')) return;
+
+        const rowsCount = table.querySelectorAll('tbody tr').length || Math.max(0, table.querySelectorAll('tr').length - 1);
+        const colsCount = table.querySelectorAll('tr:first-child th, tr:first-child td').length;
+
+        const card = document.createElement('div');
+        card.className = 'romita-table-container';
+        card.innerHTML = `
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <i class="ph ph-table"></i>
+                    <span class="table-info-badge">${rowsCount} filas • ${colsCount} columnas</span>
+                    <span class="table-scroll-hint"><i class="ph ph-arrows-left-right"></i> Desliza</span>
+                </div>
+                <div class="table-toolbar-actions">
+                    <button type="button" class="btn-table-action" onclick="copyTableToClipboard(this)" title="Copiar como tabla (compatible con Excel / Google Sheets)">
+                        <i class="ph ph-file-csv"></i> <span>Copiar para Excel</span>
+                    </button>
+                    <button type="button" class="btn-table-action" onclick="toggleTableFullscreen(this)" title="Pantalla completa">
+                        <i class="ph ph-arrows-out-simple"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive-wrapper"></div>
+        `;
+
+        table.parentNode.insertBefore(card, table);
+        const scrollWrap = card.querySelector('.table-responsive-wrapper');
+        scrollWrap.appendChild(table);
+
+        const headers = table.querySelectorAll('th');
+        headers.forEach((header, index) => {
+            header.style.cursor = 'pointer';
+            header.title = 'Clic para ordenar por esta columna';
+            header.addEventListener('click', () => {
+                const tbody = table.querySelector('tbody') || table;
+                const rows = Array.from(tbody.querySelectorAll('tr:nth-child(n+2)'));
+                const isAsc = header.classList.contains('asc');
+                
+                headers.forEach(h => { h.classList.remove('asc', 'desc'); h.innerHTML = h.innerHTML.replace(' 🔼','').replace(' 🔽',''); });
+                header.classList.add(isAsc ? 'desc' : 'asc');
+                header.innerHTML += isAsc ? ' 🔽' : ' 🔼';
+                
+                rows.sort((a, b) => {
+                    const aCol = a.children[index] ? a.children[index].textContent.trim() : '';
+                    const bCol = b.children[index] ? b.children[index].textContent.trim() : '';
+                    if(!isNaN(aCol) && !isNaN(bCol) && aCol !== '' && bCol !== '') return isAsc ? bCol - aCol : aCol - bCol;
+                    return isAsc ? bCol.localeCompare(aCol) : aCol.localeCompare(bCol);
+                });
+                
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    });
 }
 
 // Helper to copy message text to clipboard
@@ -2198,7 +2664,7 @@ async function sendRomitaMessage() {
             aiDiv.innerHTML = `
                 <div class="rg-msg-avatar"><i class="ph-bold ph-sparkle"></i></div>
                 <div class="rg-msg-content-wrap">
-                    <div class="rg-msg-bubble">${renderRomitaMarkdown(data.response)}</div>
+                    <div class="rg-msg-bubble markdown-body">${renderRomitaMarkdown(data.response)}</div>
                     <div class="rg-msg-actions">
                         <button type="button" class="rg-copy-bubble-btn" onclick="copyRomitaMessage(this)" title="Copiar respuesta">
                             <i class="ph ph-copy"></i> Copiar
@@ -2207,6 +2673,7 @@ async function sendRomitaMessage() {
                 </div>
             `;
             chatContainer.appendChild(aiDiv);
+            processRomitaAssistantFormatting(aiDiv);
         } else {
             const errDiv = document.createElement('div');
             errDiv.className = 'rg-msg rg-msg-ai';

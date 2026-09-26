@@ -245,6 +245,14 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                         $context .= "  • Proyecto Activo: '{$pp['brand_name']}' ({$pp['correlativo']}) | Servicio: {$srv}\n";
                     }
                 }
+                if ($current_module === 'knowledge_base' && $entity_id > 0) {
+                    $stmtKb = $db->prepare("SELECT a.title, c.name as category_name FROM kb_articles a JOIN kb_categories c ON a.category_id = c.id WHERE a.id = ?");
+                    $stmtKb->execute([$entity_id]);
+                    $kbArt = $stmtKb->fetch(PDO::FETCH_ASSOC);
+                    if ($kbArt) {
+                        $context .= "  • Artículo de Conocimiento en Pantalla: '{$kbArt['title']}' (Categoría: {$kbArt['category_name']})\n";
+                    }
+                }
             } catch (Exception $e) {}
         }
         $context .= "\n";
@@ -332,6 +340,98 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
 
     $context .= "REGLA: Conduce tus respuestas con pleno conocimiento de estos proyectos. Si el usuario te pregunta por cualquier área (calendario, marca, web, audiovisual o pizarra), responde usando los datos verídicos de la agencia.";
     return $context;
+}
+
+/**
+ * Conecta a Romita con la Base de Conocimiento de Roma Agencia (SOPs, Procedimientos, Guías).
+ */
+function getKnowledgeBaseContext($db, $userQuery = '', $currentModule = '', $entity_id = 0) {
+    try {
+        $stmtCats = $db->query("SELECT id, name, description FROM kb_categories WHERE is_active = 1 ORDER BY order_index ASC");
+        $categories = $stmtCats ? $stmtCats->fetchAll(PDO::FETCH_ASSOC) : [];
+        
+        $stmtArts = $db->query("
+            SELECT a.id, a.title, a.slug, a.summary, a.content, a.audience, a.video_url, c.name as category_name
+            FROM kb_articles a
+            JOIN kb_categories c ON a.category_id = c.id
+            WHERE a.status = 'published'
+            ORDER BY c.order_index ASC, a.created_at DESC
+        ");
+        $articles = $stmtArts ? $stmtArts->fetchAll(PDO::FETCH_ASSOC) : [];
+
+        if (empty($articles) && empty($categories)) {
+            return "";
+        }
+
+        $context = "=== BASE DE CONOCIMIENTO Y PROCEDIMIENTOS OPERATIVOS (ROMA AGENCIA) ===\n";
+        $context .= "Tienes conexión directa y acceso en tiempo real a la Base de Conocimiento oficial de Roma Agencia (SOPs, manuales operativos, tutoriales, políticas internas y guías paso a paso).\n\n";
+
+        if (!empty($categories)) {
+            $context .= "CATEGORÍAS DE CONOCIMIENTO REGISTRADAS:\n";
+            foreach ($categories as $cat) {
+                $desc = !empty($cat['description']) ? trim($cat['description']) : 'Procedimientos y documentación del área.';
+                $context .= "- {$cat['name']}: {$desc}\n";
+            }
+            $context .= "\n";
+        }
+
+        // Palabras clave de la consulta del usuario para búsqueda semántica / relevancia
+        $cleanQuery = mb_strtolower(trim($userQuery));
+        $queryWords = array_filter(explode(' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $cleanQuery)), function($w) {
+            return mb_strlen($w) >= 3;
+        });
+
+        $context .= "ARTÍCULOS Y MANUALES OFICIALES DISPONIBLES:\n";
+
+        foreach ($articles as $art) {
+            $titleLower = mb_strtolower($art['title']);
+            $catLower = mb_strtolower($art['category_name']);
+            
+            // Limpieza del contenido HTML a texto legible
+            $cleanContent = strip_tags(str_replace(['</p>', '<br>', '<br/>', '</li>'], ["\n", "\n", "\n", "\n"], $art['content']));
+            $cleanContent = preg_replace("/\n\s*\n+/", "\n", trim($cleanContent));
+            $contentLower = mb_strtolower($cleanContent);
+
+            // Verificar si el artículo es especialmente relevante para la pregunta actual
+            $isRelevant = false;
+            if (!empty($queryWords)) {
+                foreach ($queryWords as $word) {
+                    if (strpos($titleLower, $word) !== false || strpos($catLower, $word) !== false || strpos($contentLower, $word) !== false) {
+                        $isRelevant = true;
+                        break;
+                    }
+                }
+            }
+
+            $context .= "• [Artículo #{$art['id']}] \"{$art['title']}\" (Área: {$art['category_name']})\n";
+            if (!empty($art['summary'])) {
+                $context .= "  Resumen: " . trim($art['summary']) . "\n";
+            }
+
+            // Si hay pocos artículos (<= 20) o es relevante o estamos en el módulo kb, incluir los pasos detallados
+            if (count($articles) <= 20 || $isRelevant || $currentModule === 'knowledge_base' || ($entity_id > 0 && $entity_id == $art['id'])) {
+                $context .= "  Procedimiento Oficial Paso a Paso:\n";
+                $lines = explode("\n", $cleanContent);
+                foreach ($lines as $line) {
+                    $trimmed = trim($line);
+                    if ($trimmed !== '') {
+                        $context .= "    " . $trimmed . "\n";
+                    }
+                }
+            }
+            $context .= "\n";
+        }
+
+        $context .= "REGLAS DE APLICACIÓN CON LA BASE DE CONOCIMIENTO:\n";
+        $context .= "1. Si el usuario te consulta sobre cómo realizar un proceso interno, otorgar accesos a plataformas/redes de la agencia, protocolos o manuales, básate fielmente en los pasos de estos artículos oficiales.\n";
+        $context .= "2. Si el artículo oficial contiene correos específicos de la empresa (ej: romacomercial22@gmail.com) o indicaciones exactas, comunícaselos al usuario con total precisión.\n";
+        $context .= "3. Si el usuario te pregunta por un proceso que aún no está documentado en la Base de Conocimiento, explícale la mejor práctica recomendada para la agencia y sugiérele registrar el procedimiento en la Base de Conocimiento (index.php?module=knowledge_base).\n";
+        $context .= "4. Siempre mantén una postura ejecutiva, segura y alineada a los estándares de calidad de Roma Agencia.\n";
+
+        return $context;
+    } catch (Exception $e) {
+        return "";
+    }
 }
 
 try {
@@ -423,6 +523,12 @@ try {
 
         // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario)
         $sysInstructions[] = getAgencyFullEcosystemContext($db, $current_module, $entity_id);
+
+        // 4. Base de Conocimiento y Procedimientos Oficiales de Roma Agencia (SOPs, guías, manuales)
+        $kbContext = getKnowledgeBaseContext($db, $message, $current_module, $entity_id);
+        if (!empty($kbContext)) {
+            $sysInstructions[] = $kbContext;
+        }
 
         if (!empty($skill_prompt)) {
             $sysInstructions[] = $skill_prompt;
@@ -584,7 +690,8 @@ try {
             
             if ($folderId) {
                 $date = date('Y-m-d');
-                $userName = preg_replace('/[^A-Za-z0-9_]/', '', $_SESSION['user_name']);
+                $userName = preg_replace('/[^A-Za-z0-9_]/', '', $_SESSION['user_name'] ?? 'usuario');
+                if (empty($userName)) $userName = 'usuario';
                 $fileName = "chat_{$userName}_{$date}.md";
                 
                 $logContent = "### User (" . date('H:i:s') . ")\n" . $message . "\n\n";
