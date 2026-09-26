@@ -782,8 +782,8 @@ try {
         
         $sysInstructions[] = $temporalContext;
 
-        // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario)
-        $sysInstructions[] = getAgencyFullEcosystemContext($db, $current_module, $entity_id);
+        // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario con RBAC)
+        $sysInstructions[] = getAgencyFullEcosystemContext($db, $current_module, $entity_id, $role_name, $is_admin, $user_permissions);
 
         // 4. Base de Conocimiento y Procedimientos Oficiales de Roma Agencia (SOPs, guías, manuales)
         $kbContext = getKnowledgeBaseContext($db, $message, $current_module, $entity_id);
@@ -841,7 +841,7 @@ try {
             }
         }
 
-        if ($hasFinanceIntent || strpos($skill_prompt, 'Financiero') !== false || strpos($skill_prompt, 'Consultor') !== false) {
+        if (($is_admin || in_array('admin', $user_permissions)) && ($hasFinanceIntent || strpos($skill_prompt, 'Financiero') !== false || strpos($skill_prompt, 'Consultor') !== false)) {
             $agencyIntel = getAgencyIntelligenceContext($db);
             if ($agencyIntel) {
                 $sysInstructions[] = $agencyIntel;
