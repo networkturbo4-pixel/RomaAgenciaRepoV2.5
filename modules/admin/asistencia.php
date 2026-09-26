@@ -90,6 +90,7 @@ $asistencias = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // ── Compute Per-Person Summaries ───────────────────────────────────
 $person_summaries = [];
 $chart_dates_set = [];
+$avatar_colors = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#ec4899','#06b6d4','#f97316'];
 
 foreach ($asistencias as $row) {
     $uid = $row['user_id'];
@@ -123,11 +124,14 @@ foreach ($asistencias as $row) {
 
     $person_summaries[$uid]['total_worked'] += $worked_sec;
 
-    // Expected seconds
+    // Expected seconds (with valid schedule or fallback to default settings)
     $expected_sec = 0;
-    if (!empty($row['work_start']) && !empty($row['work_end'])) {
-        $exp_ent = strtotime($row['fecha'] . ' ' . $row['work_start']);
-        $exp_sal = strtotime($row['fecha'] . ' ' . $row['work_end']);
+    $valid_start = (!empty($row['work_start']) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $row['work_start'])) ? $row['work_start'] : ((!empty($row['hora_programada']) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $row['hora_programada'])) ? $row['hora_programada'] : $cfg_hora_entrada);
+    $valid_end   = (!empty($row['work_end']) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $row['work_end'])) ? $row['work_end'] : $cfg_hora_salida;
+
+    $exp_ent = strtotime($row['fecha'] . ' ' . $valid_start);
+    $exp_sal = strtotime($row['fecha'] . ' ' . $valid_end);
+    if ($exp_sal > $exp_ent) {
         $expected_sec = max(0, ($exp_sal - $exp_ent) - 3600);
         $person_summaries[$uid]['total_expected'] += $expected_sec;
     }
@@ -136,10 +140,11 @@ foreach ($asistencias as $row) {
     if ($row['entrada']) {
         if (isset($row['es_tardanza']) && $row['es_tardanza'] == 1) {
             $person_summaries[$uid]['days_late']++;
-        } elseif (!empty($row['work_start'])) {
-            $scheduled = strtotime($row['fecha'] . ' ' . $row['work_start']);
+        } else {
+            $scheduled = strtotime($row['fecha'] . ' ' . $valid_start);
             $actual = strtotime($row['entrada']);
-            if ($actual > $scheduled + 300) { // 5 min grace
+            $grace = ((int)($row['tolerancia_minutos'] ?? $cfg_tolerancia)) * 60;
+            if ($actual > $scheduled + $grace) {
                 $person_summaries[$uid]['days_late']++;
             }
         }
@@ -540,10 +545,10 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
             <!-- Employee Select -->
             <div class="form-group" style="margin-bottom: 0; min-width: 200px;">
                 <label class="form-label" style="margin-bottom: 0.4rem; font-size: 0.8rem;">Empleado</label>
-                <select name="user_id" class="form-control" style="width: 100%;">
+                <select name="user_id" id="userFilterSelect" class="form-control" style="width: 100%;" onchange="document.getElementById('filterForm').submit();">
                     <option value="">Todos los empleados</option>
                     <?php foreach ($users as $u): ?>
-                        <option value="<?php echo $u['id']; ?>" <?php echo $filter_user == $u['id'] ? 'selected' : ''; ?>>
+                        <option value="<?php echo $u['id']; ?>" <?php echo ((string)$filter_user === (string)$u['id']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($u['name']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -629,19 +634,18 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
 </div>
 
 <!-- ── Per-Person Summary Cards ───────────────────── -->
-<?php if (count($person_summaries) > 1 || !$filter_user): ?>
+<?php if (!empty($person_summaries)): ?>
 <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 700; color: var(--color-title); display: flex; align-items: center; gap: 0.5rem;">
-    <i class="ph ph-users-three" style="color: var(--primary-color);"></i> Resumen por Empleado
+    <i class="ph ph-users-three" style="color: var(--primary-color);"></i> <?php echo $filter_user ? 'Resumen del Empleado' : 'Resumen por Empleado'; ?>
 </h3>
 <div class="person-cards-grid">
     <?php
-    $avatar_colors = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#ec4899','#06b6d4','#f97316'];
     $idx = 0;
     foreach ($person_summaries as $uid => $ps):
         $initials = '';
         $parts = explode(' ', $ps['name']);
         foreach ($parts as $p) { $initials .= mb_strtoupper(mb_substr($p, 0, 1)); if (strlen($initials) >= 2) break; }
-        $color = $avatar_colors[$idx % count($avatar_colors)];
+        $color = (!empty($avatar_colors) && count($avatar_colors) > 0) ? $avatar_colors[$idx % count($avatar_colors)] : '#3b82f6';
         $ps_hours = floor($ps['total_worked'] / 3600);
         $ps_mins  = floor(($ps['total_worked'] % 3600) / 60);
         $ps_compliance = $ps['total_expected'] > 0 ? min(100, round(($ps['total_worked'] / $ps['total_expected']) * 100)) : 0;
@@ -699,7 +703,7 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
 (function() {
     const labels = <?php echo json_encode($chart_labels_formatted); ?>;
     const datasets = [];
-    const colors = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#ec4899','#06b6d4','#f97316'];
+    const colors = <?php echo json_encode($avatar_colors); ?>;
     const personData = <?php
         $chart_data = [];
         $ci = 0;
@@ -711,7 +715,7 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
             $chart_data[] = [
                 'label' => $ps['name'],
                 'data'  => $data,
-                'color' => $avatar_colors[$ci % count($avatar_colors)],
+                'color' => (!empty($avatar_colors) && count($avatar_colors) > 0) ? $avatar_colors[$ci % count($avatar_colors)] : '#3b82f6',
             ];
             $ci++;
         }
@@ -809,10 +813,13 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                         // Calculate status
                         $is_late = ($row['es_tardanza'] == 1 || (!empty($row['minutos_tarde']) && $row['minutos_tarde'] > 0));
                         $minutos_tarde = $row['minutos_tarde'] ?? 0;
-                        if (!$is_late && $row['entrada'] && !empty($row['work_start'])) {
-                            $scheduled = strtotime($row['fecha'] . ' ' . $row['work_start']);
+                        $valid_start = (!empty($row['work_start']) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $row['work_start'])) ? $row['work_start'] : ((!empty($row['hora_programada']) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $row['hora_programada'])) ? $row['hora_programada'] : $cfg_hora_entrada);
+                        $valid_end   = (!empty($row['work_end']) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $row['work_end'])) ? $row['work_end'] : $cfg_hora_salida;
+                        if (!$is_late && $row['entrada'] && !empty($valid_start)) {
+                            $scheduled = strtotime($row['fecha'] . ' ' . $valid_start);
                             $actual = strtotime($row['entrada']);
-                            if ($actual > $scheduled + 300) {
+                            $grace = ((int)($row['tolerancia_minutos'] ?? $cfg_tolerancia)) * 60;
+                            if ($actual > $scheduled + $grace) {
                                 $is_late = true;
                                 $minutos_tarde = max(1, (int)ceil(($actual - $scheduled) / 60));
                             }
@@ -893,8 +900,8 @@ $period_display = $period_labels[$filter_period] ?? 'Semanal';
                         </td>
                         <td>
                             <?php
-                                $prog_h = !empty($row['hora_programada']) ? substr($row['hora_programada'],0,5) : (!empty($row['work_start']) ? substr($row['work_start'],0,5) : '');
-                                $end_h = !empty($row['work_end']) ? substr($row['work_end'],0,5) : '';
+                                $prog_h = substr($valid_start, 0, 5);
+                                $end_h  = substr($valid_end, 0, 5);
                                 if ($prog_h) {
                                     $label_h = $end_h ? "Horario: {$prog_h} - {$end_h}" : "Entrada prog.: {$prog_h}";
                                     echo "<div style='font-size:0.72rem; color:var(--text-muted); margin-bottom:0.25rem;'><i class='ph ph-clock' style='font-size:0.75rem;'></i> {$label_h}</div>";

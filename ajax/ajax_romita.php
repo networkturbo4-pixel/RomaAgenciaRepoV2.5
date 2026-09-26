@@ -16,10 +16,26 @@ $db = (new Database())->getConnection();
 $action = $_POST['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 
-// Check admin
-$stmt_admin = $db->prepare("SELECT role_id FROM users WHERE id = ?");
-$stmt_admin->execute([$user_id]);
-$is_admin = ($stmt_admin->fetchColumn() == 1);
+// Obtener rol y permisos del usuario en módulos
+$stmt_user = $db->prepare("SELECT u.name, u.role_id, r.name as role_name FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id = ?");
+$stmt_user->execute([$user_id]);
+$currentUser = $stmt_user->fetch(PDO::FETCH_ASSOC);
+$user_name = $currentUser['name'] ?? ($_SESSION['user_name'] ?? 'Usuario');
+$role_id = (int)($currentUser['role_id'] ?? 0);
+$role_name = $currentUser['role_name'] ?? 'Colaborador';
+$is_admin = ($role_id === 1 || strtolower($role_name) === 'administrador');
+
+$user_permissions = [];
+if ($is_admin) {
+    $user_permissions = ['all'];
+} else {
+    $stmt_perms = $db->prepare("SELECT module_name FROM role_permissions WHERE role_id = ?");
+    $stmt_perms->execute([$role_id]);
+    $user_permissions = $stmt_perms->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    if (!in_array('dashboard', $user_permissions)) {
+        $user_permissions[] = 'dashboard';
+    }
+}
 
 function getProjectCalendarContext($db, $project_id) {
     if (!$project_id) return null;
@@ -194,8 +210,14 @@ function getAgencyIntelligenceContext($db) {
     }
 }
 
-function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0) {
+function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0, $role_name = 'Colaborador', $is_admin = false, $user_permissions = []) {
     $context = "=== INTELIGENCIA 360° Y OMNISCIENCIA DE TODOS LOS MÓDULOS - ROMA AGENCIA ===\n";
+
+    $canAccess = function($mod) use ($is_admin, $user_permissions) {
+        if ($is_admin) return true;
+        if (in_array('all', $user_permissions)) return true;
+        return in_array($mod, $user_permissions);
+    };
 
     // 1. Contexto de pantalla en tiempo real (Conciencia situacional)
     if (!empty($current_module)) {
@@ -205,7 +227,7 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
         if ($entity_id > 0) {
             $context .= "- Identificador del recurso activo: #{$entity_id}\n";
             try {
-                if ($current_module === 'clients') {
+                if ($current_module === 'clients' && $canAccess('clients')) {
                     $stmtC = $db->prepare("SELECT c.*, GROUP_CONCAT(b.name SEPARATOR ', ') as brands FROM clients c LEFT JOIN client_brands b ON b.client_id = c.id WHERE c.id = ? GROUP BY c.id");
                     $stmtC->execute([$entity_id]);
                     $cl = $stmtC->fetch(PDO::FETCH_ASSOC);
@@ -213,14 +235,14 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                         $context .= "  • Cliente en Pantalla: '{$cl['name']}' | WhatsApp: '{$cl['whatsapp']}' | Email: '{$cl['email']}' | DNI/RUC: '{$cl['dni']}' | Portal: " . ($cl['portal_enabled'] ? 'Activado' : 'Desactivado') . "\n";
                         if (!empty($cl['brands'])) $context .= "  • Marcas asociadas: {$cl['brands']}\n";
                     }
-                } elseif ($current_module === 'quotes') {
+                } elseif ($current_module === 'quotes' && $canAccess('quotes')) {
                     $stmtQ = $db->prepare("SELECT q.*, c.name as client_name FROM quotes q LEFT JOIN clients c ON q.client_id = c.id WHERE q.id = ?");
                     $stmtQ->execute([$entity_id]);
                     $qp = $stmtQ->fetch(PDO::FETCH_ASSOC);
                     if ($qp) {
                         $context .= "  • Cotización en Pantalla: #{$qp['id']} | Cliente: '{$qp['client_name']}' | Total: {$qp['currency']} {$qp['total']} | Estado: {$qp['status']} | Vence: {$qp['due_date']}\n";
                     }
-                } elseif ($current_module === 'work_orders') {
+                } elseif ($current_module === 'work_orders' && $canAccess('work_orders')) {
                     $stmtW = $db->prepare("SELECT id, correlativo, brand_name, data, is_archived, created_at FROM work_orders WHERE id = ?");
                     $stmtW->execute([$entity_id]);
                     $wop = $stmtW->fetch(PDO::FETCH_ASSOC);
@@ -229,14 +251,14 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                         $cliente = $woData['cliente'] ?? '';
                         $context .= "  • Orden de Servicio en Pantalla: {$wop['correlativo']} | Marca: '{$wop['brand_name']}'" . ($cliente ? " | Cliente: '{$cliente}'" : "") . " | Fecha: {$wop['created_at']}\n";
                     }
-                } elseif ($current_module === 'contracts') {
+                } elseif ($current_module === 'contracts' && $canAccess('contracts')) {
                     $stmtCt = $db->prepare("SELECT ct.*, c.name as client_name FROM contracts ct LEFT JOIN clients c ON ct.client_id = c.id WHERE ct.id = ?");
                     $stmtCt->execute([$entity_id]);
                     $ctp = $stmtCt->fetch(PDO::FETCH_ASSOC);
                     if ($ctp) {
                         $context .= "  • Contrato en Pantalla: '{$ctp['title']}' | Cliente: '{$ctp['client_name']}' | Estado: {$ctp['status']} | Monto: S/ {$ctp['total_amount']}\n";
                     }
-                } elseif ($current_module === 'reuniones' || $current_module === 'agenda') {
+                } elseif (($current_module === 'reuniones' || $current_module === 'agenda') && $canAccess('reuniones')) {
                     $stmtR = $db->prepare("SELECT r.*, b.name as brand_name FROM reuniones r LEFT JOIN client_brands b ON r.brand_id = b.id WHERE r.id = ?");
                     $stmtR->execute([$entity_id]);
                     $rp = $stmtR->fetch(PDO::FETCH_ASSOC);
@@ -244,28 +266,28 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                         $context .= "  • Reunión en Pantalla: '{$rp['motivo']}' | Marca: '{$rp['brand_name']}' | Fecha/Hora: {$rp['fecha_hora']} | Estado: {$rp['estado']}\n";
                         if (!empty($rp['meet_link'])) $context .= "  • Google Meet: {$rp['meet_link']}\n";
                     }
-                } elseif ($current_module === 'task_manager' || $current_module === 'tasks') {
+                } elseif (($current_module === 'task_manager' || $current_module === 'tasks') && ($canAccess('task_manager') || $canAccess('tasks'))) {
                     $stmtT = $db->prepare("SELECT * FROM tm_tasks WHERE id = ?");
                     $stmtT->execute([$entity_id]);
                     $tp = $stmtT->fetch(PDO::FETCH_ASSOC);
                     if ($tp) {
                         $context .= "  • Tarea en Pantalla: '{$tp['title']}' | Prioridad: {$tp['priority']} | Estado: {$tp['status']} | Área: {$tp['area']}" . ($tp['due_date'] ? " | Vence: {$tp['due_date']}" : "") . "\n";
                     }
-                } elseif ($current_module === 'services') {
+                } elseif ($current_module === 'services' && $canAccess('services')) {
                     $stmtS = $db->prepare("SELECT id, name, price, currency, delivery_time, status, description FROM services WHERE id = ?");
                     $stmtS->execute([$entity_id]);
                     $sp = $stmtS->fetch(PDO::FETCH_ASSOC);
                     if ($sp) {
                         $context .= "  • Servicio en Pantalla: '{$sp['name']}' | Precio: {$sp['currency']} {$sp['price']} | Entrega: {$sp['delivery_time']} | Estado: {$sp['status']}\n";
                     }
-                } elseif ($current_module === 'suppliers') {
+                } elseif ($current_module === 'suppliers' && $canAccess('suppliers')) {
                     $stmtSup = $db->prepare("SELECT * FROM suppliers WHERE id = ?");
                     $stmtSup->execute([$entity_id]);
                     $supp = $stmtSup->fetch(PDO::FETCH_ASSOC);
                     if ($supp) {
                         $context .= "  • Proveedor en Pantalla: '{$supp['name']}' | Categoría: {$supp['category']} | Contacto: '{$supp['contact_name']}' | Tel: {$supp['phone']}\n";
                     }
-                } elseif ($current_module === 'desarrollo_marca') {
+                } elseif ($current_module === 'desarrollo_marca' && $canAccess('desarrollo_marca')) {
                     $stmtB = $db->prepare("SELECT title, client_name, status, due_date, description FROM brand_projects WHERE id = ?");
                     $stmtB->execute([$entity_id]);
                     $bp = $stmtB->fetch(PDO::FETCH_ASSOC);
@@ -273,7 +295,7 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                         $context .= "  • Proyecto de Marca Activo: '{$bp['title']}' | Cliente: '{$bp['client_name']}' | Estado: {$bp['status']} | Entrega: {$bp['due_date']}\n";
                         if (!empty($bp['description'])) $context .= "  • Resumen/Briefing: {$bp['description']}\n";
                     }
-                } elseif ($current_module === 'audiovisual') {
+                } elseif ($current_module === 'audiovisual' && $canAccess('audiovisual')) {
                     $stmtA = $db->prepare("SELECT title, client_name, status, due_date, description FROM audiovisual_projects WHERE id = ?");
                     $stmtA->execute([$entity_id]);
                     $ap = $stmtA->fetch(PDO::FETCH_ASSOC);
@@ -281,21 +303,21 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                         $context .= "  • Proyecto Audiovisual Activo: '{$ap['title']}' | Cliente: '{$ap['client_name']}' | Estado: {$ap['status']} | Entrega: {$ap['due_date']}\n";
                         if (!empty($ap['description'])) $context .= "  • Resumen/Guión/Pautas: {$ap['description']}\n";
                     }
-                } elseif ($current_module === 'pizarras') {
+                } elseif ($current_module === 'pizarras' && $canAccess('pizarras')) {
                     $stmtW = $db->prepare("SELECT w.title, f.name as folder_name, w.tags FROM whiteboards w LEFT JOIN whiteboard_folders f ON w.folder_id = f.id WHERE w.id = ?");
                     $stmtW->execute([$entity_id]);
                     $wp = $stmtW->fetch(PDO::FETCH_ASSOC);
                     if ($wp) {
                         $context .= "  • Pizarra Colaborativa Activa: '{$wp['title']}' | Carpeta: '{$wp['folder_name']}'\n";
                     }
-                } elseif (in_array($current_module, ['month_board', 'calendar'])) {
+                } elseif (in_array($current_module, ['month_board', 'calendar']) && ($canAccess('calendar') || $canAccess('month_board'))) {
                     $stmtM = $db->prepare("SELECT pm.month, pm.year, w.brand_name, w.correlativo FROM project_months pm JOIN projects p ON pm.project_id = p.id JOIN work_orders w ON p.work_order_id = w.id WHERE pm.id = ?");
                     $stmtM->execute([$entity_id]);
                     $mp = $stmtM->fetch(PDO::FETCH_ASSOC);
                     if ($mp) {
                         $context .= "  • Calendario de Contenidos Activo: Marca '{$mp['brand_name']}' ({$mp['correlativo']}) | Mes: {$mp['month']}/{$mp['year']}\n";
                     }
-                } elseif ($current_module === 'projects' || $current_module === 'project_board') {
+                } elseif (($current_module === 'projects' || $current_module === 'project_board') && ($canAccess('projects') || $canAccess('project_board'))) {
                     $stmtP = $db->prepare("SELECT p.id, w.brand_name, w.correlativo, w.data FROM projects p LEFT JOIN work_orders w ON p.work_order_id = w.id WHERE p.id = ?");
                     $stmtP->execute([$entity_id]);
                     $pp = $stmtP->fetch(PDO::FETCH_ASSOC);
@@ -304,7 +326,7 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                         $srv = $woData['servicio'] ?? 'Desarrollo / Web';
                         $context .= "  • Proyecto Activo: '{$pp['brand_name']}' ({$pp['correlativo']}) | Servicio: {$srv}\n";
                     }
-                } elseif ($current_module === 'knowledge_base') {
+                } elseif ($current_module === 'knowledge_base' && $canAccess('knowledge_base')) {
                     $stmtKb = $db->prepare("SELECT a.title, c.name as category_name FROM kb_articles a JOIN kb_categories c ON a.category_id = c.id WHERE a.id = ?");
                     $stmtKb->execute([$entity_id]);
                     $kbArt = $stmtKb->fetch(PDO::FETCH_ASSOC);
@@ -317,170 +339,190 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
         $context .= "\n";
     }
 
-    // 2. Base de Datos Centralizada y Omnisciente de Todos los Módulos
+    // 2. Base de Datos Centralizada y Omnisciente (Filtrada por Permisos de Rol)
     try {
         // A. Clientes y Marcas
-        $stmtClients = $db->query("
-            SELECT c.id, c.name, c.whatsapp, c.email, c.portal_enabled,
-                   GROUP_CONCAT(b.name SEPARATOR ', ') as brands
-            FROM clients c
-            LEFT JOIN client_brands b ON b.client_id = c.id
-            GROUP BY c.id
-            ORDER BY c.id DESC
-            LIMIT 25
-        ");
-        $clients = $stmtClients ? $stmtClients->fetchAll(PDO::FETCH_ASSOC) : [];
-        $totalClients = (int)$db->query("SELECT COUNT(*) FROM clients")->fetchColumn();
-        $totalBrands = (int)$db->query("SELECT COUNT(*) FROM client_brands")->fetchColumn();
+        if ($canAccess('clients')) {
+            $stmtClients = $db->query("
+                SELECT c.id, c.name, c.whatsapp, c.email, c.portal_enabled,
+                       GROUP_CONCAT(b.name SEPARATOR ', ') as brands
+                FROM clients c
+                LEFT JOIN client_brands b ON b.client_id = c.id
+                GROUP BY c.id
+                ORDER BY c.id DESC
+                LIMIT 25
+            ");
+            $clients = $stmtClients ? $stmtClients->fetchAll(PDO::FETCH_ASSOC) : [];
+            $totalClients = (int)$db->query("SELECT COUNT(*) FROM clients")->fetchColumn();
+            $totalBrands = (int)$db->query("SELECT COUNT(*) FROM client_brands")->fetchColumn();
 
-        $context .= "CLIENTES & MARCAS DE ROMA AGENCIA (Total registrados: {$totalClients} clientes, {$totalBrands} marcas):\n";
-        foreach ($clients as $c) {
-            $bList = !empty($c['brands']) ? " | Marcas: {$c['brands']}" : "";
-            $phone = !empty($c['whatsapp']) ? " | Tel/WA: {$c['whatsapp']}" : "";
-            $portal = $c['portal_enabled'] ? " [Portal Activo]" : "";
-            $context .= "- #{$c['id']} {$c['name']}{$bList}{$phone}{$portal}\n";
-        }
-        $context .= "\n";
-
-        // B. Catálogo Oficial de Servicios (Tarifario real sin alucinaciones)
-        $stmtServices = $db->query("
-            SELECT id, name, price, currency, delivery_time 
-            FROM services 
-            WHERE status = 'active' 
-            ORDER BY price DESC
-        ");
-        $services = $stmtServices ? $stmtServices->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($services)) {
-            $context .= "CATÁLOGO OFICIAL DE SERVICIOS Y TARIFAS DE LA AGENCIA:\n";
-            foreach ($services as $s) {
-                $cur = !empty($s['currency']) ? $s['currency'] : 'S/';
-                $time = !empty($s['delivery_time']) ? " (Tiempo: {$s['delivery_time']})" : "";
-                $context .= "- {$s['name']}: {$cur} " . number_format((float)$s['price'], 2) . "{$time}\n";
+            $context .= "CLIENTES & MARCAS DE ROMA AGENCIA (Total registrados: {$totalClients} clientes, {$totalBrands} marcas):\n";
+            foreach ($clients as $c) {
+                $bList = !empty($c['brands']) ? " | Marcas: {$c['brands']}" : "";
+                $phone = !empty($c['whatsapp']) ? " | Tel/WA: {$c['whatsapp']}" : "";
+                $portal = $c['portal_enabled'] ? " [Portal Activo]" : "";
+                $context .= "- #{$c['id']} {$c['name']}{$bList}{$phone}{$portal}\n";
             }
             $context .= "\n";
         }
 
-        // C. Cotizaciones y Pipeline Comercial
-        $stmtQuotes = $db->query("
-            SELECT q.id, q.status, q.total, q.currency, q.due_date, c.name as client_name
-            FROM quotes q
-            LEFT JOIN clients c ON q.client_id = c.id
-            ORDER BY q.id DESC LIMIT 10
-        ");
-        $quotes = $stmtQuotes ? $stmtQuotes->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($quotes)) {
-            $context .= "PIPELINE COMERCIAL Y COTIZACIONES RECIENTES:\n";
-            foreach ($quotes as $q) {
-                $client = !empty($q['client_name']) ? " (Cliente: {$q['client_name']})" : "";
-                $context .= "- Cotización #{$q['id']}{$client}: {$q['currency']} " . number_format((float)$q['total'], 2) . " [{$q['status']}] - Vence: {$q['due_date']}\n";
+        // B. Catálogo Oficial de Servicios (Tarifario real - Solo accesible si tiene permiso en 'services')
+        if ($canAccess('services')) {
+            $stmtServices = $db->query("
+                SELECT id, name, price, currency, delivery_time 
+                FROM services 
+                WHERE status = 'active' 
+                ORDER BY price DESC
+            ");
+            $services = $stmtServices ? $stmtServices->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($services)) {
+                $context .= "CATÁLOGO OFICIAL DE SERVICIOS Y TARIFAS DE LA AGENCIA:\n";
+                foreach ($services as $s) {
+                    $cur = !empty($s['currency']) ? $s['currency'] : 'S/';
+                    $time = !empty($s['delivery_time']) ? " (Tiempo: {$s['delivery_time']})" : "";
+                    $context .= "- {$s['name']}: {$cur} " . number_format((float)$s['price'], 2) . "{$time}\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
+        }
+
+        // C. Cotizaciones y Pipeline Comercial (Solo accesible si tiene permiso en 'quotes')
+        if ($canAccess('quotes')) {
+            $stmtQuotes = $db->query("
+                SELECT q.id, q.status, q.total, q.currency, q.due_date, c.name as client_name
+                FROM quotes q
+                LEFT JOIN clients c ON q.client_id = c.id
+                ORDER BY q.id DESC LIMIT 10
+            ");
+            $quotes = $stmtQuotes ? $stmtQuotes->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($quotes)) {
+                $context .= "PIPELINE COMERCIAL Y COTIZACIONES RECIENTES:\n";
+                foreach ($quotes as $q) {
+                    $client = !empty($q['client_name']) ? " (Cliente: {$q['client_name']})" : "";
+                    $context .= "- Cotización #{$q['id']}{$client}: {$q['currency']} " . number_format((float)$q['total'], 2) . " [{$q['status']}] - Vence: {$q['due_date']}\n";
+                }
+                $context .= "\n";
+            }
         }
 
         // D. Órdenes de Servicio (OT)
-        $stmtWO = $db->query("
-            SELECT id, correlativo, brand_name, created_at 
-            FROM work_orders 
-            WHERE (is_archived IS NULL OR is_archived = 0)
-            ORDER BY id DESC LIMIT 10
-        ");
-        $wos = $stmtWO ? $stmtWO->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($wos)) {
-            $context .= "ÓRDENES DE SERVICIO (OT) ACTIVAS:\n";
-            foreach ($wos as $wo) {
-                $context .= "- {$wo['correlativo']} - Marca: '{$wo['brand_name']}' (Registrada: {$wo['created_at']})\n";
+        if ($canAccess('work_orders')) {
+            $stmtWO = $db->query("
+                SELECT id, correlativo, brand_name, created_at 
+                FROM work_orders 
+                WHERE (is_archived IS NULL OR is_archived = 0)
+                ORDER BY id DESC LIMIT 10
+            ");
+            $wos = $stmtWO ? $stmtWO->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($wos)) {
+                $context .= "ÓRDENES DE SERVICIO (OT) ACTIVAS:\n";
+                foreach ($wos as $wo) {
+                    $context .= "- {$wo['correlativo']} - Marca: '{$wo['brand_name']}' (Registrada: {$wo['created_at']})\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
         // E. Calendarios & Redes Sociales
-        $stmtCal = $db->query("
-            SELECT p.id, COALESCE(NULLIF(wo.brand_name, ''), CONCAT('Proyecto #', p.id)) as brand_name,
-                   (SELECT COUNT(*) FROM month_posts mp JOIN project_months pm ON mp.month_id = pm.id WHERE pm.project_id = p.id) as total_posts
-            FROM projects p
-            LEFT JOIN work_orders wo ON p.work_order_id = wo.id
-            WHERE (wo.is_archived IS NULL OR wo.is_archived = 0)
-            ORDER BY p.id DESC LIMIT 8
-        ");
-        $cals = $stmtCal ? $stmtCal->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($cals)) {
-            $context .= "CALENDARIOS / REDES SOCIALES ACTIVAS:\n";
-            foreach ($cals as $c) {
-                $context .= "- Marca '{$c['brand_name']}': {$c['total_posts']} publicaciones gestionadas\n";
+        if ($canAccess('calendar') || $canAccess('month_board')) {
+            $stmtCal = $db->query("
+                SELECT p.id, COALESCE(NULLIF(wo.brand_name, ''), CONCAT('Proyecto #', p.id)) as brand_name,
+                       (SELECT COUNT(*) FROM month_posts mp JOIN project_months pm ON mp.month_id = pm.id WHERE pm.project_id = p.id) as total_posts
+                FROM projects p
+                LEFT JOIN work_orders wo ON p.work_order_id = wo.id
+                WHERE (wo.is_archived IS NULL OR wo.is_archived = 0)
+                ORDER BY p.id DESC LIMIT 8
+            ");
+            $cals = $stmtCal ? $stmtCal->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($cals)) {
+                $context .= "CALENDARIOS / REDES SOCIALES ACTIVAS:\n";
+                foreach ($cals as $c) {
+                    $context .= "- Marca '{$c['brand_name']}': {$c['total_posts']} publicaciones gestionadas\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
         // F. Desarrollo de Marca & Audiovisual & Pizarras
-        $stmtBrands = $db->query("SELECT id, title, client_name, status, due_date FROM brand_projects WHERE status IN ('Active', 'Pending') ORDER BY id DESC LIMIT 6");
-        $brands = $stmtBrands ? $stmtBrands->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($brands)) {
-            $context .= "PROYECTOS DE BRANDING & IDENTIDAD:\n";
-            foreach ($brands as $b) {
-                $client = !empty($b['client_name']) ? " (Cliente: {$b['client_name']})" : "";
-                $due = !empty($b['due_date']) ? " - Entrega: {$b['due_date']}" : "";
-                $context .= "- #{$b['id']} '{$b['title']}'{$client} [{$b['status']}]{$due}\n";
+        if ($canAccess('desarrollo_marca')) {
+            $stmtBrands = $db->query("SELECT id, title, client_name, status, due_date FROM brand_projects WHERE status IN ('Active', 'Pending') ORDER BY id DESC LIMIT 6");
+            $brands = $stmtBrands ? $stmtBrands->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($brands)) {
+                $context .= "PROYECTOS DE BRANDING & IDENTIDAD:\n";
+                foreach ($brands as $b) {
+                    $client = !empty($b['client_name']) ? " (Cliente: {$b['client_name']})" : "";
+                    $due = !empty($b['due_date']) ? " - Entrega: {$b['due_date']}" : "";
+                    $context .= "- #{$b['id']} '{$b['title']}'{$client} [{$b['status']}]{$due}\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
-        $stmtAudio = $db->query("SELECT id, title, client_name, status, due_date FROM audiovisual_projects WHERE status IN ('Active', 'Pending') ORDER BY id DESC LIMIT 6");
-        $audios = $stmtAudio ? $stmtAudio->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($audios)) {
-            $context .= "PROYECTOS AUDIOVISUALES (VIDEOS / PRODUCCIÓN):\n";
-            foreach ($audios as $a) {
-                $client = !empty($a['client_name']) ? " (Cliente: {$a['client_name']})" : "";
-                $due = !empty($a['due_date']) ? " - Entrega: {$a['due_date']}" : "";
-                $context .= "- #{$a['id']} '{$a['title']}'{$client} [{$a['status']}]{$due}\n";
+        if ($canAccess('audiovisual')) {
+            $stmtAudio = $db->query("SELECT id, title, client_name, status, due_date FROM audiovisual_projects WHERE status IN ('Active', 'Pending') ORDER BY id DESC LIMIT 6");
+            $audios = $stmtAudio ? $stmtAudio->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($audios)) {
+                $context .= "PROYECTOS AUDIOVISUALES (VIDEOS / PRODUCCIÓN):\n";
+                foreach ($audios as $a) {
+                    $client = !empty($a['client_name']) ? " (Cliente: {$a['client_name']})" : "";
+                    $due = !empty($a['due_date']) ? " - Entrega: {$a['due_date']}" : "";
+                    $context .= "- #{$a['id']} '{$a['title']}'{$client} [{$a['status']}]{$due}\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
-        $stmtWhite = $db->query("SELECT w.id, w.title, f.name as folder_name FROM whiteboards w LEFT JOIN whiteboard_folders f ON w.folder_id = f.id ORDER BY w.id DESC LIMIT 6");
-        $whites = $stmtWhite ? $stmtWhite->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($whites)) {
-            $context .= "PIZARRAS COLABORATIVAS RECIENTES:\n";
-            foreach ($whites as $w) {
-                $fName = !empty($w['folder_name']) ? " [Carpeta: {$w['folder_name']}]" : "";
-                $context .= "- Pizarra #{$w['id']}: '{$w['title']}'{$fName}\n";
+        if ($canAccess('pizarras')) {
+            $stmtWhite = $db->query("SELECT w.id, w.title, f.name as folder_name FROM whiteboards w LEFT JOIN whiteboard_folders f ON w.folder_id = f.id ORDER BY w.id DESC LIMIT 6");
+            $whites = $stmtWhite ? $stmtWhite->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($whites)) {
+                $context .= "PIZARRAS COLABORATIVAS RECIENTES:\n";
+                foreach ($whites as $w) {
+                    $fName = !empty($w['folder_name']) ? " [Carpeta: {$w['folder_name']}]" : "";
+                    $context .= "- Pizarra #{$w['id']}: '{$w['title']}'{$fName}\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
         // G. Agenda & Reuniones (Google Meet)
-        $stmtMeet = $db->query("
-            SELECT r.id, r.motivo, r.fecha_hora, r.meet_link, r.estado, b.name as brand_name
-            FROM reuniones r
-            LEFT JOIN client_brands b ON r.brand_id = b.id
-            ORDER BY r.fecha_hora DESC LIMIT 8
-        ");
-        $meets = $stmtMeet ? $stmtMeet->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($meets)) {
-            $context .= "AGENDA DE REUNIONES & GOOGLE MEET:\n";
-            foreach ($meets as $m) {
-                $bName = !empty($m['brand_name']) ? " | Marca: '{$m['brand_name']}'" : "";
-                $link = !empty($m['meet_link']) ? " | Meet: {$m['meet_link']}" : "";
-                $context .= "- {$m['fecha_hora']} - '{$m['motivo']}'{$bName} [Estado: {$m['estado']}]{$link}\n";
+        if ($canAccess('reuniones')) {
+            $stmtMeet = $db->query("
+                SELECT r.id, r.motivo, r.fecha_hora, r.meet_link, r.estado, b.name as brand_name
+                FROM reuniones r
+                LEFT JOIN client_brands b ON r.brand_id = b.id
+                ORDER BY r.fecha_hora DESC LIMIT 8
+            ");
+            $meets = $stmtMeet ? $stmtMeet->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($meets)) {
+                $context .= "AGENDA DE REUNIONES & GOOGLE MEET:\n";
+                foreach ($meets as $m) {
+                    $bName = !empty($m['brand_name']) ? " | Marca: '{$m['brand_name']}'" : "";
+                    $link = !empty($m['meet_link']) ? " | Meet: {$m['meet_link']}" : "";
+                    $context .= "- {$m['fecha_hora']} - '{$m['motivo']}'{$bName} [Estado: {$m['estado']}]{$link}\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
         // H. Tareas & Objetivos Operativos del Equipo
-        $stmtTasks = $db->query("
-            SELECT id, title, priority, status, area, due_date
-            FROM tm_tasks
-            WHERE status IN ('new', 'pending', 'overdue')
-            ORDER BY (CASE WHEN priority = 'urgent' THEN 1 WHEN priority = 'high' THEN 2 WHEN priority = 'medium' THEN 3 ELSE 4 END), id DESC
-            LIMIT 8
-        ");
-        $tasks = $stmtTasks ? $stmtTasks->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($tasks)) {
-            $context .= "TAREAS & OBJETIVOS OPERATIVOS EN CURSO:\n";
-            foreach ($tasks as $t) {
-                $due = !empty($t['due_date']) ? " - Vence: {$t['due_date']}" : "";
-                $context .= "- [{$t['priority']}] '{$t['title']}' (Área: {$t['area']}, Estado: {$t['status']}){$due}\n";
+        if ($canAccess('task_manager') || $canAccess('tasks')) {
+            $stmtTasks = $db->query("
+                SELECT id, title, priority, status, area, due_date
+                FROM tm_tasks
+                WHERE status IN ('new', 'pending', 'overdue')
+                ORDER BY (CASE WHEN priority = 'urgent' THEN 1 WHEN priority = 'high' THEN 2 WHEN priority = 'medium' THEN 3 ELSE 4 END), id DESC
+                LIMIT 8
+            ");
+            $tasks = $stmtTasks ? $stmtTasks->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($tasks)) {
+                $context .= "TAREAS & OBJETIVOS OPERATIVOS EN CURSO:\n";
+                foreach ($tasks as $t) {
+                    $due = !empty($t['due_date']) ? " - Vence: {$t['due_date']}" : "";
+                    $context .= "- [{$t['priority']}] '{$t['title']}' (Área: {$t['area']}, Estado: {$t['status']}){$due}\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
         // I. Equipo y Colaboradores de Roma Agencia
@@ -501,50 +543,62 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
         }
 
         // J. Proveedores y Aliados Estratégicos
-        $stmtSuppliers = $db->query("
-            SELECT id, name, category, contact_name, phone
-            FROM suppliers
-            WHERE status = 'active'
-            ORDER BY name ASC LIMIT 6
-        ");
-        $sups = $stmtSuppliers ? $stmtSuppliers->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (!empty($sups)) {
-            $context .= "PROVEEDORES Y ALIADOS ESTRATÉGICOS:\n";
-            foreach ($sups as $sp) {
-                $contact = !empty($sp['contact_name']) ? " (Contacto: {$sp['contact_name']})" : "";
-                $context .= "- {$sp['name']} [{$sp['category']}]{$contact}\n";
+        if ($canAccess('suppliers')) {
+            $stmtSuppliers = $db->query("
+                SELECT id, name, category, contact_name, phone
+                FROM suppliers
+                WHERE status = 'active'
+                ORDER BY name ASC LIMIT 6
+            ");
+            $sups = $stmtSuppliers ? $stmtSuppliers->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($sups)) {
+                $context .= "PROVEEDORES Y ALIADOS ESTRATÉGICOS:\n";
+                foreach ($sups as $sp) {
+                    $contact = !empty($sp['contact_name']) ? " (Contacto: {$sp['contact_name']})" : "";
+                    $context .= "- {$sp['name']} [{$sp['category']}]{$contact}\n";
+                }
+                $context .= "\n";
             }
-            $context .= "\n";
         }
 
-        // K. Balance Financiero Ejecutivo en Tiempo Real
-        $curMonth = date('Y-m');
-        $stmtInc = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total FROM finance_incomes WHERE DATE_FORMAT(fecha_pago, '%Y-%m') = ?");
-        $stmtInc->execute([$curMonth]);
-        $incTotal = (float)$stmtInc->fetchColumn();
+        // K. Balance Financiero Ejecutivo en Tiempo Real (Solo si tiene permiso 'admin')
+        if ($canAccess('admin')) {
+            $curMonth = date('Y-m');
+            $stmtInc = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total FROM finance_incomes WHERE DATE_FORMAT(fecha_pago, '%Y-%m') = ?");
+            $stmtInc->execute([$curMonth]);
+            $incTotal = (float)$stmtInc->fetchColumn();
 
-        $stmtExp = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total FROM finance_expenses WHERE DATE_FORMAT(fecha, '%Y-%m') = ?");
-        $stmtExp->execute([$curMonth]);
-        $expTotal = (float)$stmtExp->fetchColumn();
+            $stmtExp = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total FROM finance_expenses WHERE DATE_FORMAT(fecha, '%Y-%m') = ?");
+            $stmtExp->execute([$curMonth]);
+            $expTotal = (float)$stmtExp->fetchColumn();
 
-        $stmtPend = $db->query("SELECT COALESCE(SUM(monto), 0) FROM finance_incomes WHERE LOWER(estado) = 'pendiente'");
-        $pendTotal = (float)$stmtPend->fetchColumn();
+            $stmtPend = $db->query("SELECT COALESCE(SUM(monto), 0) FROM finance_incomes WHERE LOWER(estado) = 'pendiente'");
+            $pendTotal = (float)$stmtPend->fetchColumn();
 
-        $profit = $incTotal - $expTotal;
+            $profit = $incTotal - $expTotal;
 
-        $context .= "BALANCE FINANCIERO EJECUTIVO (Periodo {$curMonth}):\n";
-        $context .= "- Ingresos del mes: S/ " . number_format($incTotal, 2) . "\n";
-        $context .= "- Gastos operativos del mes: S/ " . number_format($expTotal, 2) . "\n";
-        $context .= "- Utilidad operativa del mes: S/ " . number_format($profit, 2) . "\n";
-        $context .= "- Cuentas por cobrar acumuladas pendientes: S/ " . number_format($pendTotal, 2) . "\n\n";
+            $context .= "BALANCE FINANCIERO EJECUTIVO (Periodo {$curMonth}):\n";
+            $context .= "- Ingresos del mes: S/ " . number_format($incTotal, 2) . "\n";
+            $context .= "- Gastos operativos del mes: S/ " . number_format($expTotal, 2) . "\n";
+            $context .= "- Utilidad operativa del mes: S/ " . number_format($profit, 2) . "\n";
+            $context .= "- Cuentas por cobrar acumuladas pendientes: S/ " . number_format($pendTotal, 2) . "\n\n";
+        }
 
     } catch (Exception $e) {}
 
-    $context .= "DIRECTRICES CRÍTICAS PARA ROMITA:\n";
-    $context .= "1. Tienes conexión y acceso en tiempo real a TODA la información, módulos y bases de datos de Roma Agencia.\n";
-    $context .= "2. Conduce tus respuestas con exactitud usando estos datos verídicos del sistema. Si el usuario te pregunta por cualquier cliente, cotización, reunión, tarea, servicio, precio, proveedor o colaborador, cita la información real sin dudar.\n";
-    $context .= "3. NUNCA inventes clientes ficticios, reuniones falsas ni tarifas irreales. Cíñete siempre al catálogo oficial y registros de la plataforma.\n";
-    $context .= "4. Si el usuario está situado en una pantalla específica ('UBICACIÓN ACTUAL DEL USUARIO'), prioriza el recurso activo que está viendo.";
+    // L. Reglas de Confidencialidad y Control de Acceso Estricto
+    $context .= "POLÍTICA DE CONFIDENCIALIDAD Y CONTROL DE ACCESO (USUARIO: '{$role_name}'):\n";
+    if ($is_admin) {
+        $context .= "1. El usuario tiene rol de Administrador con acceso ilimitado a toda la información estratégica, comercial, tarifaria y financiera de Roma Agencia.\n";
+    } else {
+        $context .= "1. El usuario actual tiene el rol de '{$role_name}'. Módulos autorizados en el sistema: " . implode(', ', $user_permissions) . ".\n";
+        $context .= "2. REGLA CRÍTICA DE CONFIDENCIALIDAD Y PRECIOS: Este usuario NO tiene autorización para ver tarifas comerciales de servicios, cotizaciones de clientes, montos de contratos ni balances financieros internos de Roma Agencia.\n";
+        $context .= "3. Si el usuario te consulta directa o indirectamente sobre precios ('cuánto cobramos', 'cuál es el precio de X servicio', 'cuánto cuesta', etc.), cotizaciones o finanzas, NUNCA reveles cifras ni inventes tarifas. Responde con calidez y diplomacia ejecutiva indicando que como '{$role_name}', su perfil está enfocado en el desarrollo operativo y creativo, y que la información tarifaria y comercial está reservada para el área de administración y gerencia de Roma Agencia, recomendándole consultar directamente con César o Administración.\n";
+        $context .= "4. Enfoca siempre tus respuestas y asistencia en sus áreas de trabajo permitidas (contenidos, diseño, creatividad, calendarios, ideas, proyectos y tareas operativas).\n";
+    }
+
+    $context .= "5. NUNCA inventes clientes ficticios, reuniones falsas ni servicios inexistentes. Cíñete siempre a los registros verídicos autorizados.\n";
+    $context .= "6. Si el usuario está situado en una pantalla específica ('UBICACIÓN ACTUAL DEL USUARIO'), contextualiza y prioriza el recurso activo que está viendo.";
     return $context;
 }
 
