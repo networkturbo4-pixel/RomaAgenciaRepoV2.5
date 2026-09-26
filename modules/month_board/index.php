@@ -2333,6 +2333,257 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 .wysiwyg-content ul { padding-left: 20px; list-style-type: disc; }
 .wysiwyg-content ol { padding-left: 20px; list-style-type: decimal; }
 
+/* ==========================================================================
+   ROMITA HACER CON ROMITA BUTTON & POPOVER (MODAL EDITAR PUBLICACION)
+   ========================================================================== */
+.romita-hacer-wrap {
+    position: relative;
+    margin-left: auto;
+}
+.romita-hacer-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 5px 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    box-shadow: 0 2px 10px rgba(168, 85, 247, 0.35) !important;
+    white-space: nowrap !important;
+}
+.romita-hacer-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.5) !important;
+    filter: brightness(1.06) !important;
+}
+.romita-hacer-btn:active {
+    transform: scale(0.97) !important;
+}
+.romita-popover-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 440px;
+    max-width: 92vw;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0,0,0,0.06);
+    z-index: 10000;
+    overflow: hidden;
+    animation: romitaPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="dark"] .romita-popover-panel {
+    background: #18181b;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255,255,255,0.08);
+}
+@keyframes romitaPopIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.romita-popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.08));
+}
+[data-theme="dark"] .romita-popover-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(236, 72, 153, 0.15));
+}
+.romita-popover-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.romita-avatar-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.05rem;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    flex-shrink: 0;
+}
+.romita-popover-title {
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: var(--color-title, #0f172a);
+    line-height: 1.2;
+}
+[data-theme="dark"] .romita-popover-title {
+    color: #ffffff;
+}
+.romita-popover-subtitle {
+    font-size: 0.68rem;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 500;
+}
+.romita-popover-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+.romita-popover-close-btn:hover {
+    color: var(--color-title, #0f172a);
+}
+[data-theme="dark"] .romita-popover-close-btn:hover {
+    color: #ffffff;
+}
+.romita-popover-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.romita-prompt-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    background: var(--bg-body, #f8fafc);
+    border: 1.5px solid var(--border-color, #cbd5e1);
+    border-radius: 12px;
+    padding: 6px 8px 6px 10px;
+    transition: all 0.2s ease;
+}
+[data-theme="dark"] .romita-prompt-input-wrap {
+    background: #101012;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.romita-prompt-input-wrap:focus-within {
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+}
+.romita-prompt-textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    resize: none;
+    outline: none;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--color-title, #0f172a);
+    font-family: inherit;
+    padding: 2px 0;
+}
+[data-theme="dark"] .romita-prompt-textarea {
+    color: #f1f5f9;
+}
+.romita-prompt-textarea::placeholder {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.78rem;
+}
+.romita-send-prompt-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    margin-left: 6px;
+}
+.romita-send-prompt-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+}
+.romita-quick-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #94a3b8);
+}
+.romita-quick-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.romita-quick-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-surface, #ffffff);
+    color: var(--color-title, #0f172a);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-align: left;
+    width: 100%;
+}
+[data-theme="dark"] .romita-quick-btn {
+    background: #1e1e24;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+}
+.romita-quick-btn:hover {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: #a855f7;
+    transform: translateX(3px);
+}
+.romita-quick-btn i {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+.rqb-img i { color: #10b981; }
+.rqb-concept i { color: #f59e0b; }
+.rqb-fix i { color: #a78bfa; }
+.rqb-hash i { color: #60a5fa; }
+.rqb-persuade i { color: #ec4899; }
+.rqb-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+.rqb-text strong {
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+.rqb-text small {
+    font-size: 0.68rem;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 500;
+}
+.romita-popover-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
 .form-control { border: 1px solid var(--border-color, #e2e8f0); background-color: var(--bg-surface, #ffffff); color: var(--color-title, #0f172a); border-radius: 12px; padding: 0.6rem 0.85rem; font-size: 0.88rem; transition: all 0.2s ease; }
 .form-control:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent); background: var(--bg-surface, #ffffff); }
 [data-theme="dark"] .form-control { border-color: #27272a; background-color: #141416; color: #f1f5f9; }
@@ -2715,18 +2966,83 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                     </div>
                                                 </div>
                                                 <div class="wys-divider"></div>
-                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('corregir')" title="✨ Corregir Ortografía y Estilo" style="color: #a78bfa; background: rgba(167, 139, 250, 0.15); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
-                                                    <i class="ph ph-magic-wand"></i> Corregir
-                                                </button>
-                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('hashtags')" title="✨ Generar Hashtags" style="color: #60a5fa; background: rgba(96, 165, 250, 0.15); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
-                                                    <i class="ph ph-hash"></i> Hashtags
-                                                </button>
-                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('generar_desde_imagen')" title="✨ Generar Copy + Emojis + Hashtags analizando la imagen de Post Terminado" style="color: #10b981; background: rgba(16, 185, 129, 0.18); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
-                                                    <i class="ph ph-sparkle"></i> Copy con Imagen
-                                                </button>
-                                                <button type="button" class="wys-btn ai-btn" onclick="callGemini('generar')" title="✨ Escribir Post con IA desde texto" style="color: #fbbf24; background: rgba(251, 191, 36, 0.15); border-radius: 8px; font-weight: 700; font-size: 0.8rem; gap: 4px; padding: 4px 8px;">
-                                                    <i class="ph ph-pencil-simple-line"></i> IA Texto
-                                                </button>
+                                                <div class="romita-hacer-wrap">
+                                                    <button type="button" class="wys-btn romita-hacer-btn" id="btn-romita-copy-assistant" onclick="toggleRomitaPopover(event)" title="Asistente de Redacción y Copywriting con Romita IA">
+                                                        <i class="ph-fill ph-sparkle"></i>
+                                                        <span>Hacer con Romita</span>
+                                                        <i class="ph-bold ph-caret-down" style="font-size: 0.72rem; opacity: 0.85; margin-left: 2px;"></i>
+                                                    </button>
+                                                    
+                                                    <!-- Romita Floating Mini-Studio Popover -->
+                                                    <div id="romita-popover-panel" class="romita-popover-panel" style="display: none;" onclick="event.stopPropagation()">
+                                                        <div class="romita-popover-header">
+                                                            <div class="romita-popover-brand">
+                                                                <div class="romita-avatar-icon"><i class="ph-fill ph-sparkle"></i></div>
+                                                                <div>
+                                                                    <div class="romita-popover-title">Romita • Copywriting</div>
+                                                                    <div class="romita-popover-subtitle">Senior Community Manager & Copywriter</div>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="romita-popover-close-btn" onclick="closeRomitaPopover()" title="Cerrar"><i class="ph ph-x"></i></button>
+                                                        </div>
+
+                                                        <div class="romita-popover-body">
+                                                            <!-- Custom prompt instruction input -->
+                                                            <div class="romita-prompt-input-wrap">
+                                                                <textarea id="romita-custom-prompt" class="romita-prompt-textarea" rows="2" placeholder="Dime qué deseas que redacte Romita para este post... (o pulsa una opción abajo)"></textarea>
+                                                                <button type="button" class="romita-send-prompt-btn" id="btn-romita-run-custom" onclick="executeRomitaPostAction('custom')" title="Generar con esta indicación">
+                                                                    <i class="ph-bold ph-paper-plane-right"></i>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Quick options 1-click grid -->
+                                                            <div class="romita-quick-label">Acciones rápidas en 1 clic:</div>
+                                                            <div class="romita-quick-options">
+                                                                <button type="button" class="romita-quick-btn rqb-img" onclick="executeRomitaPostAction('desde_imagen')">
+                                                                    <i class="ph-bold ph-image"></i>
+                                                                    <div class="rqb-text">
+                                                                        <strong>Crear desde Imagen Terminada</strong>
+                                                                        <small>Analiza visuales, concepto y genera copy completo</small>
+                                                                    </div>
+                                                                </button>
+                                                                <button type="button" class="romita-quick-btn rqb-concept" onclick="executeRomitaPostAction('desde_concepto')">
+                                                                    <i class="ph-bold ph-lightbulb"></i>
+                                                                    <div class="rqb-text">
+                                                                        <strong>Crear desde Concepto & Referencia</strong>
+                                                                        <small>Usa el título y las notas del post</small>
+                                                                    </div>
+                                                                </button>
+                                                                <button type="button" class="romita-quick-btn rqb-fix" onclick="executeRomitaPostAction('corregir')">
+                                                                    <i class="ph-bold ph-magic-wand"></i>
+                                                                    <div class="rqb-text">
+                                                                        <strong>Corregir Ortografía & Elevar Estilo</strong>
+                                                                        <small>Pule el texto que ya escribiste en el editor</small>
+                                                                    </div>
+                                                                </button>
+                                                                <button type="button" class="romita-quick-btn rqb-hash" onclick="executeRomitaPostAction('hashtags')">
+                                                                    <i class="ph-bold ph-hash"></i>
+                                                                    <div class="rqb-text">
+                                                                        <strong>Generar 10 Hashtags Estratégicos</strong>
+                                                                        <small>Optimizados para el tema y redes seleccionadas</small>
+                                                                    </div>
+                                                                </button>
+                                                                <button type="button" class="romita-quick-btn rqb-persuade" onclick="executeRomitaPostAction('persuasivo')">
+                                                                    <i class="ph-bold ph-lightning"></i>
+                                                                    <div class="rqb-text">
+                                                                        <strong>Hacerlo más Persuasivo (Método AIDA)</strong>
+                                                                        <small>Gancho magnético, cuerpo persuasivo y CTA claro</small>
+                                                                    </div>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Loading indicator inside popover -->
+                                                            <div id="romita-popover-loading" class="romita-popover-loading" style="display: none;">
+                                                                <i class="ph ph-spinner ph-spin"></i>
+                                                                <span id="romita-loading-text">Romita está redactando el post...</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div id="post-copy-editable" class="wysiwyg-content" contenteditable="true" placeholder="Escribe el texto de la publicación..."></div>
                                             <textarea name="copy_text" id="post-copy" style="display:none;"></textarea>
@@ -4436,27 +4752,30 @@ function updateSaveButtonState() {
 }
 
 function handleDriveLink() {
-    const url = document.getElementById('post-drive').value;
+    const postDrive = document.getElementById('post-drive');
+    const url = postDrive ? postDrive.value : '';
     const box = document.getElementById('drive-box-container');
     
     // --- Lógica del Drive Box (Recursos y Drive) ---
-    if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
-        box.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" width="32" alt="Drive">
-                <div style="text-align: left;">
-                    <strong style="color: var(--text-color); font-size: 0.9rem;">Recurso Vinculado</strong><br>
-                    <span style="font-size: 0.75rem;">Se extrajo ID del enlace</span>
-                </div>
-            </div>`;
-        box.style.borderColor = '#10b981';
-        box.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
-    } else {
-        box.innerHTML = `
-            <i class="ph ph-google-drive-logo" style="font-size: 2.5rem; color: #3b82f6; margin-bottom: 0.5rem;"></i>
-            <p style="margin: 0; font-size: 0.9rem;">Pega un enlace de Google Drive abajo para vincular recursos.</p>`;
-        box.style.borderColor = 'var(--border-color)';
-        box.style.backgroundColor = 'var(--bg-color)';
+    if (box) {
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            box.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" width="32" alt="Drive">
+                    <div style="text-align: left;">
+                        <strong style="color: var(--text-color); font-size: 0.9rem;">Recurso Vinculado</strong><br>
+                        <span style="font-size: 0.75rem;">Se extrajo ID del enlace</span>
+                    </div>
+                </div>`;
+            box.style.borderColor = '#10b981';
+            box.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
+        } else {
+            box.innerHTML = `
+                <i class="ph ph-google-drive-logo" style="font-size: 2.5rem; color: #3b82f6; margin-bottom: 0.5rem;"></i>
+                <p style="margin: 0; font-size: 0.9rem;">Pega un enlace de Google Drive abajo para vincular recursos.</p>`;
+            box.style.borderColor = 'var(--border-color)';
+            box.style.backgroundColor = 'var(--bg-color)';
+        }
     }
 
     // --- Lógica del Slides Widget (Diseño y Formatos) ---
@@ -4464,19 +4783,21 @@ function handleDriveLink() {
     const linkedState = document.getElementById('slides-linked-state');
     const slidesIframe = document.getElementById('slides-iframe');
 
-    if (url.includes('presentation/d/')) {
-        emptyState.style.display = 'none';
-        linkedState.style.display = 'block';
-        
-        let embedUrl = url;
-        if (url.includes('/edit')) {
-            embedUrl = url.replace('/edit', '/preview'); // Vista previa limpia para el iframe
+    if (emptyState && linkedState && slidesIframe) {
+        if (url.includes('presentation/d/')) {
+            emptyState.style.display = 'none';
+            linkedState.style.display = 'block';
+            
+            let embedUrl = url;
+            if (url.includes('/edit')) {
+                embedUrl = url.replace('/edit', '/preview'); // Vista previa limpia para el iframe
+            }
+            slidesIframe.src = embedUrl;
+        } else {
+            emptyState.style.display = 'block';
+            linkedState.style.display = 'none';
+            slidesIframe.src = '';
         }
-        slidesIframe.src = embedUrl;
-    } else {
-        emptyState.style.display = 'block';
-        linkedState.style.display = 'none';
-        slidesIframe.src = '';
     }
 }
 
@@ -10069,6 +10390,176 @@ async function compressImageHighQuality(file) {
             resolve(file);
         };
     });
+}
+// ==========================================================================
+// ROMITA POST COPYWRITING ASSISTANT
+// ==========================================================================
+function toggleRomitaPopover(e) {
+    if (e) e.stopPropagation();
+    const popover = document.getElementById('romita-popover-panel');
+    if (!popover) return;
+    const isVisible = popover.style.display !== 'none';
+    if (isVisible) {
+        closeRomitaPopover();
+    } else {
+        popover.style.display = 'block';
+        const txt = document.getElementById('romita-custom-prompt');
+        if (txt) {
+            setTimeout(() => txt.focus(), 60);
+        }
+    }
+}
+
+function closeRomitaPopover() {
+    const popover = document.getElementById('romita-popover-panel');
+    if (popover) popover.style.display = 'none';
+    const loading = document.getElementById('romita-popover-loading');
+    if (loading) loading.style.display = 'none';
+}
+
+// Close popover when clicking anywhere outside
+document.addEventListener('click', function(e) {
+    const wrap = document.querySelector('.romita-hacer-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+        closeRomitaPopover();
+    }
+});
+
+// Enter key in custom instruction input
+document.addEventListener('keydown', function(e) {
+    if (e.target && e.target.id === 'romita-custom-prompt') {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            executeRomitaPostAction('custom');
+        }
+    }
+});
+
+async function executeRomitaPostAction(subaction) {
+    const editor = document.getElementById('post-copy-editable');
+    if (!editor) return;
+
+    const concept = document.getElementById('post-concept') ? document.getElementById('post-concept').value.trim() : '';
+    const brief = document.getElementById('post-brief') ? document.getElementById('post-brief').value.trim() : '';
+    const pillarEl = document.querySelector('input[name="content_pillar"]:checked');
+    const pillar = pillarEl ? pillarEl.value : '';
+    const platforms = Array.from(document.querySelectorAll('input[name="platform[]"]:checked')).map(cb => cb.value);
+    const customPromptEl = document.getElementById('romita-custom-prompt');
+    const instruction = customPromptEl ? customPromptEl.value.trim() : '';
+    let currentText = editor.innerText.trim();
+    if (currentText === 'Escribe el texto de la publicación...') currentText = '';
+
+    const brandName = <?php echo json_encode($monthData['brand_name'] ?? ''); ?>;
+
+    // Detect images in Terminado or Ref. Visual
+    let imgUrl = '';
+    const postImgVal = document.getElementById('post-image-link') ? document.getElementById('post-image-link').value : '';
+    let list = [];
+    try {
+        list = JSON.parse(postImgVal);
+        if (!Array.isArray(list)) list = postImgVal ? [postImgVal] : [];
+    } catch(e) {
+        list = postImgVal ? [postImgVal] : [];
+    }
+    list = list.filter(u => typeof u === 'string' && u.trim() !== '');
+
+    const refVal = document.getElementById('post-reference-link') ? document.getElementById('post-reference-link').value : '';
+    let refList = [];
+    try {
+        refList = JSON.parse(refVal);
+        if (!Array.isArray(refList)) refList = refVal ? [refVal] : [];
+    } catch(e) {
+        refList = refVal ? [refVal] : [];
+    }
+    refList = refList.filter(u => typeof u === 'string' && u.trim() !== '');
+
+    if (list.length > 0) {
+        imgUrl = list[0];
+    } else if (refList.length > 0) {
+        imgUrl = refList[0];
+    }
+
+    if (subaction === 'desde_imagen' && !imgUrl) {
+        showToast('Sube primero la imagen en "Terminado" o "Ref. Visual" para que Romita pueda analizarla.', 'warning');
+        return;
+    }
+
+    if (subaction === 'custom' && !instruction) {
+        if (!concept && !currentText && !imgUrl) {
+            showToast('Escribe una indicación o completa el concepto del post primero.', 'warning');
+            if (customPromptEl) customPromptEl.focus();
+            return;
+        }
+    }
+
+    // UI Loading state in popover
+    const loadingEl = document.getElementById('romita-popover-loading');
+    const loadingText = document.getElementById('romita-loading-text');
+    if (loadingEl) {
+        loadingEl.style.display = 'flex';
+        if (loadingText) {
+            if (subaction === 'desde_imagen') loadingText.innerText = 'Romita está analizando la imagen y redactando el copy...';
+            else if (subaction === 'corregir') loadingText.innerText = 'Romita está corrigiendo ortografía y estilo...';
+            else if (subaction === 'hashtags') loadingText.innerText = 'Romita está generando los 10 hashtags ideales...';
+            else if (subaction === 'persuasivo') loadingText.innerText = 'Romita está reescribiendo con método AIDA...';
+            else loadingText.innerText = 'Romita está redactando tu propuesta...';
+        }
+    }
+
+    // Temporary editor placeholder
+    const originalHtml = editor.innerHTML;
+    editor.innerHTML = '<span style="color:#a855f7; font-weight: 600; font-style: italic; display: inline-flex; align-items: center; gap: 6px;"><i class="ph ph-spinner ph-spin"></i> Romita está redactando el copy...</span>';
+
+    try {
+        const response = await fetch('ajax/gemini_generate.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'romita_assistant',
+                subaction: subaction,
+                instruction: instruction,
+                text: currentText,
+                concept: concept,
+                brief: brief,
+                pillar: pillar,
+                platforms: platforms,
+                brand: brandName,
+                image: imgUrl
+            })
+        });
+
+        const resData = await response.json();
+
+        if (resData.success && resData.text) {
+            const formatted = resData.text.replace(/\n/g, '<br>');
+            if (subaction === 'hashtags' && currentText) {
+                editor.innerHTML = originalHtml + '<br><br><span style="color:#60a5fa; font-weight: 600;">' + formatted + '</span>';
+            } else {
+                editor.innerHTML = formatted;
+            }
+
+            // Sync hidden textarea
+            const hiddenTextarea = document.getElementById('post-copy');
+            if (hiddenTextarea) {
+                hiddenTextarea.value = editor.innerText.trim();
+            }
+
+            if (customPromptEl) customPromptEl.value = '';
+            closeRomitaPopover();
+            updateCopyPreview();
+            markDirty();
+            updateSaveButtonState();
+            showToast('✨ Publicación redactada por Romita con éxito', 'success');
+        } else {
+            editor.innerHTML = originalHtml;
+            if (loadingEl) loadingEl.style.display = 'none';
+            showToast(resData.error || 'No se pudo conectar con Romita.', 'error');
+        }
+    } catch(err) {
+        editor.innerHTML = originalHtml;
+        if (loadingEl) loadingEl.style.display = 'none';
+        showToast('Error al comunicarse con Romita.', 'error');
+    }
 }
 
 async function callGemini(action) {

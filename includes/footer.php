@@ -659,6 +659,11 @@ try {
         }
     }
 } catch (Exception $e) {}
+
+// Romita AI Global Floating Assistant & Command Palette (Ctrl + K)
+if (isset($_SESSION['user_id']) && ($current_module ?? '') !== 'romita') {
+    require_once __DIR__ . '/romita_floating_modal.php';
+}
 ?>
 </body>
 </html>

@@ -194,10 +194,153 @@ function getAgencyIntelligenceContext($db) {
     }
 }
 
+function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0) {
+    $context = "=== INTELIGENCIA 360° DEL ECOSISTEMA DE PROYECTOS - ROMA AGENCIA ===\n";
+
+    // 1. Contexto de pantalla en tiempo real (Conciencia situacional)
+    if (!empty($current_module)) {
+        $context .= "UBICACIÓN ACTUAL DEL USUARIO EN LA PLATAFORMA:\n";
+        $context .= "- Módulo en pantalla: " . strtoupper($current_module) . "\n";
+
+        if ($entity_id > 0) {
+            $context .= "- Identificador del recurso activo: #{$entity_id}\n";
+            try {
+                if ($current_module === 'desarrollo_marca') {
+                    $stmtB = $db->prepare("SELECT title, client_name, status, due_date, description FROM brand_projects WHERE id = ?");
+                    $stmtB->execute([$entity_id]);
+                    $bp = $stmtB->fetch(PDO::FETCH_ASSOC);
+                    if ($bp) {
+                        $context .= "  • Proyecto de Marca Activo: '{$bp['title']}' | Cliente: '{$bp['client_name']}' | Estado: {$bp['status']} | Entrega: {$bp['due_date']}\n";
+                        if (!empty($bp['description'])) $context .= "  • Resumen/Briefing: {$bp['description']}\n";
+                    }
+                } elseif ($current_module === 'audiovisual') {
+                    $stmtA = $db->prepare("SELECT title, client_name, status, due_date, description FROM audiovisual_projects WHERE id = ?");
+                    $stmtA->execute([$entity_id]);
+                    $ap = $stmtA->fetch(PDO::FETCH_ASSOC);
+                    if ($ap) {
+                        $context .= "  • Proyecto Audiovisual Activo: '{$ap['title']}' | Cliente: '{$ap['client_name']}' | Estado: {$ap['status']} | Entrega: {$ap['due_date']}\n";
+                        if (!empty($ap['description'])) $context .= "  • Resumen/Guión/Pautas: {$ap['description']}\n";
+                    }
+                } elseif ($current_module === 'pizarras') {
+                    $stmtW = $db->prepare("SELECT w.title, f.name as folder_name, w.tags FROM whiteboards w LEFT JOIN whiteboard_folders f ON w.folder_id = f.id WHERE w.id = ?");
+                    $stmtW->execute([$entity_id]);
+                    $wp = $stmtW->fetch(PDO::FETCH_ASSOC);
+                    if ($wp) {
+                        $context .= "  • Pizarra Colaborativa Activa: '{$wp['title']}' | Carpeta: '{$wp['folder_name']}'\n";
+                    }
+                } elseif (in_array($current_module, ['month_board', 'calendar'])) {
+                    $stmtM = $db->prepare("SELECT pm.month, pm.year, w.brand_name, w.correlativo FROM project_months pm JOIN projects p ON pm.project_id = p.id JOIN work_orders w ON p.work_order_id = w.id WHERE pm.id = ?");
+                    $stmtM->execute([$entity_id]);
+                    $mp = $stmtM->fetch(PDO::FETCH_ASSOC);
+                    if ($mp) {
+                        $context .= "  • Calendario de Contenidos Activo: Marca '{$mp['brand_name']}' ({$mp['correlativo']}) | Mes: {$mp['month']}/{$mp['year']}\n";
+                    }
+                } elseif ($current_module === 'projects' || $current_module === 'project_board') {
+                    $stmtP = $db->prepare("SELECT p.id, w.brand_name, w.correlativo, w.data FROM projects p LEFT JOIN work_orders w ON p.work_order_id = w.id WHERE p.id = ?");
+                    $stmtP->execute([$entity_id]);
+                    $pp = $stmtP->fetch(PDO::FETCH_ASSOC);
+                    if ($pp) {
+                        $woData = json_decode($pp['data'] ?? '', true) ?: [];
+                        $srv = $woData['servicio'] ?? 'Desarrollo / Web';
+                        $context .= "  • Proyecto Activo: '{$pp['brand_name']}' ({$pp['correlativo']}) | Servicio: {$srv}\n";
+                    }
+                }
+            } catch (Exception $e) {}
+        }
+        $context .= "\n";
+    }
+
+    // 2. Resumen Global de Proyectos en toda la Agencia
+    try {
+        // A. Calendario & Redes Sociales
+        $stmtCal = $db->query("
+            SELECT p.id, COALESCE(NULLIF(wo.brand_name, ''), CONCAT('Proyecto #', p.id)) as brand_name,
+                   (SELECT COUNT(*) FROM month_posts mp JOIN project_months pm ON mp.month_id = pm.id WHERE pm.project_id = p.id) as total_posts
+            FROM projects p
+            LEFT JOIN work_orders wo ON p.work_order_id = wo.id
+            WHERE (wo.is_archived IS NULL OR wo.is_archived = 0)
+            ORDER BY p.id DESC LIMIT 8
+        ");
+        $cals = $stmtCal ? $stmtCal->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (!empty($cals)) {
+            $context .= "CALENDARIOS / REDES SOCIALES ACTIVAS:\n";
+            foreach ($cals as $c) {
+                $context .= "- Marca '{$c['brand_name']}': {$c['total_posts']} publicaciones gestionadas\n";
+            }
+            $context .= "\n";
+        }
+
+        // B. Desarrollo de Marca (Branding)
+        $stmtBrands = $db->query("SELECT id, title, client_name, status, due_date FROM brand_projects WHERE status IN ('Active', 'Pending') ORDER BY id DESC LIMIT 8");
+        $brands = $stmtBrands ? $stmtBrands->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (!empty($brands)) {
+            $context .= "PROYECTOS DE DESARROLLO DE MARCA (BRANDING):\n";
+            foreach ($brands as $b) {
+                $client = !empty($b['client_name']) ? " (Cliente: {$b['client_name']})" : "";
+                $due = !empty($b['due_date']) ? " - Entrega: {$b['due_date']}" : "";
+                $context .= "- #{$b['id']} '{$b['title']}'{$client} [Estado: {$b['status']}]{$due}\n";
+            }
+            $context .= "\n";
+        }
+
+        // C. Producción Audiovisual (Videos / Reels / Rodajes)
+        $stmtAudio = $db->query("SELECT id, title, client_name, status, due_date FROM audiovisual_projects WHERE status IN ('Active', 'Pending') ORDER BY id DESC LIMIT 8");
+        $audios = $stmtAudio ? $stmtAudio->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (!empty($audios)) {
+            $context .= "PROYECTOS AUDIOVISUALES (VIDEOS / PRODUCCIÓN):\n";
+            foreach ($audios as $a) {
+                $client = !empty($a['client_name']) ? " (Cliente: {$a['client_name']})" : "";
+                $due = !empty($a['due_date']) ? " - Entrega: {$a['due_date']}" : "";
+                $context .= "- #{$a['id']} '{$a['title']}'{$client} [Estado: {$a['status']}]{$due}\n";
+            }
+            $context .= "\n";
+        }
+
+        // D. Pizarras Colaborativas
+        $stmtWhite = $db->query("SELECT w.id, w.title, f.name as folder_name FROM whiteboards w LEFT JOIN whiteboard_folders f ON w.folder_id = f.id ORDER BY w.id DESC LIMIT 6");
+        $whites = $stmtWhite ? $stmtWhite->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (!empty($whites)) {
+            $context .= "PIZARRAS COLABORATIVAS RECIENTES:\n";
+            foreach ($whites as $w) {
+                $fName = !empty($w['folder_name']) ? " [Carpeta: {$w['folder_name']}]" : "";
+                $context .= "- Pizarra #{$w['id']}: '{$w['title']}'{$fName}\n";
+            }
+            $context .= "\n";
+        }
+
+        // E. Proyectos Web / Sistema
+        $stmtWeb = $db->query("
+            SELECT p.id, wo.correlativo, wo.brand_name, wo.data 
+            FROM projects p
+            JOIN work_orders wo ON p.work_order_id = wo.id
+            WHERE (wo.is_archived IS NULL OR wo.is_archived = 0)
+            AND (wo.data LIKE '%web%' OR wo.data LIKE '%sitio%' OR wo.data LIKE '%desarrollo%')
+            ORDER BY p.id DESC LIMIT 6
+        ");
+        $webs = $stmtWeb ? $stmtWeb->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (!empty($webs)) {
+            $context .= "PROYECTOS WEB & DESARROLLO DIGITAL:\n";
+            foreach ($webs as $wb) {
+                $woData = json_decode($wb['data'], true) ?: [];
+                $srv = $woData['servicio'] ?? 'Desarrollo Web';
+                $context .= "- Web: '{$wb['brand_name']}' ({$wb['correlativo']}) | Tipo: {$srv}\n";
+            }
+            $context .= "\n";
+        }
+
+    } catch (Exception $e) {}
+
+    $context .= "REGLA: Conduce tus respuestas con pleno conocimiento de estos proyectos. Si el usuario te pregunta por cualquier área (calendario, marca, web, audiovisual o pizarra), responde usando los datos verídicos de la agencia.";
+    return $context;
+}
+
 try {
     if ($action === 'chat') {
         $message = $_POST['message'] ?? '';
         $skill_prompt = $_POST['skill_prompt'] ?? '';
+        $specialty = $_POST['specialty'] ?? 'director_360';
+        $current_module = $_POST['current_module'] ?? '';
+        $entity_id = (int)($_POST['entity_id'] ?? 0);
         
         if(empty($message)) {
             echo json_encode(['success' => false, 'error' => 'Mensaje vacío']);
@@ -219,10 +362,6 @@ try {
         $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content) VALUES (?, 'user', ?)");
         $stmt_user_msg->execute([$chat_id, $message]);
 
-        // 1. CONEXIÓN A GOOGLE GEMINI API
-        $apiKey = 'AQ.Ab8RN6IMDdwCwC9tCRzve5p6Vf8te8CVRhFAjucDPSCJ9wy5Mg';
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
-
         // Recuperar contexto anterior (últimos 10 mensajes)
         $stmt_hist = $db->prepare("SELECT role, content FROM romita_messages WHERE chat_id = ? ORDER BY id ASC LIMIT 10");
         $stmt_hist->execute([$chat_id]);
@@ -230,7 +369,6 @@ try {
 
         $contents = [];
         foreach($history as $h) {
-            // Gemini roles: 'user' or 'model'
             $geminiRole = $h['role'] === 'user' ? 'user' : 'model';
             $contents[] = [
                 "role" => $geminiRole,
@@ -243,7 +381,18 @@ try {
         // Instrucción de Sistema
         $sysInstructions = [];
 
-        // Contexto temporal en tiempo real (Zona horaria de la empresa: America/Lima)
+        // 1. Especialidad seleccionada
+        $specialtyPrompts = [
+            'director_360' => "IDENTIDAD & ROL PRINCIPAL: Eres Romita, la Directora Estratégica 360° y CMO de Roma Agencia. Posees una visión integral que conecta Branding, Contenido, Redes Sociales, Desarrollo Web, Producción Audiovisual y Conversión. Respondes con liderazgo, claridad ejecutiva, visión de negocio y coordinación entre todas las áreas de la agencia.",
+            'community_manager' => "IDENTIDAD & ROL PRINCIPAL: Eres Romita en tu especialidad de Senior Community Manager y Copywriter de Alto Impacto. Eres experta en psicología de audiencias, ganchos magnéticos (Hooks) que detienen el scroll, storytelling dinámico, formatos de tendencia (Reels, TikTok, Carruseles, Threads, LinkedIn) y llamadas a la acción (CTAs) que disparan el engagement.",
+            'branding' => "IDENTIDAD & ROL PRINCIPAL: Eres Romita en tu especialidad de Especialista Senior en Branding y Estrategia de Marca. Eres la guardiana de la coherencia de marca, arquetipos (Jung), personalidad verbal, identidad visual, propuesta de valor única y posicionamiento en el mercado.",
+            'marketing' => "IDENTIDAD & ROL PRINCIPAL: Eres Romita en tu especialidad de Especialista Senior en Growth Marketing y Conversión. Tu enfoque es 100% resultados: embudos de ventas (TOFU, MOFU, BOFU), adquisición de clientes, optimización de tasas de conversión (CRO), pauta digital (Meta Ads, Google Ads) y métricas de rendimiento (ROAS, CAC, CTR, LTV).",
+            'seo' => "IDENTIDAD & ROL PRINCIPAL: Eres Romita en tu especialidad de Especialista Senior en SEO y Posicionamiento Web. Dominas la intención de búsqueda (Search Intent), arquitectura de contenidos, clusters temáticos, optimización on-page (títulos, encabezados, metadatos, enlazado interno) y estrategias para dominar las primeras posiciones de Google."
+        ];
+
+        $sysInstructions[] = $specialtyPrompts[$specialty] ?? $specialtyPrompts['director_360'];
+
+        // 2. Contexto temporal en tiempo real (Zona horaria de la empresa: America/Lima)
         $tz = new DateTimeZone('America/Lima');
         $now = new DateTime('now', $tz);
         $diasSemana = ['Sunday' => 'Domingo', 'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles', 'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado'];
@@ -272,6 +421,9 @@ try {
         
         $sysInstructions[] = $temporalContext;
 
+        // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario)
+        $sysInstructions[] = getAgencyFullEcosystemContext($db, $current_module, $entity_id);
+
         if (!empty($skill_prompt)) {
             $sysInstructions[] = $skill_prompt;
         }
@@ -287,7 +439,6 @@ try {
                 $preptCtx = "Eres el gestor de contenido de la marca '{$prept['name']}'.\n";
                 $preptCtx .= "Tono: {$prept['tone']}\nAudiencia: {$prept['audience']}\nReglas: {$prept['rules']}\n\n";
                 
-                // Leer últimas 10 publicaciones para evitar repeticiones
                 $stmt2 = $db->prepare("SELECT topic, content_summary, created_at FROM romita_prept_content WHERE prept_id = ? ORDER BY created_at DESC LIMIT 10");
                 $stmt2->execute([$prept_id]);
                 $pastContents = $stmt2->fetchAll(PDO::FETCH_ASSOC);
@@ -336,34 +487,70 @@ try {
             ];
         }
 
-        // Búsqueda Web Nativa (Grounding)
-        $payload["tools"] = [
-            ["googleSearch" => new stdClass()]
-        ];
+        // 4. Conexión a Gemini API con multi-key y multi-model fallbacks
+        $stmtKey = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
+        $dbApiKey = $stmtKey ? trim($stmtKey->fetchColumn() ?: '') : '';
+        $apiKeysToTry = array_values(array_filter([
+            $dbApiKey,
+            getenv('GEMINI_API_KEY') ?: '',
+            'AIzaSyDIzZJ62tamjKWL73CgEORCDxzifIlIkUw',
+            'AQ.Ab8RN6IMDdwCwC9tCRzve5p6Vf8te8CVRhFAjucDPSCJ9wy5Mg'
+        ]));
 
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        
-        $response = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
+        $modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
         $ia_response = "";
-        
-        if ($httpcode >= 200 && $httpcode < 300) {
-            $responseData = json_decode($response, true);
-            if (isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
-                $ia_response = $responseData['candidates'][0]['content']['parts'][0]['text'];
-            } else {
-                $ia_response = "Lo siento, recibí una respuesta inesperada de Gemini.";
+        $lastError = "No se pudo conectar con la IA de Romita.";
+
+        $breakOuter = false;
+        foreach ($apiKeysToTry as $currentApiKey) {
+            if ($breakOuter) break;
+
+            foreach ($modelsToTry as $modelName) {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $currentApiKey;
+
+                $ch = curl_init($url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                
+                $response = curl_exec($ch);
+                $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlErr = curl_error($ch);
+                curl_close($ch);
+
+                if ($curlErr) {
+                    $lastError = "Error de red: " . $curlErr;
+                    continue;
+                }
+
+                $responseData = json_decode($response, true);
+
+                if ($httpcode >= 200 && $httpcode < 300 && isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+                    $ia_response = trim($responseData['candidates'][0]['content']['parts'][0]['text']);
+                    $breakOuter = true;
+                    break;
+                } else {
+                    $lastError = $responseData['error']['message'] ?? "Error HTTP $httpcode";
+                    if ($httpcode === 404) {
+                        continue; // Probar otro modelo
+                    }
+                    if ($httpcode === 400 || $httpcode === 401 || $httpcode === 403) {
+                        break; // Probar siguiente API key
+                    }
+                }
             }
-        } else {
-            $errorData = json_decode($response, true);
-            $errMsg = $errorData['error']['message'] ?? 'Error desconocido';
-            echo json_encode(['success' => false, 'error' => "Error de API ($httpcode): $errMsg"]);
+        }
+
+        if (empty($ia_response)) {
+            if (strpos($lastError, 'API key') !== false || strpos($lastError, 'service account') !== false) {
+                $lastError = 'La clave de Gemini no está configurada o es inválida. Configúrala en Ajustes > IA.';
+            }
+            echo json_encode(['success' => false, 'error' => $lastError]);
             exit();
         }
 

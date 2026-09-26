@@ -1,0 +1,1536 @@
+<?php
+// includes/romita_floating_modal.php
+// Romita AI Global Floating Assistant & Command Palette (Tecla R)
+if (!isset($_SESSION['user_id'])) return;
+?>
+
+<!-- Floating Trigger Button (FAB) -->
+<div id="romita-fab-container" class="romita-fab-container">
+    <button type="button" id="romita-fab-btn" class="romita-fab-btn" onclick="toggleRomitaGlobalModal()" aria-label="Abrir Romita IA">
+        <span class="romita-fab-glow"></span>
+        <div class="romita-fab-avatar">
+            <i class="ph-bold ph-sparkle"></i>
+        </div>
+        <span class="romita-fab-pulse"></span>
+        <span class="romita-fab-tooltip">
+            <span>Pregúntale a Romita</span>
+            <kbd>R</kbd>
+        </span>
+    </button>
+</div>
+
+<!-- Global Modal Overlay / Command Palette Spotlight -->
+<div id="romita-global-overlay" class="romita-global-overlay" style="display: none;" onclick="handleRomitaOverlayClick(event)">
+    <div id="romita-global-dialog" class="romita-global-dialog" onclick="event.stopPropagation()">
+        
+        <!-- App Header (Native macOS / Modern SaaS style) -->
+        <div class="rg-header">
+            <div class="rg-header-left">
+                <div class="rg-avatar-badge">
+                    <i class="ph-bold ph-sparkle"></i>
+                </div>
+                <div class="rg-meta">
+                    <div class="rg-name-row">
+                        <span class="rg-title">Romita</span>
+                        <span class="rg-version-tag">AI</span>
+                        <span class="rg-online-badge">
+                            <span class="rg-pulse-dot"></span>
+                            <span>En línea</span>
+                        </span>
+                    </div>
+                    <div class="rg-screen-pill" id="romita-screen-pill">
+                        <i class="ph ph-browsers"></i>
+                        <span>Detectando contexto...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rg-header-actions">
+                <button type="button" class="rg-icon-btn" id="btn-romita-toggle-layout" onclick="toggleRomitaLayoutMode()" title="Alternar panel lateral / centrado">
+                    <i class="ph ph-sidebar-simple" id="rg-layout-icon"></i>
+                </button>
+                <button type="button" class="rg-icon-btn" onclick="clearRomitaCurrentChat()" title="Nueva conversación">
+                    <i class="ph ph-plus"></i>
+                </button>
+                <button type="button" class="rg-icon-btn rg-close-btn" onclick="closeRomitaGlobalModal()" title="Cerrar (Esc)">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Specialties Selector (Segmented App Bar - Clean, Zero Emojis) -->
+        <div class="rg-specialties-container">
+            <div class="rg-specialties-bar">
+                <button type="button" class="rg-spec-tab active" data-spec="director_360" onclick="setRomitaSpecialty('director_360', this)">
+                    <i class="ph ph-compass"></i>
+                    <span>Directora 360°</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="community_manager" onclick="setRomitaSpecialty('community_manager', this)">
+                    <i class="ph ph-chat-circle-dots"></i>
+                    <span>Senior CM</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="branding" onclick="setRomitaSpecialty('branding', this)">
+                    <i class="ph ph-palette"></i>
+                    <span>Branding</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="marketing" onclick="setRomitaSpecialty('marketing', this)">
+                    <i class="ph ph-trend-up"></i>
+                    <span>Marketing</span>
+                </button>
+                <button type="button" class="rg-spec-tab" data-spec="seo" onclick="setRomitaSpecialty('seo', this)">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <span>SEO</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Scroll Area -->
+        <div class="rg-chat-body" id="romita-chat-messages">
+            <!-- Starter Welcome & Suggestions -->
+            <div id="romita-welcome-view" class="rg-welcome-view">
+                <div class="rg-welcome-orb">
+                    <div class="rg-orb-glow"></div>
+                    <div class="rg-orb-icon">
+                        <i class="ph-bold ph-sparkle"></i>
+                    </div>
+                </div>
+                <h3 class="rg-welcome-title">¿En qué podemos colaborar hoy?</h3>
+                <p class="rg-welcome-subtitle" id="romita-welcome-desc">
+                    Asistente de inteligencia conectada a Calendarios, Marcas, Web, Audiovisual y Pizarras.
+                </p>
+
+                <div class="rg-suggestions-grid">
+                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Qué proyectos tenemos activos actualmente en la agencia?')">
+                        <span class="rg-card-icon"><i class="ph ph-kanban"></i></span>
+                        <div class="rg-card-text">
+                            <strong>Proyectos activos</strong>
+                            <small>Resumen de producción de la agencia</small>
+                        </div>
+                    </button>
+                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Dame 3 ideas creativas de contenido con gancho para las marcas de este mes')">
+                        <span class="rg-card-icon"><i class="ph ph-lightbulb"></i></span>
+                        <div class="rg-card-text">
+                            <strong>Ideas de contenido</strong>
+                            <small>Estrategia con ganchos para el mes</small>
+                        </div>
+                    </button>
+                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?')">
+                        <span class="rg-card-icon"><i class="ph ph-funnel"></i></span>
+                        <div class="rg-card-text">
+                            <strong>Embudo de conversión</strong>
+                            <small>Estructura estratégica TOFU-MOFU-BOFU</small>
+                        </div>
+                    </button>
+                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Revisa las mejores prácticas de SEO para optimizar las páginas de servicios')">
+                        <span class="rg-card-icon"><i class="ph ph-chart-line-up"></i></span>
+                        <div class="rg-card-text">
+                            <strong>Optimización SEO</strong>
+                            <small>Directrices para páginas de servicios</small>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Bar (Modern Floating App Style) -->
+        <div class="rg-footer">
+            <div class="rg-input-box">
+                <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Escribe tu consulta o pide una recomendación estratégica..." onkeydown="handleRomitaInputKeydown(event)" oninput="autoGrowRomitaTextarea(this)"></textarea>
+                <div class="rg-input-actions">
+                    <button type="button" id="btn-romita-send" class="rg-send-btn" onclick="sendRomitaMessage()" aria-label="Enviar mensaje">
+                        <i class="ph-bold ph-arrow-up"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="rg-footer-hints">
+                <span class="rg-hint"><kbd>Enter</kbd> Enviar</span>
+                <span class="rg-hint"><kbd>Shift + Enter</kbd> Salto de línea</span>
+                <span class="rg-hint"><kbd>R</kbd> Abrir</span>
+                <span class="rg-hint"><kbd>Esc</kbd> Ocultar</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+/* ==========================================================================
+   ROMITA GLOBAL FLOATING ASSISTANT & COMMAND PALETTE (MODERN NATIVE APP STYLE)
+   ========================================================================== */
+
+/* Floating Action Button (FAB) */
+.romita-fab-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99990;
+    pointer-events: auto;
+}
+
+.romita-fab-btn {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    outline: none;
+    box-shadow: 0 10px 28px -6px rgba(99, 102, 241, 0.5);
+}
+
+.romita-fab-btn:hover {
+    transform: scale(1.06) translateY(-2px);
+    box-shadow: 0 16px 36px -6px rgba(99, 102, 241, 0.65);
+}
+
+.romita-fab-btn:active {
+    transform: scale(0.96);
+}
+
+.romita-fab-glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+    filter: blur(8px);
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+    animation: romitaGlowPulse 3s infinite alternate;
+}
+
+.romita-fab-btn:hover .romita-fab-glow {
+    opacity: 0.85;
+    filter: blur(12px);
+}
+
+@keyframes romitaGlowPulse {
+    0% { transform: scale(0.98); opacity: 0.45; }
+    100% { transform: scale(1.05); opacity: 0.8; }
+}
+
+.romita-fab-avatar {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.35rem;
+    z-index: 2;
+}
+
+.romita-fab-pulse {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #10b981;
+    border: 2px solid #0f172a;
+    z-index: 3;
+    box-shadow: 0 0 8px #10b981;
+}
+
+/* Tooltip on hover */
+.romita-fab-tooltip {
+    position: absolute;
+    right: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    background: #0f172a;
+    color: #f1f5f9;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.romita-fab-tooltip kbd {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.68rem;
+    font-family: inherit;
+    font-weight: 700;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.romita-fab-btn:hover .romita-fab-tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* Modal Overlay */
+.romita-global-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 15, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 99995;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: rgFadeIn 0.2s ease-out;
+}
+
+@keyframes rgFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Dialog - Spotlight Mode (App Native Window) */
+.romita-global-dialog {
+    position: relative;
+    width: 740px;
+    max-width: 95vw;
+    height: 690px;
+    max-height: 88vh;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.25), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: rgScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .romita-global-dialog {
+    background: #111116;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 60px rgba(99, 102, 241, 0.08);
+}
+
+@keyframes rgScaleUp {
+    from { transform: scale(0.97) translateY(10px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Drawer Mode (Snapped to right side) */
+.romita-global-dialog.drawer-mode {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 490px;
+    max-width: 100vw;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0;
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+    animation: rgSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rgSlideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* Header */
+.rg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rg-header {
+    background: #14141a;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.rg-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rg-avatar-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.15rem;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+}
+
+.rg-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.rg-name-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.rg-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+
+[data-theme="dark"] .rg-title {
+    color: #f8fafc;
+}
+
+.rg-version-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    padding: 1px 5px;
+    border-radius: 5px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .rg-version-tag {
+    color: #a5b4fc;
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.25);
+}
+
+.rg-online-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 2px 7px;
+    border-radius: 9999px;
+}
+
+.rg-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    display: inline-block;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.rg-screen-pill {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 6px;
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .rg-screen-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+.rg-screen-pill i {
+    color: #6366f1;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.rg-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rg-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.rg-icon-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #e2e8f0;
+}
+
+[data-theme="dark"] .rg-icon-btn {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .rg-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.rg-close-btn:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Specialties Bar (Segmented Control - Native SaaS App) */
+.rg-specialties-container {
+    padding: 10px 18px 8px 18px;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rg-specialties-container {
+    background: #14141a;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.rg-specialties-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 11px;
+    border: 1px solid #e2e8f0;
+    overflow-x: auto;
+}
+
+[data-theme="dark"] .rg-specialties-bar {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+.rg-spec-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 11px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+[data-theme="dark"] .rg-spec-tab {
+    color: #94a3b8;
+}
+
+.rg-spec-tab:hover {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .rg-spec-tab:hover {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.rg-spec-tab i {
+    font-size: 0.95rem;
+    opacity: 0.85;
+    transition: transform 0.2s ease;
+}
+
+.rg-spec-tab.active {
+    background: #ffffff;
+    color: #4f46e5 !important;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .rg-spec-tab.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.rg-spec-tab.active i {
+    color: #6366f1;
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+[data-theme="dark"] .rg-spec-tab.active i {
+    color: #818cf8;
+}
+
+/* Chat Scroll Feed */
+.rg-chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+}
+
+.rg-chat-body::-webkit-scrollbar {
+    width: 5px;
+}
+.rg-chat-body::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 9999px;
+}
+[data-theme="dark"] .rg-chat-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Welcome View */
+.rg-welcome-view {
+    margin: auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 0.5rem;
+    gap: 0.75rem;
+}
+
+.rg-welcome-orb {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.35rem;
+}
+
+.rg-orb-glow {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.45) 0%, rgba(139, 92, 246, 0.15) 70%, transparent 100%);
+    filter: blur(8px);
+}
+
+.rg-orb-icon {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.4rem;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.rg-welcome-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.025em;
+}
+
+[data-theme="dark"] .rg-welcome-title {
+    color: #f8fafc;
+}
+
+.rg-welcome-subtitle {
+    margin: 0;
+    max-width: 440px;
+    font-size: 0.83rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+[data-theme="dark"] .rg-welcome-subtitle {
+    color: #94a3b8;
+}
+
+.rg-suggestions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 560px;
+    margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+    .rg-suggestions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rg-suggestion-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .rg-suggestion-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+.rg-suggestion-card:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .rg-suggestion-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.rg-card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .rg-card-icon {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+}
+
+.rg-suggestion-card:hover .rg-card-icon {
+    background: #6366f1;
+    color: #ffffff;
+}
+
+.rg-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.rg-card-text strong {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .rg-card-text strong {
+    color: #f1f5f9;
+}
+
+.rg-card-text small {
+    font-size: 0.72rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .rg-card-text small {
+    color: #94a3b8;
+}
+
+/* Chat Messages */
+.rg-msg {
+    display: flex;
+    gap: 12px;
+    max-width: 88%;
+    animation: rgMsgIn 0.22s ease-out;
+}
+
+@keyframes rgMsgIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.rg-msg-user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.rg-msg-ai {
+    align-self: flex-start;
+}
+
+.rg-msg-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+.rg-msg-ai .rg-msg-avatar {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.rg-msg-user .rg-msg-avatar {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .rg-msg-user .rg-msg-avatar {
+    background: #334155;
+}
+
+.rg-msg-content-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rg-msg-bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    word-break: break-word;
+}
+
+.rg-msg-user .rg-msg-bubble {
+    background: #4f46e5;
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.25);
+}
+
+.rg-msg-ai .rg-msg-bubble {
+    background: #f8fafc;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 4px;
+}
+
+[data-theme="dark"] .rg-msg-ai .rg-msg-bubble {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+}
+
+/* Action button under AI message (Copy, etc.) */
+.rg-msg-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 2px;
+}
+
+.rg-copy-bubble-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.rg-copy-bubble-btn:hover {
+    color: #4f46e5;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+[data-theme="dark"] .rg-copy-bubble-btn:hover {
+    color: #818cf8;
+}
+
+/* Markdown styling inside AI bubble */
+.rg-msg-bubble p { margin: 0 0 8px 0; }
+.rg-msg-bubble p:last-child { margin-bottom: 0; }
+.rg-msg-bubble ul, .rg-msg-bubble ol { margin: 4px 0 8px 18px; padding: 0; }
+.rg-msg-bubble li { margin-bottom: 4px; }
+.rg-msg-bubble strong { font-weight: 700; color: inherit; }
+.rg-msg-bubble pre, .rg-msg-bubble code {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.82rem;
+}
+[data-theme="dark"] .rg-msg-bubble pre, [data-theme="dark"] .rg-msg-bubble code {
+    background: rgba(0, 0, 0, 0.4);
+}
+.rg-msg-bubble pre {
+    padding: 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.rg-msg-bubble table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.78rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.rg-msg-bubble th, .rg-msg-bubble td {
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+    text-align: left;
+}
+[data-theme="dark"] .rg-msg-bubble th, [data-theme="dark"] .rg-msg-bubble td {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.rg-msg-bubble th {
+    background: rgba(99, 102, 241, 0.08);
+    font-weight: 700;
+}
+
+/* Thinking Indicator */
+.rg-typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+}
+
+.rg-typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #818cf8;
+    animation: rgTyping 1.4s infinite ease-in-out both;
+}
+
+.rg-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.rg-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes rgTyping {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+    40% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Footer & Input Bar */
+.rg-footer {
+    padding: 12px 18px 14px 18px;
+    background: #ffffff;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rg-footer {
+    background: #14141a;
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.rg-input-box {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 8px 10px 8px 14px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .rg-input-box {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.rg-input-box:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="dark"] .rg-input-box:focus-within {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.rg-textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    resize: none;
+    outline: none;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: #0f172a;
+    font-family: inherit;
+    max-height: 120px;
+    padding: 3px 0;
+}
+
+[data-theme="dark"] .rg-textarea {
+    color: #f8fafc;
+}
+
+.rg-textarea::placeholder {
+    color: #94a3b8;
+    font-size: 0.83rem;
+}
+
+.rg-input-actions {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.rg-send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.rg-send-btn:hover:not(:disabled) {
+    background: #4338ca;
+    transform: scale(1.05);
+}
+
+.rg-send-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Footer Hints */
+.rg-footer-hints {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.rg-hint {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rg-hint kbd {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.65rem;
+    font-family: inherit;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .rg-hint kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
+}
+</style>
+
+<script>
+// ==========================================================================
+// ROMITA GLOBAL FLOATING ASSISTANT CONTROLLER (TECLA R / SPOTLIGHT)
+// ==========================================================================
+
+let romitaCurrentChatId = null;
+let romitaSpecialty = 'director_360';
+let romitaIsDrawerMode = false;
+let romitaIsLoading = false;
+
+// 1. Get Screen Context (Conciencia Situacional)
+function getRomitaScreenContext() {
+    const params = new URLSearchParams(window.location.search);
+    const module = params.get('module') || 'dashboard';
+    const action = params.get('action') || 'index';
+    const id = params.get('id') || 0;
+
+    const moduleNames = {
+        'dashboard': 'Dashboard General',
+        'calendar': 'Calendario de Contenidos',
+        'month_board': 'Tablero de Mes (Calendario)',
+        'desarrollo_marca': 'Desarrollo de Marca',
+        'audiovisual': 'Producción Audiovisual',
+        'pizarras': 'Pizarras Colaborativas',
+        'projects': 'Proyectos Web & Sistema',
+        'project_board': 'Tablero de Proyecto',
+        'clients': 'Módulo de Clientes',
+        'quotes': 'Cotizaciones',
+        'work_orders': 'Órdenes de Servicio',
+        'contracts': 'Contratos',
+        'task_manager': 'Tareas & Objetivos',
+        'mensajes': 'Mensajes Internos',
+        'knowledge_base': 'Base de Conocimiento',
+        'forms': 'Formularios'
+    };
+
+    const friendlyName = moduleNames[module] || module;
+    const detail = id ? ` #${id}` : '';
+    return {
+        module: module,
+        action: action,
+        id: id,
+        name: friendlyName,
+        detail: detail,
+        label: `${friendlyName}${detail}`
+    };
+}
+
+// 2. Open / Close / Toggle Modal
+function toggleRomitaGlobalModal() {
+    const overlay = document.getElementById('romita-global-overlay');
+    if (!overlay) return;
+    if (overlay.style.display === 'none' || overlay.style.display === '') {
+        openRomitaGlobalModal();
+    } else {
+        closeRomitaGlobalModal();
+    }
+}
+
+function openRomitaGlobalModal() {
+    const overlay = document.getElementById('romita-global-overlay');
+    if (!overlay) return;
+
+    overlay.style.display = 'flex';
+    updateRomitaScreenPill();
+
+    const input = document.getElementById('romita-chat-input');
+    if (input) {
+        setTimeout(() => input.focus(), 100);
+    }
+}
+
+function closeRomitaGlobalModal() {
+    const overlay = document.getElementById('romita-global-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function handleRomitaOverlayClick(e) {
+    if (e.target.id === 'romita-global-overlay') {
+        closeRomitaGlobalModal();
+    }
+}
+
+// 3. Layout Mode Toggle (Spotlight vs Drawer)
+function toggleRomitaLayoutMode() {
+    const dialog = document.getElementById('romita-global-dialog');
+    const icon = document.getElementById('rg-layout-icon');
+    if (!dialog) return;
+
+    romitaIsDrawerMode = !romitaIsDrawerMode;
+    if (romitaIsDrawerMode) {
+        dialog.classList.add('drawer-mode');
+        if (icon) icon.className = 'ph ph-corners-in';
+    } else {
+        dialog.classList.remove('drawer-mode');
+        if (icon) icon.className = 'ph ph-sidebar-simple';
+    }
+}
+
+// 4. Update Screen Indicator (Zero Emojis, Clean Phosphor Icon)
+function updateRomitaScreenPill() {
+    const pill = document.getElementById('romita-screen-pill');
+    if (!pill) return;
+    const ctx = getRomitaScreenContext();
+    pill.innerHTML = `<i class="ph ph-browsers"></i> <span>${ctx.label}</span>`;
+}
+
+// 5. Specialty Selection
+function setRomitaSpecialty(spec, btn) {
+    romitaSpecialty = spec;
+    document.querySelectorAll('.rg-spec-tab').forEach(c => c.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const descriptions = {
+        'director_360': 'Directora Estratégica 360°: Visión global que coordina branding, web, contenido y performance.',
+        'community_manager': 'Senior Community Manager: Copies magnéticos, ganchos virales, calendarios y engagement.',
+        'branding': 'Especialista en Branding: Identidad, arquetipos de marca, tono de voz y coherencia visual.',
+        'marketing': 'Growth Marketing & Conversión: Embudos de ventas, adquisición, métricas (ROAS, CAC) y pauta.',
+        'seo': 'Especialista en SEO: Intención de búsqueda, arquitectura de contenidos y posicionamiento en Google.'
+    };
+
+    const descEl = document.getElementById('romita-welcome-desc');
+    if (descEl && descriptions[spec]) {
+        descEl.innerText = descriptions[spec];
+    }
+}
+
+// 6. Quick Prompts
+function sendRomitaQuickPrompt(text) {
+    const input = document.getElementById('romita-chat-input');
+    if (input) {
+        input.value = text;
+        sendRomitaMessage();
+    }
+}
+
+// 7. Auto-grow Textarea
+function autoGrowRomitaTextarea(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleRomitaInputKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendRomitaMessage();
+    }
+}
+
+// 8. Markdown Parser
+function renderRomitaMarkdown(text) {
+    if (!text) return '';
+    let out = text;
+
+    // Remove raw json blocks from visual render if any
+    out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
+
+    // Code blocks
+    out = out.replace(/```([a-z]*)\n([\s\S]*?)```/g, function(match, lang, code) {
+        return '<pre><code>' + code.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
+    });
+
+    // Inline code
+    out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Bold & Italic
+    out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Headers
+    out = out.replace(/^### (.*$)/gim, '<h4 style="margin:10px 0 4px 0; font-size:0.95rem; font-weight:700; color:inherit;">$1</h4>');
+    out = out.replace(/^## (.*$)/gim, '<h3 style="margin:12px 0 6px 0; font-size:1.05rem; font-weight:700; color:inherit;">$1</h3>');
+    out = out.replace(/^# (.*$)/gim, '<h2 style="margin:14px 0 8px 0; font-size:1.15rem; font-weight:800; color:inherit;">$1</h2>');
+
+    // Lists
+    out = out.replace(/^\s*[-•]\s+(.*)$/gim, '<li>$1</li>');
+    out = out.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+    out = out.replace(/<\/ul>\s*<ul>/g, '');
+
+    // Line breaks
+    out = out.replace(/\n\n/g, '<br><br>');
+    out = out.replace(/\n/g, '<br>');
+
+    return out;
+}
+
+// Helper to copy message text to clipboard
+function copyRomitaMessage(btn) {
+    const bubble = btn.closest('.rg-msg-content-wrap').querySelector('.rg-msg-bubble');
+    if (!bubble) return;
+    const text = bubble.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-check"></i> Copiado';
+        btn.style.color = '#10b981';
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.style.color = '';
+        }, 1800);
+    });
+}
+
+// 9. Send Message
+async function sendRomitaMessage() {
+    if (romitaIsLoading) return;
+    const input = document.getElementById('romita-chat-input');
+    if (!input) return;
+    const message = input.value.trim();
+    if (!message) return;
+
+    // Clear input
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Hide welcome view
+    const welcome = document.getElementById('romita-welcome-view');
+    if (welcome) welcome.style.display = 'none';
+
+    // Append User Message
+    const chatContainer = document.getElementById('romita-chat-messages');
+    const userDiv = document.createElement('div');
+    userDiv.className = 'rg-msg rg-msg-user';
+    userDiv.innerHTML = `
+        <div class="rg-msg-avatar"><i class="ph ph-user"></i></div>
+        <div class="rg-msg-content-wrap">
+            <div class="rg-msg-bubble">${message.replace(/\n/g, '<br>')}</div>
+        </div>
+    `;
+    chatContainer.appendChild(userDiv);
+
+    // Append Typing Indicator
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'rg-msg rg-msg-ai';
+    typingDiv.id = 'romita-typing-indicator';
+    typingDiv.innerHTML = `
+        <div class="rg-msg-avatar"><i class="ph-bold ph-sparkle"></i></div>
+        <div class="rg-msg-content-wrap">
+            <div class="rg-msg-bubble">
+                <div class="rg-typing-indicator">
+                    <span class="rg-typing-dot"></span>
+                    <span class="rg-typing-dot"></span>
+                    <span class="rg-typing-dot"></span>
+                </div>
+            </div>
+        </div>
+    `;
+    chatContainer.appendChild(typingDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    romitaIsLoading = true;
+    const sendBtn = document.getElementById('btn-romita-send');
+    if (sendBtn) sendBtn.disabled = true;
+
+    // Build context
+    const ctx = getRomitaScreenContext();
+    const formData = new FormData();
+    formData.append('action', 'chat');
+    formData.append('message', message);
+    formData.append('specialty', romitaSpecialty);
+    formData.append('current_module', ctx.module);
+    formData.append('entity_id', ctx.id);
+    if (romitaCurrentChatId) {
+        formData.append('chat_id', romitaCurrentChatId);
+    }
+
+    try {
+        const response = await fetch('ajax/ajax_romita.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        // Remove typing indicator
+        const tInd = document.getElementById('romita-typing-indicator');
+        if (tInd) tInd.remove();
+
+        if (data.success && data.response) {
+            romitaCurrentChatId = data.chat_id || romitaCurrentChatId;
+            const aiDiv = document.createElement('div');
+            aiDiv.className = 'rg-msg rg-msg-ai';
+            aiDiv.innerHTML = `
+                <div class="rg-msg-avatar"><i class="ph-bold ph-sparkle"></i></div>
+                <div class="rg-msg-content-wrap">
+                    <div class="rg-msg-bubble">${renderRomitaMarkdown(data.response)}</div>
+                    <div class="rg-msg-actions">
+                        <button type="button" class="rg-copy-bubble-btn" onclick="copyRomitaMessage(this)" title="Copiar respuesta">
+                            <i class="ph ph-copy"></i> Copiar
+                        </button>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(aiDiv);
+        } else {
+            const errDiv = document.createElement('div');
+            errDiv.className = 'rg-msg rg-msg-ai';
+            errDiv.innerHTML = `
+                <div class="rg-msg-avatar" style="background:#ef4444;"><i class="ph ph-warning-circle"></i></div>
+                <div class="rg-msg-content-wrap">
+                    <div class="rg-msg-bubble" style="border-color:#ef4444; color:#ef4444;">${data.error || 'Error al conectar con Romita.'}</div>
+                </div>
+            `;
+            chatContainer.appendChild(errDiv);
+        }
+    } catch (err) {
+        const tInd = document.getElementById('romita-typing-indicator');
+        if (tInd) tInd.remove();
+
+        const errDiv = document.createElement('div');
+        errDiv.className = 'rg-msg rg-msg-ai';
+        errDiv.innerHTML = `
+            <div class="rg-msg-avatar" style="background:#ef4444;"><i class="ph ph-warning-circle"></i></div>
+            <div class="rg-msg-content-wrap">
+                <div class="rg-msg-bubble" style="border-color:#ef4444; color:#ef4444;">Error de conexión con el servidor.</div>
+            </div>
+        `;
+        chatContainer.appendChild(errDiv);
+    } finally {
+        romitaIsLoading = false;
+        if (sendBtn) sendBtn.disabled = false;
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+}
+
+// 10. Clear Chat
+function clearRomitaCurrentChat() {
+    romitaCurrentChatId = null;
+    const chatContainer = document.getElementById('romita-chat-messages');
+    if (!chatContainer) return;
+
+    chatContainer.innerHTML = `
+        <div id="romita-welcome-view" class="rg-welcome-view">
+            <div class="rg-welcome-orb">
+                <div class="rg-orb-glow"></div>
+                <div class="rg-orb-icon">
+                    <i class="ph-bold ph-sparkle"></i>
+                </div>
+            </div>
+            <h3 class="rg-welcome-title">Nueva conversación</h3>
+            <p class="rg-welcome-subtitle" id="romita-welcome-desc">
+                ¿En qué puedo orientarte hoy? Selecciona una especialidad o escribe directamente.
+            </p>
+            <div class="rg-suggestions-grid">
+                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Qué proyectos tenemos activos actualmente en la agencia?')">
+                    <span class="rg-card-icon"><i class="ph ph-kanban"></i></span>
+                    <div class="rg-card-text">
+                        <strong>Proyectos activos</strong>
+                        <small>Resumen de producción de la agencia</small>
+                    </div>
+                </button>
+                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Dame 3 ideas creativas de contenido con gancho para las marcas de este mes')">
+                    <span class="rg-card-icon"><i class="ph ph-lightbulb"></i></span>
+                    <div class="rg-card-text">
+                        <strong>Ideas de contenido</strong>
+                        <small>Estrategia con ganchos para el mes</small>
+                    </div>
+                </button>
+                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?')">
+                    <span class="rg-card-icon"><i class="ph ph-funnel"></i></span>
+                    <div class="rg-card-text">
+                        <strong>Embudo de conversión</strong>
+                        <small>Estructura estratégica TOFU-MOFU-BOFU</small>
+                    </div>
+                </button>
+                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Revisa las mejores prácticas de SEO para optimizar las páginas de servicios')">
+                    <span class="rg-card-icon"><i class="ph ph-chart-line-up"></i></span>
+                    <div class="rg-card-text">
+                        <strong>Optimización SEO</strong>
+                        <small>Directrices para páginas de servicios</small>
+                    </div>
+                </button>
+            </div>
+        </div>
+    `;
+    const input = document.getElementById('romita-chat-input');
+    if (input) input.focus();
+}
+
+// 11. Global Keyboard Shortcut Listener (Tecla R / Escape)
+document.addEventListener('keydown', function(e) {
+    // Escape cierra Romita si está abierto
+    if (e.key === 'Escape') {
+        const overlay = document.getElementById('romita-global-overlay');
+        if (overlay && overlay.style.display !== 'none') {
+            closeRomitaGlobalModal();
+        }
+        return;
+    }
+
+    // Comprobar si el foco está en un campo de texto / editor
+    const activeEl = document.activeElement;
+    const isEditing = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.isContentEditable ||
+        (activeEl.getAttribute && activeEl.getAttribute('contenteditable') === 'true') ||
+        activeEl.classList.contains('ck-editor__editable') ||
+        activeEl.classList.contains('note-editable') ||
+        activeEl.classList.contains('ql-editor') ||
+        activeEl.closest('[contenteditable="true"]')
+    );
+
+    // Si el usuario está escribiendo texto, nunca interceptar la letra 'r'
+    if (isEditing) {
+        return;
+    }
+
+    // Preservar comandos de sistema como Ctrl+R (recargar), Alt+R, Cmd+R
+    if (e.ctrlKey || e.altKey || e.metaKey) {
+        return;
+    }
+
+    // Al presionar R o r se abre / alterna Romita
+    if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        toggleRomitaGlobalModal();
+    }
+});
+</script>
