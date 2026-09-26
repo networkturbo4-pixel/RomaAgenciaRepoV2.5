@@ -782,6 +782,39 @@ try {
         
         $sysInstructions[] = $temporalContext;
 
+        // 2.5 Capacidades Agénticas y Acciones con 1 Clic (Roma Actions)
+        $agenticInstructions = "CAPACIDADES AGÉNTICAS Y ACCIONES CON 1 CLIC (ROMA ACTIONS):\n"
+            . "Como copiloto activo de Roma Agencia, tienes la capacidad de generar bloques de acción ejecutables e interactivos para que el usuario guarde datos reales en el sistema con un solo clic. Utiliza estos bloques especiales al final de tu respuesta cuando sea pertinente:\n\n"
+            . "1. CREACIÓN DE TAREAS EN KANBAN:\n"
+            . "Si el usuario te pide tareas, entregables, pendientes o desglosas un plan de acción concreto con pasos, incluye al final un bloque exactamente así:\n"
+            . "```romita-action:create_tasks\n"
+            . "{\n"
+            . "  \"tasks\": [\n"
+            . "    {\"title\": \"Nombre claro y directo\", \"description\": \"Detalles breves del entregable\", \"due_date\": \"YYYY-MM-DD\", \"is_urgent\": 0}\n"
+            . "  ]\n"
+            . "}\n"
+            . "```\n\n"
+            . "2. AGENDAMIENTO DE REUNIÓN:\n"
+            . "Si se acuerda, coordina o propone una reunión o sesión de trabajo, incluye al final:\n"
+            . "```romita-action:schedule_meeting\n"
+            . "{\n"
+            . "  \"motivo\": \"Motivo conciso de la reunión\",\n"
+            . "  \"fecha_hora\": \"YYYY-MM-DD HH:MM:00\",\n"
+            . "  \"meet_link\": \"https://meet.google.com/new\",\n"
+            . "  \"resumen\": \"Breve resumen de acuerdos previos o temas a tratar\"\n"
+            . "}\n"
+            . "```\n\n"
+            . "3. MENSAJE / MINUTA PARA WHATSAPP:\n"
+            . "Si redactas un resumen de reunión, minuta, propuesta o mensaje para enviar al cliente por WhatsApp, incluye al final:\n"
+            . "```romita-action:whatsapp_message\n"
+            . "{\n"
+            . "  \"recipient_name\": \"Nombre del cliente o contacto\",\n"
+            . "  \"message\": \"Texto completo formateado con emojis y negritas de WhatsApp (*negrita*)\"\n"
+            . "}\n"
+            . "```\n\n"
+            . "REGLA: Fuera del bloque de acción, explica y desarrolla tu propuesta con tu elocuencia y calidez habitual.";
+        $sysInstructions[] = $agenticInstructions;
+
         // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario con RBAC)
         $sysInstructions[] = getAgencyFullEcosystemContext($db, $current_module, $entity_id, $role_name, $is_admin, $user_permissions);
 
@@ -1183,6 +1216,98 @@ try {
             $stmt->execute([$id]);
         }
         echo json_encode(['success' => true]);
+    }
+
+    // =========================================================================
+    // ACCIONES AGÉNTICAS CON 1 CLIC (ROMA ACTIONS EXECUTION)
+    // =========================================================================
+
+    // 1. Crear Tareas masivas en Kanban
+    if ($action === 'tool_create_tasks') {
+        $tasksRaw = $_POST['tasks'] ?? '';
+        $tasks = is_array($tasksRaw) ? $tasksRaw : json_decode($tasksRaw, true);
+
+        if (empty($tasks) || !is_array($tasks)) {
+            echo json_encode(['success' => false, 'error' => 'No se recibieron tareas válidas para registrar.']);
+            exit();
+        }
+
+        $createdIds = [];
+        $stmtIns = $db->prepare("
+            INSERT INTO tasks (title, description, status, assigned_to, created_by, due_date, is_urgent, created_at, updated_at)
+            VALUES (?, ?, 'pending', ?, ?, ?, ?, NOW(), NOW())
+        ");
+
+        $defaultAssigned = json_encode([(string)$user_id]);
+
+        foreach ($tasks as $t) {
+            $title = trim($t['title'] ?? '');
+            if (!$title) continue;
+
+            $desc = trim($t['description'] ?? '');
+            $dueDate = (!empty($t['due_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $t['due_date'])) ? $t['due_date'] : null;
+            $isUrgent = !empty($t['is_urgent']) ? 1 : 0;
+
+            $stmtIns->execute([$title, $desc, $defaultAssigned, $user_id, $dueDate, $isUrgent]);
+            $createdIds[] = $db->lastInsertId();
+        }
+
+        if (empty($createdIds)) {
+            echo json_encode(['success' => false, 'error' => 'No se pudo crear ninguna tarea.']);
+            exit();
+        }
+
+        echo json_encode([
+            'success' => true,
+            'count' => count($createdIds),
+            'task_ids' => $createdIds,
+            'message' => count($createdIds) . (count($createdIds) === 1 ? ' tarea creada' : ' tareas creadas') . ' exitosamente en el Kanban.'
+        ]);
+        exit();
+    }
+
+    // 2. Agendar Reunión en Módulo Reuniones
+    if ($action === 'tool_schedule_meeting') {
+        $motivo = trim($_POST['motivo'] ?? '');
+        $fechaHora = trim($_POST['fecha_hora'] ?? '');
+        $meetLink = trim($_POST['meet_link'] ?? 'https://meet.google.com/new');
+        $resumen = trim($_POST['resumen'] ?? '');
+        $brandId = (int)($_POST['brand_id'] ?? 0);
+
+        if (!$motivo) {
+            echo json_encode(['success' => false, 'error' => 'El motivo de la reunión es obligatorio.']);
+            exit();
+        }
+
+        // Si no se proporcionó marca, asignar la primera marca del sistema
+        if (!$brandId) {
+            $stmtBrand = $db->query("SELECT id FROM client_brands ORDER BY id ASC LIMIT 1");
+            $brandId = (int)($stmtBrand ? $stmtBrand->fetchColumn() : 1);
+            if (!$brandId) $brandId = 1;
+        }
+
+        // Normalizar fecha_hora
+        if ($fechaHora) {
+            $fechaHora = str_replace('T', ' ', $fechaHora);
+            if (strlen($fechaHora) === 16) {
+                $fechaHora .= ':00';
+            }
+        } else {
+            $fechaHora = date('Y-m-d H:i:s', strtotime('+1 day 10:00:00'));
+        }
+
+        $stmtMeet = $db->prepare("
+            INSERT INTO reuniones (brand_id, motivo, fecha_hora, meet_link, resumen, estado, created_by, created_at)
+            VALUES (?, ?, ?, ?, ?, 'Programada', ?, NOW())
+        ");
+        $stmtMeet->execute([$brandId, $motivo, $fechaHora, $meetLink, $resumen, $user_id]);
+        $meetingId = $db->lastInsertId();
+
+        echo json_encode([
+            'success' => true,
+            'meeting_id' => $meetingId,
+            'message' => 'Reunión agendada exitosamente en la Agenda.'
+        ]);
         exit();
     }
 

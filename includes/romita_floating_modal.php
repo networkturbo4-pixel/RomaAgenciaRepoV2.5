@@ -121,9 +121,61 @@ if ($currentHour >= 5 && $currentHour < 12) {
         <!-- Input Bar (Estilo Imagen 2 y 3: Input box con selector de especialidad y menú emergente) -->
         <div class="rg-footer">
             <div class="rg-input-box" id="romita-chat-input-box">
+                <!-- Slash Commands Autocomplete Menu -->
+                <div class="rg-slash-menu" id="rg-slash-menu" style="display:none;" onclick="event.stopPropagation()">
+                    <div class="rg-slash-header">
+                        <span class="rg-slash-title"><i class="ph-bold ph-lightning"></i> Comandos Rápidos</span>
+                        <span class="rg-slash-tip"><kbd>↑</kbd> <kbd>↓</kbd> navegar <kbd>Enter</kbd> seleccionar <kbd>Esc</kbd> cerrar</span>
+                    </div>
+                    <div class="rg-slash-items" id="rg-slash-items">
+                        <button type="button" class="rg-slash-item active" data-cmd="/tarea" data-prompt="Estructura un plan de acción con tareas concretas para el Kanban del proyecto actual..." onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#2563eb;"><i class="ph-bold ph-kanban"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/tarea</span>
+                                <span class="rg-slash-desc">Planificar entregables y crear tareas para el Kanban con 1 clic</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/reunion" data-prompt="Diseña una agenda ejecutiva y estructura de minuta para una reunión de alineación con el cliente..." onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#7c3aed;"><i class="ph-bold ph-calendar-plus"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/reunion</span>
+                                <span class="rg-slash-desc">Agendar reunión de trabajo y generar estructura de minuta</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/whatsapp" data-prompt="Redacta un mensaje persuasivo y cordial para enviar por WhatsApp al cliente resumiendo..." onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#16a34a;"><i class="ph-bold ph-whatsapp-logo"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/whatsapp</span>
+                                <span class="rg-slash-desc">Redactar mensaje o minuta lista para enviar por WhatsApp</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/brief" data-prompt="Inicia una entrevista guiada paso a paso para levantar los requerimientos del brief..." onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#f59e0b;"><i class="ph-bold ph-notepad"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/brief</span>
+                                <span class="rg-slash-desc">Levantamiento de brief conversacional guiado paso a paso</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/auditoria" data-prompt="Realiza una auditoría completa de calidad (QA) y checklist técnico antes de la entrega..." onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#ec4899;"><i class="ph-bold ph-shield-check"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/auditoria</span>
+                                <span class="rg-slash-desc">Checklist de control de calidad y revisión pre-entrega</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/campaña" data-prompt="Estructura una campaña publicitaria en Meta Ads con embudo TOFU-MOFU-BOFU..." onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#06b6d4;"><i class="ph-bold ph-funnel"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/campaña</span>
+                                <span class="rg-slash-desc">Estructurar campaña de pauta con ganchos y públicos</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="rg-input-top-row">
                     <span class="rg-input-sparkle"><i class="ph ph-sparkle"></i></span>
-                    <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Pregúntale a Romita o escribe una solicitud..." onkeydown="handleRomitaInputKeydown(event)" oninput="autoGrowRomitaTextarea(this)"></textarea>
+                    <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Pregúntale a Romita, escribe una solicitud o usa / para comandos..." onkeydown="handleRomitaInputKeydown(event)" oninput="handleRomitaInputChanged(this)"></textarea>
                 </div>
                 <!-- In-Composer Thinking / Generating Indicator Row -->
                 <div class="rg-input-generating-row" id="rg-input-generating-row">
@@ -205,6 +257,9 @@ if ($currentHour >= 5 && $currentHour < 12) {
                             <span class="rg-citation-dot"></span>
                             <span>DB Roma</span>
                         </div>
+                        <button type="button" id="btn-romita-mic" class="rg-mic-btn" onclick="toggleRomitaVoiceRecognition()" title="Dictar por voz a Romita (Español)">
+                            <i class="ph ph-microphone"></i>
+                        </button>
                         <button type="button" id="btn-romita-send" class="rg-send-btn-round" onclick="sendRomitaMessage()" aria-label="Enviar mensaje">
                             <i class="ph-bold ph-arrow-up"></i>
                         </button>
@@ -1648,6 +1703,618 @@ body.has-active-modal .romita-fab-container,
     display: none !important;
 }
 
+/* ==========================================================================
+   ROMA ACTIONS: CARDS DE ACCIONES CON 1 CLIC (AGENTIC CARDS)
+   ========================================================================== */
+.romita-action-card {
+    margin: 16px 0;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+[data-theme="dark"] .romita-action-card {
+    background: #141624;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.romita-action-card:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+}
+
+.rac-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+[data-theme="dark"] .rac-header {
+    background: #1a1d30;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.rac-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.rac-icon-pill {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.rac-icon-kanban { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
+.rac-icon-meeting { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.rac-icon-whatsapp { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+
+[data-theme="dark"] .rac-icon-kanban { background: rgba(56, 189, 248, 0.18); color: #38bdf8; }
+[data-theme="dark"] .rac-icon-meeting { background: rgba(168, 85, 247, 0.18); color: #c084fc; }
+[data-theme="dark"] .rac-icon-whatsapp { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+
+.rac-header-titles {
+    display: flex;
+    flex-direction: column;
+}
+
+.rac-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.25;
+}
+
+[data-theme="dark"] .rac-title {
+    color: #f8fafc;
+}
+
+.rac-sub {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+[data-theme="dark"] .rac-sub {
+    color: #94a3b8;
+}
+
+.rac-chip-status {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-theme="dark"] .rac-chip-status {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+}
+
+.rac-chip-wa {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+[data-theme="dark"] .rac-chip-wa {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.rac-body {
+    padding: 12px 14px;
+}
+
+.rac-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rac-task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+[data-theme="dark"] .rac-task-item {
+    background: #18192a;
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.rac-task-item:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+[data-theme="dark"] .rac-task-item:hover {
+    background: #1f2238;
+}
+
+.rac-task-check {
+    width: 17px;
+    height: 17px;
+    margin-top: 2px;
+    accent-color: #2563eb;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.rac-task-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.rac-task-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rac-task-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+[data-theme="dark"] .rac-task-title {
+    color: #f1f5f9;
+}
+
+.rac-task-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rac-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.rac-badge-urgent {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+
+[data-theme="dark"] .rac-badge-urgent {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.rac-badge-date {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+[data-theme="dark"] .rac-badge-date {
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+.rac-task-desc {
+    margin: 3px 0 0 0;
+    font-size: 0.74rem;
+    color: #64748b;
+    line-height: 1.35;
+}
+
+[data-theme="dark"] .rac-task-desc {
+    color: #94a3b8;
+}
+
+.rac-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+}
+
+[data-theme="dark"] .rac-footer {
+    background: #1a1d30;
+    border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.btn-rac-execute {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+
+.btn-rac-execute:hover {
+    background: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+    color: #ffffff;
+}
+
+.btn-rac-meeting {
+    background: #7c3aed;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.btn-rac-meeting:hover {
+    background: #6d28d9;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+.btn-rac-wa {
+    background: #16a34a;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+.btn-rac-wa:hover {
+    background: #15803d;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+}
+
+.btn-rac-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .btn-rac-copy {
+    background: #23263d;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+.btn-rac-copy:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.rac-link-kanban {
+    font-size: 0.74rem;
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rac-link-kanban:hover {
+    text-decoration: underline;
+}
+
+.rac-success-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: #16a34a;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+[data-theme="dark"] .rac-success-banner {
+    background: rgba(34, 197, 94, 0.18);
+    color: #4ade80;
+}
+
+.rac-btn-view {
+    margin-left: auto;
+    background: #ffffff;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #16a34a;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    text-decoration: none;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-theme="dark"] .rac-btn-view {
+    background: #161827;
+    color: #4ade80;
+}
+
+.rac-meeting-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rac-detail-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.rac-detail-row .rac-label {
+    color: #64748b;
+    font-weight: 500;
+    min-width: 85px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rac-detail-row .rac-value {
+    color: #1e293b;
+    flex: 1;
+}
+
+[data-theme="dark"] .rac-detail-row .rac-value {
+    color: #f1f5f9;
+}
+
+.rac-highlight-date {
+    color: #7c3aed !important;
+    font-weight: 700;
+}
+
+.rac-meet-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.rac-wa-balloon {
+    background: #e7f8ee;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.79rem;
+    line-height: 1.5;
+    color: #14532d;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+[data-theme="dark"] .rac-wa-balloon {
+    background: #0f2e1e;
+    border-color: rgba(34, 197, 94, 0.25);
+    color: #bbf7d0;
+}
+
+/* Slash Commands Popover Menu */
+.rg-slash-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 14px;
+    right: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+    overflow: hidden;
+    animation: rgFadeIn 0.2s ease-out;
+}
+
+[data-theme="dark"] .rg-slash-menu {
+    background: #161827;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.rg-slash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+[data-theme="dark"] .rg-slash-header {
+    background: #1c1e30;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+}
+
+.rg-slash-title {
+    font-weight: 700;
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-theme="dark"] .rg-slash-title {
+    color: #38bdf8;
+}
+
+.rg-slash-tip kbd {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.68rem;
+}
+
+[data-theme="dark"] .rg-slash-tip kbd {
+    background: #252840;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.rg-slash-items {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.rg-slash-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease;
+}
+
+.rg-slash-item:hover,
+.rg-slash-item.active {
+    background: #f1f5f9;
+}
+
+[data-theme="dark"] .rg-slash-item:hover,
+[data-theme="dark"] .rg-slash-item.active {
+    background: #22263d;
+}
+
+.rg-slash-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.88rem;
+    flex-shrink: 0;
+}
+
+.rg-slash-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.rg-slash-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .rg-slash-name {
+    color: #f8fafc;
+}
+
+.rg-slash-desc {
+    font-size: 0.71rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .rg-slash-desc {
+    color: #94a3b8;
+}
+
+/* Microphone Button */
+.rg-mic-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rg-mic-btn {
+    background: #1e2030;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+.rg-mic-btn:hover {
+    color: #2563eb;
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.06);
+}
+
+[data-theme="dark"] .rg-mic-btn:hover {
+    color: #38bdf8;
+    border-color: #38bdf8;
+}
+
+.rg-mic-btn.is-recording {
+    background: #ef4444 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+    animation: rgMicPulse 1.4s infinite ease-in-out;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes rgMicPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    50% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
 /* 8. Input Box Scanning State & In-Composer Generating Indicator */
 .rg-input-generating-row {
     display: none;
@@ -2992,16 +3659,492 @@ function sendRomitaQuickPrompt(text) {
     }
 }
 
-// 7. Auto-grow Textarea
+// 7. Auto-grow Textarea & Slash Commands Controller
 function autoGrowRomitaTextarea(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
+function handleRomitaInputChanged(el) {
+    autoGrowRomitaTextarea(el);
+    const val = el.value.trim();
+    const menu = document.getElementById('rg-slash-menu');
+    if (!menu) return;
+
+    if (val.startsWith('/')) {
+        menu.style.display = 'block';
+        const filter = val.toLowerCase();
+        const items = menu.querySelectorAll('.rg-slash-item');
+        let hasVisible = false;
+        items.forEach(item => {
+            const cmd = item.getAttribute('data-cmd') || '';
+            const desc = item.textContent.toLowerCase();
+            if (cmd.startsWith(filter) || desc.includes(filter.replace('/', ''))) {
+                item.style.display = 'flex';
+                hasVisible = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Set first visible item as active
+        items.forEach(it => it.classList.remove('active'));
+        const firstVisible = Array.from(items).find(it => it.style.display !== 'none');
+        if (firstVisible) firstVisible.classList.add('active');
+
+        if (!hasVisible) {
+            menu.style.display = 'none';
+        }
+    } else {
+        menu.style.display = 'none';
+    }
+}
+
 function handleRomitaInputKeydown(e) {
+    const menu = document.getElementById('rg-slash-menu');
+    const isMenuOpen = menu && menu.style.display !== 'none';
+
+    if (isMenuOpen) {
+        const visibleItems = Array.from(menu.querySelectorAll('.rg-slash-item')).filter(it => it.style.display !== 'none');
+        let activeIdx = visibleItems.findIndex(it => it.classList.contains('active'));
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (visibleItems.length > 0) {
+                if (activeIdx >= 0) visibleItems[activeIdx].classList.remove('active');
+                activeIdx = (activeIdx + 1) % visibleItems.length;
+                visibleItems[activeIdx].classList.add('active');
+                visibleItems[activeIdx].scrollIntoView({ block: 'nearest' });
+            }
+            return;
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (visibleItems.length > 0) {
+                if (activeIdx >= 0) visibleItems[activeIdx].classList.remove('active');
+                activeIdx = (activeIdx - 1 + visibleItems.length) % visibleItems.length;
+                visibleItems[activeIdx].classList.add('active');
+                visibleItems[activeIdx].scrollIntoView({ block: 'nearest' });
+            }
+            return;
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            if (visibleItems.length > 0 && activeIdx >= 0) {
+                e.preventDefault();
+                selectRomitaSlashCommand(visibleItems[activeIdx]);
+                return;
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            menu.style.display = 'none';
+            return;
+        }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendRomitaMessage();
+    }
+}
+
+function selectRomitaSlashCommand(btn) {
+    const prompt = btn.getAttribute('data-prompt') || '';
+    const input = document.getElementById('romita-chat-input');
+    const menu = document.getElementById('rg-slash-menu');
+    if (menu) menu.style.display = 'none';
+    if (input) {
+        input.value = prompt;
+        autoGrowRomitaTextarea(input);
+        input.focus();
+    }
+}
+
+// 7.5 Reconocimiento de Voz Nativo (Web Speech API)
+let romitaSpeechRecognition = null;
+let romitaIsListening = false;
+
+function toggleRomitaVoiceRecognition() {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const micBtn = document.getElementById('btn-romita-mic');
+    const input = document.getElementById('romita-chat-input');
+
+    if (!SpeechRec) {
+        alert('Tu navegador no soporta reconocimiento de voz nativo. Te recomendamos usar Google Chrome o Microsoft Edge.');
+        return;
+    }
+
+    if (romitaIsListening && romitaSpeechRecognition) {
+        romitaSpeechRecognition.stop();
+        return;
+    }
+
+    try {
+        romitaSpeechRecognition = new SpeechRec();
+        romitaSpeechRecognition.lang = 'es-PE';
+        romitaSpeechRecognition.continuous = true;
+        romitaSpeechRecognition.interimResults = true;
+
+        romitaSpeechRecognition.onstart = function() {
+            romitaIsListening = true;
+            if (micBtn) {
+                micBtn.classList.add('is-recording');
+                micBtn.innerHTML = '<i class="ph-fill ph-microphone"></i>';
+                micBtn.title = 'Escuchando... Haz clic para detener';
+            }
+        };
+
+        romitaSpeechRecognition.onresult = function(event) {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                }
+            }
+            if (finalTranscript && input) {
+                const cur = input.value.trim();
+                input.value = cur ? (cur + ' ' + finalTranscript.trim()) : finalTranscript.trim();
+                autoGrowRomitaTextarea(input);
+            }
+        };
+
+        romitaSpeechRecognition.onerror = function(event) {
+            console.warn('Speech recognition error:', event.error);
+            stopRomitaVoiceRecognition();
+        };
+
+        romitaSpeechRecognition.onend = function() {
+            stopRomitaVoiceRecognition();
+        };
+
+        romitaSpeechRecognition.start();
+    } catch (e) {
+        console.warn('Error starting speech:', e);
+        stopRomitaVoiceRecognition();
+    }
+}
+
+function stopRomitaVoiceRecognition() {
+    romitaIsListening = false;
+    const micBtn = document.getElementById('btn-romita-mic');
+    if (micBtn) {
+        micBtn.classList.remove('is-recording');
+        micBtn.innerHTML = '<i class="ph ph-microphone"></i>';
+        micBtn.title = 'Dictar por voz a Romita (Español)';
+    }
+}
+
+// 7.6 Helpers de Roma Actions (Cards interactivas)
+function escapeRomitaHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderRomitaTaskActionCard(jsonContent) {
+    try {
+        const data = JSON.parse(jsonContent.trim());
+        const tasks = data.tasks || [];
+        if (!tasks.length) return '';
+
+        const cardId = 'rac-' + Math.random().toString(36).substr(2, 9);
+        const encodedData = encodeURIComponent(JSON.stringify(tasks));
+
+        let tasksHtml = '';
+        tasks.forEach((t, i) => {
+            const urgentBadge = t.is_urgent ? '<span class="rac-badge rac-badge-urgent"><i class="ph-bold ph-warning"></i> Urgente</span>' : '';
+            const dueBadge = t.due_date ? `<span class="rac-badge rac-badge-date"><i class="ph ph-calendar"></i> ${escapeRomitaHtml(t.due_date)}</span>` : '';
+            
+            tasksHtml += `
+                <label class="rac-task-item" for="${cardId}-t-${i}">
+                    <input type="checkbox" id="${cardId}-t-${i}" class="rac-task-check" checked data-task-index="${i}" onchange="updateRomitaActionTaskCount('${cardId}')">
+                    <div class="rac-task-content">
+                        <div class="rac-task-header">
+                            <span class="rac-task-title">${escapeRomitaHtml(t.title)}</span>
+                            <div class="rac-task-tags">
+                                ${urgentBadge}
+                                ${dueBadge}
+                            </div>
+                        </div>
+                        ${t.description ? `<p class="rac-task-desc">${escapeRomitaHtml(t.description)}</p>` : ''}
+                    </div>
+                </label>
+            `;
+        });
+
+        return `
+            <div class="romita-action-card rac-tasks-card" id="${cardId}" data-raw-tasks="${encodedData}">
+                <div class="rac-header">
+                    <div class="rac-header-left">
+                        <span class="rac-icon-pill rac-icon-kanban"><i class="ph-bold ph-kanban"></i></span>
+                        <div class="rac-header-titles">
+                            <strong class="rac-title">Acción: Crear tareas en Kanban</strong>
+                            <span class="rac-sub" id="${cardId}-sub">${tasks.length} tareas listas para asignar</span>
+                        </div>
+                    </div>
+                    <span class="rac-chip-status"><i class="ph-bold ph-sparkle"></i> IA Copilot</span>
+                </div>
+                <div class="rac-body">
+                    <div class="rac-tasks-list">
+                        ${tasksHtml}
+                    </div>
+                </div>
+                <div class="rac-footer">
+                    <button type="button" class="btn-rac-execute" onclick="executeRomitaCreateTasks('${cardId}')">
+                        <i class="ph-bold ph-plus-circle"></i> <span class="btn-text">Insertar ${tasks.length} tareas en el Kanban</span>
+                    </button>
+                    <a href="index.php?module=tasks" target="_blank" class="rac-link-kanban" title="Abrir módulo de tareas">
+                        Ir al Kanban <i class="ph ph-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.warn('Error parsing create_tasks action:', e);
+        return `<pre><code>${jsonContent}</code></pre>`;
+    }
+}
+
+function renderRomitaMeetingActionCard(jsonContent) {
+    try {
+        const data = JSON.parse(jsonContent.trim());
+        const cardId = 'rac-m-' + Math.random().toString(36).substr(2, 9);
+        const encodedData = encodeURIComponent(JSON.stringify(data));
+
+        return `
+            <div class="romita-action-card rac-meeting-card" id="${cardId}" data-raw-meeting="${encodedData}">
+                <div class="rac-header">
+                    <div class="rac-header-left">
+                        <span class="rac-icon-pill rac-icon-meeting"><i class="ph-bold ph-calendar-plus"></i></span>
+                        <div class="rac-header-titles">
+                            <strong class="rac-title">Acción: Agendar Reunión</strong>
+                            <span class="rac-sub">Programación en agenda de Roma</span>
+                        </div>
+                    </div>
+                    <span class="rac-chip-status"><i class="ph-bold ph-calendar-check"></i> Agenda</span>
+                </div>
+                <div class="rac-body">
+                    <div class="rac-meeting-details">
+                        <div class="rac-detail-row">
+                            <span class="rac-label"><i class="ph ph-notepad"></i> Motivo:</span>
+                            <span class="rac-value"><strong>${escapeRomitaHtml(data.motivo || 'Sesión de trabajo')}</strong></span>
+                        </div>
+                        <div class="rac-detail-row">
+                            <span class="rac-label"><i class="ph ph-clock"></i> Fecha y Hora:</span>
+                            <span class="rac-value rac-highlight-date">${escapeRomitaHtml(data.fecha_hora || 'Pendiente por coordinar')}</span>
+                        </div>
+                        ${data.meet_link ? `
+                        <div class="rac-detail-row">
+                            <span class="rac-label"><i class="ph ph-video-camera"></i> Meet:</span>
+                            <span class="rac-value"><a href="${escapeRomitaHtml(data.meet_link)}" target="_blank" class="rac-meet-link">${escapeRomitaHtml(data.meet_link)}</a></span>
+                        </div>
+                        ` : ''}
+                        ${data.resumen ? `
+                        <div class="rac-detail-row">
+                            <span class="rac-label"><i class="ph ph-text-align-left"></i> Resumen:</span>
+                            <span class="rac-value">${escapeRomitaHtml(data.resumen)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="rac-footer">
+                    <button type="button" class="btn-rac-execute btn-rac-meeting" onclick="executeRomitaScheduleMeeting('${cardId}')">
+                        <i class="ph-bold ph-calendar-plus"></i> <span class="btn-text">Guardar en Agenda de Reuniones</span>
+                    </button>
+                    <a href="index.php?module=reuniones" target="_blank" class="rac-link-kanban" title="Abrir agenda de reuniones">
+                        Ver Agenda <i class="ph ph-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        return `<pre><code>${jsonContent}</code></pre>`;
+    }
+}
+
+function renderRomitaWhatsappActionCard(jsonContent) {
+    try {
+        const data = JSON.parse(jsonContent.trim());
+        const cardId = 'rac-w-' + Math.random().toString(36).substr(2, 9);
+        const msg = data.message || '';
+        const recipient = data.recipient_name || 'Cliente';
+        const waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(msg);
+        const safeEncodedMsg = encodeURIComponent(msg);
+
+        return `
+            <div class="romita-action-card rac-whatsapp-card" id="${cardId}">
+                <div class="rac-header">
+                    <div class="rac-header-left">
+                        <span class="rac-icon-pill rac-icon-whatsapp"><i class="ph-bold ph-whatsapp-logo"></i></span>
+                        <div class="rac-header-titles">
+                            <strong class="rac-title">Mensaje listo para WhatsApp</strong>
+                            <span class="rac-sub">Para: ${escapeRomitaHtml(recipient)}</span>
+                        </div>
+                    </div>
+                    <span class="rac-chip-status rac-chip-wa"><i class="ph-bold ph-paper-plane-tilt"></i> WhatsApp</span>
+                </div>
+                <div class="rac-body">
+                    <div class="rac-wa-balloon">
+                        <div class="rac-wa-balloon-inner">
+                            ${escapeRomitaHtml(msg).replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                </div>
+                <div class="rac-footer">
+                    <a href="${waUrl}" target="_blank" class="btn-rac-execute btn-rac-wa">
+                        <i class="ph-bold ph-whatsapp-logo"></i> <span class="btn-text">Enviar por WhatsApp</span>
+                    </a>
+                    <button type="button" class="btn-rac-copy" onclick="copyActionCardText(this, '${safeEncodedMsg}')">
+                        <i class="ph ph-copy"></i> Copiar texto
+                    </button>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        return `<pre><code>${jsonContent}</code></pre>`;
+    }
+}
+
+function updateRomitaActionTaskCount(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const checks = card.querySelectorAll('.rac-task-check:checked');
+    const total = card.querySelectorAll('.rac-task-check').length;
+    const subEl = document.getElementById(cardId + '-sub');
+    if (subEl) subEl.innerText = `${checks.length} de ${total} tareas seleccionadas`;
+    const btn = card.querySelector('.btn-rac-execute .btn-text');
+    if (btn) btn.innerText = `Insertar ${checks.length} tareas en el Kanban`;
+}
+
+function copyActionCardText(btn, encodedText) {
+    const text = decodeURIComponent(encodedText);
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="ph-bold ph-check"></i> ¡Copiado!';
+        btn.style.color = '#16a34a';
+        setTimeout(() => {
+            btn.innerHTML = orig;
+            btn.style.color = '';
+        }, 1800);
+    });
+}
+
+async function executeRomitaCreateTasks(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    const rawData = card.getAttribute('data-raw-tasks');
+    if (!rawData) return;
+
+    const allTasks = JSON.parse(decodeURIComponent(rawData));
+    const checkboxes = card.querySelectorAll('.rac-task-check:checked');
+    const selectedIndices = Array.from(checkboxes).map(c => parseInt(c.getAttribute('data-task-index')));
+    const selectedTasks = allTasks.filter((_, i) => selectedIndices.includes(i));
+
+    if (!selectedTasks.length) {
+        alert('Por favor selecciona al menos una tarea para crear.');
+        return;
+    }
+
+    const btn = card.querySelector('.btn-rac-execute');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Creando en Kanban...';
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('action', 'tool_create_tasks');
+        formData.append('tasks', JSON.stringify(selectedTasks));
+
+        const res = await fetch('ajax/ajax_romita.php', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+            card.querySelectorAll('.rac-task-check').forEach(c => c.disabled = true);
+            const footer = card.querySelector('.rac-footer');
+            if (footer) {
+                footer.innerHTML = `
+                    <div class="rac-success-banner">
+                        <i class="ph-fill ph-check-circle"></i>
+                        <span>¡${data.count} ${data.count === 1 ? 'tarea creada' : 'tareas creadas'} exitosamente!</span>
+                        <a href="index.php?module=tasks" target="_blank" class="rac-btn-view">
+                            Abrir Kanban <i class="ph ph-arrow-up-right"></i>
+                        </a>
+                    </div>
+                `;
+            }
+        } else {
+            alert(data.error || 'Error al crear tareas');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    } catch (err) {
+        alert('Error de conexión');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+}
+
+async function executeRomitaScheduleMeeting(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    const rawData = card.getAttribute('data-raw-meeting');
+    if (!rawData) return;
+    const meetingData = JSON.parse(decodeURIComponent(rawData));
+
+    const btn = card.querySelector('.btn-rac-execute');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando reunión...';
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('action', 'tool_schedule_meeting');
+        formData.append('motivo', meetingData.motivo || '');
+        formData.append('fecha_hora', meetingData.fecha_hora || '');
+        formData.append('meet_link', meetingData.meet_link || '');
+        formData.append('resumen', meetingData.resumen || '');
+        if (meetingData.brand_id) formData.append('brand_id', meetingData.brand_id);
+
+        const res = await fetch('ajax/ajax_romita.php', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+            const footer = card.querySelector('.rac-footer');
+            if (footer) {
+                footer.innerHTML = `
+                    <div class="rac-success-banner">
+                        <i class="ph-fill ph-check-circle"></i>
+                        <span>¡Reunión agendada exitosamente!</span>
+                        <a href="index.php?module=reuniones" target="_blank" class="rac-btn-view">
+                            Ver en Agenda <i class="ph ph-arrow-up-right"></i>
+                        </a>
+                    </div>
+                `;
+            }
+        } else {
+            alert(data.error || 'Error al agendar reunión');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    } catch (err) {
+        alert('Error de conexión');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
     }
 }
 
@@ -3038,10 +4181,23 @@ function preprocessMarkdownTables(text) {
     return result.join('\n');
 }
 
-// 8. Markdown Parser Avanzado con soporte para Tablas, Listas y Código
+// 8. Markdown Parser Avanzado con soporte para Acciones Agénticas, Tablas, Listas y Código
 function renderRomitaMarkdown(text) {
     if (!text) return '';
     let out = preprocessMarkdownTables(text);
+
+    // Interceptar bloques agénticos de Romita Action antes de marked
+    out = out.replace(/```romita-action:create_tasks\s*([\s\S]*?)```/g, function(match, jsonContent) {
+        return renderRomitaTaskActionCard(jsonContent);
+    });
+
+    out = out.replace(/```romita-action:schedule_meeting\s*([\s\S]*?)```/g, function(match, jsonContent) {
+        return renderRomitaMeetingActionCard(jsonContent);
+    });
+
+    out = out.replace(/```romita-action:whatsapp_message\s*([\s\S]*?)```/g, function(match, jsonContent) {
+        return renderRomitaWhatsappActionCard(jsonContent);
+    });
 
     // Si marked.js está cargado, usar su motor completo GFM
     if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
