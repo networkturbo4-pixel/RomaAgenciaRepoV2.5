@@ -516,8 +516,9 @@ try {
             . "- REGLA CRÍTICA DE FECHA: Sabes con total certidumbre la fecha, mes y año de hoy. Si el usuario te pide una propuesta o estrategia para 'este mes', asume directamente y sin dudar {$mesNombre} de {$anoActual}. Si pide 'el próximo mes', asume {$nextMesNombre} de {$nextAno}. NUNCA le preguntes al usuario '¿en qué mes estamos?' ni '¿qué año es?'.\n\n"
             . "REGLA DE FORMATO DE TABLAS:\n"
             . "- Si presentas propuestas, calendarios o contenidos en tabla, utiliza SIEMPRE tablas Markdown válidas y estándar con fila de encabezados y fila separadora obligatoria (ej: | :--- | :--- | :--- |).\n"
-            . "- Asegúrate de incluir columnas claras como: Fecha / Día, Formato, Pilar / Objetivo, Concepto / Gancho, Copy Sugerido, y Especificación Visual.\n"
-            . "- No mezcles texto suelto dentro de las celdas que rompa los saltos de línea de la tabla Markdown.";
+            . "- Diseña tablas ejecutivas, legibles y limpias con un máximo recomendado de 4 a 6 columnas clave (ejemplo: | Fecha / Día | Marca | Formato | Pilar | Concepto & Gancho | Copy Sugerido |).\n"
+            . "- Redacta los textos de cada celda de forma persuasiva, limpia y sintetizada (evita saturar una sola celda con párrafos gigantescos para garantizar una lectura ágil tanto en escritorio como en dispositivos móviles).\n"
+            . "- No mezcles texto suelto ni saltos de línea crudos dentro de las celdas que rompan la estructura de la tabla Markdown.";
         
         $sysInstructions[] = $temporalContext;
 

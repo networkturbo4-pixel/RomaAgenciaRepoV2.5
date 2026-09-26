@@ -1173,6 +1173,8 @@ body:has(.romita-container) .content-wrapper {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 .btn-table-action {
@@ -1184,10 +1186,18 @@ body:has(.romita-container) .content-wrapper {
     border: 1px solid var(--romita-border);
     background: var(--romita-surface);
     color: var(--romita-text);
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.74rem;
+    font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.15s ease;
+}
+
+.btn-table-action .btn-text-short {
+    display: none;
+}
+.btn-table-action .btn-text-full {
+    display: inline;
 }
 
 .btn-table-action:hover {
@@ -1199,30 +1209,34 @@ body:has(.romita-container) .content-wrapper {
 .table-responsive-wrapper {
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 480px;
+    max-height: 520px;
     width: 100%;
+    position: relative;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
 }
 
 .table-responsive-wrapper::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 .table-responsive-wrapper::-webkit-scrollbar-track {
     background: var(--romita-bg);
 }
 .table-responsive-wrapper::-webkit-scrollbar-thumb {
-    background: var(--romita-border);
-    border-radius: 4px;
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 6px;
 }
 .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
-    background: var(--romita-text-muted);
+    background: rgba(99, 102, 241, 0.7);
 }
 
 .message-bubble.markdown-body table {
-    width: 100%;
-    min-width: 650px;
-    border-collapse: collapse;
+    width: max-content !important;
+    min-width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
     font-size: 0.82rem;
     text-align: left;
     margin: 0 !important;
@@ -1234,27 +1248,41 @@ body:has(.romita-container) .content-wrapper {
     top: 0;
     z-index: 5;
     background: var(--romita-card-hover);
-    font-weight: 600;
+    font-weight: 700;
     text-align: left;
-    padding: 0.7rem 0.9rem;
+    padding: 0.75rem 1rem;
     border-bottom: 2px solid var(--romita-border);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
     color: var(--romita-text);
     white-space: nowrap;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
     user-select: none;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+}
+
+.message-bubble.markdown-body th:last-child {
+    border-right: none;
 }
 
 .message-bubble.markdown-body th:hover {
-    background: rgba(99, 102, 241, 0.08);
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
 }
 
 .message-bubble.markdown-body td {
-    padding: 0.65rem 0.9rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--romita-border-light);
+    border-right: 1px solid rgba(0, 0, 0, 0.04);
     color: var(--romita-text);
-    line-height: 1.45;
+    line-height: 1.55;
     vertical-align: top;
     overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.message-bubble.markdown-body td:last-child {
+    border-right: none;
 }
 
 .message-bubble.markdown-body tbody tr:nth-child(even) {
@@ -1266,6 +1294,28 @@ body:has(.romita-container) .content-wrapper {
 
 .message-bubble.markdown-body tbody tr:hover {
     background: rgba(99, 102, 241, 0.06) !important;
+}
+
+/* Categorized Column Widths & Typography */
+.romita-table-container th.col-compact,
+.romita-table-container td.col-compact {
+    min-width: 95px;
+    max-width: 170px;
+    white-space: nowrap;
+    font-weight: 600;
+}
+.romita-table-container th.col-medium,
+.romita-table-container td.col-medium {
+    min-width: 190px;
+    max-width: 290px;
+    white-space: normal;
+}
+.romita-table-container th.col-wide,
+.romita-table-container td.col-wide {
+    min-width: 280px;
+    max-width: 440px;
+    white-space: normal;
+    line-height: 1.55;
 }
 
 .message-bubble.markdown-body tr:last-child td {

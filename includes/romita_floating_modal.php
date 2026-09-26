@@ -868,7 +868,6 @@ body.has-active-modal .romita-fab-container,
 .rg-msg {
     display: flex;
     gap: 12px;
-    max-width: 88%;
     animation: rgMsgIn 0.22s ease-out;
 }
 
@@ -880,16 +879,19 @@ body.has-active-modal .romita-fab-container,
 .rg-msg-user {
     align-self: flex-end;
     flex-direction: row-reverse;
+    max-width: 85%;
 }
 
 .rg-msg-ai {
     align-self: flex-start;
+    width: 100%;
+    max-width: 100%;
 }
 
 .rg-msg-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -916,14 +918,20 @@ body.has-active-modal .romita-fab-container,
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1;
 }
 
 .rg-msg-bubble {
-    padding: 12px 16px;
+    padding: 12px 18px;
     border-radius: 16px;
     font-size: 0.86rem;
     line-height: 1.55;
     word-break: break-word;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .rg-msg-user .rg-msg-bubble {
@@ -938,12 +946,14 @@ body.has-active-modal .romita-fab-container,
     color: #0f172a;
     border: 1px solid #e2e8f0;
     border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 [data-theme="dark"] .rg-msg-ai .rg-msg-bubble {
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(255, 255, 255, 0.08);
     color: #f1f5f9;
+    box-shadow: none;
 }
 
 /* Action button under AI message (Copy, etc.) */
@@ -1041,13 +1051,16 @@ body.has-active-modal .romita-fab-container,
 
 /* --- TABLAS MODERNAS RESPONSIVAS Y CON TOOLBAR EN ROMITA MODAL --- */
 .romita-table-container {
-    margin: 12px 0;
+    margin: 14px 0;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     background: #ffffff;
     overflow: hidden;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     transition: all 0.25s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 [data-theme="dark"] .romita-table-container {
     border-color: rgba(255, 255, 255, 0.08);
@@ -1059,33 +1072,40 @@ body.has-active-modal .romita-fab-container,
 }
 .romita-table-container.is-fullscreen {
     position: fixed;
-    top: 1rem;
-    left: 1rem;
-    right: 1rem;
-    bottom: 1rem;
-    z-index: 9999999;
+    top: 1.5rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 99999999;
     margin: 0;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7);
     background: #ffffff;
     display: flex;
     flex-direction: column;
+    border-radius: 16px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
 }
 [data-theme="dark"] .romita-table-container.is-fullscreen {
     background: #11121d;
+    border-color: rgba(99, 102, 241, 0.4);
 }
 .romita-table-container.is-fullscreen .table-responsive-wrapper {
     max-height: none !important;
     flex: 1;
+    height: 100%;
 }
 .table-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.8rem;
+    padding: 0.6rem 0.85rem;
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
     font-size: 0.76rem;
-    gap: 0.75rem;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
 }
 [data-theme="dark"] .table-toolbar {
     background: #1c1d2e;
@@ -1096,18 +1116,22 @@ body.has-active-modal .romita-fab-container,
     align-items: center;
     gap: 0.5rem;
     color: #64748b;
+    flex-wrap: wrap;
 }
 [data-theme="dark"] .table-toolbar-left {
     color: #94a3b8;
 }
 .table-info-badge {
     background: #ffffff;
-    padding: 0.2rem 0.55rem;
+    padding: 0.2rem 0.6rem;
     border-radius: 6px;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 600;
     border: 1px solid #e2e8f0;
     color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 [data-theme="dark"] .table-info-badge {
     background: #141522;
@@ -1115,127 +1139,204 @@ body.has-active-modal .romita-fab-container,
     color: #e2e8f0;
 }
 .table-scroll-hint {
-    font-size: 0.7rem;
-    color: #94a3b8;
+    font-size: 0.72rem;
+    color: #6366f1;
+    font-weight: 500;
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.3rem;
+    background: rgba(99, 102, 241, 0.08);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+}
+[data-theme="dark"] .table-scroll-hint {
+    color: #a5b4fc;
+    background: rgba(99, 102, 241, 0.18);
+}
+.table-scroll-hint i {
+    animation: tableHintNudge 1.6s ease-in-out infinite;
+}
+@keyframes tableHintNudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(3px); }
 }
 .table-toolbar-actions {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 .btn-table-action {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.25rem 0.55rem;
+    padding: 0.3rem 0.65rem;
     border-radius: 6px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     background: #ffffff;
-    color: #475569;
-    font-size: 0.72rem;
-    font-weight: 500;
+    color: #334155;
+    font-size: 0.73rem;
+    font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.15s ease;
+}
+.btn-table-action .btn-text-short {
+    display: none;
+}
+.btn-table-action .btn-text-full {
+    display: inline;
 }
 [data-theme="dark"] .btn-table-action {
     background: #25273c;
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.12);
     color: #cbd5e1;
 }
 .btn-table-action:hover {
     border-color: #6366f1;
-    color: #6366f1;
+    color: #4f46e5;
+    background: #f1f5f9;
+}
+[data-theme="dark"] .btn-table-action:hover {
+    border-color: #818cf8;
+    color: #ffffff;
+    background: rgba(99, 102, 241, 0.2);
 }
 .table-responsive-wrapper {
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 480px;
+    max-height: 520px;
     width: 100%;
+    position: relative;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) rgba(0, 0, 0, 0.04);
 }
 .table-responsive-wrapper::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 .table-responsive-wrapper::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.03);
+    background: rgba(0, 0, 0, 0.04);
 }
 [data-theme="dark"] .table-responsive-wrapper::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.25);
 }
 .table-responsive-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.4);
-    border-radius: 4px;
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 6px;
 }
 .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.7);
+    background: rgba(99, 102, 241, 0.7);
 }
+.romita-table-container table,
 .rg-msg-bubble table {
-    width: 100%;
-    min-width: 580px;
-    border-collapse: collapse;
-    font-size: 0.8rem;
+    width: max-content !important;
+    min-width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    font-size: 0.82rem;
     text-align: left;
     margin: 0 !important;
 }
+.romita-table-container thead,
 .rg-msg-bubble thead {
-    background: rgba(99, 102, 241, 0.06);
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 10;
 }
-[data-theme="dark"] .rg-msg-bubble thead {
-    background: rgba(99, 102, 241, 0.14);
-}
+.romita-table-container th,
 .rg-msg-bubble th {
-    padding: 0.65rem 0.85rem;
-    font-size: 0.74rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: #4338ca;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
-    border-bottom: 2px solid rgba(99, 102, 241, 0.18);
-    border-right: 1px solid rgba(0, 0, 0, 0.04);
+    letter-spacing: 0.04em;
+    background: #f1f5f9;
+    border-bottom: 2px solid #e2e8f0;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
     white-space: nowrap;
     user-select: none;
     transition: background 0.15s ease, color 0.15s ease;
 }
+[data-theme="dark"] .romita-table-container th,
 [data-theme="dark"] .rg-msg-bubble th {
     color: #a5b4fc;
+    background: #1c1d30;
     border-bottom-color: rgba(99, 102, 241, 0.35);
     border-right-color: rgba(255, 255, 255, 0.05);
 }
+.romita-table-container th:last-child,
+.rg-msg-bubble th:last-child {
+    border-right: none;
+}
+.romita-table-container th:hover,
 .rg-msg-bubble th:hover {
     background: rgba(99, 102, 241, 0.12);
-    color: #6366f1;
+    color: #4f46e5;
 }
+[data-theme="dark"] .romita-table-container th:hover,
 [data-theme="dark"] .rg-msg-bubble th:hover {
     background: rgba(99, 102, 241, 0.25);
     color: #c7d2fe;
 }
+.romita-table-container td,
 .rg-msg-bubble td {
-    padding: 0.6rem 0.85rem;
-    font-size: 0.79rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.81rem;
     color: inherit;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid #f1f5f9;
     border-right: 1px solid rgba(0, 0, 0, 0.04);
-    line-height: 1.45;
+    line-height: 1.55;
+    vertical-align: top;
+    background: transparent;
+    word-break: normal;
+    overflow-wrap: break-word;
 }
+[data-theme="dark"] .romita-table-container td,
 [data-theme="dark"] .rg-msg-bubble td {
-    border-bottom-color: rgba(255, 255, 255, 0.05);
+    border-bottom-color: rgba(255, 255, 255, 0.04);
     border-right-color: rgba(255, 255, 255, 0.03);
 }
+.romita-table-container tr:last-child td,
 .rg-msg-bubble tr:last-child td {
     border-bottom: none;
 }
-.rg-msg-bubble tbody tr:hover {
+.romita-table-container td:last-child,
+.rg-msg-bubble td:last-child {
+    border-right: none;
+}
+.romita-table-container tbody tr:hover td,
+.rg-msg-bubble tbody tr:hover td {
     background: rgba(99, 102, 241, 0.035);
 }
-[data-theme="dark"] .rg-msg-bubble tbody tr:hover {
+[data-theme="dark"] .romita-table-container tbody tr:hover td,
+[data-theme="dark"] .rg-msg-bubble tbody tr:hover td {
     background: rgba(99, 102, 241, 0.08);
+}
+
+/* Categorized Column Widths & Typography */
+.romita-table-container th.col-compact,
+.romita-table-container td.col-compact {
+    min-width: 95px;
+    max-width: 170px;
+    white-space: nowrap;
+    font-weight: 600;
+}
+.romita-table-container th.col-medium,
+.romita-table-container td.col-medium {
+    min-width: 190px;
+    max-width: 290px;
+    white-space: normal;
+}
+.romita-table-container th.col-wide,
+.romita-table-container td.col-wide {
+    min-width: 280px;
+    max-width: 440px;
+    white-space: normal;
+    line-height: 1.55;
 }
 
 /* ==========================================================================
@@ -1958,6 +2059,57 @@ body.has-active-modal .romita-fab-container,
         height: 46px;
         border-radius: 14px;
     }
+
+    /* Tablas en responsive móvil */
+    .romita-table-container {
+        margin: 10px -8px;
+        border-radius: 10px;
+    }
+    .table-toolbar {
+        padding: 0.5rem 0.65rem;
+    }
+    .table-info-badge {
+        font-size: 0.68rem;
+        padding: 0.15rem 0.45rem;
+    }
+    .table-scroll-hint {
+        font-size: 0.68rem;
+    }
+    .btn-table-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+    }
+    .btn-table-action .btn-text-full {
+        display: none;
+    }
+    .btn-table-action .btn-text-short {
+        display: inline;
+    }
+    .romita-table-container th,
+    .rg-msg-bubble th {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.68rem;
+    }
+    .romita-table-container td,
+    .rg-msg-bubble td {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.76rem;
+    }
+    .romita-table-container th.col-wide,
+    .romita-table-container td.col-wide {
+        min-width: 240px;
+        max-width: 320px;
+    }
+    .romita-table-container th.col-medium,
+    .romita-table-container td.col-medium {
+        min-width: 170px;
+        max-width: 250px;
+    }
+    .romita-table-container th.col-compact,
+    .romita-table-container td.col-compact {
+        min-width: 85px;
+        max-width: 140px;
+    }
 }
 
 @media (min-width: 641px) and (max-width: 850px) {
@@ -2460,7 +2612,8 @@ function processRomitaAssistantFormatting(container) {
         if (table.closest('.romita-table-container')) return;
 
         const rowsCount = table.querySelectorAll('tbody tr').length || Math.max(0, table.querySelectorAll('tr').length - 1);
-        const colsCount = table.querySelectorAll('tr:first-child th, tr:first-child td').length;
+        const firstRow = table.querySelector('thead tr') || table.querySelector('tr');
+        const colsCount = firstRow ? firstRow.querySelectorAll('th, td').length : 0;
 
         const card = document.createElement('div');
         card.className = 'romita-table-container';
@@ -2473,7 +2626,7 @@ function processRomitaAssistantFormatting(container) {
                 </div>
                 <div class="table-toolbar-actions">
                     <button type="button" class="btn-table-action" onclick="copyTableToClipboard(this)" title="Copiar como tabla (compatible con Excel / Google Sheets)">
-                        <i class="ph ph-file-csv"></i> <span>Copiar para Excel</span>
+                        <i class="ph ph-file-csv"></i> <span class="btn-text-full">Copiar para Excel</span><span class="btn-text-short">Excel</span>
                     </button>
                     <button type="button" class="btn-table-action" onclick="toggleTableFullscreen(this)" title="Pantalla completa">
                         <i class="ph ph-arrows-out-simple"></i>
@@ -2489,6 +2642,26 @@ function processRomitaAssistantFormatting(container) {
 
         const headers = table.querySelectorAll('th');
         headers.forEach((header, index) => {
+            const titleText = (header.textContent || '').trim().toLowerCase();
+            let colClass = '';
+            if (titleText.includes('copy') || titleText.includes('descrip') || titleText.includes('especific') || titleText.includes('guion') || titleText.includes('texto') || titleText.includes('contenido')) {
+                colClass = 'col-wide';
+            } else if (titleText.includes('gancho') || titleText.includes('hook') || titleText.includes('concepto') || titleText.includes('pilar') || titleText.includes('idea') || titleText.includes('objetivo')) {
+                colClass = 'col-medium';
+            } else if (titleText.includes('fecha') || titleText.includes('día') || titleText.includes('dia') || titleText.includes('marca') || titleText.includes('formato') || titleText.includes('tipo') || titleText.includes('id') || titleText.includes('estado')) {
+                colClass = 'col-compact';
+            }
+            
+            if (colClass) {
+                header.classList.add(colClass);
+                const allRows = table.querySelectorAll('tbody tr, tr');
+                allRows.forEach(r => {
+                    if (r.children[index] && r.children[index].tagName !== 'TH') {
+                        r.children[index].classList.add(colClass);
+                    }
+                });
+            }
+
             header.style.cursor = 'pointer';
             header.title = 'Clic para ordenar por esta columna';
             header.addEventListener('click', () => {
@@ -2726,8 +2899,16 @@ function clearRomitaCurrentChat() {
 
 // 11. Global Keyboard Shortcut Listener (Tecla R / Escape)
 document.addEventListener('keydown', function(e) {
-    // Escape cierra Romita si está abierto
+    // Escape cierra Romita o la vista de pantalla completa de tablas
     if (e.key === 'Escape') {
+        const fullTable = document.querySelector('.romita-table-container.is-fullscreen');
+        if (fullTable) {
+            fullTable.classList.remove('is-fullscreen');
+            const fsIcon = fullTable.querySelector('.btn-table-action[onclick*="toggleTableFullscreen"] i');
+            if (fsIcon) fsIcon.className = 'ph ph-arrows-out-simple';
+            document.body.style.overflow = '';
+            return;
+        }
         const overlay = document.getElementById('romita-global-overlay');
         if (overlay && overlay.style.display !== 'none') {
             closeRomitaGlobalModal();

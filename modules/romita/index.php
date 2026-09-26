@@ -1034,7 +1034,8 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             if (table.closest('.romita-table-container')) return;
 
             const rowsCount = table.querySelectorAll('tbody tr').length || Math.max(0, table.querySelectorAll('tr').length - 1);
-            const colsCount = table.querySelectorAll('tr:first-child th, tr:first-child td').length;
+            const firstRow = table.querySelector('thead tr') || table.querySelector('tr');
+            const colsCount = firstRow ? firstRow.querySelectorAll('th, td').length : 0;
 
             const card = document.createElement('div');
             card.className = 'romita-table-container';
@@ -1047,7 +1048,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     </div>
                     <div class="table-toolbar-actions">
                         <button type="button" class="btn-table-action" onclick="copyTableToClipboard(this)" title="Copiar como tabla (compatible con Excel / Google Sheets)">
-                            <i class="ph ph-file-csv"></i> <span>Copiar para Excel</span>
+                            <i class="ph ph-file-csv"></i> <span class="btn-text-full">Copiar para Excel</span><span class="btn-text-short">Excel</span>
                         </button>
                         <button type="button" class="btn-table-action" onclick="toggleTableFullscreen(this)" title="Pantalla completa">
                             <i class="ph ph-arrows-out-simple"></i>
@@ -1063,6 +1064,26 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
 
             const headers = table.querySelectorAll('th');
             headers.forEach((header, index) => {
+                const titleText = (header.textContent || '').trim().toLowerCase();
+                let colClass = '';
+                if (titleText.includes('copy') || titleText.includes('descrip') || titleText.includes('especific') || titleText.includes('guion') || titleText.includes('texto') || titleText.includes('contenido')) {
+                    colClass = 'col-wide';
+                } else if (titleText.includes('gancho') || titleText.includes('hook') || titleText.includes('concepto') || titleText.includes('pilar') || titleText.includes('idea') || titleText.includes('objetivo')) {
+                    colClass = 'col-medium';
+                } else if (titleText.includes('fecha') || titleText.includes('día') || titleText.includes('dia') || titleText.includes('marca') || titleText.includes('formato') || titleText.includes('tipo') || titleText.includes('id') || titleText.includes('estado')) {
+                    colClass = 'col-compact';
+                }
+                
+                if (colClass) {
+                    header.classList.add(colClass);
+                    const allRows = table.querySelectorAll('tbody tr, tr');
+                    allRows.forEach(r => {
+                        if (r.children[index] && r.children[index].tagName !== 'TH') {
+                            r.children[index].classList.add(colClass);
+                        }
+                    });
+                }
+
                 header.style.cursor = 'pointer';
                 header.title = 'Clic para ordenar por esta columna';
                 header.addEventListener('click', () => {
