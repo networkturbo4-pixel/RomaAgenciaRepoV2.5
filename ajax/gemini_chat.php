@@ -1,8 +1,8 @@
 <?php
 // ajax/gemini_chat.php
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/database.php';
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
@@ -77,31 +77,54 @@ $payload = [
     ]
 ];
 
-$ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" . $key);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Fix for XAMPP localhost SSL issues
-curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
-curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-$response = curl_exec($ch);
-$curl_error = curl_error($ch);
-curl_close($ch);
+$modelsToTry = [
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.8-flash',
+    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite'
+];
 
-if ($response === false) {
-    echo json_encode(['error' => 'Error de cURL al comunicarse con Gemini.', 'details' => $curl_error]);
-    exit();
+$success = false;
+$reply = '';
+$lastError = 'Error inesperado al comunicarse con Gemini.';
+
+foreach ($modelsToTry as $modelName) {
+    $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $key);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
+    curl_close($ch);
+
+    if ($response === false) {
+        $lastError = 'Error de conexión: ' . $curl_error;
+        continue;
+    }
+
+    $data = json_decode($response, true);
+    if ($httpCode === 200 && isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+        $reply = $data['candidates'][0]['content']['parts'][0]['text'];
+        $success = true;
+        break;
+    } elseif (isset($data['error']['message'])) {
+        $lastError = 'Error de la API de Gemini (' . $modelName . '): ' . $data['error']['message'];
+        // Si es error de cuota o sobrecarga, probar de inmediato con el siguiente modelo del pool
+        if ($httpCode === 429 || $httpCode === 503 || $httpCode === 404) {
+            continue;
+        }
+    }
 }
 
-$data = json_decode($response, true);
-if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-    // Format response (markdown to HTML if needed, or let frontend handle it)
-    $reply = $data['candidates'][0]['content']['parts'][0]['text'];
+if ($success) {
     echo json_encode(['success' => true, 'response' => $reply]);
-} else if (isset($data['error'])) {
-    echo json_encode(['error' => 'Error de la API de Gemini: ' . ($data['error']['message'] ?? 'Desconocido'), 'details' => $data]);
 } else {
-    echo json_encode(['error' => 'Error inesperado al comunicarse con Gemini.', 'details' => $data]);
+    echo json_encode(['error' => $lastError]);
 }
