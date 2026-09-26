@@ -2166,10 +2166,20 @@ function getRomitaScreenContext() {
         'quotes': 'Cotizaciones',
         'work_orders': 'Órdenes de Servicio',
         'contracts': 'Contratos',
+        'reuniones': 'Agenda & Reuniones',
         'task_manager': 'Tareas & Objetivos',
-        'mensajes': 'Mensajes Internos',
+        'tasks': 'Tareas del Equipo',
+        'services': 'Catálogo de Servicios',
+        'suppliers': 'Proveedores & Aliados',
         'knowledge_base': 'Base de Conocimiento',
-        'forms': 'Formularios'
+        'mensajes': 'Mensajes Internos',
+        'chat': 'Chat de la Agencia',
+        'forms': 'Formularios',
+        'conexiones': 'Conexiones & APIs',
+        'romita': 'Romita IA Workspace',
+        'whatsapp': 'WhatsApp CRM',
+        'drive': 'Drive & Archivos',
+        'admin': 'Administración del Sistema'
     };
 
     const friendlyName = moduleNames[module] || module;

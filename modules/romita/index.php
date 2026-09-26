@@ -1374,6 +1374,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         payload.append('action', 'chat');
         payload.append('message', text);
         payload.append('specialty', currentSpecialty || 'director_360');
+        payload.append('current_module', 'romita');
         if (activeSkill) {
             payload.append('skill_prompt', activeSkill.prompt);
         }
