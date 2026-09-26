@@ -1443,7 +1443,10 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         if (romitaContainer) romitaContainer.classList.add('canvas-open');
 
         const modalDrawer = document.getElementById('romitaModalCanvasDrawer');
-        if (modalDrawer) modalDrawer.classList.add('open');
+        if (modalDrawer) {
+            modalDrawer.style.display = 'flex';
+            setTimeout(() => modalDrawer.classList.add('open'), 10);
+        }
     }
 
     function closeRomitaCanvas() {
@@ -1451,7 +1454,14 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         if (romitaContainer) romitaContainer.classList.remove('canvas-open');
 
         const modalDrawer = document.getElementById('romitaModalCanvasDrawer');
-        if (modalDrawer) modalDrawer.classList.remove('open');
+        if (modalDrawer) {
+            modalDrawer.classList.remove('open');
+            setTimeout(() => {
+                if (!modalDrawer.classList.contains('open')) {
+                    modalDrawer.style.display = 'none';
+                }
+            }, 300);
+        }
     }
 
     function toggleCanvasEditMode() {

@@ -124,6 +124,7 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     <link rel="stylesheet" href="assets/css/components.css?v=<?php echo file_exists('assets/css/components.css') ? filemtime('assets/css/components.css') : '1'; ?>">
     <link rel="stylesheet" href="assets/css/profile-modal.css?v=<?php echo file_exists('assets/css/profile-modal.css') ? filemtime('assets/css/profile-modal.css') : '1'; ?>">
     <link rel="stylesheet" href="assets/css/notifications.css?v=<?php echo file_exists('assets/css/notifications.css') ? filemtime('assets/css/notifications.css') : '1'; ?>">
+    <link rel="stylesheet" href="assets/css/romita.css?v=<?php echo file_exists('assets/css/romita.css') ? filemtime('assets/css/romita.css') : '1'; ?>">
     <script>
         window.CURRENT_USER_ID = <?php echo (int)($_SESSION['user_id'] ?? 0); ?>;
         window.CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;

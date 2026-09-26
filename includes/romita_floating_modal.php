@@ -278,7 +278,7 @@ if ($currentHour >= 5 && $currentHour < 12) {
         </div>
 
         <!-- Romita Modal Canvas Drawer (Fase 2) -->
-        <div class="romita-modal-canvas-drawer" id="romitaModalCanvasDrawer">
+        <div class="romita-modal-canvas-drawer" id="romitaModalCanvasDrawer" style="display: none;">
             <div class="rcp-header">
                 <div class="rcp-header-left">
                     <div class="rcp-header-icon"><i class="ph-bold ph-article"></i></div>
@@ -3201,6 +3201,669 @@ body.has-active-modal .romita-fab-container,
         width: 100% !important;
     }
 }
+
+/* ==========================================================================
+   FASE 2: CANVAS / ARTEFACTOS, SOCIAL POSTS, TABS VARIACIONES & FEEDBACK
+   ========================================================================== */
+
+/* --- BOTÓN DE SONIDO --- */
+.btn-romita-sound {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #64748b;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .btn-romita-sound {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+}
+
+.btn-romita-sound:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #0f172a;
+}
+
+[data-theme="dark"] .btn-romita-sound:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+}
+
+.btn-romita-sound.sound-muted {
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* --- FEEDBACK LOOP & BARRA DE ACCIONES DE MENSAJE --- */
+.message-actions-bar,
+.rg-msg-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 3px 6px;
+    font-size: 0.75rem;
+}
+
+.rma-feedback-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rma-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #64748b;
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.18s ease;
+}
+
+[data-theme="dark"] .rma-btn {
+    color: #94a3b8;
+}
+
+.rma-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #0f172a;
+}
+
+[data-theme="dark"] .rma-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+}
+
+.rma-btn.active-up {
+    color: #10b981 !important;
+    background: rgba(16, 185, 129, 0.12) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.rma-btn.active-down {
+    color: #f43f5e !important;
+    background: rgba(244, 63, 94, 0.12) !important;
+    border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+.rma-btn-canvas {
+    background: rgba(37, 99, 235, 0.07);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    color: #2563eb;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .rma-btn-canvas {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.25);
+    color: #38bdf8;
+}
+
+.rma-btn-canvas:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+[data-theme="dark"] .rma-btn-canvas:hover {
+    background: #38bdf8;
+    color: #090d16;
+}
+
+/* --- CANVAS DRAWER EN EL MODAL FLOTANTE --- */
+.romita-modal-canvas-drawer {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    max-width: 90%;
+    background: #ffffff;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    z-index: 500;
+    flex-direction: column;
+    box-shadow: -8px 0 25px rgba(0, 0, 0, 0.18);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateX(100%);
+}
+
+[data-theme="dark"] .romita-modal-canvas-drawer {
+    background: #111116;
+    border-left-color: rgba(255, 255, 255, 0.1);
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.7);
+}
+
+.romita-modal-canvas-drawer.open {
+    display: flex !important;
+    transform: translateX(0);
+}
+
+.rcp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: inherit;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    gap: 12px;
+}
+
+[data-theme="dark"] .rcp-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.rcp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.rcp-header-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.rcp-title-wrap {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.rcp-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: inherit;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rcp-subtitle {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+[data-theme="dark"] .rcp-subtitle {
+    color: #94a3b8;
+}
+
+.rcp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.rcp-btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: transparent;
+    color: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .rcp-btn-action {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.rcp-btn-action:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .rcp-btn-action:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.rcp-btn-action.active-edit {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+}
+
+.rcp-btn-close {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 1.15rem;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.rcp-btn-close:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.rcp-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    background: inherit;
+}
+
+.rcp-body-view {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: inherit;
+}
+
+.rcp-body-edit {
+    width: 100%;
+    height: 100%;
+    min-height: 380px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.02);
+    color: inherit;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    outline: none;
+    resize: none;
+}
+
+[data-theme="dark"] .rcp-body-edit {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.rcp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 18px;
+    background: inherit;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+[data-theme="dark"] .rcp-footer {
+    border-top-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+/* --- TARJETA DE ACCIÓN: POST PARA REDES SOCIALES --- */
+.rac-social-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin: 12px 0;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .rac-social-card {
+    background: #171720;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.rac-social-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .rac-social-header {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.rac-platform-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.rac-platform-badge.instagram {
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
+
+.rac-platform-badge.linkedin {
+    background: #0077b5;
+}
+
+.rac-platform-badge.tiktok {
+    background: #000000;
+}
+
+.rac-platform-badge.facebook {
+    background: #1877f2;
+}
+
+.rac-social-account {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+[data-theme="dark"] .rac-social-account {
+    color: #94a3b8;
+}
+
+.rac-social-body {
+    padding: 14px 16px;
+}
+
+.rac-social-hook-box {
+    background: rgba(37, 99, 235, 0.06);
+    border-left: 3px solid #2563eb;
+    padding: 8px 12px;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+}
+
+[data-theme="dark"] .rac-social-hook-box {
+    background: rgba(56, 189, 248, 0.1);
+    border-left-color: #38bdf8;
+    color: #f8fafc;
+}
+
+.rac-social-caption-box {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: inherit;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+}
+
+.rac-social-tags-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .rac-social-tags-box {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.rac-tag-chip {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #2563eb;
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .rac-tag-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #38bdf8;
+}
+
+.rac-tag-chip:hover {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.rac-social-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .rac-social-footer {
+    background: rgba(255, 255, 255, 0.02);
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+/* --- TARJETA DE ACCIÓN: TABS DE VARIACIONES DE COPY --- */
+.rac-variations-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin: 12px 0;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .rac-variations-card {
+    background: #171720;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.rac-var-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .rac-var-header {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.rac-var-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rac-var-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.015);
+    border-bottom: 1px solid #e2e8f0;
+    overflow-x: auto;
+}
+
+[data-theme="dark"] .rac-var-tabs {
+    background: rgba(255, 255, 255, 0.015);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.rac-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #64748b;
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .rac-tab-btn {
+    color: #94a3b8;
+}
+
+.rac-tab-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: #0f172a;
+}
+
+[data-theme="dark"] .rac-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f8fafc;
+}
+
+.rac-tab-btn.active {
+    background: #2563eb !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .rac-tab-btn.active {
+    background: #38bdf8 !important;
+    color: #090d16 !important;
+}
+
+.rac-var-pane {
+    display: none;
+    padding: 14px 16px;
+}
+
+.rac-var-pane.active {
+    display: block;
+    animation: fadeInVar 0.2s ease;
+}
+
+.rac-var-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .rac-var-badge {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+}
+
+.rac-var-content {
+    font-size: 0.84rem;
+    line-height: 1.6;
+    color: inherit;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+}
+
+/* --- TARJETA TRIGGER PARA ARTEFACTO / CANVAS --- */
+.rac-canvas-trigger-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    margin: 10px 0;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(56, 189, 248, 0.05));
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rac-canvas-trigger-card:hover {
+    transform: translateY(-1px);
+    border-color: #2563eb;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+}
+
+.rac-canvas-trigger-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.rac-canvas-trigger-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.rac-canvas-trigger-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: inherit;
+    margin: 0;
+}
+
+.rac-canvas-trigger-desc {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+[data-theme="dark"] .rac-canvas-trigger-desc {
+    color: #94a3b8;
+}
+
+.rac-canvas-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 </style>
 
 <!-- Marked.js para tablas y Markdown interactivo -->
@@ -4232,7 +4895,10 @@ function openCanvasWithContent(title, encodedOrRaw) {
     if (romitaContainer) romitaContainer.classList.add('canvas-open');
 
     const modalDrawer = document.getElementById('romitaModalCanvasDrawer');
-    if (modalDrawer) modalDrawer.classList.add('open');
+    if (modalDrawer) {
+        modalDrawer.style.display = 'flex';
+        setTimeout(() => modalDrawer.classList.add('open'), 10);
+    }
 }
 
 function closeRomitaCanvas() {
@@ -4240,7 +4906,14 @@ function closeRomitaCanvas() {
     if (romitaContainer) romitaContainer.classList.remove('canvas-open');
 
     const modalDrawer = document.getElementById('romitaModalCanvasDrawer');
-    if (modalDrawer) modalDrawer.classList.remove('open');
+    if (modalDrawer) {
+        modalDrawer.classList.remove('open');
+        setTimeout(() => {
+            if (!modalDrawer.classList.contains('open')) {
+                modalDrawer.style.display = 'none';
+            }
+        }, 300);
+    }
 }
 
 function toggleCanvasEditMode() {
