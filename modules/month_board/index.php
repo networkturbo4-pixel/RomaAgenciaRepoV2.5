@@ -2384,15 +2384,6 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     border-color: rgba(255, 255, 255, 0.12);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255,255,255,0.08);
 }
-.romita-popover-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 10040;
-    animation: rgFadeIn 0.2s ease-out;
-}
 @keyframes romitaPopIn {
     from { opacity: 0; transform: translateY(-8px) scale(0.96); }
     to { opacity: 1; transform: translateY(0) scale(1); }
@@ -2893,67 +2884,15 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
         font-size: 0.78rem !important;
     }
 
-    /* Romita Popover as Sleek Bottom Sheet on Mobile / Responsive */
-    .romita-popover-panel {
-        position: fixed !important;
-        top: auto !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100vw !important;
-        max-width: 100vw !important;
-        border-radius: 22px 22px 0 0 !important;
-        border-left: none !important;
-        border-right: none !important;
-        border-bottom: none !important;
-        max-height: 82vh !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        z-index: 10050 !important;
-        box-shadow: 0 -12px 45px rgba(0, 0, 0, 0.5) !important;
-        animation: romitaSheetSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
-    }
-
-    .romita-popover-panel::before {
-        content: '';
-        display: block;
-        width: 40px;
-        height: 4px;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.45);
-        margin: 8px auto 4px auto;
-    }
-
-    .romita-popover-header {
-        padding: 8px 16px 12px 16px !important;
-    }
-
-    .romita-popover-body {
-        padding: 12px 16px 20px 16px !important;
-        gap: 12px !important;
-    }
-
-    .romita-quick-btn {
-        padding: 10px 12px !important;
-    }
-
-    .romita-quick-btn i {
-        font-size: 1.25rem !important;
-    }
-
-    .rqb-text strong {
-        font-size: 0.82rem !important;
-    }
-
-    .rqb-text small {
-        font-size: 0.72rem !important;
-        white-space: normal !important;
-    }
-
-    @keyframes romitaSheetSlideUp {
-        from { transform: translateY(100%); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+    /* Romita Popover on Responsive / Mobile */
+    @media (max-width: 600px) {
+        .romita-popover-panel {
+            width: min(390px, 92vw) !important;
+            max-width: 92vw !important;
+            right: 0 !important;
+            max-height: 68vh !important;
+            overflow-y: auto !important;
+        }
     }
 
     /* Unificar scroll vertical limpio sin trampas de scroll anidadas */
@@ -3225,8 +3164,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                         <i class="ph-bold ph-caret-down" style="font-size: 0.72rem; opacity: 0.85; margin-left: 2px;"></i>
                                                     </button>
                                                     
-                                                    <!-- Romita Floating Mini-Studio Popover Backdrop & Sheet -->
-                                                    <div id="romita-popover-backdrop" class="romita-popover-backdrop" style="display: none;" onclick="closeRomitaPopover()"></div>
+                                                    <!-- Romita Floating Mini-Studio Popover -->
                                                     <div id="romita-popover-panel" class="romita-popover-panel" style="display: none;" onclick="event.stopPropagation()">
                                                         <div class="romita-popover-header">
                                                             <div class="romita-popover-brand">
@@ -10659,14 +10597,12 @@ async function compressImageHighQuality(file) {
 function toggleRomitaPopover(e) {
     if (e) e.stopPropagation();
     const popover = document.getElementById('romita-popover-panel');
-    const backdrop = document.getElementById('romita-popover-backdrop');
     if (!popover) return;
     const isVisible = popover.style.display !== 'none';
     if (isVisible) {
         closeRomitaPopover();
     } else {
         popover.style.display = 'block';
-        if (backdrop) backdrop.style.display = 'block';
         const txt = document.getElementById('romita-custom-prompt');
         if (txt) {
             setTimeout(() => txt.focus(), 60);
@@ -10677,8 +10613,6 @@ function toggleRomitaPopover(e) {
 function closeRomitaPopover() {
     const popover = document.getElementById('romita-popover-panel');
     if (popover) popover.style.display = 'none';
-    const backdrop = document.getElementById('romita-popover-backdrop');
-    if (backdrop) backdrop.style.display = 'none';
     const loading = document.getElementById('romita-popover-loading');
     if (loading) loading.style.display = 'none';
 }
