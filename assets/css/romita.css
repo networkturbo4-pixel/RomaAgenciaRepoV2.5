@@ -3441,3 +3441,638 @@ body:has(.romita-container) .content-wrapper {
     color: #38bdf8;
 }
 
+/* ==========================================================================
+   FASE 2: CANVAS / ARTEFACTOS, SOCIAL POSTS, TABS VARIACIONES & FEEDBACK LOOP
+   ========================================================================== */
+
+/* --- BOTÓN DE SONIDO EN HEADER --- */
+.btn-romita-sound {
+    background: transparent;
+    border: 1px solid var(--romita-border);
+    color: var(--romita-text-muted);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: all 0.2s ease;
+}
+
+.btn-romita-sound:hover {
+    background: var(--romita-card-hover);
+    color: var(--romita-text);
+    border-color: var(--romita-border-focus);
+}
+
+.btn-romita-sound.sound-muted {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* --- BARRA DE ACCIONES DE MENSAJE & FEEDBACK LOOP --- */
+.message-actions-bar,
+.rg-msg-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 3px 6px;
+    font-size: 0.75rem;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+.romita-message:hover .message-actions-bar,
+.rg-msg-content-wrap:hover .rg-msg-actions {
+    opacity: 1;
+}
+
+.rma-feedback-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rma-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--romita-text-muted);
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.18s ease;
+}
+
+.rma-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--romita-text);
+}
+
+[data-theme="dark"] .rma-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+}
+
+.rma-btn.active-up {
+    color: #10b981 !important;
+    background: rgba(16, 185, 129, 0.12) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.rma-btn.active-down {
+    color: #f43f5e !important;
+    background: rgba(244, 63, 94, 0.12) !important;
+    border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+.rma-btn-canvas {
+    background: rgba(37, 99, 235, 0.07);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    color: #2563eb;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .rma-btn-canvas {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.25);
+    color: #38bdf8;
+}
+
+.rma-btn-canvas:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+[data-theme="dark"] .rma-btn-canvas:hover {
+    background: #38bdf8;
+    color: #090d16;
+}
+
+/* --- PANEL LATERAL ROMITA CANVAS (SPLIT VIEW / ARTEFACTOS) --- */
+.romita-canvas-panel {
+    display: none;
+    flex-direction: column;
+    width: 0;
+    min-width: 0;
+    background: var(--romita-surface);
+    border-left: 1px solid var(--romita-border);
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    position: relative;
+    z-index: 20;
+}
+
+.romita-container.canvas-open .romita-canvas-panel {
+    display: flex;
+    width: 520px;
+    min-width: 360px;
+    max-width: 60%;
+    flex: 1;
+}
+
+@media (max-width: 992px) {
+    .romita-container.canvas-open .romita-canvas-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        z-index: 50;
+    }
+}
+
+.rcp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: var(--romita-card);
+    border-bottom: 1px solid var(--romita-border);
+    gap: 12px;
+}
+
+.rcp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.rcp-header-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.rcp-title-wrap {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.rcp-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--romita-text);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rcp-subtitle {
+    font-size: 0.72rem;
+    color: var(--romita-text-muted);
+}
+
+.rcp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.rcp-btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--romita-border);
+    background: var(--romita-surface);
+    color: var(--romita-text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rcp-btn-action:hover {
+    background: var(--romita-card-hover);
+    border-color: var(--romita-border-focus);
+}
+
+.rcp-btn-action.active-edit {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+.rcp-btn-close {
+    background: transparent;
+    border: none;
+    color: var(--romita-text-muted);
+    font-size: 1.15rem;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.rcp-btn-close:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.rcp-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    background: var(--romita-bg);
+}
+
+.rcp-body-view {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--romita-text);
+}
+
+.rcp-body-view h1, .rcp-body-view h2, .rcp-body-view h3 {
+    margin-top: 1.4rem;
+    margin-bottom: 0.6rem;
+    font-weight: 700;
+    color: var(--romita-text);
+}
+
+.rcp-body-view hr {
+    border: 0;
+    height: 1px;
+    background: var(--romita-border);
+    margin: 1.5rem 0;
+}
+
+.rcp-body-edit {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    padding: 16px;
+    background: var(--romita-surface);
+    color: var(--romita-text);
+    border: 1px solid var(--romita-border);
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    outline: none;
+    resize: none;
+}
+
+.rcp-body-edit:focus {
+    border-color: var(--romita-border-focus);
+}
+
+.rcp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 18px;
+    background: var(--romita-card);
+    border-top: 1px solid var(--romita-border);
+    font-size: 0.72rem;
+    color: var(--romita-text-muted);
+}
+
+/* --- TARJETA DE ACCIÓN: POST PARA REDES SOCIALES (INSTAGRAM, LINKEDIN, TIKTOK) --- */
+.rac-social-card {
+    background: var(--romita-surface);
+    border: 1px solid var(--romita-border);
+    border-radius: 12px;
+    margin: 12px 0;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+
+.rac-social-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid var(--romita-border);
+}
+
+.rac-platform-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.rac-platform-badge.instagram {
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
+
+.rac-platform-badge.linkedin {
+    background: #0077b5;
+}
+
+.rac-platform-badge.tiktok {
+    background: #000000;
+}
+
+.rac-platform-badge.facebook {
+    background: #1877f2;
+}
+
+.rac-social-account {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--romita-text-muted);
+}
+
+.rac-social-body {
+    padding: 14px 16px;
+}
+
+.rac-social-hook-box {
+    background: rgba(37, 99, 235, 0.06);
+    border-left: 3px solid #2563eb;
+    padding: 8px 12px;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--romita-text);
+    margin-bottom: 12px;
+}
+
+[data-theme="dark"] .rac-social-hook-box {
+    background: rgba(56, 189, 248, 0.1);
+    border-left-color: #38bdf8;
+}
+
+.rac-social-caption-box {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--romita-text);
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+}
+
+.rac-social-tags-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--romita-border);
+}
+
+.rac-tag-chip {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--romita-border);
+    color: #2563eb;
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .rac-tag-chip {
+    background: rgba(255, 255, 255, 0.05);
+    color: #38bdf8;
+}
+
+.rac-tag-chip:hover {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.rac-social-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border-top: 1px solid var(--romita-border);
+}
+
+/* --- TARJETA DE ACCIÓN: TABS DE VARIACIONES DE COPY (A/B/C) --- */
+.rac-variations-card {
+    background: var(--romita-surface);
+    border: 1px solid var(--romita-border);
+    border-radius: 12px;
+    margin: 12px 0;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+
+.rac-var-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid var(--romita-border);
+}
+
+.rac-var-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--romita-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rac-var-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.015);
+    border-bottom: 1px solid var(--romita-border);
+    overflow-x: auto;
+}
+
+.rac-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--romita-text-muted);
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.rac-tab-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--romita-text);
+}
+
+[data-theme="dark"] .rac-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f8fafc;
+}
+
+.rac-tab-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .rac-tab-btn.active {
+    background: #38bdf8;
+    color: #090d16;
+}
+
+.rac-var-pane {
+    display: none;
+    padding: 14px 16px;
+}
+
+.rac-var-pane.active {
+    display: block;
+    animation: fadeInVar 0.2s ease;
+}
+
+@keyframes fadeInVar {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.rac-var-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .rac-var-badge {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+}
+
+.rac-var-content {
+    font-size: 0.84rem;
+    line-height: 1.6;
+    color: var(--romita-text);
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+}
+
+/* --- TARJETA TRIGGER PARA ARTEFACTO / CANVAS --- */
+.rac-canvas-trigger-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    margin: 10px 0;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(56, 189, 248, 0.05));
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rac-canvas-trigger-card:hover {
+    transform: translateY(-1px);
+    border-color: #2563eb;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+}
+
+.rac-canvas-trigger-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.rac-canvas-trigger-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.rac-canvas-trigger-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--romita-text);
+    margin: 0;
+}
+
+.rac-canvas-trigger-desc {
+    font-size: 0.72rem;
+    color: var(--romita-text-muted);
+}
+
+.rac-canvas-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* --- CANVAS DRAWER EN EL MODAL FLOTANTE --- */
+.romita-modal-canvas-drawer {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    max-width: 90%;
+    background: var(--romita-surface);
+    border-left: 1px solid var(--romita-border);
+    z-index: 500;
+    flex-direction: column;
+    box-shadow: -8px 0 25px rgba(0, 0, 0, 0.18);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateX(100%);
+}
+
+.romita-modal-canvas-drawer.open {
+    display: flex;
+    transform: translateX(0);
+}
+
+

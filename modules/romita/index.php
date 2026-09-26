@@ -223,6 +223,9 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 <div class="brand-intel-chip" id="brandIntelChip" style="display:none;"></div>
 
                 <div class="romita-header-buttons">
+                    <button type="button" class="btn-romita-sound" id="romitaSoundToggle" onclick="toggleRomitaSound()" title="Sonido activado (Clic para silenciar)">
+                        <i class="ph ph-speaker-high"></i>
+                    </button>
                     <button class="btn-romita-action" onclick="newConversation()" title="Limpiar y empezar nuevo chat">
                         <i class="ph ph-broom"></i> <span class="hide-mobile">Limpiar</span>
                     </button>
@@ -399,6 +402,41 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             </div>
         </div>
     </main>
+
+    <!-- Panel Lateral Romita Canvas / Artefactos (Split View) -->
+    <section class="romita-canvas-panel" id="romitaCanvasPanel">
+        <div class="rcp-header">
+            <div class="rcp-header-left">
+                <div class="rcp-header-icon"><i class="ph-bold ph-article"></i></div>
+                <div class="rcp-title-wrap">
+                    <h3 class="rcp-title" id="rcpTitle">Documento Romita</h3>
+                    <span class="rcp-subtitle">Artefacto de Trabajo • Roma Canvas</span>
+                </div>
+            </div>
+            <div class="rcp-header-actions">
+                <button type="button" class="rcp-btn-action" id="rcpBtnEdit" onclick="toggleCanvasEditMode()" title="Editar texto">
+                    <i class="ph ph-pencil-simple"></i> <span class="hide-mobile">Editar</span>
+                </button>
+                <button type="button" class="rcp-btn-action" onclick="copyCanvasContent()" title="Copiar todo">
+                    <i class="ph ph-copy"></i> <span class="hide-mobile">Copiar</span>
+                </button>
+                <button type="button" class="rcp-btn-action" onclick="downloadCanvasFile('md')" title="Descargar como Markdown">
+                    <i class="ph ph-download-simple"></i> <span class="hide-mobile">Descargar</span>
+                </button>
+                <button type="button" class="rcp-btn-close" onclick="closeRomitaCanvas()" title="Cerrar Canvas">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+        </div>
+        <div class="rcp-body">
+            <div class="rcp-body-view markdown-body" id="rcpBodyView"></div>
+            <textarea class="rcp-body-edit" id="rcpBodyEdit" style="display:none;" oninput="onCanvasEditChange()" placeholder="Escribe o edita el contenido aquí..."></textarea>
+        </div>
+        <div class="rcp-footer">
+            <span id="rcpWordCount">0 palabras • 0 caracteres</span>
+            <span><i class="ph ph-sparkle"></i> Romita Canvas</span>
+        </div>
+    </section>
 </div>
 
 <!-- Modal de Creación y Edición de Tareas de Romita AI -->
@@ -787,6 +825,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
     document.addEventListener('DOMContentLoaded', () => {
         renderDefaultPromptStarters();
         loadChatHistoryList();
+        updateRomitaSoundButtons();
 
         document.addEventListener('click', function(e) {
             const slashMenu = document.getElementById('rg-slash-menu');
@@ -923,8 +962,8 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     )) {
                         actualRole = 'assistant';
                     }
-                    chatHistory.push({role: actualRole, content: msg.content});
-                    addMessageToUI(actualRole, msg.content);
+                    chatHistory.push({role: actualRole, content: msg.content, id: msg.id});
+                    addMessageToUI(actualRole, msg.content, msg.id, msg.feedback);
                 });
             }
         });
@@ -1234,6 +1273,375 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         } catch (e) {
             return `<pre><code>${jsonContent}</code></pre>`;
         }
+    }
+
+    // FASE 2: Renderizar Tarjeta Interactiva de Post para Redes Sociales
+    function renderRomitaSocialCard(jsonContent) {
+        try {
+            const data = JSON.parse(jsonContent.trim());
+            const platform = (data.platform || 'instagram').toLowerCase();
+            const account = data.account || '@romaagencia';
+            const hook = data.hook || '';
+            const caption = data.caption || data.body || '';
+            const hashtags = Array.isArray(data.hashtags) ? data.hashtags : [];
+            const cta = data.cta || '';
+            const cardId = 'rsc-' + Math.random().toString(36).substr(2, 9);
+            
+            let platformName = 'Instagram';
+            let platformIcon = 'ph ph-instagram-logo';
+            if (platform === 'linkedin') { platformName = 'LinkedIn'; platformIcon = 'ph ph-linkedin-logo'; }
+            else if (platform === 'tiktok') { platformName = 'TikTok'; platformIcon = 'ph ph-tiktok-logo'; }
+            else if (platform === 'facebook') { platformName = 'Facebook'; platformIcon = 'ph ph-facebook-logo'; }
+
+            const fullCopy = (hook ? hook + '\n\n' : '') + caption + (cta ? '\n\n' + cta : '') + (hashtags.length ? '\n\n' + hashtags.join(' ') : '');
+            const tagsText = hashtags.join(' ');
+            const encodedFullCopy = encodeURIComponent(fullCopy);
+
+            return `
+            <div class="rac-social-card" id="${cardId}">
+                <div class="rac-social-header">
+                    <span class="rac-platform-badge ${platform}">
+                        <i class="${platformIcon}"></i> ${platformName} Post
+                    </span>
+                    <span class="rac-social-account">${escapeRomitaHtml(account)}</span>
+                </div>
+                <div class="rac-social-body">
+                    ${hook ? `<div class="rac-social-hook-box"><i class="ph-bold ph-lightning"></i> ${escapeRomitaHtml(hook)}</div>` : ''}
+                    <div class="rac-social-caption-box">${escapeRomitaHtml(caption)}</div>
+                    ${cta ? `<div style="font-weight:600; font-size:0.8rem; color:#2563eb; margin:6px 0;"><i class="ph-bold ph-arrow-right"></i> ${escapeRomitaHtml(cta)}</div>` : ''}
+                    ${hashtags.length ? `
+                    <div class="rac-social-tags-box">
+                        ${hashtags.map(t => `<span class="rac-tag-chip" onclick="copySnippetToClipboard('${encodeURIComponent(t)}', this)" title="Copiar tag">${escapeRomitaHtml(t)}</span>`).join('')}
+                    </div>` : ''}
+                </div>
+                <div class="rac-social-footer">
+                    ${hashtags.length ? `
+                    <button type="button" class="btn-rac-modal" onclick="copySnippetToClipboard('${encodeURIComponent(tagsText)}', this)">
+                        <i class="ph ph-hash"></i> Copiar Hashtags
+                    </button>` : ''}
+                    <button type="button" class="btn-rac-modal" onclick="copySnippetToClipboard('${encodedFullCopy}', this)">
+                        <i class="ph ph-copy"></i> Copiar Post Completo
+                    </button>
+                    <button type="button" class="btn-rac-modal" style="background:#2563eb; color:#ffffff; border-color:#2563eb;" onclick="openCanvasWithContent('${escapeRomitaHtml(platformName)} Post', '${encodedFullCopy}')">
+                        <i class="ph ph-article"></i> Abrir en Canvas
+                    </button>
+                </div>
+            </div>`;
+        } catch(e) {
+            console.warn('Error parsing social card:', e);
+            return `<pre><code>${jsonContent}</code></pre>`;
+        }
+    }
+
+    // FASE 2: Renderizar Tabs de Variaciones de Copy (A/B/C)
+    function renderRomitaVariationsCard(jsonContent) {
+        try {
+            const data = JSON.parse(jsonContent.trim());
+            const topic = data.topic || 'Variaciones de Copy';
+            const variations = Array.isArray(data.variations) ? data.variations : [];
+            if (!variations.length) return `<pre><code>${jsonContent}</code></pre>`;
+
+            const cardId = 'rvc-' + Math.random().toString(36).substr(2, 9);
+            let tabsHtml = '';
+            let panesHtml = '';
+
+            variations.forEach((v, idx) => {
+                const isActive = idx === 0 ? 'active' : '';
+                const tabLabel = v.label || `Opción ${idx + 1}`;
+                const badge = v.badge || '';
+                const text = v.text || v.content || '';
+                const encodedText = encodeURIComponent(text);
+
+                tabsHtml += `<button type="button" class="rac-tab-btn ${isActive}" onclick="switchRomitaVariation('${cardId}', ${idx})">${escapeRomitaHtml(tabLabel)}</button>`;
+                
+                panesHtml += `
+                <div class="rac-var-pane ${isActive}" id="${cardId}-pane-${idx}">
+                    ${badge ? `<span class="rac-var-badge">${escapeRomitaHtml(badge)}</span>` : ''}
+                    <div class="rac-var-content">${escapeRomitaHtml(text)}</div>
+                    <div style="display:flex; justify-content:flex-end; gap:8px;">
+                        <button type="button" class="btn-rac-modal" onclick="copySnippetToClipboard('${encodedText}', this)">
+                            <i class="ph ph-copy"></i> Copiar esta opción
+                        </button>
+                        <button type="button" class="btn-rac-modal" onclick="openCanvasWithContent('${escapeRomitaHtml(tabLabel)}', '${encodedText}')">
+                            <i class="ph ph-article"></i> Ver en Canvas
+                        </button>
+                    </div>
+                </div>`;
+            });
+
+            return `
+            <div class="rac-variations-card" id="${cardId}">
+                <div class="rac-var-header">
+                    <div class="rac-var-title"><i class="ph ph-git-fork"></i> ${escapeRomitaHtml(topic)}</div>
+                    <span style="font-size:0.72rem; color:var(--romita-text-muted);">${variations.length} opciones</span>
+                </div>
+                <div class="rac-var-tabs">${tabsHtml}</div>
+                <div class="rac-var-panes">${panesHtml}</div>
+            </div>`;
+        } catch(e) {
+            console.warn('Error parsing variations card:', e);
+            return `<pre><code>${jsonContent}</code></pre>`;
+        }
+    }
+
+    function switchRomitaVariation(cardId, targetIdx) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        const tabs = card.querySelectorAll('.rac-tab-btn');
+        const panes = card.querySelectorAll('.rac-var-pane');
+        tabs.forEach((t, i) => t.classList.toggle('active', i === targetIdx));
+        panes.forEach((p, i) => p.classList.toggle('active', i === targetIdx));
+    }
+
+    // FASE 2: Renderizar Trigger de Romita Canvas
+    function renderRomitaCanvasTrigger(title, markdownContent) {
+        const safeTitle = title || 'Documento de Trabajo';
+        const encodedContent = encodeURIComponent(markdownContent);
+        return `
+        <div class="rac-canvas-trigger-card" onclick="openCanvasWithContent('${escapeRomitaHtml(safeTitle)}', '${encodedContent}')">
+            <div class="rac-canvas-trigger-left">
+                <div class="rac-canvas-trigger-icon"><i class="ph-bold ph-article"></i></div>
+                <div>
+                    <h4 class="rac-canvas-trigger-title">${escapeRomitaHtml(safeTitle)}</h4>
+                    <span class="rac-canvas-trigger-desc">Documento estructurado listo para editar, copiar o exportar</span>
+                </div>
+            </div>
+            <button type="button" class="rac-canvas-trigger-btn">
+                <i class="ph ph-arrow-square-out"></i> Abrir en Canvas
+            </button>
+        </div>`;
+    }
+
+    // FASE 2: Controladores de Romita Canvas
+    let currentCanvasTitle = 'Documento';
+    let currentCanvasRaw = '';
+    let isCanvasEditMode = false;
+
+    function openCanvasWithContent(title, encodedOrRaw) {
+        currentCanvasTitle = title || 'Documento Romita';
+        currentCanvasRaw = encodedOrRaw.includes('%') ? decodeURIComponent(encodedOrRaw) : encodedOrRaw;
+        
+        document.querySelectorAll('.rcp-title').forEach(el => el.innerText = currentCanvasTitle);
+        
+        const viewEl = document.getElementById('rcpBodyView');
+        if (viewEl) {
+            if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                viewEl.innerHTML = marked.parse(currentCanvasRaw);
+            } else {
+                viewEl.innerHTML = renderRomitaMarkdown(currentCanvasRaw);
+            }
+        }
+        
+        const editEl = document.getElementById('rcpBodyEdit');
+        if (editEl) editEl.value = currentCanvasRaw;
+
+        isCanvasEditMode = false;
+        updateCanvasViewMode();
+        updateCanvasCounts();
+
+        const romitaContainer = document.querySelector('.romita-container');
+        if (romitaContainer) romitaContainer.classList.add('canvas-open');
+
+        const modalDrawer = document.getElementById('romitaModalCanvasDrawer');
+        if (modalDrawer) modalDrawer.classList.add('open');
+    }
+
+    function closeRomitaCanvas() {
+        const romitaContainer = document.querySelector('.romita-container');
+        if (romitaContainer) romitaContainer.classList.remove('canvas-open');
+
+        const modalDrawer = document.getElementById('romitaModalCanvasDrawer');
+        if (modalDrawer) modalDrawer.classList.remove('open');
+    }
+
+    function toggleCanvasEditMode() {
+        isCanvasEditMode = !isCanvasEditMode;
+        if (!isCanvasEditMode) {
+            const editEl = document.getElementById('rcpBodyEdit');
+            if (editEl) {
+                currentCanvasRaw = editEl.value;
+                const viewEl = document.getElementById('rcpBodyView');
+                if (viewEl) {
+                    if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                        viewEl.innerHTML = marked.parse(currentCanvasRaw);
+                    } else {
+                        viewEl.innerHTML = renderRomitaMarkdown(currentCanvasRaw);
+                    }
+                }
+            }
+        }
+        updateCanvasViewMode();
+        updateCanvasCounts();
+    }
+
+    function updateCanvasViewMode() {
+        const viewEl = document.getElementById('rcpBodyView');
+        const editEl = document.getElementById('rcpBodyEdit');
+        const btnEdit = document.getElementById('rcpBtnEdit');
+
+        if (viewEl && editEl) {
+            viewEl.style.display = isCanvasEditMode ? 'none' : 'block';
+            editEl.style.display = isCanvasEditMode ? 'block' : 'none';
+        }
+
+        if (btnEdit) {
+            btnEdit.classList.toggle('active-edit', isCanvasEditMode);
+            btnEdit.innerHTML = isCanvasEditMode ? 
+                '<i class="ph ph-check"></i> <span class="hide-mobile">Ver Vista Previa</span>' : 
+                '<i class="ph ph-pencil-simple"></i> <span class="hide-mobile">Editar</span>';
+        }
+    }
+
+    function updateCanvasCounts() {
+        const text = isCanvasEditMode ? 
+            (document.getElementById('rcpBodyEdit')?.value || '') : 
+            currentCanvasRaw;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const chars = text.length;
+        const countEl = document.getElementById('rcpWordCount');
+        if (countEl) countEl.innerText = `${words} palabras • ${chars} caracteres`;
+    }
+
+    function onCanvasEditChange() {
+        updateCanvasCounts();
+    }
+
+    function copyCanvasContent() {
+        const text = isCanvasEditMode ? 
+            (document.getElementById('rcpBodyEdit')?.value || '') : 
+            currentCanvasRaw;
+        navigator.clipboard.writeText(text).then(() => {
+            if (window.showToast) window.showToast('¡Contenido del Canvas copiado al portapapeles!', 'success');
+            else alert('¡Contenido del Canvas copiado al portapapeles!');
+        });
+    }
+
+    function downloadCanvasFile(ext = 'md') {
+        const text = isCanvasEditMode ? 
+            (document.getElementById('rcpBodyEdit')?.value || '') : 
+            currentCanvasRaw;
+        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const cleanTitle = currentCanvasTitle.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
+        a.download = `${cleanTitle || 'documento'}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function copySnippetToClipboard(encodedText, btn) {
+        const text = decodeURIComponent(encodedText);
+        navigator.clipboard.writeText(text).then(() => {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="ph-bold ph-check" style="color:#10b981;"></i> ¡Copiado!';
+            setTimeout(() => btn.innerHTML = origHtml, 2000);
+        });
+    }
+
+    function openMessageInCanvas(btn) {
+        const bubble = btn.closest('.romita-message')?.querySelector('.message-bubble') ||
+                       btn.closest('.rg-msg')?.querySelector('.rg-msg-bubble');
+        if (!bubble) return;
+        const text = bubble.innerText.trim();
+        openCanvasWithContent('Respuesta de Romita', text);
+    }
+
+    // FASE 2: Calificación / Feedback de Respuestas (👍 / 👎 Feedback Loop)
+    async function sendRomitaFeedback(messageId, rating, btn) {
+        const group = btn.closest('.rma-feedback-group');
+        if (!group) return;
+        const upBtn = group.querySelector('.rma-thumb-up');
+        const downBtn = group.querySelector('.rma-thumb-down');
+        
+        const isAlreadyActive = (rating === 1 && upBtn.classList.contains('active-up')) || 
+                                (rating === -1 && downBtn.classList.contains('active-down'));
+        const newRating = isAlreadyActive ? 0 : rating;
+        
+        upBtn.classList.toggle('active-up', newRating === 1);
+        downBtn.classList.toggle('active-down', newRating === -1);
+        
+        if (messageId && messageId > 0) {
+            try {
+                const fd = new FormData();
+                fd.append('action', 'feedback_message');
+                fd.append('message_id', messageId);
+                fd.append('rating', newRating);
+                await fetch('ajax/ajax_romita.php', { method: 'POST', body: fd });
+            } catch(e) {
+                console.warn('Feedback error:', e);
+            }
+        }
+    }
+
+    // FASE 2: Micro-Audio de Notificación con Web Audio API (Cero dependencias)
+    function playRomitaChime() {
+        if (localStorage.getItem('romita_sound_enabled') === '0') return;
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            if (ctx.state === 'suspended') ctx.resume();
+            const now = ctx.currentTime;
+            
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(587.33, now); // D5
+            osc1.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+            
+            gain1.gain.setValueAtTime(0.001, now);
+            gain1.gain.linearRampToValueAtTime(0.12, now + 0.03);
+            gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+            
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880, now + 0.08); // A5
+            osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.22); // D6
+            
+            gain2.gain.setValueAtTime(0.001, now + 0.08);
+            gain2.gain.linearRampToValueAtTime(0.1, now + 0.12);
+            gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+            
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            
+            osc1.start(now);
+            osc1.stop(now + 0.46);
+            osc2.start(now + 0.08);
+            osc2.stop(now + 0.56);
+        } catch (e) {
+            console.warn('Audio chime error:', e);
+        }
+    }
+
+    function toggleRomitaSound() {
+        const isMuted = localStorage.getItem('romita_sound_enabled') === '0';
+        const newState = isMuted ? '1' : '0';
+        localStorage.setItem('romita_sound_enabled', newState);
+        updateRomitaSoundButtons();
+        if (newState === '1') playRomitaChime();
+    }
+
+    function updateRomitaSoundButtons() {
+        const isMuted = localStorage.getItem('romita_sound_enabled') === '0';
+        document.querySelectorAll('.btn-romita-sound').forEach(btn => {
+            if (isMuted) {
+                btn.classList.add('sound-muted');
+                btn.innerHTML = '<i class="ph ph-speaker-simple-slash"></i>';
+                btn.title = 'Sonido silenciado (Clic para activar)';
+            } else {
+                btn.classList.remove('sound-muted');
+                btn.innerHTML = '<i class="ph ph-speaker-high"></i>';
+                btn.title = 'Sonido activado (Clic para silenciar)';
+            }
+        });
     }
 
     function updateRomitaActionTaskCount(cardId) {
@@ -1609,13 +2017,14 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         }
     }
 
-    function addMessageToUI(role, content) {
+    function addMessageToUI(role, content, msgId = null, feedbackVal = null) {
         const container = document.getElementById('chatStreamInner');
         const emptyState = document.getElementById('emptyState');
         if(emptyState) emptyState.style.display = 'none';
 
         const msgDiv = document.createElement('div');
         msgDiv.className = `romita-message ${role}`;
+        if (msgId) msgDiv.setAttribute('data-msg-id', msgId);
         
         let aiIcon = 'ph-sparkle';
         if (role === 'assistant' && activeSkill && activeSkill.icon) {
@@ -1656,6 +2065,27 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 return '\n\n' + placeholder + '\n\n';
             });
 
+            // FASE 2: Interceptar Posts de Redes Sociales
+            preprocessed = preprocessed.replace(/```romita-action:social_post\s*([\s\S]*?)```/g, function(match, jsonContent) {
+                const placeholder = '<!--ROMITA_ACTION_SOCIAL_' + actionPlaceholders.length + '-->';
+                actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaSocialCard(jsonContent) });
+                return '\n\n' + placeholder + '\n\n';
+            });
+
+            // FASE 2: Interceptar Tabs de Variaciones de Copy
+            preprocessed = preprocessed.replace(/```romita-action:copy_variations\s*([\s\S]*?)```/g, function(match, jsonContent) {
+                const placeholder = '<!--ROMITA_ACTION_VARS_' + actionPlaceholders.length + '-->';
+                actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaVariationsCard(jsonContent) });
+                return '\n\n' + placeholder + '\n\n';
+            });
+
+            // FASE 2: Interceptar Bloque Canvas
+            preprocessed = preprocessed.replace(/```romita-canvas:title="([^"]+)"\s*([\s\S]*?)```/g, function(match, title, canvasBody) {
+                const placeholder = '<!--ROMITA_ACTION_CANVAS_' + actionPlaceholders.length + '-->';
+                actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaCanvasTrigger(title, canvasBody) });
+                return '\n\n' + placeholder + '\n\n';
+            });
+
             let rendered = marked.parse(preprocessed);
 
             // Inyectar de vuelta las tarjetas de acción limpias sin ser alteradas ni convertidas a código por marked
@@ -1671,13 +2101,30 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             bubble.innerHTML = rendered;
             processAssistantFormatting(bubble);
 
-            // Barra de utilidades
+            // Barra de utilidades y Feedback Loop (Fase 2)
             const actionsBar = document.createElement('div');
             actionsBar.className = 'message-actions-bar';
+            const feedbackHtml = msgId ? `
+                <div class="rma-feedback-group">
+                    <button type="button" class="rma-btn rma-thumb-up ${feedbackVal == 1 ? 'active-up' : ''}" onclick="sendRomitaFeedback(${msgId}, 1, this)" title="Me sirvió esta respuesta">
+                        <i class="ph ph-thumbs-up"></i>
+                    </button>
+                    <button type="button" class="rma-btn rma-thumb-down ${feedbackVal == -1 ? 'active-down' : ''}" onclick="sendRomitaFeedback(${msgId}, -1, this)" title="No me sirvió esta respuesta">
+                        <i class="ph ph-thumbs-down"></i>
+                    </button>
+                </div>
+            ` : `<div class="rma-feedback-group"></div>`;
+
             actionsBar.innerHTML = `
-                <button class="btn-message-action" onclick="copyMessageText(this)" title="Copiar texto">
-                    <i class="ph ph-copy"></i> <span>Copiar</span>
-                </button>
+                ${feedbackHtml}
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" class="rma-btn" onclick="copyMessageText(this)" title="Copiar texto">
+                        <i class="ph ph-copy"></i> <span>Copiar</span>
+                    </button>
+                    <button type="button" class="rma-btn rma-btn-canvas" onclick="openMessageInCanvas(this)" title="Abrir en Romita Canvas">
+                        <i class="ph ph-article"></i> <span>Canvas</span>
+                    </button>
+                </div>
             `;
             wrapper.appendChild(bubble);
             wrapper.appendChild(actionsBar);
@@ -2150,9 +2597,10 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
 
             if(data.success) {
                 if(data.chat_id) currentChatId = data.chat_id;
-                addMessageToUI('assistant', data.response);
-                chatHistory.push({role: 'assistant', content: data.response});
+                addMessageToUI('assistant', data.response, data.message_id);
+                chatHistory.push({role: 'assistant', content: data.response, id: data.message_id});
                 loadChatHistoryList();
+                playRomitaChime();
             } else {
                 addMessageToUI('assistant', '<i class="ph ph-warning-circle" style="color:#ef4444;"></i> Ocurrió un error: ' + data.error);
             }

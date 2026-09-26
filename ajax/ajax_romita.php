@@ -812,7 +812,36 @@ try {
             . "  \"message\": \"Texto completo formateado con emojis y negritas de WhatsApp (*negrita*)\"\n"
             . "}\n"
             . "```\n\n"
-            . "REGLA OBLIGATORIA: En el bloque de acción escribe ÚNICAMENTE el JSON puro dentro de ```romita-action:...```. NUNCA generes código HTML, etiquetas <div>, ni snippets de código manual, ya que el sistema Roma SaaS toma automáticamente el JSON y renderiza el componente interactivo y el modal de creación en pantalla. Fuera del bloque de acción, explica y desarrolla tu propuesta con tu elocuencia y calidez habitual.";
+            . "4. POSTS INTERACTIVOS DE REDES SOCIALES:\n"
+            . "Cuando el usuario te pida redactar un post para Instagram, LinkedIn, TikTok o Facebook, además de tu explicación y recomendaciones, incluye un bloque interactivo de previsualización así:\n"
+            . "```romita-action:social_post\n"
+            . "{\n"
+            . "  \"platform\": \"instagram\",\n"
+            . "  \"account\": \"@romaagencia\",\n"
+            . "  \"hook\": \"Gancho impactante de apertura\",\n"
+            . "  \"caption\": \"Cuerpo del post formateado con saltos de línea y emojis\",\n"
+            . "  \"hashtags\": [\"#MarketingDigital\", \"#Branding\", \"#RomaAgencia\"],\n"
+            . "  \"cta\": \"Llamado a la acción claro\"\n"
+            . "}\n"
+            . "```\n\n"
+            . "5. TABS DE VARIACIONES DE COPY / TITULARES (A/B/C):\n"
+            . "Cuando el usuario te pida varias opciones, ángulos, ganchos o alternativas de copy o titulares para comparar, incluye un bloque así:\n"
+            . "```romita-action:copy_variations\n"
+            . "{\n"
+            . "  \"topic\": \"Titular o Tema evaluado\",\n"
+            . "  \"variations\": [\n"
+            . "    {\"label\": \"Opción A: Persuasiva\", \"badge\": \"Alta Conversión\", \"text\": \"Texto de la propuesta A...\"},\n"
+            . "    {\"label\": \"Opción B: Urgencia / FOMO\", \"badge\": \"Urgencia\", \"text\": \"Texto de la propuesta B...\"},\n"
+            . "    {\"label\": \"Opción C: Storytelling\", \"badge\": \"Emocional\", \"text\": \"Texto de la propuesta C...\"}\n"
+            . "  ]\n"
+            . "}\n"
+            . "```\n\n"
+            . "6. ARTEFACTO / CANVAS PARA DOCUMENTOS COMPLETOS:\n"
+            . "Si redactas un plan completo, estrategia detallada, propuesta formal, brief exhaustivo o código largo, puedes encapsular el documento para abrirlo en el panel Canvas de Roma SaaS usando:\n"
+            . "```romita-canvas:title=\"Título del Documento\"\n"
+            . "(Contenido completo en Markdown)\n"
+            . "```\n\n"
+            . "REGLA OBLIGATORIA: En los bloques de acción escribe ÚNICAMENTE el JSON puro dentro de ```romita-action:...``` o el Markdown puro en ```romita-canvas:...```. NUNCA generes código HTML, etiquetas <div>, ni snippets de código manual, ya que el sistema Roma SaaS toma automáticamente el JSON y renderiza el componente interactivo, el modal de creación y el canvas en pantalla. Fuera del bloque de acción, explica y desarrolla tu propuesta con tu elocuencia y calidez habitual.";
         $sysInstructions[] = $agenticInstructions;
 
         // 3. Inteligencia del Ecosistema de la Agencia (Proyectos de Marca, Web, Audiovisual, Pizarras, Calendario con RBAC)
@@ -959,6 +988,7 @@ try {
         // Insertar msj IA
         $stmt_ai_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content) VALUES (?, 'assistant', ?)");
         $stmt_ai_msg->execute([$chat_id, $ia_response]);
+        $ai_msg_id = (int)$db->lastInsertId();
 
         // Si hay un Prept asociado y la IA generó contenido (por ejemplo, más de 200 caracteres), guardarlo en el historial del prept
         if ($prept_id && strlen($ia_response) > 200) {
@@ -1007,7 +1037,7 @@ try {
             }
         }
 
-        echo json_encode(['success' => true, 'response' => $ia_response, 'chat_id' => $chat_id]);
+        echo json_encode(['success' => true, 'response' => $ia_response, 'chat_id' => $chat_id, 'message_id' => $ai_msg_id]);
         exit();
     }
     
@@ -1032,10 +1062,24 @@ try {
             exit();
         }
 
-        $stmt = $db->prepare("SELECT id, role, content FROM romita_messages WHERE chat_id = ? ORDER BY id ASC");
+        $stmt = $db->prepare("SELECT id, role, content, feedback FROM romita_messages WHERE chat_id = ? ORDER BY id ASC");
         $stmt->execute([$chat_id]);
         $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'messages' => $messages]);
+        exit();
+    }
+
+    // Calificar mensaje de Romita (👍 / 👎 Feedback Loop)
+    if ($action === 'feedback_message') {
+        $message_id = (int)($_POST['message_id'] ?? 0);
+        $rating = (int)($_POST['rating'] ?? 0); // 1 = me sirvió, -1 = no me sirvió
+        if ($message_id > 0) {
+            $stmt = $db->prepare("UPDATE romita_messages SET feedback = ? WHERE id = ?");
+            $stmt->execute([$rating, $message_id]);
+            echo json_encode(['success' => true]);
+            exit();
+        }
+        echo json_encode(['success' => false, 'error' => 'ID de mensaje inválido']);
         exit();
     }
 
