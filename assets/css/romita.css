@@ -8,16 +8,16 @@
     --romita-card-hover: #f1f5f9;
     --romita-border: rgba(0, 0, 0, 0.08);
     --romita-border-light: rgba(0, 0, 0, 0.04);
-    --romita-border-focus: rgba(99, 102, 241, 0.4);
+    --romita-border-focus: rgba(37, 99, 235, 0.45);
     --romita-text: #0f172a;
     --romita-text-muted: #64748b;
-    --romita-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
-    --romita-gradient-accent: linear-gradient(135deg, #6366f1, #8b5cf6);
-    --romita-glow: rgba(99, 102, 241, 0.12);
+    --romita-gradient: linear-gradient(135deg, #0a0f1d 0%, #1e40af 50%, #2563eb 100%);
+    --romita-gradient-accent: linear-gradient(135deg, #1d4ed8, #2563eb);
+    --romita-glow: rgba(37, 99, 235, 0.15);
     --romita-sidebar-bg: #ffffff;
     --romita-composer-bg: rgba(255, 255, 255, 0.95);
     --romita-composer-border: rgba(0, 0, 0, 0.1);
-    --romita-user-bubble: linear-gradient(135deg, #4f46e5, #6366f1);
+    --romita-user-bubble: linear-gradient(135deg, #1d4ed8, #2563eb);
     --romita-user-text: #ffffff;
     --romita-ai-bubble: #ffffff;
     --romita-ai-border: rgba(0, 0, 0, 0.06);
@@ -36,16 +36,16 @@
     --romita-card-hover: #1a243c;
     --romita-border: rgba(255, 255, 255, 0.08);
     --romita-border-light: rgba(255, 255, 255, 0.04);
-    --romita-border-focus: rgba(129, 140, 248, 0.5);
+    --romita-border-focus: rgba(56, 189, 248, 0.5);
     --romita-text: #f8fafc;
     --romita-text-muted: #94a3b8;
-    --romita-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-    --romita-gradient-accent: linear-gradient(135deg, #6366f1, #8b5cf6);
-    --romita-glow: rgba(99, 102, 241, 0.22);
+    --romita-gradient: linear-gradient(135deg, #0a0f1d 0%, #1e40af 50%, #38bdf8 100%);
+    --romita-gradient-accent: linear-gradient(135deg, #1d4ed8, #38bdf8);
+    --romita-glow: rgba(56, 189, 248, 0.22);
     --romita-sidebar-bg: #0d121f;
     --romita-composer-bg: rgba(19, 27, 46, 0.88);
     --romita-composer-border: rgba(255, 255, 255, 0.1);
-    --romita-user-bubble: linear-gradient(135deg, #4f46e5, #7c3aed);
+    --romita-user-bubble: linear-gradient(135deg, #1d4ed8, #2563eb);
     --romita-user-text: #ffffff;
     --romita-ai-bubble: rgba(19, 27, 46, 0.75);
     --romita-ai-border: rgba(255, 255, 255, 0.08);
@@ -1296,25 +1296,27 @@ body:has(.romita-container) .content-wrapper {
     background: rgba(99, 102, 241, 0.06) !important;
 }
 
-/* Categorized Column Widths & Typography */
+/* Categorized Column Widths & Typography - ZERO OVERLAP */
 .romita-table-container th.col-compact,
 .romita-table-container td.col-compact {
-    min-width: 95px;
-    max-width: 170px;
-    white-space: nowrap;
-    font-weight: 600;
+    min-width: 120px;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
 }
 .romita-table-container th.col-medium,
 .romita-table-container td.col-medium {
     min-width: 190px;
-    max-width: 290px;
-    white-space: normal;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
 }
 .romita-table-container th.col-wide,
 .romita-table-container td.col-wide {
     min-width: 280px;
-    max-width: 440px;
-    white-space: normal;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
     line-height: 1.55;
 }
 
@@ -2229,176 +2231,163 @@ body:has(.romita-container) .content-wrapper {
     color: #818cf8;
 }
 
-/* 3. Quantum Orbital Atom Generating Indicator */
+/* 3. Modern Executive AI Thinking Indicator */
+.rg-thinking-bubble,
 .rg-neural-bubble {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(99, 102, 241, 0.32) !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 246, 255, 0.92) 100%) !important;
+    border: 1px solid rgba(37, 99, 235, 0.22) !important;
     border-radius: 16px !important;
-    padding: 12px 18px !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    max-width: 100% !important;
+    padding: 12px 16px 10px 16px !important;
+    box-shadow: 0 4px 20px -2px rgba(10, 15, 29, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    width: fit-content !important;
+    min-width: 260px !important;
+    max-width: 440px !important;
     box-sizing: border-box !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.25s ease;
 }
 
+[data-theme="dark"] .rg-thinking-bubble,
 [data-theme="dark"] .rg-neural-bubble {
-    background: rgba(18, 18, 24, 0.75) !important;
-    border-color: rgba(99, 102, 241, 0.38) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(99, 102, 241, 0.12);
+    background: linear-gradient(135deg, rgba(10, 15, 29, 0.88) 0%, rgba(15, 23, 42, 0.92) 100%) !important;
+    border-color: rgba(56, 189, 248, 0.25) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(29, 78, 216, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
-.romita-chat-orbital-card {
+.rg-thinking-header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    min-width: 0;
+    gap: 10px;
     width: 100%;
-    max-width: 480px;
-    box-sizing: border-box;
 }
 
-.romita-orbital-core {
-    position: relative;
-    width: 42px;
-    height: 42px;
+.rg-thinking-sparkle-pill {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #0a0f1d 0%, #1e40af 100%);
+    color: #38bdf8;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.9rem;
     flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    position: relative;
+    overflow: hidden;
 }
 
-.roc-nucleus {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #4f46e5, #ec4899);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
+.rg-thinking-sparkle-pill i {
+    animation: rgSparkleRotate 3.5s ease-in-out infinite;
+}
+
+@keyframes rgSparkleRotate {
+    0% { transform: rotate(0deg) scale(0.9); }
+    50% { transform: rotate(180deg) scale(1.1); filter: drop-shadow(0 0 4px #38bdf8); }
+    100% { transform: rotate(360deg) scale(0.9); }
+}
+
+.rg-thinking-status-text,
+.roc-status-msg {
     font-size: 0.82rem;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.85);
-    z-index: 2;
-    animation: rocNucleusPulse 1.4s infinite alternate ease-in-out;
-}
-
-@keyframes rocNucleusPulse {
-    0% { transform: scale(0.92); filter: drop-shadow(0 0 4px #6366f1); }
-    100% { transform: scale(1.08); filter: drop-shadow(0 0 12px #ec4899); }
-}
-
-.roc-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1.5px solid transparent;
-    border-top-color: #38bdf8;
-    border-right-color: #8b5cf6;
-}
-
-.roc-ring-1 {
-    animation: rocSpinRing1 1.3s infinite linear;
-}
-
-.roc-ring-2 {
-    inset: 3px;
-    border-top-color: #ec4899;
-    border-left-color: #4f46e5;
-    animation: rocSpinRing2 1.8s infinite linear reverse;
-}
-
-.roc-pulse {
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    background: rgba(99, 102, 241, 0.25);
-    filter: blur(4px);
-    animation: rocPulseGlow 1.8s infinite ease-out;
-}
-
-@keyframes rocSpinRing1 {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.08); }
-    100% { transform: rotate(360deg) scale(1); }
-}
-
-@keyframes rocSpinRing2 {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes rocPulseGlow {
-    0% { transform: scale(0.8); opacity: 0.8; }
-    100% { transform: scale(1.5); opacity: 0; }
-}
-
-.roc-chat-details {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
+    font-weight: 600;
+    line-height: 1.35;
     flex: 1;
     min-width: 0;
-}
-
-.roc-status-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.roc-status-ping {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #38bdf8;
-    box-shadow: 0 0 10px #38bdf8;
-    animation: rocStatusPing 1.2s infinite ease-in-out;
-    flex-shrink: 0;
-}
-
-@keyframes rocStatusPing {
-    0%, 100% { transform: scale(0.85); opacity: 0.4; }
-    50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 6px #38bdf8); }
-}
-
-.roc-status-msg {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #6366f1;
+    background: linear-gradient(90deg, #1d4ed8 0%, #38bdf8 40%, #0284c7 70%, #1d4ed8 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rgTextShimmer 2.4s linear infinite;
     letter-spacing: -0.01em;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.35;
     transition: opacity 0.2s ease;
 }
 
+[data-theme="dark"] .rg-thinking-status-text,
 [data-theme="dark"] .roc-status-msg {
-    color: #a5b4fc;
+    background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 40%, #ffffff 70%, #60a5fa 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.roc-shimmer-telemetry {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    width: 100%;
+@keyframes rgTextShimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
 }
 
-.roc-shimmer-bar {
+.rg-thinking-waveform {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 16px;
+    flex-shrink: 0;
+    padding-left: 4px;
+}
+
+.rg-wave-bar {
+    width: 3px;
     height: 6px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(56, 189, 248, 0.5) 40%, rgba(236, 72, 153, 0.45) 60%, rgba(99, 102, 241, 0.15) 100%);
-    background-size: 200% 100%;
-    animation: rocBarScan 1.6s infinite linear;
+    background: #2563eb;
+    border-radius: 99px;
+    animation: rgWaveEqualizer 1.1s ease-in-out infinite alternate;
 }
 
-.roc-shimmer-bar.b1 { width: 92%; }
-.roc-shimmer-bar.b2 { width: 65%; animation-delay: 0.25s; }
-
-@keyframes rocBarScan {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+[data-theme="dark"] .rg-wave-bar {
+    background: #38bdf8;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
 
-/* 4. Chromatic Avatar Aura */
+.rg-wave-bar:nth-child(1) { animation-delay: 0.0s; height: 8px; }
+.rg-wave-bar:nth-child(2) { animation-delay: 0.2s; height: 14px; }
+.rg-wave-bar:nth-child(3) { animation-delay: 0.4s; height: 10px; }
+.rg-wave-bar:nth-child(4) { animation-delay: 0.15s; height: 6px; }
+
+@keyframes rgWaveEqualizer {
+    0% { transform: scaleY(0.4); opacity: 0.5; }
+    100% { transform: scaleY(1.3); opacity: 1; }
+}
+
+.rg-thinking-laser-track {
+    width: 100%;
+    height: 2.5px;
+    border-radius: 99px;
+    background: rgba(37, 99, 235, 0.1);
+    margin-top: 9px;
+    overflow: hidden;
+    position: relative;
+}
+
+[data-theme="dark"] .rg-thinking-laser-track {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.rg-thinking-laser-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 45%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, transparent 0%, #1d4ed8 30%, #38bdf8 70%, transparent 100%);
+    animation: rgLaserProgress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+@keyframes rgLaserProgress {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(110%); }
+    100% { transform: translateX(260%); }
+}
+
+/* Fallback & Legacy compatibility */
+.romita-chat-orbital-card {
+    display: none !important;
+}
+
+/* 4. Chromatic Avatar Aura (Azul, Negro y Celeste) */
 .rg-avatar-generating {
     position: relative;
     z-index: 2;
@@ -2409,11 +2398,11 @@ body:has(.romita-container) .content-wrapper {
     position: absolute;
     inset: -3px;
     border-radius: 12px;
-    background: conic-gradient(from 0deg, #6366f1, #06b6d4, #a855f7, #ec4899, #6366f1);
+    background: conic-gradient(from 0deg, #1d4ed8 0%, #0a0f1d 25%, #2563eb 50%, #38bdf8 75%, #1d4ed8 100%);
     animation: rgChromaticSpin 2s linear infinite;
     z-index: -1;
     filter: blur(3px);
-    opacity: 0.9;
+    opacity: 0.95;
 }
 
 @keyframes rgChromaticSpin {
@@ -2421,16 +2410,38 @@ body:has(.romita-container) .content-wrapper {
     100% { transform: rotate(360deg); }
 }
 
-/* 5. Composer Scanning Aura while Generating */
+/* 5. Composer Scanning Aura & In-Composer Generating Indicator */
+.rg-input-generating-row {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    padding: 3px 0 6px 0;
+    gap: 8px;
+    animation: rgFadeIn 0.22s ease-out;
+}
+
+.romita-input-container.is-generating #chatInput {
+    display: none !important;
+}
+
+.romita-input-container.is-generating .rg-input-generating-row {
+    display: flex !important;
+}
+
+@keyframes rgFadeIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .romita-input-container.is-generating {
-    border-color: rgba(99, 102, 241, 0.5) !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 0 25px rgba(99, 102, 241, 0.2) !important;
+    border-color: rgba(29, 78, 216, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18), 0 0 16px rgba(56, 189, 248, 0.2) !important;
     animation: rgInputScan 2.5s infinite alternate ease-in-out;
 }
 
 @keyframes rgInputScan {
-    0% { border-color: rgba(99, 102, 241, 0.35); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12); }
-    100% { border-color: rgba(56, 189, 248, 0.7); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25), 0 0 22px rgba(56, 189, 248, 0.25); }
+    0% { border-color: rgba(29, 78, 216, 0.35); box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.12); }
+    100% { border-color: rgba(56, 189, 248, 0.7); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.25); }
 }
 
 /* 6. Responsive móvil para módulo de Romita */
@@ -2449,24 +2460,11 @@ body:has(.romita-container) .content-wrapper {
         gap: 5px;
         white-space: nowrap;
     }
-    .romita-chat-orbital-card {
-        gap: 10px !important;
-    }
-    .romita-orbital-core {
-        width: 32px !important;
-        height: 32px !important;
-    }
-    .roc-nucleus {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 0.7rem !important;
-    }
-    .roc-status-msg {
-        font-size: 0.74rem !important;
-        line-height: 1.25 !important;
-    }
-    .roc-shimmer-bar {
-        height: 5px !important;
+    .rg-thinking-bubble {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 10px 14px 8px 14px !important;
     }
     .rg-avatar-generating::before {
         inset: -2px;

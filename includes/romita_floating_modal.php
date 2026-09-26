@@ -12,6 +12,16 @@ if (empty($currentUserName) && isset($db) && $db instanceof PDO) {
     } catch (Exception $e) {}
 }
 $romitaFirstName = !empty($currentUserName) ? explode(' ', trim($currentUserName))[0] : 'Colega';
+
+// Saludo dinámico según la hora del día
+$currentHour = (int)date('G');
+if ($currentHour >= 5 && $currentHour < 12) {
+    $timeGreeting = 'Buenos días';
+} elseif ($currentHour >= 12 && $currentHour < 19) {
+    $timeGreeting = 'Buenas tardes';
+} else {
+    $timeGreeting = 'Buenas noches';
+}
 ?>
 
 <!-- Floating Trigger Button (FAB) -->
@@ -19,7 +29,7 @@ $romitaFirstName = !empty($currentUserName) ? explode(' ', trim($currentUserName
     <button type="button" id="romita-fab-btn" class="romita-fab-btn" onclick="toggleRomitaGlobalModal()" aria-label="Abrir Romita IA">
         <span class="romita-fab-glow"></span>
         <div class="romita-fab-avatar">
-            <i class="ph-bold ph-sparkle"></i>
+            <img src="assets/img/romita-avatar.png" alt="Romita" class="romita-avatar-img">
         </div>
         <span class="romita-fab-pulse"></span>
         <span class="romita-fab-tooltip">
@@ -32,13 +42,12 @@ $romitaFirstName = !empty($currentUserName) ? explode(' ', trim($currentUserName
 <!-- Global Modal Overlay / Command Palette Spotlight -->
 <div id="romita-global-overlay" class="romita-global-overlay" style="display: none;" onclick="handleRomitaOverlayClick(event)">
     <div id="romita-global-dialog" class="romita-global-dialog" onclick="event.stopPropagation()">
-        <div class="rg-dialog-laser"></div>
         
         <!-- App Header (Native macOS / Modern SaaS style) -->
         <div class="rg-header">
             <div class="rg-header-left">
                 <div class="rg-avatar-badge">
-                    <i class="ph-bold ph-sparkle"></i>
+                    <img src="assets/img/romita-avatar.png" alt="Romita" class="romita-avatar-img">
                 </div>
                 <div class="rg-meta">
                     <div class="rg-name-row">
@@ -67,91 +76,139 @@ $romitaFirstName = !empty($currentUserName) ? explode(' ', trim($currentUserName
                     <i class="ph ph-x"></i>
                 </button>
             </div>
-            <div class="rg-header-laser"></div>
-        </div>
-
-        <!-- Specialties Selector (Segmented App Bar - Clean, Zero Emojis) -->
-        <div class="rg-specialties-container">
-            <div class="rg-specialties-bar">
-                <button type="button" class="rg-spec-tab active" data-spec="director_360" onclick="setRomitaSpecialty('director_360', this)">
-                    <i class="ph ph-compass"></i>
-                    <span>Directora 360°</span>
-                </button>
-                <button type="button" class="rg-spec-tab" data-spec="community_manager" onclick="setRomitaSpecialty('community_manager', this)">
-                    <i class="ph ph-chat-circle-dots"></i>
-                    <span>Senior CM</span>
-                </button>
-                <button type="button" class="rg-spec-tab" data-spec="branding" onclick="setRomitaSpecialty('branding', this)">
-                    <i class="ph ph-palette"></i>
-                    <span>Branding</span>
-                </button>
-                <button type="button" class="rg-spec-tab" data-spec="marketing" onclick="setRomitaSpecialty('marketing', this)">
-                    <i class="ph ph-trend-up"></i>
-                    <span>Marketing</span>
-                </button>
-                <button type="button" class="rg-spec-tab" data-spec="seo" onclick="setRomitaSpecialty('seo', this)">
-                    <i class="ph ph-magnifying-glass"></i>
-                    <span>SEO</span>
-                </button>
-            </div>
         </div>
 
         <!-- Chat Scroll Area -->
         <div class="rg-chat-body" id="romita-chat-messages">
-            <!-- Starter Welcome & Suggestions -->
+            <!-- Starter Welcome & Suggestions (Estilo Imagen 1: Avatar circular con halo + Tipografía limpia + 4 Cards con icono abajo) -->
             <div id="romita-welcome-view" class="rg-welcome-view">
-                <div class="rg-welcome-orb">
-                    <div class="rg-orb-glow"></div>
-                    <div class="rg-orb-icon">
-                        <i class="ph-bold ph-sparkle"></i>
-                    </div>
+                <div class="rg-welcome-bot-circle">
+                    <div class="rg-bot-circle-glow"></div>
+                    <img src="assets/img/romita-avatar.png" alt="Romita" class="rg-bot-circle-img">
                 </div>
-                <h3 class="rg-welcome-title" id="romita-welcome-title">¡Hola, <?= htmlspecialchars($romitaFirstName) ?>! ¿En qué colaboramos hoy?</h3>
+                <div class="rg-welcome-heading-wrap">
+                    <h2 class="rg-welcome-greeting">¡<?= $timeGreeting ?>, <?= htmlspecialchars($romitaFirstName) ?>!</h2>
+                    <h1 class="rg-welcome-main-question">¿En qué <span class="rg-accent-text">colaboramos hoy?</span></h1>
+                </div>
                 <p class="rg-welcome-subtitle" id="romita-welcome-desc">
                     Asistente de inteligencia conectada a Calendarios, Marcas, Web, Audiovisual y Pizarras.
                 </p>
 
-                <div class="rg-suggestions-grid" id="romita-welcome-grid">
-                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Qué proyectos tenemos activos actualmente en la agencia?')">
-                        <span class="rg-card-icon"><i class="ph ph-kanban"></i></span>
-                        <div class="rg-card-text">
-                            <strong>Proyectos activos</strong>
-                            <small>Resumen de producción de la agencia</small>
-                        </div>
-                    </button>
-                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Dame 3 ideas creativas de contenido con gancho para las marcas de este mes')">
-                        <span class="rg-card-icon"><i class="ph ph-lightbulb"></i></span>
-                        <div class="rg-card-text">
-                            <strong>Ideas de contenido</strong>
-                            <small>Estrategia con ganchos para el mes</small>
-                        </div>
-                    </button>
-                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?')">
-                        <span class="rg-card-icon"><i class="ph ph-funnel"></i></span>
-                        <div class="rg-card-text">
-                            <strong>Embudo de conversión</strong>
-                            <small>Estructura estratégica TOFU-MOFU-BOFU</small>
-                        </div>
-                    </button>
-                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Revisa las mejores prácticas de SEO para optimizar las páginas de servicios')">
-                        <span class="rg-card-icon"><i class="ph ph-chart-line-up"></i></span>
-                        <div class="rg-card-text">
-                            <strong>Optimización SEO</strong>
-                            <small>Directrices para páginas de servicios</small>
-                        </div>
-                    </button>
+                <div class="rg-examples-section">
+                    <div class="rg-examples-label">SUGERENCIAS PARA COMENZAR</div>
+                    <div class="rg-examples-grid" id="romita-welcome-grid">
+                        <button type="button" class="rg-example-card" onclick="sendRomitaQuickPrompt('¿Qué proyectos tenemos activos actualmente en la agencia?')">
+                            <span class="rg-example-text">¿Qué proyectos tenemos activos actualmente en la agencia?</span>
+                            <span class="rg-example-icon"><i class="ph ph-kanban"></i></span>
+                        </button>
+                        <button type="button" class="rg-example-card" onclick="sendRomitaQuickPrompt('Dame 3 ideas creativas de contenido con gancho para las marcas de este mes')">
+                            <span class="rg-example-text">Dame 3 ideas creativas de contenido con gancho para las marcas de este mes</span>
+                            <span class="rg-example-icon"><i class="ph ph-lightbulb"></i></span>
+                        </button>
+                        <button type="button" class="rg-example-card" onclick="sendRomitaQuickPrompt('¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?')">
+                            <span class="rg-example-text">¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?</span>
+                            <span class="rg-example-icon"><i class="ph ph-funnel"></i></span>
+                        </button>
+                        <button type="button" class="rg-example-card" onclick="sendRomitaQuickPrompt('Revisa las mejores prácticas de SEO para optimizar las páginas de servicios')">
+                            <span class="rg-example-text">Revisa las mejores prácticas de SEO para optimizar las páginas de servicios</span>
+                            <span class="rg-example-icon"><i class="ph ph-chart-line-up"></i></span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Input Bar (Modern Floating App Style) -->
+        <!-- Input Bar (Estilo Imagen 2 y 3: Input box con selector de especialidad y menú emergente) -->
         <div class="rg-footer">
             <div class="rg-input-box" id="romita-chat-input-box">
-                <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Escribe tu consulta a Romita..." onkeydown="handleRomitaInputKeydown(event)" oninput="autoGrowRomitaTextarea(this)"></textarea>
-                <div class="rg-input-actions">
-                    <button type="button" id="btn-romita-send" class="rg-send-btn" onclick="sendRomitaMessage()" aria-label="Enviar mensaje">
-                        <i class="ph-bold ph-arrow-up"></i>
-                    </button>
+                <div class="rg-input-top-row">
+                    <span class="rg-input-sparkle"><i class="ph ph-sparkle"></i></span>
+                    <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Pregúntale a Romita o escribe una solicitud..." onkeydown="handleRomitaInputKeydown(event)" oninput="autoGrowRomitaTextarea(this)"></textarea>
+                </div>
+                <!-- In-Composer Thinking / Generating Indicator Row -->
+                <div class="rg-input-generating-row" id="rg-input-generating-row">
+                    <div class="rg-thinking-header">
+                        <div class="rg-thinking-sparkle-pill">
+                            <i class="ph-bold ph-sparkle"></i>
+                        </div>
+                        <span id="rg-neural-status-text" class="rg-thinking-status-text">Romita está procesando el contexto...</span>
+                        <div class="rg-thinking-waveform" aria-hidden="true">
+                            <span class="rg-wave-bar"></span>
+                            <span class="rg-wave-bar"></span>
+                            <span class="rg-wave-bar"></span>
+                            <span class="rg-wave-bar"></span>
+                        </div>
+                    </div>
+                    <div class="rg-thinking-laser-track">
+                        <div class="rg-thinking-laser-bar"></div>
+                    </div>
+                </div>
+                <div class="rg-input-toolbar">
+                    <div class="rg-toolbar-left">
+                        <div class="rg-context-pill-composer" id="romita-screen-pill-composer" title="Contexto activo de pantalla">
+                            <i class="ph ph-browsers"></i>
+                            <span id="rg-composer-context-label">Detectando...</span>
+                        </div>
+                        <div class="rg-specialty-picker-wrap">
+                            <button type="button" class="rg-specialty-pill-btn" id="rg-specialty-trigger-btn" onclick="toggleRomitaSpecialtyMenu(event)" aria-expanded="false" title="Cambiar especialidad de Romita">
+                                <i class="ph ph-compass" id="rg-trigger-icon"></i>
+                                <span id="rg-trigger-label">Directora 360°</span>
+                                <i class="ph-bold ph-caret-down rg-caret"></i>
+                            </button>
+                            <!-- Menú Emergente de Especialidades (Estilo Imagen 3) -->
+                            <div class="rg-specialties-popover" id="rg-specialties-popover" style="display:none;" onclick="event.stopPropagation()">
+                                <button type="button" class="rg-popover-item active" data-spec="director_360" onclick="selectRomitaSpecialty('director_360', 'Directora 360°', 'ph-compass')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-compass"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Directora 360°</span>
+                                        <span class="rg-popover-item-desc">Visión integral y coordinación de proyectos</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="community_manager" onclick="selectRomitaSpecialty('community_manager', 'Senior CM', 'ph-chat-circle-dots')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-chat-circle-dots"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Senior CM</span>
+                                        <span class="rg-popover-item-desc">Copywriting, redes y tono de voz</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="branding" onclick="selectRomitaSpecialty('branding', 'Branding', 'ph-palette')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-palette"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Branding</span>
+                                        <span class="rg-popover-item-desc">Manual de marca y dirección visual</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="marketing" onclick="selectRomitaSpecialty('marketing', 'Marketing & Growth', 'ph-trend-up')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-trend-up"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Marketing & Growth</span>
+                                        <span class="rg-popover-item-desc">Embudos, pauta digital y conversión</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="seo" onclick="selectRomitaSpecialty('seo', 'Especialista SEO', 'ph-magnifying-glass')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-magnifying-glass"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Especialista SEO</span>
+                                        <span class="rg-popover-item-desc">Keywords, indexación y optimización web</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rg-toolbar-right">
+                        <div class="rg-citation-badge" title="Inteligencia conectada a la base de datos de Roma Agencia">
+                            <span class="rg-citation-dot"></span>
+                            <span>DB Roma</span>
+                        </div>
+                        <button type="button" id="btn-romita-send" class="rg-send-btn-round" onclick="sendRomitaMessage()" aria-label="Enviar mensaje">
+                            <i class="ph-bold ph-arrow-up"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="rg-footer-hints">
@@ -205,7 +262,7 @@ body.has-active-modal .romita-fab-container,
     height: 52px;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.18);
-    background: transparent;
+    background: #0a0f1d;
     padding: 0;
     cursor: pointer;
     display: flex;
@@ -213,12 +270,12 @@ body.has-active-modal .romita-fab-container,
     justify-content: center;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     outline: none;
-    box-shadow: 0 10px 28px -6px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 10px 28px -6px rgba(29, 78, 216, 0.5);
 }
 
 .romita-fab-btn:hover {
     transform: scale(1.06) translateY(-2px);
-    box-shadow: 0 16px 36px -6px rgba(99, 102, 241, 0.65);
+    box-shadow: 0 16px 36px -6px rgba(29, 78, 216, 0.65);
 }
 
 .romita-fab-btn:active {
@@ -229,9 +286,9 @@ body.has-active-modal .romita-fab-container,
     position: absolute;
     inset: -2px;
     border-radius: 18px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+    background: linear-gradient(135deg, #1d4ed8, #0a0f1d 40%, #38bdf8);
     filter: blur(8px);
-    opacity: 0.5;
+    opacity: 0.55;
     transition: opacity 0.3s ease;
     animation: romitaGlowPulse 3s infinite alternate;
 }
@@ -251,14 +308,21 @@ body.has-active-modal .romita-fab-container,
     width: 100%;
     height: 100%;
     border-radius: 15px;
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+    background: #0a0f1d;
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
-    font-size: 1.35rem;
+    overflow: hidden;
     z-index: 2;
+}
+
+.romita-fab-avatar img.romita-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 15px;
+    display: block;
 }
 
 .romita-fab-pulse {
@@ -379,34 +443,12 @@ body.has-active-modal .romita-fab-container,
     animation: rgSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.romita-global-dialog.drawer-mode .rg-specialties-container {
-    padding: 8px 12px;
-}
-
-.romita-global-dialog.drawer-mode .rg-specialties-bar {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 3px;
-    padding: 3px;
-    overflow: hidden;
-}
-
-.romita-global-dialog.drawer-mode .rg-spec-tab {
-    padding: 6px 2px;
-    font-size: 0.72rem;
-    gap: 4px;
-    justify-content: center;
-}
-
-.romita-global-dialog.drawer-mode .rg-spec-tab span {
-    font-size: 0.69rem;
-}
-
 .romita-global-dialog.drawer-mode .rg-chat-body {
     padding: 16px 14px;
     overflow-x: hidden !important;
 }
 
+.romita-global-dialog.drawer-mode .rg-examples-grid,
 .romita-global-dialog.drawer-mode .rg-suggestions-grid {
     grid-template-columns: 1fr !important;
     max-width: 100% !important;
@@ -444,14 +486,22 @@ body.has-active-modal .romita-fab-container,
     width: 36px;
     height: 36px;
     border-radius: 11px;
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    background: #0a0f1d;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
-    font-size: 1.15rem;
-    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    box-shadow: 0 3px 10px rgba(29, 78, 216, 0.35);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    overflow: hidden;
     flex-shrink: 0;
+}
+
+.rg-avatar-badge img.romita-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
 }
 
 .rg-meta {
@@ -480,9 +530,9 @@ body.has-active-modal .romita-fab-container,
 .rg-version-tag {
     font-size: 0.65rem;
     font-weight: 700;
-    color: #6366f1;
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.1);
+    border: 1px solid rgba(37, 99, 235, 0.25);
     padding: 1px 5px;
     border-radius: 5px;
     line-height: 1;
@@ -490,9 +540,9 @@ body.has-active-modal .romita-fab-container,
 }
 
 [data-theme="dark"] .rg-version-tag {
-    color: #a5b4fc;
-    background: rgba(99, 102, 241, 0.15);
-    border-color: rgba(99, 102, 241, 0.25);
+    color: #60a5fa;
+    background: rgba(37, 99, 235, 0.2);
+    border-color: rgba(56, 189, 248, 0.35);
 }
 
 .rg-online-badge {
@@ -540,7 +590,7 @@ body.has-active-modal .romita-fab-container,
 }
 
 .rg-screen-pill i {
-    color: #6366f1;
+    color: #2563eb;
     font-size: 0.85rem;
     flex-shrink: 0;
 }
@@ -588,103 +638,6 @@ body.has-active-modal .romita-fab-container,
     border-color: rgba(239, 68, 68, 0.2) !important;
 }
 
-/* Specialties Bar (Segmented Control - Native SaaS App) */
-.rg-specialties-container {
-    padding: 10px 18px 8px 18px;
-    background: #ffffff;
-    border-bottom: 1px solid #f1f5f9;
-    flex-shrink: 0;
-}
-
-[data-theme="dark"] .rg-specialties-container {
-    background: #14141a;
-    border-bottom-color: rgba(255, 255, 255, 0.06);
-}
-
-.rg-specialties-bar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: #f1f5f9;
-    padding: 3px;
-    border-radius: 11px;
-    border: 1px solid #e2e8f0;
-    overflow-x: auto;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-}
-
-.rg-specialties-bar::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
-}
-
-[data-theme="dark"] .rg-specialties-bar {
-    background: rgba(0, 0, 0, 0.35);
-    border-color: rgba(255, 255, 255, 0.07);
-}
-
-.rg-spec-tab {
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 7px 11px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: #64748b;
-    font-size: 0.76rem;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    user-select: none;
-}
-
-[data-theme="dark"] .rg-spec-tab {
-    color: #94a3b8;
-}
-
-.rg-spec-tab:hover {
-    color: #0f172a;
-    background: rgba(255, 255, 255, 0.4);
-}
-
-[data-theme="dark"] .rg-spec-tab:hover {
-    color: #f1f5f9;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.rg-spec-tab i {
-    font-size: 0.95rem;
-    opacity: 0.85;
-    transition: transform 0.2s ease;
-}
-
-.rg-spec-tab.active {
-    background: #ffffff;
-    color: #4f46e5 !important;
-    font-weight: 700;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="dark"] .rg-spec-tab.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.rg-spec-tab.active i {
-    color: #6366f1;
-    opacity: 1;
-    transform: scale(1.08);
-}
-
-[data-theme="dark"] .rg-spec-tab.active i {
-    color: #818cf8;
-}
-
 /* Chat Scroll Feed */
 .rg-chat-body {
     flex: 1;
@@ -708,170 +661,280 @@ body.has-active-modal .romita-fab-container,
     background: rgba(255, 255, 255, 0.12);
 }
 
-/* Welcome View */
+/* ==========================================================================
+   WELCOME HERO VIEW (Estilo Imagen 1: Bot circular con halo + Tipografía limpia + 4 Cards)
+   ========================================================================== */
 .rg-welcome-view {
     margin: auto 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 1.5rem 0.5rem;
-    gap: 0.75rem;
+    padding: 1.5rem 0.5rem 1rem 0.5rem;
+    gap: 0.5rem;
+    animation: rgWelcomeFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.rg-welcome-orb {
+@keyframes rgWelcomeFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 1. Bot Avatar Circular con Halo Azul/Celeste */
+.rg-welcome-bot-circle {
     position: relative;
-    width: 54px;
-    height: 54px;
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 8px auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 0.35rem;
 }
 
-.rg-orb-glow {
+.rg-bot-circle-glow {
     position: absolute;
-    inset: -4px;
+    inset: -12px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.45) 0%, rgba(139, 92, 246, 0.15) 70%, transparent 100%);
-    filter: blur(8px);
+    background: radial-gradient(circle, rgba(0, 168, 255, 0.45) 0%, rgba(14, 165, 233, 0.2) 50%, transparent 75%);
+    filter: blur(14px);
+    pointer-events: none;
+    animation: rgBotHaloPulse 3.5s infinite alternate ease-in-out;
 }
 
-.rg-orb-icon {
+@keyframes rgBotHaloPulse {
+    0% { transform: scale(0.92); opacity: 0.55; }
+    100% { transform: scale(1.15); opacity: 0.95; filter: blur(18px); }
+}
+
+.rg-bot-circle-img {
     position: relative;
-    width: 48px;
-    height: 48px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    font-size: 1.4rem;
-    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+    object-fit: cover;
+    border: 2px solid rgba(56, 189, 248, 0.45);
+    box-shadow: 0 8px 24px rgba(10, 15, 29, 0.45), 0 0 14px rgba(0, 168, 255, 0.35);
+    background: #0a0f1d;
+    z-index: 2;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
 }
 
-.rg-welcome-title {
+.rg-welcome-bot-circle:hover .rg-bot-circle-img {
+    transform: scale(1.06);
+    box-shadow: 0 12px 28px rgba(10, 15, 29, 0.6), 0 0 20px rgba(56, 189, 248, 0.5);
+}
+
+/* 2. Heading Typography */
+.rg-welcome-heading-wrap {
+    text-align: center;
+    margin-bottom: 2px;
+}
+
+.rg-welcome-greeting {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.32rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+
+[data-theme="dark"] .rg-welcome-greeting {
+    color: #f1f5f9;
+}
+
+.rg-welcome-main-question {
+    margin: 4px 0 0 0;
+    font-size: 1.45rem;
     font-weight: 700;
     color: #0f172a;
     letter-spacing: -0.025em;
 }
 
-[data-theme="dark"] .rg-welcome-title {
+[data-theme="dark"] .rg-welcome-main-question {
     color: #f8fafc;
+}
+
+.rg-accent-text {
+    background: linear-gradient(135deg, #2563eb 0%, #0284c7 50%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .rg-welcome-subtitle {
     margin: 0;
-    max-width: 540px;
-    font-size: 0.88rem;
+    max-width: 520px;
+    font-size: 0.84rem;
     color: #64748b;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 [data-theme="dark"] .rg-welcome-subtitle {
     color: #94a3b8;
 }
 
-.rg-suggestions-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+/* 3. Sugerencias para comenzar (4 Cards: Texto arriba, Icono abajo - Imagen 1) */
+.rg-examples-section {
     width: 100%;
-    max-width: 700px;
-    margin-top: 1.25rem;
+    max-width: 820px;
+    margin: 1.25rem auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-@media (max-width: 600px) {
-    .rg-suggestions-grid {
+.rg-examples-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    text-transform: uppercase;
+    text-align: left;
+    padding-left: 2px;
+}
+
+[data-theme="dark"] .rg-examples-label {
+    color: #64748b;
+}
+
+.rg-examples-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .rg-examples-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 500px) {
+    .rg-examples-grid {
         grid-template-columns: 1fr;
     }
 }
 
-.rg-suggestion-card {
+.rg-example-card {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 110px;
+    padding: 14px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 14px;
     text-align: left;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-[data-theme="dark"] .rg-suggestion-card {
+[data-theme="dark"] .rg-example-card {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.07);
 }
 
+.rg-example-card:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .rg-example-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.rg-example-text {
+    font-size: 0.81rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #1e293b;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .rg-example-text {
+    color: #e2e8f0;
+}
+
+.rg-example-icon {
+    font-size: 1.15rem;
+    color: #64748b;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+[data-theme="dark"] .rg-example-icon {
+    color: #94a3b8;
+}
+
+.rg-example-card:hover .rg-example-icon {
+    color: #2563eb;
+    transform: scale(1.1);
+}
+
+[data-theme="dark"] .rg-example-card:hover .rg-example-icon {
+    color: #38bdf8;
+}
+
+/* Compatibilidad transicional con estructura antigua de tarjetas */
+.rg-suggestions-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+.rg-suggestion-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 110px;
+    padding: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="dark"] .rg-suggestion-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
+}
 .rg-suggestion-card:hover {
     background: #ffffff;
     border-color: #cbd5e1;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
 }
-
 [data-theme="dark"] .rg-suggestion-card:hover {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(99, 102, 241, 0.4);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    border-color: rgba(56, 189, 248, 0.4);
 }
-
 .rg-card-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: rgba(99, 102, 241, 0.1);
-    color: #6366f1;
+    font-size: 1.15rem;
+    color: #64748b;
+    margin-top: 10px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.05rem;
-    flex-shrink: 0;
-    transition: all 0.2s ease;
 }
-
-[data-theme="dark"] .rg-card-icon {
-    background: rgba(99, 102, 241, 0.15);
-    color: #818cf8;
-}
-
-.rg-suggestion-card:hover .rg-card-icon {
-    background: #6366f1;
-    color: #ffffff;
-}
-
-.rg-card-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    overflow: hidden;
-}
-
 .rg-card-text strong {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #0f172a;
+    font-size: 0.81rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #1e293b;
+    display: block;
 }
-
-[data-theme="dark"] .rg-card-text strong {
-    color: #f1f5f9;
-}
-
+[data-theme="dark"] .rg-card-text strong { color: #f1f5f9; }
 .rg-card-text small {
-    font-size: 0.72rem;
-    color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-[data-theme="dark"] .rg-card-text small {
-    color: #94a3b8;
+    display: none;
 }
 
 /* Chat Messages */
@@ -907,12 +970,22 @@ body.has-active-modal .romita-fab-container,
     align-items: center;
     justify-content: center;
     font-size: 0.95rem;
+    overflow: hidden;
 }
 
 .rg-msg-ai .rg-msg-avatar {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    background: #0a0f1d;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.35);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.rg-msg-avatar img.rg-msg-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
 }
 
 .rg-msg-user .rg-msg-avatar {
@@ -921,7 +994,7 @@ body.has-active-modal .romita-fab-container,
 }
 
 [data-theme="dark"] .rg-msg-user .rg-msg-avatar {
-    background: #334155;
+    background: #1e293b;
 }
 
 .rg-msg-content-wrap {
@@ -945,10 +1018,10 @@ body.has-active-modal .romita-fab-container,
 }
 
 .rg-msg-user .rg-msg-bubble {
-    background: #4f46e5;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
     color: #ffffff;
     border-bottom-right-radius: 4px;
-    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 2px 10px rgba(29, 78, 216, 0.25);
 }
 
 .rg-msg-ai .rg-msg-bubble {
@@ -1242,13 +1315,14 @@ body.has-active-modal .romita-fab-container,
 }
 .romita-table-container table,
 .rg-msg-bubble table {
-    width: max-content !important;
+    width: 100% !important;
     min-width: 100% !important;
-    border-collapse: separate !important;
+    border-collapse: collapse !important;
     border-spacing: 0 !important;
     font-size: 0.82rem;
     text-align: left;
     margin: 0 !important;
+    table-layout: auto !important;
 }
 .romita-table-container thead,
 .rg-msg-bubble thead {
@@ -1258,10 +1332,10 @@ body.has-active-modal .romita-fab-container,
 }
 .romita-table-container th,
 .rg-msg-bubble th {
-    padding: 0.75rem 1rem;
+    padding: 10px 14px;
     font-size: 0.72rem;
     font-weight: 700;
-    color: #4338ca;
+    color: #1d4ed8;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     background: #f1f5f9;
@@ -1270,12 +1344,13 @@ body.has-active-modal .romita-fab-container,
     white-space: nowrap;
     user-select: none;
     transition: background 0.15s ease, color 0.15s ease;
+    vertical-align: middle;
 }
 [data-theme="dark"] .romita-table-container th,
 [data-theme="dark"] .rg-msg-bubble th {
-    color: #a5b4fc;
-    background: #1c1d30;
-    border-bottom-color: rgba(99, 102, 241, 0.35);
+    color: #60a5fa;
+    background: #181926;
+    border-bottom-color: rgba(37, 99, 235, 0.35);
     border-right-color: rgba(255, 255, 255, 0.05);
 }
 .romita-table-container th:last-child,
@@ -1284,17 +1359,17 @@ body.has-active-modal .romita-fab-container,
 }
 .romita-table-container th:hover,
 .rg-msg-bubble th:hover {
-    background: rgba(99, 102, 241, 0.12);
-    color: #4f46e5;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
 }
 [data-theme="dark"] .romita-table-container th:hover,
 [data-theme="dark"] .rg-msg-bubble th:hover {
-    background: rgba(99, 102, 241, 0.25);
-    color: #c7d2fe;
+    background: rgba(37, 99, 235, 0.25);
+    color: #93c5fd;
 }
 .romita-table-container td,
 .rg-msg-bubble td {
-    padding: 0.75rem 1rem;
+    padding: 10px 14px;
     font-size: 0.81rem;
     color: inherit;
     border-bottom: 1px solid #f1f5f9;
@@ -1302,8 +1377,10 @@ body.has-active-modal .romita-fab-container,
     line-height: 1.55;
     vertical-align: top;
     background: transparent;
-    word-break: normal;
-    overflow-wrap: break-word;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    min-width: 140px;
 }
 [data-theme="dark"] .romita-table-container td,
 [data-theme="dark"] .rg-msg-bubble td {
@@ -1320,32 +1397,34 @@ body.has-active-modal .romita-fab-container,
 }
 .romita-table-container tbody tr:hover td,
 .rg-msg-bubble tbody tr:hover td {
-    background: rgba(99, 102, 241, 0.035);
+    background: rgba(37, 99, 235, 0.035);
 }
 [data-theme="dark"] .romita-table-container tbody tr:hover td,
 [data-theme="dark"] .rg-msg-bubble tbody tr:hover td {
-    background: rgba(99, 102, 241, 0.08);
+    background: rgba(37, 99, 235, 0.08);
 }
 
-/* Categorized Column Widths & Typography */
+/* Dynamic Minimum Column Widths - ZERO OVERLAP */
 .romita-table-container th.col-compact,
 .romita-table-container td.col-compact {
-    min-width: 95px;
-    max-width: 170px;
-    white-space: nowrap;
-    font-weight: 600;
+    min-width: 120px;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
 }
 .romita-table-container th.col-medium,
 .romita-table-container td.col-medium {
     min-width: 190px;
-    max-width: 290px;
-    white-space: normal;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
 }
 .romita-table-container th.col-wide,
 .romita-table-container td.col-wide {
     min-width: 280px;
-    max-width: 440px;
-    white-space: normal;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
     line-height: 1.55;
 }
 
@@ -1353,90 +1432,44 @@ body.has-active-modal .romita-fab-container,
    FUTURISTIC AI GENERATING ANIMATIONS (NEURAL CORE & LASER SCAN)
    ========================================================================== */
 
-/* 1. Header Laser Scan (Traveling beam when generating) */
-.rg-header {
-    position: relative;
-}
-
-.rg-header-laser {
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100%;
-    height: 2.5px;
-    background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #38bdf8 50%, #ec4899 80%, transparent 100%);
-    background-size: 250% 100%;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    z-index: 10;
-}
-
-.romita-global-dialog.is-generating .rg-header-laser {
-    opacity: 1;
-    animation: rgLaserBeam 1.8s infinite linear;
-}
-
-@keyframes rgLaserBeam {
-    0% { background-position: 250% 0; }
-    100% { background-position: -250% 0; }
-}
-
-/* Top Dialog Laser Scan */
+/* 1. Header & Dialog Laser Scans - Desactivados (Sin iluminación en divisores) */
+.rg-header-laser,
 .rg-dialog-laser {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: linear-gradient(90deg, transparent 0%, #38bdf8 30%, #818cf8 60%, #ec4899 85%, transparent 100%);
-    background-size: 200% 100%;
-    opacity: 0;
-    pointer-events: none;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    transition: opacity 0.3s ease;
-    z-index: 15;
+    display: none !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
 }
 
-.romita-global-dialog.is-generating .rg-dialog-laser {
-    opacity: 1;
-    animation: rgDialogLaserScan 1.6s infinite linear;
-}
-
-@keyframes rgDialogLaserScan {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* 2. Dialog Animated Multi-Color Perimeter Aura while Generating */
+/* 2. Dialog Animated Perimeter Aura while Generating (Azul con negro y tonos celestes) */
 .romita-global-dialog.is-generating {
-    border-color: rgba(99, 102, 241, 0.75) !important;
+    border-color: rgba(37, 99, 235, 0.65) !important;
     animation: rgModalPerimeterAura 2.2s infinite alternate ease-in-out !important;
 }
 
 @keyframes rgModalPerimeterAura {
     0% {
-        box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.85),
-                    0 0 25px rgba(168, 85, 247, 0.65),
-                    0 0 55px rgba(56, 189, 248, 0.45),
-                    0 30px 80px -10px rgba(0, 0, 0, 0.85);
+        box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.75),
+                    0 0 22px rgba(29, 78, 216, 0.45),
+                    0 0 45px rgba(56, 189, 248, 0.2),
+                    0 30px 80px -10px rgba(10, 15, 29, 0.85);
     }
     50% {
-        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.95),
-                    0 0 35px rgba(56, 189, 248, 0.75),
-                    0 0 70px rgba(168, 85, 247, 0.55),
-                    0 32px 85px -10px rgba(0, 0, 0, 0.9);
+        box-shadow: 0 0 0 2.5px rgba(56, 189, 248, 0.85),
+                    0 0 28px rgba(56, 189, 248, 0.4),
+                    0 0 55px rgba(29, 78, 216, 0.35),
+                    0 32px 85px -10px rgba(10, 15, 29, 0.9);
     }
     100% {
-        box-shadow: 0 0 0 2.5px rgba(236, 72, 153, 0.9),
-                    0 0 40px rgba(236, 72, 153, 0.75),
-                    0 0 85px rgba(99, 102, 241, 0.55),
-                    0 34px 90px -10px rgba(0, 0, 0, 0.95);
+        box-shadow: 0 0 0 2px rgba(11, 19, 43, 0.9),
+                    0 0 24px rgba(29, 78, 216, 0.5),
+                    0 0 50px rgba(56, 189, 248, 0.18),
+                    0 34px 90px -10px rgba(10, 15, 29, 0.95);
     }
 }
 
-/* 3. Holographic Chromatic Avatar Aura */
+/* 3. Holographic Chromatic Avatar Aura (Azul, Negro y Celeste) */
 .rg-avatar-generating {
     position: relative;
     z-index: 2;
@@ -1446,12 +1479,12 @@ body.has-active-modal .romita-fab-container,
     content: '';
     position: absolute;
     inset: -3px;
-    border-radius: 11px;
-    background: conic-gradient(from 0deg, #6366f1, #06b6d4, #a855f7, #ec4899, #6366f1);
+    border-radius: 12px;
+    background: conic-gradient(from 0deg, #1d4ed8 0%, #0a0f1d 25%, #2563eb 50%, #38bdf8 75%, #1d4ed8 100%);
     animation: rgChromaticSpin 2s linear infinite;
     z-index: -1;
     filter: blur(3px);
-    opacity: 0.9;
+    opacity: 0.95;
 }
 
 @keyframes rgChromaticSpin {
@@ -1459,185 +1492,194 @@ body.has-active-modal .romita-fab-container,
     100% { transform: rotate(360deg); }
 }
 
-/* 4. Quantum Orbital Atom Generating Card (Modal Chat) */
+/* 4. Modern Executive AI Thinking Indicator */
+.rg-thinking-bubble,
 .rg-neural-bubble {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(99, 102, 241, 0.3) !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 246, 255, 0.92) 100%) !important;
+    border: 1px solid rgba(37, 99, 235, 0.22) !important;
     border-radius: 16px !important;
-    padding: 12px 18px !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    max-width: 100% !important;
+    padding: 12px 16px 10px 16px !important;
+    box-shadow: 0 4px 20px -2px rgba(10, 15, 29, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    width: fit-content !important;
+    min-width: 260px !important;
+    max-width: 440px !important;
     box-sizing: border-box !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.25s ease;
 }
 
+[data-theme="dark"] .rg-thinking-bubble,
 [data-theme="dark"] .rg-neural-bubble {
-    background: rgba(18, 18, 24, 0.75) !important;
-    border-color: rgba(99, 102, 241, 0.35) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(99, 102, 241, 0.12);
+    background: linear-gradient(135deg, rgba(10, 15, 29, 0.88) 0%, rgba(15, 23, 42, 0.92) 100%) !important;
+    border-color: rgba(56, 189, 248, 0.25) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(29, 78, 216, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
-.romita-chat-orbital-card {
+.rg-thinking-header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    min-width: 0;
+    gap: 10px;
     width: 100%;
-    max-width: 480px;
-    box-sizing: border-box;
 }
 
-.romita-orbital-core {
-    position: relative;
-    width: 42px;
-    height: 42px;
+.rg-thinking-sparkle-pill {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #0a0f1d 0%, #1e40af 100%);
+    color: #38bdf8;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.9rem;
     flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    position: relative;
+    overflow: hidden;
 }
 
-.roc-nucleus {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #4f46e5, #ec4899);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
+.rg-thinking-sparkle-pill i {
+    animation: rgSparkleRotate 3.5s ease-in-out infinite;
+}
+
+@keyframes rgSparkleRotate {
+    0% { transform: rotate(0deg) scale(0.9); }
+    50% { transform: rotate(180deg) scale(1.1); filter: drop-shadow(0 0 4px #38bdf8); }
+    100% { transform: rotate(360deg) scale(0.9); }
+}
+
+.rg-thinking-status-text,
+.roc-status-msg {
     font-size: 0.82rem;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.85);
-    z-index: 2;
-    animation: rocNucleusPulse 1.4s infinite alternate ease-in-out;
-}
-
-@keyframes rocNucleusPulse {
-    0% { transform: scale(0.92); filter: drop-shadow(0 0 4px #6366f1); }
-    100% { transform: scale(1.08); filter: drop-shadow(0 0 12px #ec4899); }
-}
-
-.roc-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1.5px solid transparent;
-    border-top-color: #38bdf8;
-    border-right-color: #8b5cf6;
-}
-
-.roc-ring-1 {
-    animation: rocSpinRing1 1.3s infinite linear;
-}
-
-.roc-ring-2 {
-    inset: 3px;
-    border-top-color: #ec4899;
-    border-left-color: #4f46e5;
-    animation: rocSpinRing2 1.8s infinite linear reverse;
-}
-
-.roc-pulse {
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    background: rgba(99, 102, 241, 0.25);
-    filter: blur(4px);
-    animation: rocPulseGlow 1.8s infinite ease-out;
-}
-
-@keyframes rocSpinRing1 {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.08); }
-    100% { transform: rotate(360deg) scale(1); }
-}
-
-@keyframes rocSpinRing2 {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes rocPulseGlow {
-    0% { transform: scale(0.8); opacity: 0.8; }
-    100% { transform: scale(1.5); opacity: 0; }
-}
-
-.roc-chat-details {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    font-weight: 600;
+    line-height: 1.35;
     flex: 1;
     min-width: 0;
-}
-
-.roc-status-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.roc-status-ping {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #38bdf8;
-    box-shadow: 0 0 10px #38bdf8;
-    animation: rocStatusPing 1.2s infinite ease-in-out;
-    flex-shrink: 0;
-}
-
-@keyframes rocStatusPing {
-    0%, 100% { transform: scale(0.85); opacity: 0.4; }
-    50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 6px #38bdf8); }
-}
-
-.roc-status-msg {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #6366f1;
+    background: linear-gradient(90deg, #1d4ed8 0%, #38bdf8 40%, #0284c7 70%, #1d4ed8 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rgTextShimmer 2.4s linear infinite;
     letter-spacing: -0.01em;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.35;
     transition: opacity 0.2s ease;
 }
 
+[data-theme="dark"] .rg-thinking-status-text,
 [data-theme="dark"] .roc-status-msg {
-    color: #a5b4fc;
+    background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 40%, #ffffff 70%, #60a5fa 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.roc-shimmer-telemetry {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    width: 100%;
+@keyframes rgTextShimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
 }
 
-.roc-shimmer-bar {
+.rg-thinking-waveform {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 16px;
+    flex-shrink: 0;
+    padding-left: 4px;
+}
+
+.rg-wave-bar {
+    width: 3px;
     height: 6px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(56, 189, 248, 0.5) 40%, rgba(236, 72, 153, 0.45) 60%, rgba(99, 102, 241, 0.15) 100%);
-    background-size: 200% 100%;
-    animation: rocBarScan 1.6s infinite linear;
+    background: #2563eb;
+    border-radius: 99px;
+    animation: rgWaveEqualizer 1.1s ease-in-out infinite alternate;
 }
 
-.roc-shimmer-bar.b1 { width: 92%; }
-.roc-shimmer-bar.b2 { width: 65%; animation-delay: 0.25s; }
-
-@keyframes rocBarScan {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+[data-theme="dark"] .rg-wave-bar {
+    background: #38bdf8;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
 
-/* 8. Input Box Scanning State */
+.rg-wave-bar:nth-child(1) { animation-delay: 0.0s; height: 8px; }
+.rg-wave-bar:nth-child(2) { animation-delay: 0.2s; height: 14px; }
+.rg-wave-bar:nth-child(3) { animation-delay: 0.4s; height: 10px; }
+.rg-wave-bar:nth-child(4) { animation-delay: 0.15s; height: 6px; }
+
+@keyframes rgWaveEqualizer {
+    0% { transform: scaleY(0.4); opacity: 0.5; }
+    100% { transform: scaleY(1.3); opacity: 1; }
+}
+
+.rg-thinking-laser-track {
+    width: 100%;
+    height: 2.5px;
+    border-radius: 99px;
+    background: rgba(37, 99, 235, 0.1);
+    margin-top: 9px;
+    overflow: hidden;
+    position: relative;
+}
+
+[data-theme="dark"] .rg-thinking-laser-track {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.rg-thinking-laser-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 45%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, transparent 0%, #1d4ed8 30%, #38bdf8 70%, transparent 100%);
+    animation: rgLaserProgress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+@keyframes rgLaserProgress {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(110%); }
+    100% { transform: translateX(260%); }
+}
+
+/* Fallback & Legacy compatibility */
+.romita-chat-orbital-card {
+    display: none !important;
+}
+
+/* 8. Input Box Scanning State & In-Composer Generating Indicator */
+.rg-input-generating-row {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    padding: 3px 0 6px 0;
+    gap: 8px;
+    animation: rgFadeIn 0.22s ease-out;
+}
+
+.rg-input-box.is-generating .rg-input-top-row {
+    display: none !important;
+}
+
+.rg-input-box.is-generating .rg-input-generating-row {
+    display: flex !important;
+}
+
+@keyframes rgFadeIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .rg-input-box.is-generating {
-    border-color: rgba(99, 102, 241, 0.5) !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 0 20px rgba(99, 102, 241, 0.2) !important;
+    border-color: rgba(29, 78, 216, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18), 0 0 16px rgba(56, 189, 248, 0.2) !important;
     animation: rgInputScan 2.5s infinite alternate ease-in-out;
 }
 
 @keyframes rgInputScan {
-    0% { border-color: rgba(99, 102, 241, 0.35); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12); }
-    100% { border-color: rgba(56, 189, 248, 0.7); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25), 0 0 22px rgba(56, 189, 248, 0.25); }
+    0% { border-color: rgba(29, 78, 216, 0.35); box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.12); }
+    100% { border-color: rgba(56, 189, 248, 0.7); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.25); }
 }
 
 /* Footer & Input Bar */
@@ -1656,44 +1698,87 @@ body.has-active-modal .romita-fab-container,
     border-top-color: rgba(255, 255, 255, 0.06);
 }
 
+.rg-footer {
+    padding: 12px 18px 14px 18px;
+    background: #ffffff;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: visible !important;
+}
+
+[data-theme="dark"] .rg-footer {
+    background: #14141a;
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
 .rg-input-box {
     position: relative;
     display: flex;
-    align-items: flex-end;
-    background: #f8fafc;
+    flex-direction: column;
+    background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 8px 10px 8px 14px;
-    transition: all 0.2s ease;
+    border-radius: 16px;
+    padding: 12px 14px 10px 14px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+    overflow: visible !important;
 }
 
 [data-theme="dark"] .rg-input-box {
-    background: rgba(0, 0, 0, 0.35);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: #14151b;
+    border-color: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
 }
 
 .rg-input-box:focus-within {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15), 0 6px 24px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] .rg-input-box:focus-within {
-    border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+
+.rg-input-top-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+}
+
+.rg-input-sparkle {
+    font-size: 1.05rem;
+    color: #2563eb;
+    margin-top: 1px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-theme="dark"] .rg-input-sparkle {
+    color: #38bdf8;
 }
 
 .rg-textarea {
+    flex: 1;
     width: 100%;
     border: none;
     background: transparent;
     resize: none;
     outline: none;
-    font-size: 0.86rem;
-    line-height: 1.45;
+    font-size: 0.88rem;
+    line-height: 1.5;
     color: #0f172a;
     font-family: inherit;
-    max-height: 120px;
-    padding: 3px 0;
+    min-height: 28px;
+    max-height: 130px;
+    padding: 0 0 8px 0;
 }
 
 [data-theme="dark"] .rg-textarea {
@@ -1702,20 +1787,319 @@ body.has-active-modal .romita-fab-container,
 
 .rg-textarea::placeholder {
     color: #94a3b8;
-    font-size: 0.83rem;
+    font-size: 0.85rem;
 }
 
-.rg-input-actions {
+/* Toolbar inferior dentro del cajón (Estilo Imagen 1 y 2) */
+.rg-input-toolbar {
     display: flex;
     align-items: center;
-    margin-left: 8px;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: visible !important;
 }
 
-.rg-send-btn {
+[data-theme="dark"] .rg-input-toolbar {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.rg-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.rg-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Context pill in composer */
+.rg-context-pill-composer {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: #64748b;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+    user-select: none;
+}
+
+[data-theme="dark"] .rg-context-pill-composer {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+.rg-context-pill-composer i {
+    color: #2563eb;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rg-context-pill-composer i {
+    color: #38bdf8;
+}
+
+/* Specialty Pill Trigger Button (Recuadro rojo Imagen 2) */
+.rg-specialty-picker-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.rg-specialty-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    color: #1e293b;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    user-select: none;
+}
+
+[data-theme="dark"] .rg-specialty-pill-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+}
+
+.rg-specialty-pill-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .rg-specialty-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+.rg-specialty-pill-btn i#rg-trigger-icon {
+    color: #2563eb;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rg-specialty-pill-btn i#rg-trigger-icon {
+    color: #38bdf8;
+}
+
+.rg-specialty-pill-btn .rg-caret {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    transition: transform 0.2s ease;
+}
+
+.rg-specialty-pill-btn.is-active .rg-caret {
+    transform: rotate(180deg);
+}
+
+/* Specialties Popover Menu (Estilo Imagen 3: Popup desplegable oscuro y elegante) */
+.rg-specialties-popover {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    min-width: 290px;
+    max-width: 340px;
+    background: #14161e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 6px;
+    box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 999999 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    animation: rgPopoverFadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rgPopoverFadeUp {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.rg-popover-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    color: #e2e8f0;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.rg-popover-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.rg-popover-item.active {
+    background: rgba(37, 99, 235, 0.2);
+}
+
+.rg-popover-item-icon {
     width: 32px;
     height: 32px;
     border-radius: 9px;
-    background: #4f46e5;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    color: #94a3b8;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.rg-popover-item:hover .rg-popover-item-icon,
+.rg-popover-item.active .rg-popover-item-icon {
+    background: #1d4ed8;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(29, 78, 216, 0.5);
+}
+
+.rg-popover-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+}
+
+.rg-popover-item-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+.rg-popover-item-desc {
+    font-size: 0.71rem;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+
+.rg-popover-item-check {
+    width: 18px;
+    font-size: 0.95rem;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.rg-popover-item.active .rg-popover-item-check {
+    opacity: 1;
+}
+
+/* Citation / DB Badge */
+.rg-citation-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 9999px;
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    font-size: 0.73rem;
+    font-weight: 600;
+    color: #2563eb;
+    cursor: default;
+    user-select: none;
+}
+
+[data-theme="dark"] .rg-citation-badge {
+    background: rgba(37, 99, 235, 0.15);
+    border-color: rgba(56, 189, 248, 0.25);
+    color: #60a5fa;
+}
+
+.rg-citation-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+}
+
+/* Round Send Button (Estilo Imagen 1 y 2) */
+.rg-send-btn-round {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rg-send-btn-round {
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rg-send-btn-round:hover:not(:disabled) {
+    background: #1d4ed8;
+    transform: scale(1.08);
+    box-shadow: 0 4px 14px rgba(29, 78, 216, 0.4);
+}
+
+[data-theme="dark"] .rg-send-btn-round:hover:not(:disabled) {
+    background: #2563eb;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5);
+}
+
+.rg-send-btn-round:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Backwards-compatibility send btn */
+.rg-send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1d4ed8;
     color: #ffffff;
     border: none;
     cursor: pointer;
@@ -1728,7 +2112,7 @@ body.has-active-modal .romita-fab-container,
 }
 
 .rg-send-btn:hover:not(:disabled) {
-    background: #4338ca;
+    background: #1e40af;
     transform: scale(1.05);
 }
 
@@ -1810,29 +2194,29 @@ body.has-active-modal .romita-fab-container,
         border-radius: 0 !important;
     }
 
-    /* Iluminación perimetral interna en móviles cuando está generando */
+    /* Iluminación perimetral interna en móviles cuando está generando (Azul, Negro y Celeste) */
     .romita-global-dialog.is-generating {
-        box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.9),
-                    inset 0 0 20px rgba(56, 189, 248, 0.45),
-                    inset 0 0 45px rgba(236, 72, 153, 0.25) !important;
+        box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.9),
+                    inset 0 0 20px rgba(29, 78, 216, 0.45),
+                    inset 0 0 45px rgba(56, 189, 248, 0.2) !important;
         animation: rgMobilePerimeterAura 2s infinite alternate ease-in-out !important;
     }
 
     @keyframes rgMobilePerimeterAura {
         0% {
-            box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.9),
-                        inset 0 0 16px rgba(99, 102, 241, 0.45),
-                        inset 0 0 35px rgba(168, 85, 247, 0.25);
+            box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.85),
+                        inset 0 0 16px rgba(29, 78, 216, 0.45),
+                        inset 0 0 35px rgba(56, 189, 248, 0.2);
         }
         50% {
-            box-shadow: inset 0 0 0 2.5px rgba(56, 189, 248, 0.95),
-                        inset 0 0 24px rgba(56, 189, 248, 0.6),
-                        inset 0 0 50px rgba(168, 85, 247, 0.3);
+            box-shadow: inset 0 0 0 2.5px rgba(56, 189, 248, 0.9),
+                        inset 0 0 22px rgba(56, 189, 248, 0.5),
+                        inset 0 0 45px rgba(29, 78, 216, 0.3);
         }
         100% {
-            box-shadow: inset 0 0 0 2px rgba(236, 72, 153, 0.9),
-                        inset 0 0 20px rgba(236, 72, 153, 0.5),
-                        inset 0 0 40px rgba(99, 102, 241, 0.25);
+            box-shadow: inset 0 0 0 2px rgba(10, 15, 29, 0.95),
+                        inset 0 0 18px rgba(29, 78, 216, 0.5),
+                        inset 0 0 35px rgba(56, 189, 248, 0.18);
         }
     }
 
@@ -1886,147 +2270,50 @@ body.has-active-modal .romita-fab-container,
         font-size: 1.15rem;
     }
 
-    /* Barra de Especialidades Deslizable y Fluida */
-    .rg-specialties-container {
-        padding: 6px 10px;
-    }
-
-    .rg-specialties-bar {
-        display: flex;
-        gap: 5px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scroll-snap-type: x mandatory;
-        padding: 3px;
-        scrollbar-width: none;
-    }
-
-    .rg-spec-tab {
-        flex: 0 0 auto !important;
-        scroll-snap-align: start;
-        padding: 6px 12px;
-        font-size: 0.72rem;
-        gap: 5px;
-        white-space: nowrap;
-    }
-
-    .rg-spec-tab i {
-        font-size: 0.85rem;
-    }
-
-    /* Cuerpo del Chat en Mobile */
-    .rg-chat-body {
-        padding: 12px 10px;
-        gap: 12px;
-        min-height: 0;
-    }
-
-    .rg-msg {
-        max-width: 95%;
-        gap: 8px;
-    }
-
-    .rg-msg-avatar {
-        width: 26px;
-        height: 26px;
-        border-radius: 8px;
-        font-size: 0.82rem;
-    }
-
-    .rg-avatar-generating::before {
-        inset: -2px;
-        filter: blur(2px);
-    }
-
-    .rg-msg-bubble {
-        padding: 10px 13px;
-        font-size: 0.84rem;
-        line-height: 1.48;
-        border-radius: 14px;
-    }
-
-    /* Tarjeta de Generación Atom Orbital Adaptada al 100% sin Desborde */
-    .rg-neural-bubble {
-        padding: 8px 10px !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-
-    .romita-chat-orbital-card {
-        min-width: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        gap: 10px !important;
-        box-sizing: border-box !important;
-    }
-
-    .romita-orbital-core {
-        width: 32px !important;
-        height: 32px !important;
-        flex-shrink: 0 !important;
-    }
-
-    .roc-nucleus {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 0.7rem !important;
-    }
-
-    .roc-chat-details {
-        gap: 5px !important;
-        min-width: 0 !important;
-        flex: 1 !important;
-    }
-
-    .roc-status-row {
-        gap: 6px !important;
-    }
-
-    .roc-status-msg {
-        font-size: 0.75rem !important;
-        white-space: normal !important;
-        line-height: 1.25 !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-        word-break: break-word !important;
-    }
-
-    .roc-shimmer-telemetry {
-        gap: 4px !important;
-        width: 100% !important;
-    }
-
-    .roc-shimmer-bar {
-        height: 5px !important;
-    }
-
-    .roc-shimmer-bar.b1 { width: 90% !important; }
-    .roc-shimmer-bar.b2 { width: 62% !important; }
-
     /* Vista de Bienvenida en Móvil */
     .rg-welcome-view {
-        padding: 1rem 0.25rem;
-        gap: 0.5rem;
+        padding: 1rem 0.25rem 0.5rem 0.25rem;
+        gap: 0.35rem;
     }
 
-    .rg-welcome-title {
-        font-size: 1.1rem;
+    .rg-welcome-bot-circle {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 4px;
+    }
+
+    .rg-bot-circle-img {
+        width: 56px;
+        height: 56px;
+    }
+
+    .rg-welcome-greeting {
+        font-size: 1.12rem;
+    }
+
+    .rg-welcome-main-question {
+        font-size: 1.22rem;
     }
 
     .rg-welcome-subtitle {
         font-size: 0.78rem;
     }
 
+    .rg-examples-section {
+        margin-top: 0.75rem;
+    }
+
+    .rg-examples-grid,
     .rg-suggestions-grid {
         grid-template-columns: 1fr !important;
         gap: 8px !important;
         width: 100% !important;
-        margin-top: 0.75rem !important;
     }
 
+    .rg-example-card,
     .rg-suggestion-card {
-        padding: 9px 11px;
-        gap: 10px;
+        padding: 11px 12px;
+        min-height: 85px;
     }
 
     /* Footer e Input en Mobile */
@@ -2034,6 +2321,7 @@ body.has-active-modal .romita-fab-container,
         padding: 8px 10px;
         padding-bottom: max(10px, env(safe-area-inset-bottom));
         gap: 0;
+        overflow: visible !important;
     }
 
     /* En móviles se ocultan los atajos de teclado físicos (Enter, Shift+Enter, R, Esc) para ganar espacio y limpieza */
@@ -2042,8 +2330,9 @@ body.has-active-modal .romita-fab-container,
     }
 
     .rg-input-box {
-        padding: 6px 8px 6px 12px;
-        border-radius: 12px;
+        padding: 8px 10px 8px 12px;
+        border-radius: 14px;
+        overflow: visible !important;
     }
 
     .rg-textarea {
@@ -2052,10 +2341,21 @@ body.has-active-modal .romita-fab-container,
         max-height: 100px;
     }
 
-    .rg-send-btn {
+    .rg-context-pill-composer {
+        display: none !important; /* En móviles se oculta el pill de módulo para dar espacio al selector de especialidad */
+    }
+
+    .rg-specialties-popover {
+        left: -4px;
+        right: -4px;
+        min-width: calc(100vw - 28px);
+        max-width: calc(100vw - 28px);
+    }
+
+    .rg-send-btn-round {
         width: 32px;
         height: 32px;
-        border-radius: 8px;
+        font-size: 0.9rem;
     }
 
     /* FAB Botón en Mobile */
@@ -2104,21 +2404,26 @@ body.has-active-modal .romita-fab-container,
     .rg-msg-bubble td {
         padding: 0.65rem 0.75rem;
         font-size: 0.76rem;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
     }
     .romita-table-container th.col-wide,
     .romita-table-container td.col-wide {
-        min-width: 240px;
-        max-width: 320px;
+        min-width: 200px;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
     }
     .romita-table-container th.col-medium,
     .romita-table-container td.col-medium {
-        min-width: 170px;
-        max-width: 250px;
+        min-width: 150px;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
     }
     .romita-table-container th.col-compact,
     .romita-table-container td.col-compact {
-        min-width: 85px;
-        max-width: 140px;
+        min-width: 95px;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
     }
 }
 
@@ -2132,12 +2437,10 @@ body.has-active-modal .romita-fab-container,
         height: 94vh;
         max-height: 95vh;
     }
-    .romita-chat-orbital-card {
+    .rg-thinking-bubble {
         min-width: 0 !important;
         max-width: 100% !important;
-    }
-    .roc-status-msg {
-        white-space: normal !important;
+        width: 100% !important;
     }
 }
 </style>
@@ -2156,6 +2459,15 @@ let romitaIsDrawerMode = false;
 let romitaIsLoading = false;
 let romitaStatusInterval = null;
 const romitaUserName = <?= json_encode($romitaFirstName) ?>;
+const romitaTimeGreeting = <?= json_encode($timeGreeting) ?>;
+
+const romitaSpecialtyMeta = {
+    'director_360': { label: 'Directora 360°', icon: 'ph-compass' },
+    'community_manager': { label: 'Senior CM', icon: 'ph-chat-circle-dots' },
+    'branding': { label: 'Branding', icon: 'ph-palette' },
+    'marketing': { label: 'Marketing & Growth', icon: 'ph-trend-up' },
+    'seo': { label: 'Especialista SEO', icon: 'ph-magnifying-glass' }
+};
 
 // 1. Get Screen Context (Conciencia Situacional)
 function getRomitaScreenContext() {
@@ -2277,23 +2589,72 @@ function toggleRomitaLayoutMode() {
 // 4. Update Screen Indicator (Zero Emojis, Clean Phosphor Icon)
 function updateRomitaScreenPill() {
     const pill = document.getElementById('romita-screen-pill');
-    if (!pill) return;
+    const composerPill = document.getElementById('rg-composer-context-label');
     const ctx = getRomitaScreenContext();
-    pill.innerHTML = `<i class="ph ph-browsers"></i> <span>${ctx.label}</span>`;
+    if (pill) {
+        pill.innerHTML = `<i class="ph ph-browsers"></i> <span>${ctx.label}</span>`;
+    }
+    if (composerPill) {
+        composerPill.textContent = ctx.name;
+    }
 }
 
-// 5. Specialty Selection & Automatic Fresh Chat Creation
-function setRomitaSpecialty(spec, btn) {
-    romitaSpecialty = spec;
-    document.querySelectorAll('.rg-spec-tab').forEach(c => c.classList.remove('active'));
-    if (btn) {
-        btn.classList.add('active');
-        try {
-            btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        } catch(e) {}
+// 5. Specialty Selection & Dropdown Popover Controller (Estilo Imagen 2 y 3)
+function toggleRomitaSpecialtyMenu(e) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
     }
+    const popover = document.getElementById('rg-specialties-popover');
+    const trigger = document.getElementById('rg-specialty-trigger-btn');
+    if (!popover) return;
+    const isVisible = popover.style.display !== 'none';
+    if (isVisible) {
+        popover.style.display = 'none';
+        if (trigger) {
+            trigger.classList.remove('is-active');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    } else {
+        popover.style.display = 'flex';
+        if (trigger) {
+            trigger.classList.add('is-active');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    }
+}
 
-    // Cambiar de pestaña crea un nuevo chat automáticamente
+function closeRomitaSpecialtyMenu() {
+    const popover = document.getElementById('rg-specialties-popover');
+    const trigger = document.getElementById('rg-specialty-trigger-btn');
+    if (popover) popover.style.display = 'none';
+    if (trigger) {
+        trigger.classList.remove('is-active');
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+}
+
+function selectRomitaSpecialty(spec, label, iconClass) {
+    romitaSpecialty = spec;
+    
+    // Actualizar texto e icono del botón en el toolbar del input (recuadro rojo imagen 2)
+    const labelEl = document.getElementById('rg-trigger-label');
+    const iconEl = document.getElementById('rg-trigger-icon');
+    if (labelEl) labelEl.textContent = label;
+    if (iconEl) iconEl.className = 'ph ' + iconClass;
+    
+    // Actualizar estado activo en el popover
+    document.querySelectorAll('.rg-popover-item').forEach(item => {
+        if (item.getAttribute('data-spec') === spec) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    closeRomitaSpecialtyMenu();
+
+    // Cambiar de especialidad crea un nuevo chat fresco con el rol correspondiente
     romitaCurrentChatId = null;
     if (spec === 'director_360') {
         renderModuleWelcome();
@@ -2301,6 +2662,22 @@ function setRomitaSpecialty(spec, btn) {
         renderSpecialtyWelcome(spec);
     }
 }
+
+function setRomitaSpecialty(spec, btn) {
+    const meta = romitaSpecialtyMeta[spec] || { label: 'Directora 360°', icon: 'ph-compass' };
+    selectRomitaSpecialty(spec, meta.label, meta.icon);
+}
+
+// Cerrar menú emergente si se hace clic fuera
+document.addEventListener('click', function(e) {
+    const popover = document.getElementById('rg-specialties-popover');
+    const trigger = document.getElementById('rg-specialty-trigger-btn');
+    if (popover && popover.style.display !== 'none') {
+        if (!popover.contains(e.target) && !trigger.contains(e.target)) {
+            closeRomitaSpecialtyMenu();
+        }
+    }
+});
 
 // Bienvenida Contextualizada y Personalizada por Módulo
 function renderModuleWelcome() {
@@ -2479,27 +2856,28 @@ function renderModuleWelcome() {
 
     chatContainer.innerHTML = `
         <div id="romita-welcome-view" class="rg-welcome-view">
-            <div class="rg-welcome-orb">
-                <div class="rg-orb-glow"></div>
-                <div class="rg-orb-icon">
-                    <i class="ph-bold ph-sparkle"></i>
-                </div>
+            <div class="rg-welcome-bot-circle">
+                <div class="rg-bot-circle-glow"></div>
+                <img src="assets/img/romita-avatar.png" alt="Romita" class="rg-bot-circle-img">
             </div>
-            <h3 class="rg-welcome-title" id="romita-welcome-title">${cfg.title}</h3>
+            <div class="rg-welcome-heading-wrap">
+                <h2 class="rg-welcome-greeting">¡${romitaTimeGreeting}, ${romitaUserName}!</h2>
+                <h1 class="rg-welcome-main-question">¿En qué <span class="rg-accent-text">colaboramos hoy?</span></h1>
+            </div>
             <p class="rg-welcome-subtitle" id="romita-welcome-desc">
                 ${cfg.desc}
             </p>
 
-            <div class="rg-suggestions-grid" id="romita-welcome-grid">
-                ${cfg.cards.map(c => `
-                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('${c.prompt.replace(/'/g, "\\'")}')">
-                        <span class="rg-card-icon"><i class="ph ${c.icon}"></i></span>
-                        <div class="rg-card-text">
-                            <strong>${c.label}</strong>
-                            <small>${c.sub}</small>
-                        </div>
-                    </button>
-                `).join('')}
+            <div class="rg-examples-section">
+                <div class="rg-examples-label">SUGERENCIAS PARA COMENZAR</div>
+                <div class="rg-examples-grid" id="romita-welcome-grid">
+                    ${cfg.cards.map(c => `
+                        <button type="button" class="rg-example-card" onclick="sendRomitaQuickPrompt('${c.prompt.replace(/'/g, "\\'")}')">
+                            <span class="rg-example-text">${c.prompt}</span>
+                            <span class="rg-example-icon"><i class="ph ${c.icon}"></i></span>
+                        </button>
+                    `).join('')}
+                </div>
             </div>
         </div>
     `;
@@ -2572,26 +2950,27 @@ function renderSpecialtyWelcome(spec) {
 
     chatContainer.innerHTML = `
         <div id="romita-welcome-view" class="rg-welcome-view">
-            <div class="rg-welcome-orb">
-                <div class="rg-orb-glow"></div>
-                <div class="rg-orb-icon">
-                    <i class="ph-bold ph-sparkle"></i>
-                </div>
+            <div class="rg-welcome-bot-circle">
+                <div class="rg-bot-circle-glow"></div>
+                <img src="assets/img/romita-avatar.png" alt="Romita" class="rg-bot-circle-img">
             </div>
-            <h3 class="rg-welcome-title">¡Hola, ${romitaUserName}! Modo ${data.title}</h3>
+            <div class="rg-welcome-heading-wrap">
+                <h2 class="rg-welcome-greeting">¡${romitaTimeGreeting}, ${romitaUserName}!</h2>
+                <h1 class="rg-welcome-main-question">Modo <span class="rg-accent-text">${data.title}</span></h1>
+            </div>
             <p class="rg-welcome-subtitle" id="romita-welcome-desc">
                 ${data.desc}
             </p>
-            <div class="rg-suggestions-grid">
-                ${data.cards.map(c => `
-                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('${c.prompt.replace(/'/g, "\\'")}')">
-                        <span class="rg-card-icon"><i class="ph ${c.icon}"></i></span>
-                        <div class="rg-card-text">
-                            <strong>${c.label}</strong>
-                            <small>${c.sub}</small>
-                        </div>
-                    </button>
-                `).join('')}
+            <div class="rg-examples-section">
+                <div class="rg-examples-label">SUGERENCIAS PARA COMENZAR</div>
+                <div class="rg-examples-grid" id="romita-welcome-grid">
+                    ${data.cards.map(c => `
+                        <button type="button" class="rg-example-card" onclick="sendRomitaQuickPrompt('${c.prompt.replace(/'/g, "\\'")}')">
+                            <span class="rg-example-text">${c.prompt}</span>
+                            <span class="rg-example-icon"><i class="ph ${c.icon}"></i></span>
+                        </button>
+                    `).join('')}
+                </div>
             </div>
         </div>
     `;
@@ -2892,7 +3271,7 @@ function processRomitaAssistantFormatting(container) {
                 colClass = 'col-wide';
             } else if (titleText.includes('gancho') || titleText.includes('hook') || titleText.includes('concepto') || titleText.includes('pilar') || titleText.includes('idea') || titleText.includes('objetivo')) {
                 colClass = 'col-medium';
-            } else if (titleText.includes('fecha') || titleText.includes('día') || titleText.includes('dia') || titleText.includes('marca') || titleText.includes('formato') || titleText.includes('tipo') || titleText.includes('id') || titleText.includes('estado')) {
+            } else if ((titleText.includes('fecha') || titleText.includes('día') || titleText.includes('dia') || titleText === 'id' || titleText.includes('estado') || titleText.includes('n°')) && !titleText.includes('anuncio') && !titleText.includes('formato')) {
                 colClass = 'col-compact';
             }
             
@@ -2973,44 +3352,11 @@ async function sendRomitaMessage() {
         </div>
     `;
     chatContainer.appendChild(userDiv);
-
-    // Append Futuristic Neural Thought Indicator
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'rg-msg rg-msg-ai';
-    typingDiv.id = 'romita-typing-indicator';
-    typingDiv.innerHTML = `
-        <div class="rg-msg-avatar rg-avatar-generating"><i class="ph-bold ph-sparkle"></i></div>
-        <div class="rg-msg-content-wrap">
-            <div class="rg-msg-bubble rg-neural-bubble">
-                <div class="romita-chat-orbital-card">
-                    <div class="romita-orbital-core">
-                        <div class="roc-pulse"></div>
-                        <div class="roc-ring roc-ring-1"></div>
-                        <div class="roc-ring roc-ring-2"></div>
-                        <div class="roc-nucleus">
-                            <i class="ph-bold ph-sparkle"></i>
-                        </div>
-                    </div>
-                    <div class="roc-chat-details">
-                        <div class="roc-status-row">
-                            <span class="roc-status-ping"></span>
-                            <span id="rg-neural-status-text" class="roc-status-msg">Romita está procesando el contexto...</span>
-                        </div>
-                        <div class="roc-shimmer-telemetry">
-                            <div class="roc-shimmer-bar b1"></div>
-                            <div class="roc-shimmer-bar b2"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    chatContainer.appendChild(typingDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 
     romitaIsLoading = true;
 
-    // Window and input active generating effects
+    // Window and in-composer active generating effects
     const dialog = document.getElementById('romita-global-dialog');
     if (dialog) dialog.classList.add('is-generating');
 
@@ -3023,7 +3369,7 @@ async function sendRomitaMessage() {
         sendBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
     }
 
-    // Dynamic futuristic status phrase cycling
+    // Dynamic futuristic status phrase cycling (shown directly in composer)
     const statusPhrases = [
         'Romita está procesando el contexto...',
         'Consultando base de proyectos y ecosistema...',
@@ -3032,6 +3378,9 @@ async function sendRomitaMessage() {
         'Generando respuesta final...'
     ];
     let phraseIdx = 0;
+    const initialStatusEl = document.getElementById('rg-neural-status-text');
+    if (initialStatusEl) initialStatusEl.innerText = statusPhrases[0];
+
     if (romitaStatusInterval) clearInterval(romitaStatusInterval);
     romitaStatusInterval = setInterval(() => {
         phraseIdx = (phraseIdx + 1) % statusPhrases.length;
@@ -3079,7 +3428,7 @@ async function sendRomitaMessage() {
             const aiDiv = document.createElement('div');
             aiDiv.className = 'rg-msg rg-msg-ai';
             aiDiv.innerHTML = `
-                <div class="rg-msg-avatar"><i class="ph-bold ph-sparkle"></i></div>
+                <div class="rg-msg-avatar"><img src="assets/img/romita-avatar.png" alt="Romita" class="rg-msg-avatar-img"></div>
                 <div class="rg-msg-content-wrap">
                     <div class="rg-msg-bubble markdown-body">${renderRomitaMarkdown(data.response)}</div>
                     <div class="rg-msg-actions">
@@ -3132,6 +3481,7 @@ async function sendRomitaMessage() {
             sendBtn.innerHTML = '<i class="ph-bold ph-arrow-up"></i>';
         }
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (input) input.focus();
     }
 }
 

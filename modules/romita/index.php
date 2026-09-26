@@ -157,8 +157,8 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 <button class="btn-toggle-sidebar" onclick="toggleSidebar()" title="Ver Historial">
                     <i class="ph ph-sidebar-simple"></i>
                 </button>
-                <div class="romita-logo">
-                    <i class="ph ph-sparkle"></i>
+                <div class="romita-logo" style="overflow: hidden; padding: 0; background: #0a0f1d; border: 1px solid rgba(56, 189, 248, 0.3);">
+                    <img src="assets/img/romita-avatar.png" alt="Romita" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <div class="romita-brand-info">
                     <div class="romita-brand-title-wrap">
@@ -272,8 +272,8 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 <!-- Empty State Hero -->
                 <div class="romita-empty-state" id="emptyState">
                     <div class="romita-hero-glow">
-                        <div class="romita-hero-icon">
-                            <i class="ph ph-sparkle"></i>
+                        <div class="romita-hero-icon" style="background: #0a0f1d; border: 1.5px solid rgba(56, 189, 248, 0.35); overflow: hidden; padding: 0;">
+                            <img src="assets/img/romita-avatar.png" alt="Romita" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                     </div>
                     <h3 class="romita-hero-title" id="heroGreeting">¡<?php echo $time_greeting; ?>, <?php echo $first_name; ?>!</h3>
@@ -311,6 +311,25 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             <div class="romita-input-container">
                 <textarea id="chatInput" class="romita-textarea" placeholder="Escribe tu mensaje o pide un plan para una marca..." rows="1" oninput="autoResize(this)" onkeydown="handleEnter(event)"></textarea>
                 
+                <!-- In-Composer Generating Indicator Row -->
+                <div class="rg-input-generating-row" id="romita-module-generating-row">
+                    <div class="rg-thinking-header">
+                        <div class="rg-thinking-sparkle-pill">
+                            <i class="ph-bold ph-sparkle" id="romita-module-sparkle-icon"></i>
+                        </div>
+                        <span id="romita-module-status-text" class="rg-thinking-status-text">Romita está procesando el contexto...</span>
+                        <div class="rg-thinking-waveform" aria-hidden="true">
+                            <span class="rg-wave-bar"></span>
+                            <span class="rg-wave-bar"></span>
+                            <span class="rg-wave-bar"></span>
+                            <span class="rg-wave-bar"></span>
+                        </div>
+                    </div>
+                    <div class="rg-thinking-laser-track">
+                        <div class="rg-thinking-laser-bar"></div>
+                    </div>
+                </div>
+
                 <div class="romita-composer-bottom">
                     <div class="composer-hints">
                         <span><kbd class="composer-hint-badge">Shift + Enter</kbd> para salto de línea</span>
@@ -885,7 +904,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         
         const avatar = document.createElement('div');
         avatar.className = `message-avatar ${role === 'user' ? 'user-avatar' : 'ai-avatar'}`;
-        avatar.innerHTML = role === 'user' ? '<i class="ph ph-user"></i>' : `<i class="ph ${aiIcon}"></i>`;
+        avatar.innerHTML = role === 'user' ? '<i class="ph ph-user"></i>' : (activeSkill && activeSkill.icon && activeSkill.icon !== 'ph-sparkle' ? `<i class="ph ${activeSkill.icon}"></i>` : `<img src="assets/img/romita-avatar.png" alt="Romita" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`);
         
         const wrapper = document.createElement('div');
         wrapper.className = 'message-wrapper';
@@ -1070,7 +1089,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     colClass = 'col-wide';
                 } else if (titleText.includes('gancho') || titleText.includes('hook') || titleText.includes('concepto') || titleText.includes('pilar') || titleText.includes('idea') || titleText.includes('objetivo')) {
                     colClass = 'col-medium';
-                } else if (titleText.includes('fecha') || titleText.includes('día') || titleText.includes('dia') || titleText.includes('marca') || titleText.includes('formato') || titleText.includes('tipo') || titleText.includes('id') || titleText.includes('estado')) {
+                } else if ((titleText.includes('fecha') || titleText.includes('día') || titleText.includes('dia') || titleText === 'id' || titleText.includes('estado') || titleText.includes('n°')) && !titleText.includes('anuncio') && !titleText.includes('formato')) {
                     colClass = 'col-compact';
                 }
                 
@@ -1247,46 +1266,14 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
     }
 
     function showTypingIndicator() {
-        const container = document.getElementById('chatStreamInner');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'romita-message assistant typing-msg';
-        msgDiv.id = 'typingIndicator';
-        
         let aiIcon = 'ph-sparkle';
         if (activeSkill && activeSkill.icon) {
             aiIcon = activeSkill.icon;
         }
-        
-        msgDiv.innerHTML = `
-            <div class="message-avatar ai-avatar rg-avatar-generating"><i class="ph-bold ${aiIcon}"></i></div>
-            <div class="message-wrapper">
-                <div class="message-bubble rg-neural-bubble">
-                    <div class="romita-chat-orbital-card">
-                        <div class="romita-orbital-core">
-                            <div class="roc-pulse"></div>
-                            <div class="roc-ring roc-ring-1"></div>
-                            <div class="roc-ring roc-ring-2"></div>
-                            <div class="roc-nucleus">
-                                <i class="ph-bold ph-sparkle"></i>
-                            </div>
-                        </div>
-                        <div class="roc-chat-details">
-                            <div class="roc-status-row">
-                                <span class="roc-status-ping"></span>
-                                <span id="romita-module-status-text" class="roc-status-msg">Romita está procesando el contexto...</span>
-                            </div>
-                            <div class="roc-shimmer-telemetry">
-                                <div class="roc-shimmer-bar b1"></div>
-                                <div class="roc-shimmer-bar b2"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.appendChild(msgDiv);
-        const chatArea = document.getElementById('chatArea');
-        chatArea.scrollTop = chatArea.scrollHeight;
+        const sparkleIconEl = document.getElementById('romita-module-sparkle-icon');
+        if (sparkleIconEl) {
+            sparkleIconEl.className = 'ph-bold ' + aiIcon;
+        }
 
         // Efectos dinámicos en cabecera y composer
         const header = document.querySelector('.romita-header');
@@ -1299,7 +1286,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             sendBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
         }
 
-        // Ciclado dinámico de frases futuristas de telemetría
+        // Ciclado dinámico de frases futuristas de telemetría en el composer
         const statusPhrases = [
             'Romita está procesando el contexto...',
             'Consultando base de proyectos y ecosistema...',
@@ -1308,10 +1295,12 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             'Generando respuesta final...'
         ];
         let phraseIdx = 0;
+        const statusEl = document.getElementById('romita-module-status-text');
+        if (statusEl) statusEl.innerText = statusPhrases[0];
+
         if (romitaModuleStatusInterval) clearInterval(romitaModuleStatusInterval);
         romitaModuleStatusInterval = setInterval(() => {
             phraseIdx = (phraseIdx + 1) % statusPhrases.length;
-            const statusEl = document.getElementById('romita-module-status-text');
             if (statusEl) {
                 statusEl.style.opacity = '0';
                 setTimeout(() => {
@@ -1330,7 +1319,7 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             romitaModuleStatusInterval = null;
         }
         const ind = document.getElementById('typingIndicator');
-        if(ind) ind.remove();
+        if (ind) ind.remove();
 
         const header = document.querySelector('.romita-header');
         if (header) header.classList.remove('is-generating');
@@ -1341,6 +1330,8 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             sendBtn.disabled = false;
             sendBtn.innerHTML = '<i class="ph ph-paper-plane-right"></i>';
         }
+        const input = document.getElementById('chatInput');
+        if (input) input.focus();
     }
 
     function newConversation() {
