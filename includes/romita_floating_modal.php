@@ -4397,8 +4397,83 @@ function renderRomitaMarkdown(text) {
             rendered = out;
         }
     } else {
-        // Parser nativo de contingencia
+        // Parser nativo de contingencia con soporte para tablas
         out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
+
+        // Tablas Markdown
+        out = out.replace(/((?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+)/gm, function(tableBlock) {
+            const rows = tableBlock.trim().split('\n').map(r => r.trim()).filter(r => r.length > 0);
+            if (rows.length < 2) return tableBlock;
+
+            let tableHtml = '<table>';
+            let hasHeader = false;
+            let inBody = false;
+
+            for (let r = 0; r < rows.length; r++) {
+                const rowStr = rows[r];
+                if (/^\|(\s*:?-+:?\s*\|)+$/.test(rowStr)) {
+                    hasHeader = true;
+                    continue;
+                }
+
+                let cells = rowStr.split('|').map(c => c.trim());
+                if (rowStr.startsWith('|')) cells.shift();
+                if (rowStr.endsWith('|')) cells.pop();
+
+                if (!hasHeader && r === 0 && rows.length > 1 && /^\|(\s*:?-+:?\s*\|)+$/.test(rows[1])) {
+                    tableHtml += '<thead><tr>';
+                    cells.forEach(c => {
+                        let formatted = c.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                        tableHtml += `<th>${formatted}</th>`;
+                    });
+                    tableHtml += '</tr></thead>';
+                    tableHtml += '<tbody>';
+                    inBody = true;
+                } else {
+                    if (!inBody) {
+                        tableHtml += '<tbody>';
+                        inBody = true;
+                    }
+                    tableHtml += '<tr>';
+                    cells.forEach(c => {
+                        let formatted = c.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                        tableHtml += `<td>${formatted}</td>`;
+                    });
+                    tableHtml += '</tr>';
+                }
+            }
+            if (inBody) tableHtml += '</tbody>';
+            tableHtml += '</table>';
+            return tableHtml;
+        });
+
+        // Code blocks
+        out = out.replace(/```([a-z]*)\n([\s\S]*?)```/g, function(match, lang, code) {
+            const cleanLang = lang ? ` class="language-${lang}"` : '';
+            return `<pre><code${cleanLang}>` + code.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
+        });
+
+        // Inline code
+        out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+        // Bold & Italic
+        out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+        // Headers
+        out = out.replace(/^### (.*$)/gim, '<h4 style="margin:10px 0 4px 0; font-size:0.95rem; font-weight:700; color:inherit;">$1</h4>');
+        out = out.replace(/^## (.*$)/gim, '<h3 style="margin:12px 0 6px 0; font-size:1.05rem; font-weight:700; color:inherit;">$1</h3>');
+        out = out.replace(/^# (.*$)/gim, '<h2 style="margin:14px 0 8px 0; font-size:1.15rem; font-weight:800; color:inherit;">$1</h2>');
+
+        // Lists
+        out = out.replace(/^\s*[-•]\s+(.*)$/gim, '<li>$1</li>');
+        out = out.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+        out = out.replace(/<\/ul>\s*<ul>/g, '');
+
+        // Line breaks
+        out = out.replace(/\n\n/g, '<br><br>');
+        out = out.replace(/\n/g, '<br>');
+
         rendered = out;
     }
 
@@ -4413,86 +4488,6 @@ function renderRomitaMarkdown(text) {
     });
 
     return rendered;
-}
-
-    // Parser nativo de contingencia con soporte para tablas
-    out = out.replace(/```json:calendar_plan[\s\S]*?```/g, '<div class="alert alert-info" style="font-size:0.8rem; margin:8px 0;"><i class="ph ph-calendar-check"></i> Plan de calendario estructurado generado.</div>');
-
-    // Tablas Markdown
-    out = out.replace(/((?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+)/gm, function(tableBlock) {
-        const rows = tableBlock.trim().split('\n').map(r => r.trim()).filter(r => r.length > 0);
-        if (rows.length < 2) return tableBlock;
-
-        let tableHtml = '<table>';
-        let hasHeader = false;
-        let inBody = false;
-
-        for (let r = 0; r < rows.length; r++) {
-            const rowStr = rows[r];
-            if (/^\|(\s*:?-+:?\s*\|)+$/.test(rowStr)) {
-                hasHeader = true;
-                continue;
-            }
-
-            let cells = rowStr.split('|').map(c => c.trim());
-            if (rowStr.startsWith('|')) cells.shift();
-            if (rowStr.endsWith('|')) cells.pop();
-
-            if (!hasHeader && r === 0 && rows.length > 1 && /^\|(\s*:?-+:?\s*\|)+$/.test(rows[1])) {
-                tableHtml += '<thead><tr>';
-                cells.forEach(c => {
-                    let formatted = c.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
-                    tableHtml += `<th>${formatted}</th>`;
-                });
-                tableHtml += '</tr></thead>';
-                tableHtml += '<tbody>';
-                inBody = true;
-            } else {
-                if (!inBody) {
-                    tableHtml += '<tbody>';
-                    inBody = true;
-                }
-                tableHtml += '<tr>';
-                cells.forEach(c => {
-                    let formatted = c.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
-                    tableHtml += `<td>${formatted}</td>`;
-                });
-                tableHtml += '</tr>';
-            }
-        }
-        if (inBody) tableHtml += '</tbody>';
-        tableHtml += '</table>';
-        return tableHtml;
-    });
-
-    // Code blocks
-    out = out.replace(/```([a-z]*)\n([\s\S]*?)```/g, function(match, lang, code) {
-        const cleanLang = lang ? ` class="language-${lang}"` : '';
-        return `<pre><code${cleanLang}>` + code.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
-    });
-
-    // Inline code
-    out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // Bold & Italic
-    out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-    // Headers
-    out = out.replace(/^### (.*$)/gim, '<h4 style="margin:10px 0 4px 0; font-size:0.95rem; font-weight:700; color:inherit;">$1</h4>');
-    out = out.replace(/^## (.*$)/gim, '<h3 style="margin:12px 0 6px 0; font-size:1.05rem; font-weight:700; color:inherit;">$1</h3>');
-    out = out.replace(/^# (.*$)/gim, '<h2 style="margin:14px 0 8px 0; font-size:1.15rem; font-weight:800; color:inherit;">$1</h2>');
-
-    // Lists
-    out = out.replace(/^\s*[-•]\s+(.*)$/gim, '<li>$1</li>');
-    out = out.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
-    out = out.replace(/<\/ul>\s*<ul>/g, '');
-
-    // Line breaks
-    out = out.replace(/\n\n/g, '<br><br>');
-    out = out.replace(/\n/g, '<br>');
-
-    return out;
 }
 
 // Copiar tabla como TSV (directamente compatible con Excel / Google Sheets)
