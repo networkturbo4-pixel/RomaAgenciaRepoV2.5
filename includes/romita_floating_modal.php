@@ -2,6 +2,16 @@
 // includes/romita_floating_modal.php
 // Romita AI Global Floating Assistant & Command Palette (Tecla R)
 if (!isset($_SESSION['user_id'])) return;
+
+$currentUserName = $_SESSION['user_name'] ?? '';
+if (empty($currentUserName) && isset($db) && $db instanceof PDO) {
+    try {
+        $stmtU = $db->prepare("SELECT name FROM users WHERE id = ?");
+        $stmtU->execute([$_SESSION['user_id']]);
+        $currentUserName = $stmtU->fetchColumn() ?: '';
+    } catch (Exception $e) {}
+}
+$romitaFirstName = !empty($currentUserName) ? explode(' ', trim($currentUserName))[0] : 'Colega';
 ?>
 
 <!-- Floating Trigger Button (FAB) -->
@@ -96,12 +106,12 @@ if (!isset($_SESSION['user_id'])) return;
                         <i class="ph-bold ph-sparkle"></i>
                     </div>
                 </div>
-                <h3 class="rg-welcome-title">¿En qué podemos colaborar hoy?</h3>
+                <h3 class="rg-welcome-title" id="romita-welcome-title">¡Hola, <?= htmlspecialchars($romitaFirstName) ?>! ¿En qué colaboramos hoy?</h3>
                 <p class="rg-welcome-subtitle" id="romita-welcome-desc">
                     Asistente de inteligencia conectada a Calendarios, Marcas, Web, Audiovisual y Pizarras.
                 </p>
 
-                <div class="rg-suggestions-grid">
+                <div class="rg-suggestions-grid" id="romita-welcome-grid">
                     <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Qué proyectos tenemos activos actualmente en la agencia?')">
                         <span class="rg-card-icon"><i class="ph ph-kanban"></i></span>
                         <div class="rg-card-text">
@@ -2145,6 +2155,7 @@ let romitaSpecialty = 'director_360';
 let romitaIsDrawerMode = false;
 let romitaIsLoading = false;
 let romitaStatusInterval = null;
+const romitaUserName = <?= json_encode($romitaFirstName) ?>;
 
 // 1. Get Screen Context (Conciencia Situacional)
 function getRomitaScreenContext() {
@@ -2216,6 +2227,16 @@ function openRomitaGlobalModal() {
 
     updateRomitaScreenPill();
 
+    // Actualizar bienvenida contextual si no hay mensajes activos en pantalla
+    const welcomeView = document.getElementById('romita-welcome-view');
+    if (!romitaCurrentChatId || welcomeView) {
+        if (romitaSpecialty === 'director_360') {
+            renderModuleWelcome();
+        } else {
+            renderSpecialtyWelcome(romitaSpecialty);
+        }
+    }
+
     const input = document.getElementById('romita-chat-input');
     if (input) {
         setTimeout(() => input.focus(), 120);
@@ -2274,7 +2295,220 @@ function setRomitaSpecialty(spec, btn) {
 
     // Cambiar de pestaña crea un nuevo chat automáticamente
     romitaCurrentChatId = null;
-    renderSpecialtyWelcome(spec);
+    if (spec === 'director_360') {
+        renderModuleWelcome();
+    } else {
+        renderSpecialtyWelcome(spec);
+    }
+}
+
+// Bienvenida Contextualizada y Personalizada por Módulo
+function renderModuleWelcome() {
+    const chatContainer = document.getElementById('romita-chat-messages');
+    if (!chatContainer) return;
+    const ctx = getRomitaScreenContext();
+
+    const moduleConfigs = {
+        'services': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Servicios?`,
+            desc: 'Consulta la oferta comercial de Roma Agencia, estructura entregables profesionales y optimiza la propuesta de valor.',
+            cards: [
+                { icon: 'ph-sparkle', label: 'Optimizar descripción', sub: 'Mejora el copy y propuesta de valor de un servicio', prompt: 'Ayúdame a redactar una descripción persuasiva y comercial para un servicio de la agencia' },
+                { icon: 'ph-package', label: 'Estructurar entregables', sub: 'Desglose claro de fases y alcances', prompt: '¿Cómo estructurar de forma clara y profesional los entregables para un servicio creativo?' },
+                { icon: 'ph-target', label: 'Diferencial de servicio', sub: 'Argumentos de valor frente a competidores', prompt: '¿Cuáles son los factores diferenciales clave que debemos resaltar en nuestros servicios?' },
+                { icon: 'ph-lightbulb', label: 'Nuevos paquetes', sub: 'Ideas de innovación y upsells para clientes', prompt: 'Propón 3 ideas de nuevos paquetes de servicios digitales para ofrecer a nuestros clientes' }
+            ]
+        },
+        'calendar': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en el Calendario?`,
+            desc: 'Planificación mensual de publicaciones, copies persuasivos, ganchos virales y pilares de contenido.',
+            cards: [
+                { icon: 'ph-lightning', label: '5 Ganchos para Reels', sub: 'Fórmulas de retención para primeros 3 segundos', prompt: 'Dame 5 ganchos magnéticos para Reels de nuestras marcas de este mes' },
+                { icon: 'ph-calendar-plus', label: 'Estructura mensual', sub: 'Balance de pilares de venta, valor y engagement', prompt: '¿Cómo balancear los pilares de contenido (educación, entretenimiento, venta) para el calendario del mes?' },
+                { icon: 'ph-chats-circle', label: 'Historias interactivas', sub: 'Stickers y dinámicas para engagement', prompt: 'Propón 4 ideas de historias de Instagram para disparar respuestas y mensajes directos' },
+                { icon: 'ph-sparkle', label: 'Copy de alto impacto', sub: 'Estructura Hook + Body + CTA', prompt: 'Redacta un copy persuasivo con estructura AIDA para una publicación de Instagram' }
+            ]
+        },
+        'month_board': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en el Tablero de Mes?`,
+            desc: 'Supervisión y curaduría de la parrilla de contenidos, copies por plataforma y estados de aprobación.',
+            cards: [
+                { icon: 'ph-lightning', label: 'Ganchos de retención', sub: 'Aperturas magnéticas para publicaciones', prompt: 'Dame 5 ganchos magnéticos para los posts de este mes' },
+                { icon: 'ph-article', label: 'Copywriting para Carrusel', sub: 'Secuencia de diapositivas educativas', prompt: 'Diseña la estructura de copy para un carrusel educativo de 6 diapositivas' },
+                { icon: 'ph-check-circle', label: 'Checklist de publicación', sub: 'Validación de formatos, hashtags y enlaces', prompt: '¿Qué checklist de calidad debemos revisar antes de aprobar y programar un post?' },
+                { icon: 'ph-chart-line-up', label: 'Análisis de engagement', sub: 'Formatos con mayor alcance orgánico', prompt: '¿Qué tipo de contenidos generan mayor alcance e interacción en Instagram actualmente?' }
+            ]
+        },
+        'quotes': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Cotizaciones?`,
+            desc: 'Estructuración de presupuestos, alcance de proyectos, términos comerciales y seguimiento a prospectos.',
+            cards: [
+                { icon: 'ph-file-text', label: 'Estructura de propuesta', sub: 'Redacción clara de alcance y metodología', prompt: '¿Cómo estructurar una propuesta comercial irresistible y profesional para un cliente?' },
+                { icon: 'ph-shield-check', label: 'Condiciones y términos', sub: 'Cláusulas de entregas, revisiones y plazos', prompt: '¿Qué cláusulas y términos de revisiones recomiendas incluir en una cotización comercial?' },
+                { icon: 'ph-arrows-clockwise', label: 'Seguimiento comercial', sub: 'Mensaje persuasivo para leads pendientes', prompt: 'Redacta un mensaje diplomático y persuasivo para hacer seguimiento a una cotización enviada' },
+                { icon: 'ph-handshake', label: 'Manejo de objeciones', sub: 'Respuestas a dudas de clientes', prompt: '¿Cómo responder con valor y elegancia cuando un cliente pide descuento o dice que está fuera de presupuesto?' }
+            ]
+        },
+        'work_orders': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Órdenes de Servicio?`,
+            desc: 'Gestión operativa de OTs, alcance técnico, requerimientos iniciales y entregables coordinados.',
+            cards: [
+                { icon: 'ph-clipboard-text', label: 'Checklist de inicio', sub: 'Insumos requeridos del cliente', prompt: '¿Qué requerimientos e insumos mínimos debemos solicitar al cliente para iniciar la OT?' },
+                { icon: 'ph-timer', label: 'Cronograma por hitos', sub: 'Planificación de entregas y fases', prompt: '¿Cómo definir un cronograma eficiente de entregas por hitos para una orden de trabajo?' },
+                { icon: 'ph-check-circle', label: 'Control de calidad', sub: 'Validación antes del cierre de OT', prompt: 'Checklist de revisión y control de calidad antes de dar por completada una orden de trabajo' },
+                { icon: 'ph-users-three', label: 'Coordinación de equipo', sub: 'Alineación de diseño, web y audiovisual', prompt: '¿Cómo coordinar las tareas entre diseñador, community manager y audiovisual para cumplir plazos?' }
+            ]
+        },
+        'desarrollo_marca': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Desarrollo de Marca?`,
+            desc: 'Branding estratégico, arquetipos, personalidad verbal, conceptos visuales y diseño de identidad.',
+            cards: [
+                { icon: 'ph-paint-brush', label: 'Arquetipo de marca', sub: 'Definición de personalidad según Jung', prompt: '¿Cómo definir el arquetipo de personalidad y tono de voz para una marca en desarrollo?' },
+                { icon: 'ph-book-open', label: 'Manifiesto de marca', sub: 'Narrativa de propósito y valores', prompt: 'Ayúdame a redactar un manifiesto inspirador y memorable para una marca de la agencia' },
+                { icon: 'ph-palette', label: 'Dirección estética', sub: 'Conceptos visuales y moodboard', prompt: '¿Cómo estructurar los conceptos visuales y la dirección creativa de un nuevo branding?' },
+                { icon: 'ph-file-code', label: 'Capítulos de Brandbook', sub: 'Contenido esencial de manual de marca', prompt: '¿Cuáles son los capítulos esenciales que debe contener un manual de identidad corporativa completo?' }
+            ]
+        },
+        'audiovisual': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Audiovisual?`,
+            desc: 'Producción de video, guiones de alto impacto, escaletas de rodaje y técnicas de retención en edición.',
+            cards: [
+                { icon: 'ph-video-camera', label: 'Guión para Reel / TikTok', sub: 'Gancho, desarrollo y remate en 30s', prompt: 'Redacta un guión dinámico de 30 segundos para Reel/TikTok con indicaciones de plano y texto en pantalla' },
+                { icon: 'ph-list-numbers', label: 'Escaleta de rodaje', sub: 'Planificación de planos y escenas', prompt: '¿Cómo estructurar una escaleta de rodaje eficiente para una jornada de grabación con un cliente?' },
+                { icon: 'ph-film-strip', label: 'Ritmo y retención', sub: 'Técnicas de corte para retener audiencia', prompt: '¿Qué técnicas de ritmo de edición y cortes dinámicos recomiendas para mantener alta la retención en video?' },
+                { icon: 'ph-sparkle', label: 'Dirección de arte en video', sub: 'Iluminación, encuadre y estética', prompt: 'Propón 3 conceptos visuales creativos para un video promocional de alto impacto' }
+            ]
+        },
+        'pizarras': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Pizarras?`,
+            desc: 'Lluvia de ideas creativa, diagramas de flujo, mapas mentales y conceptualización de campañas.',
+            cards: [
+                { icon: 'ph-lightbulb', label: 'Lluvia de ideas', sub: '5 conceptos disruptivos para campañas', prompt: 'Genera una lluvia de 5 ideas creativas e innovadoras para una campaña integral de marketing' },
+                { icon: 'ph-git-fork', label: 'Diagrama de procesos', sub: 'Mapeo paso a paso de atención', prompt: '¿Cómo estructurar un diagrama de flujo para el proceso de atención y entrega al cliente?' },
+                { icon: 'ph-columns', label: 'Matriz de priorización', sub: 'Impacto vs Esfuerzo en el tablero', prompt: 'Explica cómo utilizar una matriz Impacto vs Esfuerzo para ordenar las ideas de la pizarra' },
+                { icon: 'ph-projector-screen', label: 'Conceptos de campaña', sub: 'Ejes temáticos y lemas comerciales', prompt: 'Propón 3 ejes temáticos y eslogans potentes para una campaña publicitaria' }
+            ]
+        },
+        'task_manager': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Tareas?`,
+            desc: 'Organización operativa, priorización de pendientes, resolución de cuellos de botella y enfoque.',
+            cards: [
+                { icon: 'ph-checks', label: 'Priorización Eisenhower', sub: 'Urgente vs Importante para el día', prompt: '¿Cómo priorizar mis tareas del día usando la matriz urgente vs importante para ser más productivo?' },
+                { icon: 'ph-fire', label: 'Destrabar cuellos de botella', sub: 'Plan de acción para tareas acumuladas', prompt: 'Tengo varias tareas acumuladas del equipo, ¿cuál es la mejor estrategia para destrabar el flujo?' },
+                { icon: 'ph-clock-countdown', label: 'Bloques de enfoque', sub: 'Técnica Time-Blocking sin pausa', prompt: '¿Cómo implementar Time-Blocking para completar entregas de diseño y contenido sin distracciones?' },
+                { icon: 'ph-flag', label: 'Criterios de entrega (DoD)', sub: 'Estándar para cerrar tareas con calidad', prompt: '¿Qué criterios de aceptación o Definition of Done (DoD) debemos aplicar antes de cerrar una tarea?' }
+            ]
+        },
+        'tasks': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Tareas?`,
+            desc: 'Organización operativa, priorización de pendientes, resolución de cuellos de botella y enfoque.',
+            cards: [
+                { icon: 'ph-checks', label: 'Priorización Eisenhower', sub: 'Urgente vs Importante para el día', prompt: '¿Cómo priorizar mis tareas del día usando la matriz urgente vs importante para ser más productivo?' },
+                { icon: 'ph-fire', label: 'Destrabar pendientes', sub: 'Plan de acción para entregas del día', prompt: 'Tengo varias tareas acumuladas del equipo, ¿cuál es la mejor estrategia para destrabar el flujo?' },
+                { icon: 'ph-clock-countdown', label: 'Bloques de enfoque', sub: 'Técnica Time-Blocking para producción', prompt: '¿Cómo implementar Time-Blocking para completar entregas de diseño y contenido sin distracciones?' },
+                { icon: 'ph-flag', label: 'Criterios de calidad', sub: 'Validación antes de marcar completada', prompt: '¿Qué criterios de aceptación o Definition of Done (DoD) debemos aplicar antes de cerrar una tarea?' }
+            ]
+        },
+        'knowledge_base': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en la Base de Conocimiento?`,
+            desc: 'Manuales oficiales, SOPs, directrices de atención, tutoriales y normativas de Roma Agencia.',
+            cards: [
+                { icon: 'ph-book-bookmark', label: 'Consultar procedimientos', sub: 'SOPs y lineamientos de la agencia', prompt: '¿Cuáles son los pasos del procedimiento oficial para coordinar una entrega con un cliente?' },
+                { icon: 'ph-file-plus', label: 'Documentar un nuevo SOP', sub: 'Estructura paso a paso para el equipo', prompt: 'Ayúdame a redactar un Procedimiento Operativo Estándar (SOP) claro y paso a paso para el equipo' },
+                { icon: 'ph-seal-check', label: 'Estándares de calidad', sub: 'Cultura y protocolos profesionales', prompt: '¿Cuáles son las directrices de comunicación y puntualidad que rigen en Roma Agencia?' },
+                { icon: 'ph-magnifying-glass', label: 'Resolución de incidentes', sub: 'Guía ante retrasos o contratiempos', prompt: '¿Cómo actuar ante un retraso en la entrega de material por parte de un cliente según nuestros procesos?' }
+            ]
+        },
+        'reuniones': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Agenda & Reuniones?`,
+            desc: 'Preparación de minutas ejecutivas, agendas de alineación, preguntas de descubrimiento y acuerdos.',
+            cards: [
+                { icon: 'ph-notepad', label: 'Agenda ejecutiva de 30m', sub: 'Estructura puntual sin rodeos', prompt: 'Diseña una agenda ejecutiva de 30 minutos para una reunión de alineación con un cliente' },
+                { icon: 'ph-check-square', label: 'Plantilla de minuta', sub: 'Registro de acuerdos y responsables', prompt: 'Dame una plantilla concisa para levantar la minuta de una reunión con acuerdos, tareas y fechas límite' },
+                { icon: 'ph-chats', label: 'Preguntas para Briefing', sub: 'Descubrimiento de necesidades', prompt: '¿Cuáles son las 6 preguntas clave que debemos hacer en una reunión de onboarding con un cliente nuevo?' },
+                { icon: 'ph-target', label: 'Seguimiento de acuerdos', sub: 'Mensaje resumen post-reunión', prompt: 'Redacta un mensaje cordial para enviar por WhatsApp o correo resumiendo los acuerdos de la reunión' }
+            ]
+        },
+        'clients': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Clientes?`,
+            desc: 'Fidelización de cuentas, comunicación estratégica, onboarding y satisfacción de clientes.',
+            cards: [
+                { icon: 'ph-hand-waving', label: 'Onboarding de cliente', sub: 'Bienvenida y recopilación de accesos', prompt: '¿Cómo diseñar un proceso de onboarding cálido y profesional para recibir a un cliente nuevo?' },
+                { icon: 'ph-star', label: 'Estrategia de fidelización', sub: 'Retención y valor continuo', prompt: '¿Qué iniciativas podemos implementar para fidelizar a los clientes recurrentes de la agencia?' },
+                { icon: 'ph-bell-ringing', label: 'Comunicación preventiva', sub: 'Aviso de tiempos y avances', prompt: 'Redacta una plantilla para informar al cliente sobre el estado de su proyecto con proactividad' },
+                { icon: 'ph-chat-teardrop-dots', label: 'Recopilar feedback', sub: 'Encuesta de satisfacción y testimonios', prompt: '¿Cómo pedir retroalimentación y testimonios a un cliente satisfecho sin incomodarlo?' }
+            ]
+        },
+        'projects': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en Proyectos?`,
+            desc: 'Dirección de proyectos web, sistemas, despliegue técnico y coordinación entre áreas.',
+            cards: [
+                { icon: 'ph-kanban', label: 'Estado del proyecto', sub: 'Monitoreo de fases y entregables', prompt: '¿Cómo estructurar un reporte de avance semanal del proyecto para el cliente?' },
+                { icon: 'ph-browsers', label: 'Auditoría UX / UI', sub: 'Checklist de usabilidad y navegación', prompt: '¿Qué elementos de usabilidad y experiencia de usuario debemos auditar en un sitio web antes del lanzamiento?' },
+                { icon: 'ph-bug', label: 'Matriz de incidencias (QA)', sub: 'Control y reporte de pruebas', prompt: '¿Cómo estructurar una hoja de control de QA para registrar errores y correcciones web?' },
+                { icon: 'ph-rocket-launch', label: 'Checklist de lanzamiento', sub: 'Pase a producción sin riesgos', prompt: 'Checklist técnico completo para publicar un sitio web en producción' }
+            ]
+        },
+        'project_board': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en el Tablero de Proyectos?`,
+            desc: 'Supervisión visual de tarjetas, estados de desarrollo y avance de entregables.',
+            cards: [
+                { icon: 'ph-kanban', label: 'Avance del sprint', sub: 'Seguimiento de entregas pendientes', prompt: '¿Cómo destrabar tareas en proceso que llevan varios días sin actualizarse?' },
+                { icon: 'ph-flag', label: 'Hitos clave', sub: 'Prioridades del sprint actual', prompt: '¿Cómo priorizar los hitos críticos para garantizar la entrega a tiempo del proyecto?' },
+                { icon: 'ph-chats-circle', label: 'Actualización al cliente', sub: 'Resumen conciso de avance', prompt: 'Redacta un mensaje breve para informarle al cliente sobre el avance del tablero de desarrollo' },
+                { icon: 'ph-shield-check', label: 'Validación técnica', sub: 'Aceptación de requerimientos', prompt: '¿Cuáles son los pasos para validar que un requerimiento técnico cumple con el alcance acordado?' }
+            ]
+        },
+        'dashboard': {
+            title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en el Dashboard?`,
+            desc: 'Asistente de inteligencia conectada a Calendarios, Marcas, Web, Audiovisual y Pizarras.',
+            cards: [
+                { icon: 'ph-kanban', label: 'Proyectos activos', sub: 'Resumen de producción de la agencia', prompt: '¿Qué proyectos tenemos activos actualmente en la agencia?' },
+                { icon: 'ph-lightbulb', label: 'Ideas de contenido', sub: 'Estrategia con ganchos para el mes', prompt: 'Dame 3 ideas creativas de contenido con gancho para las marcas de este mes' },
+                { icon: 'ph-funnel', label: 'Embudo de conversión', sub: 'Estructura estratégica TOFU-MOFU-BOFU', prompt: '¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?' },
+                { icon: 'ph-chart-line-up', label: 'Optimización SEO', sub: 'Directrices para páginas de servicios', prompt: 'Revisa las mejores prácticas de SEO para optimizar las páginas de servicios' }
+            ]
+        }
+    };
+
+    const cfg = moduleConfigs[ctx.module] || {
+        title: `¡Hola, ${romitaUserName}! ¿Qué haremos hoy en ${ctx.name}?`,
+        desc: `Asistente de inteligencia conectada a ${ctx.name} y al ecosistema de Roma Agencia.`,
+        cards: moduleConfigs['dashboard'].cards
+    };
+
+    chatContainer.innerHTML = `
+        <div id="romita-welcome-view" class="rg-welcome-view">
+            <div class="rg-welcome-orb">
+                <div class="rg-orb-glow"></div>
+                <div class="rg-orb-icon">
+                    <i class="ph-bold ph-sparkle"></i>
+                </div>
+            </div>
+            <h3 class="rg-welcome-title" id="romita-welcome-title">${cfg.title}</h3>
+            <p class="rg-welcome-subtitle" id="romita-welcome-desc">
+                ${cfg.desc}
+            </p>
+
+            <div class="rg-suggestions-grid" id="romita-welcome-grid">
+                ${cfg.cards.map(c => `
+                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('${c.prompt.replace(/'/g, "\\'")}')">
+                        <span class="rg-card-icon"><i class="ph ${c.icon}"></i></span>
+                        <div class="rg-card-text">
+                            <strong>${c.label}</strong>
+                            <small>${c.sub}</small>
+                        </div>
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    const input = document.getElementById('romita-chat-input');
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+    }
 }
 
 function renderSpecialtyWelcome(spec) {
@@ -2344,7 +2578,7 @@ function renderSpecialtyWelcome(spec) {
                     <i class="ph-bold ph-sparkle"></i>
                 </div>
             </div>
-            <h3 class="rg-welcome-title">${data.title}</h3>
+            <h3 class="rg-welcome-title">¡Hola, ${romitaUserName}! Modo ${data.title}</h3>
             <p class="rg-welcome-subtitle" id="romita-welcome-desc">
                 ${data.desc}
             </p>
@@ -2904,7 +3138,11 @@ async function sendRomitaMessage() {
 // 10. Clear Chat
 function clearRomitaCurrentChat() {
     romitaCurrentChatId = null;
-    renderSpecialtyWelcome(romitaSpecialty);
+    if (romitaSpecialty === 'director_360') {
+        renderModuleWelcome();
+    } else {
+        renderSpecialtyWelcome(romitaSpecialty);
+    }
 }
 
 // 11. Global Keyboard Shortcut Listener (Tecla R / Escape)

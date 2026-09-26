@@ -371,15 +371,15 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
             $stmtServices = $db->query("
                 SELECT id, name, price, currency, delivery_time 
                 FROM services 
-                WHERE status = 'active' 
+                WHERE price > 0 AND name IS NOT NULL AND name != '' AND name NOT LIKE 'sdf%'
                 ORDER BY price DESC
             ");
             $services = $stmtServices ? $stmtServices->fetchAll(PDO::FETCH_ASSOC) : [];
             if (!empty($services)) {
                 $context .= "CATÁLOGO OFICIAL DE SERVICIOS Y TARIFAS DE LA AGENCIA:\n";
                 foreach ($services as $s) {
-                    $cur = !empty($s['currency']) ? $s['currency'] : 'S/';
-                    $time = !empty($s['delivery_time']) ? " (Tiempo: {$s['delivery_time']})" : "";
+                    $cur = !empty(trim($s['currency'] ?? '')) ? trim($s['currency']) : 'S/';
+                    $time = !empty(trim($s['delivery_time'] ?? '')) ? " (Tiempo: {$s['delivery_time']})" : "";
                     $context .= "- {$s['name']}: {$cur} " . number_format((float)$s['price'], 2) . "{$time}\n";
                 }
                 $context .= "\n";
