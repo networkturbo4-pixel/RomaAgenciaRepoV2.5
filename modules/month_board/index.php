@@ -2572,115 +2572,192 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     color: var(--text-muted, #94a3b8);
     font-weight: 500;
 }
-.romita-popover-loading {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    color: #818cf8;
-    font-size: 0.78rem;
-    font-weight: 600;
-    overflow: hidden;
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+/* Animated Illumination Around Editor Box when Generating */
+.custom-wysiwyg-wrapper.is-generating {
+    border-color: rgba(99, 102, 241, 0.7) !important;
+    animation: rgEditorPerimeterAura 2.2s infinite alternate ease-in-out !important;
 }
-[data-theme="dark"] .romita-popover-loading {
-    background: rgba(18, 18, 24, 0.85);
-    border-color: rgba(99, 102, 241, 0.35);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(99, 102, 241, 0.1);
+
+@keyframes rgEditorPerimeterAura {
+    0% {
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.75),
+                    0 0 20px rgba(168, 85, 247, 0.55),
+                    0 0 45px rgba(56, 189, 248, 0.35),
+                    0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+        box-shadow: 0 0 0 2.5px rgba(56, 189, 248, 0.85),
+                    0 0 28px rgba(56, 189, 248, 0.65),
+                    0 0 55px rgba(168, 85, 247, 0.45),
+                    0 12px 35px rgba(0, 0, 0, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.8),
+                    0 0 32px rgba(236, 72, 153, 0.65),
+                    0 0 65px rgba(99, 102, 241, 0.45),
+                    0 14px 40px rgba(0, 0, 0, 0.25);
+    }
 }
-.romita-popover-laser-scan {
+
+.custom-wysiwyg-laser {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent 0%, #38bdf8 50%, #818cf8 80%, transparent 100%);
+    height: 2.5px;
+    background: linear-gradient(90deg, transparent 0%, #38bdf8 30%, #818cf8 60%, #ec4899 85%, transparent 100%);
     background-size: 200% 100%;
-    animation: rgLaserBeam 1.6s infinite linear;
+    opacity: 0;
+    pointer-events: none;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    transition: opacity 0.3s ease;
+    z-index: 10;
 }
-.romita-popover-loading-content {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+
+.custom-wysiwyg-wrapper.is-generating .custom-wysiwyg-laser {
+    opacity: 1;
+    animation: rgEditorLaserScan 1.6s infinite linear;
 }
-/* Futuristic Editor Generating Placeholder */
+
+@keyframes rgEditorLaserScan {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Quantum Orbital Atom Animation inside Post Editor */
 .romita-editor-generating {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
+    gap: 16px;
+    padding: 16px 20px;
     border-radius: 14px;
-    background: rgba(99, 102, 241, 0.06);
-    border: 1px dashed rgba(99, 102, 241, 0.35);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05));
+    border: 1px dashed rgba(99, 102, 241, 0.4);
     position: relative;
     overflow: hidden;
     user-select: none;
+    margin: 8px 0;
 }
+
 [data-theme="dark"] .romita-editor-generating {
-    background: rgba(18, 18, 24, 0.6);
-    border-color: rgba(99, 102, 241, 0.3);
+    background: linear-gradient(135deg, rgba(18, 18, 26, 0.85), rgba(30, 27, 75, 0.4));
+    border-color: rgba(99, 102, 241, 0.45);
 }
-.reg-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
-    color: #ffffff;
+
+.romita-orbital-core {
+    position: relative;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.05rem;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
     flex-shrink: 0;
-    position: relative;
 }
-.reg-avatar::before {
-    content: '';
+
+.roc-nucleus {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #ec4899);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.8rem;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.8);
+    z-index: 2;
+    animation: rocNucleusPulse 1.4s infinite alternate ease-in-out;
+}
+
+.roc-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-top-color: #38bdf8;
+    border-right-color: #8b5cf6;
+}
+
+.roc-ring-1 {
+    animation: rocSpinRing1 1.3s infinite linear;
+}
+
+.roc-ring-2 {
+    inset: 3px;
+    border-top-color: #ec4899;
+    border-left-color: #4f46e5;
+    animation: rocSpinRing2 1.8s infinite linear reverse;
+}
+
+.roc-pulse {
     position: absolute;
     inset: -3px;
-    border-radius: 12px;
-    background: conic-gradient(from 0deg, #6366f1, #06b6d4, #ec4899, #6366f1);
-    animation: rgChromaticSpin 2s linear infinite;
-    z-index: -1;
-    filter: blur(3px);
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.25);
+    filter: blur(4px);
+    animation: rocPulseGlow 1.8s infinite ease-out;
 }
+
+@keyframes rocSpinRing1 {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.08); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes rocSpinRing2 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes rocNucleusPulse {
+    0% { transform: scale(0.92); box-shadow: 0 0 6px rgba(99, 102, 241, 0.5); }
+    100% { transform: scale(1.08); box-shadow: 0 0 14px rgba(236, 72, 153, 0.85); }
+}
+
+@keyframes rocPulseGlow {
+    0% { transform: scale(0.7); opacity: 0.8; }
+    100% { transform: scale(1.4); opacity: 0; }
+}
+
 .reg-details {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
     flex: 1;
 }
+
 .reg-status-row {
     display: flex;
     align-items: center;
     gap: 8px;
 }
+
 .reg-tag {
     font-size: 0.68rem;
     font-weight: 700;
     color: #ffffff;
     background: #4f46e5;
-    padding: 1px 6px;
+    padding: 2px 7px;
     border-radius: 5px;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
 }
+
 .reg-subtext {
-    font-size: 0.8rem;
+    font-size: 0.84rem;
     font-weight: 600;
-    color: #818cf8;
+    color: #4f46e5;
 }
+
 [data-theme="dark"] .reg-subtext {
     color: #a5b4fc;
 }
+
 .reg-shimmer-wave {
     height: 6px;
-    width: 80%;
+    width: 82%;
     border-radius: 3px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(99, 102, 241, 0.35) 40%, rgba(56, 189, 248, 0.5) 50%, rgba(168, 85, 247, 0.35) 60%, rgba(255, 255, 255, 0.05) 100%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(99, 102, 241, 0.35) 40%, rgba(56, 189, 248, 0.55) 50%, rgba(168, 85, 247, 0.35) 60%, rgba(255, 255, 255, 0.05) 100%);
     background-size: 250% 100%;
     animation: rgShimmerWave 1.8s infinite linear;
 }
@@ -3049,6 +3126,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                             <label class="crm-sidebar-label required" style="margin: 0;"><i class="ph-bold ph-text-align-left" style="color: var(--primary-color);"></i> Copy del Post</label>
                                         </div>
                                         <div class="custom-wysiwyg-wrapper" style="flex: 1; display: flex; flex-direction: column;">
+                                            <div class="custom-wysiwyg-laser"></div>
                                             <div class="wysiwyg-toolbar">
                                                 <button type="button" class="wys-btn" onclick="document.execCommand('undo', false, null)" title="Deshacer"><i class="ph ph-arrow-u-up-left"></i></button>
                                                 <button type="button" class="wys-btn" onclick="document.execCommand('redo', false, null)" title="Rehacer"><i class="ph ph-arrow-u-up-right"></i></button>
@@ -10602,37 +10680,40 @@ async function executeRomitaPostAction(subaction) {
         }
     }
 
-    // UI Loading state in popover
-    const loadingEl = document.getElementById('romita-popover-loading');
-    const loadingText = document.getElementById('romita-loading-text');
-    if (loadingEl) {
-        loadingEl.style.display = 'flex';
-        if (loadingText) {
-            if (subaction === 'desde_imagen') loadingText.innerText = 'Romita está analizando la imagen y redactando el copy...';
-            else if (subaction === 'corregir') loadingText.innerText = 'Romita está corrigiendo ortografía y estilo...';
-            else if (subaction === 'hashtags') loadingText.innerText = 'Romita está generando los 10 hashtags ideales...';
-            else if (subaction === 'persuasivo') loadingText.innerText = 'Romita está reescribiendo con método AIDA...';
-            else loadingText.innerText = 'Romita está redactando tu propuesta...';
-        }
-    }
+    // 1. Ocultar el cuadro inmediatamente para despejar la vista
+    closeRomitaPopover();
 
-    // Temporary futuristic editor placeholder
+    // 2. Activar la iluminación en animación alrededor de la caja del editor
+    const editorCard = document.querySelector('.custom-wysiwyg-wrapper');
+    if (editorCard) editorCard.classList.add('is-generating');
+
+    // 3. Renderizar animación cuántica orbital dentro del editor
     const originalHtml = editor.innerHTML;
-    let actionDesc = 'Redactando copy estratégico...';
-    if (subaction === 'desde_imagen') actionDesc = 'Analizando imagen con visión computacional...';
-    else if (subaction === 'corregir') actionDesc = 'Corrigiendo ortografía y elevando estilo...';
-    else if (subaction === 'hashtags') actionDesc = 'Generando 10 hashtags estratégicos...';
-    else if (subaction === 'persuasivo') actionDesc = 'Reescribiendo con método persuasivo AIDA...';
+    let actionDesc = 'Redactando propuesta estratégica de copy...';
+    if (subaction === 'desde_imagen') actionDesc = 'Analizando imagen terminada con visión computacional...';
+    else if (subaction === 'desde_concepto') actionDesc = 'Estructurando copy desde el concepto y brief...';
+    else if (subaction === 'corregir') actionDesc = 'Corrigiendo ortografía y elevando estilo persuasivo...';
+    else if (subaction === 'hashtags') actionDesc = 'Investigando 10 hashtags estratégicos para el post...';
+    else if (subaction === 'persuasivo') actionDesc = 'Reescribiendo con método magnético AIDA...';
+    else if (subaction === 'custom' && instruction) actionDesc = 'Redactando con indicación personalizada...';
 
     editor.innerHTML = `
         <div class="romita-editor-generating">
-            <div class="reg-avatar"><i class="ph-bold ph-sparkle"></i></div>
+            <div class="romita-orbital-core">
+                <div class="roc-nucleus">
+                    <i class="ph-bold ph-sparkle"></i>
+                </div>
+                <div class="roc-ring roc-ring-1"></div>
+                <div class="roc-ring roc-ring-2"></div>
+                <div class="roc-pulse"></div>
+            </div>
             <div class="reg-details">
                 <div class="reg-status-row">
                     <span class="reg-tag">Romita IA</span>
                     <span class="reg-subtext">${actionDesc}</span>
                 </div>
                 <div class="reg-shimmer-wave"></div>
+                <div class="reg-shimmer-wave" style="width: 58%; animation-delay: 0.35s;"></div>
             </div>
         </div>
     `;
@@ -10657,6 +10738,9 @@ async function executeRomitaPostAction(subaction) {
 
         const resData = await response.json();
 
+        // Apagar iluminación alrededor de la caja
+        if (editorCard) editorCard.classList.remove('is-generating');
+
         if (resData.success && resData.text) {
             const formatted = resData.text.replace(/\n/g, '<br>');
             if (subaction === 'hashtags' && currentText) {
@@ -10672,19 +10756,17 @@ async function executeRomitaPostAction(subaction) {
             }
 
             if (customPromptEl) customPromptEl.value = '';
-            closeRomitaPopover();
             updateCopyPreview();
             markDirty();
             updateSaveButtonState();
             showToast('✨ Publicación redactada por Romita con éxito', 'success');
         } else {
             editor.innerHTML = originalHtml;
-            if (loadingEl) loadingEl.style.display = 'none';
             showToast(resData.error || 'No se pudo conectar con Romita.', 'error');
         }
     } catch(err) {
+        if (editorCard) editorCard.classList.remove('is-generating');
         editor.innerHTML = originalHtml;
-        if (loadingEl) loadingEl.style.display = 'none';
         showToast('Error al comunicarse con Romita.', 'error');
     }
 }

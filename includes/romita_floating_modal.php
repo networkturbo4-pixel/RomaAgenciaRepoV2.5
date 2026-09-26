@@ -337,7 +337,7 @@ if (!isset($_SESSION['user_id'])) return;
     top: 0;
     right: 0;
     bottom: 0;
-    width: 490px;
+    width: 520px;
     max-width: 100vw;
     height: 100vh !important;
     max-height: 100vh !important;
@@ -346,6 +346,40 @@ if (!isset($_SESSION['user_id'])) return;
     border-top: none;
     border-bottom: none;
     animation: rgSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.romita-global-dialog.drawer-mode .rg-specialties-container {
+    padding: 8px 12px;
+}
+
+.romita-global-dialog.drawer-mode .rg-specialties-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    padding: 3px;
+    overflow: hidden;
+}
+
+.romita-global-dialog.drawer-mode .rg-spec-tab {
+    padding: 6px 2px;
+    font-size: 0.72rem;
+    gap: 4px;
+    justify-content: center;
+}
+
+.romita-global-dialog.drawer-mode .rg-spec-tab span {
+    font-size: 0.69rem;
+}
+
+.romita-global-dialog.drawer-mode .rg-chat-body {
+    padding: 16px 14px;
+    overflow-x: hidden !important;
+}
+
+.romita-global-dialog.drawer-mode .rg-suggestions-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 100% !important;
+    gap: 8px;
 }
 
 @keyframes rgSlideInRight {
@@ -545,6 +579,12 @@ if (!isset($_SESSION['user_id'])) return;
     border-radius: 11px;
     border: 1px solid #e2e8f0;
     overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.rg-specialties-bar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
 [data-theme="dark"] .rg-specialties-bar {
@@ -618,6 +658,7 @@ if (!isset($_SESSION['user_id'])) return;
 .rg-chat-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden !important;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -1396,23 +1437,107 @@ function updateRomitaScreenPill() {
     pill.innerHTML = `<i class="ph ph-browsers"></i> <span>${ctx.label}</span>`;
 }
 
-// 5. Specialty Selection
+// 5. Specialty Selection & Automatic Fresh Chat Creation
 function setRomitaSpecialty(spec, btn) {
     romitaSpecialty = spec;
     document.querySelectorAll('.rg-spec-tab').forEach(c => c.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
-    const descriptions = {
-        'director_360': 'Directora Estratégica 360°: Visión global que coordina branding, web, contenido y performance.',
-        'community_manager': 'Senior Community Manager: Copies magnéticos, ganchos virales, calendarios y engagement.',
-        'branding': 'Especialista en Branding: Identidad, arquetipos de marca, tono de voz y coherencia visual.',
-        'marketing': 'Growth Marketing & Conversión: Embudos de ventas, adquisición, métricas (ROAS, CAC) y pauta.',
-        'seo': 'Especialista en SEO: Intención de búsqueda, arquitectura de contenidos y posicionamiento en Google.'
+    // Cambiar de pestaña crea un nuevo chat automáticamente
+    romitaCurrentChatId = null;
+    renderSpecialtyWelcome(spec);
+}
+
+function renderSpecialtyWelcome(spec) {
+    const chatContainer = document.getElementById('romita-chat-messages');
+    if (!chatContainer) return;
+
+    const specialtyData = {
+        'director_360': {
+            title: 'Directora Estratégica 360°',
+            desc: 'Visión global que coordina branding, web, contenido y performance en toda la agencia.',
+            cards: [
+                { icon: 'ph-kanban', label: 'Proyectos activos', sub: 'Resumen de producción de la agencia', prompt: '¿Qué proyectos tenemos activos actualmente en la agencia?' },
+                { icon: 'ph-lightbulb', label: 'Ideas de contenido', sub: 'Estrategia con ganchos para el mes', prompt: 'Dame 3 ideas creativas de contenido con gancho para las marcas de este mes' },
+                { icon: 'ph-funnel', label: 'Embudo de conversión', sub: 'Estructura estratégica TOFU-MOFU-BOFU', prompt: '¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?' },
+                { icon: 'ph-chart-line-up', label: 'Optimización SEO', sub: 'Directrices para páginas de servicios', prompt: 'Revisa las mejores prácticas de SEO para optimizar las páginas de servicios' }
+            ]
+        },
+        'community_manager': {
+            title: 'Senior Community Manager',
+            desc: 'Especialista en copys magnéticos, ganchos virales, calendarios y dinámicas de engagement.',
+            cards: [
+                { icon: 'ph-lightning', label: '5 Ganchos para Reels', sub: 'Fórmulas de retención para primeros 3 segundos', prompt: 'Dame 5 ganchos magnéticos para Reels de nuestras marcas este mes' },
+                { icon: 'ph-calendar-plus', label: 'Estructura de Calendario', sub: 'Equilibrio de pilares de contenido', prompt: '¿Cómo estructurar un calendario de 12 posts balanceando venta, valor y engagement?' },
+                { icon: 'ph-chats-circle', label: 'Dinámicas de Engagement', sub: 'Stickers interactivos y preguntas en historias', prompt: 'Propón 4 ideas de historias interactivas para aumentar mensajes directos y respuestas' },
+                { icon: 'ph-target', label: 'Llamados a la Acción (CTA)', sub: 'Fórmulas persuasivas que no suenan a spam', prompt: 'Dame 5 fórmulas de Call to Action (CTA) de alta conversión para publicaciones' }
+            ]
+        },
+        'branding': {
+            title: 'Especialista en Branding',
+            desc: 'Construcción de identidad, arquetipos de marca, tono de voz y coherencia visual.',
+            cards: [
+                { icon: 'ph-paint-brush-broad', label: 'Arquetipo de Marca', sub: 'Definición de personalidad y valores', prompt: '¿Cómo definir el arquetipo de personalidad para una de nuestras marcas?' },
+                { icon: 'ph-megaphone', label: 'Tono y Voz de Marca', sub: 'Guía de comunicación y vocabulario clave', prompt: 'Estructura una guía de tono de voz: qué decimos, cómo lo decimos y qué evitamos' },
+                { icon: 'ph-eye', label: 'Auditoría de Identidad', sub: 'Revisión de consistencia visual', prompt: '¿Qué elementos debemos auditar para garantizar coherencia en manual de marca?' },
+                { icon: 'ph-book-open', label: 'Storytelling Corporativo', sub: 'Narrativa del origen y propuesta de valor', prompt: '¿Cómo redactar un manifiesto de marca inspirador y memorable?' }
+            ]
+        },
+        'marketing': {
+            title: 'Growth Marketing & Conversión',
+            desc: 'Embudos de adquisición, pauta publicitaria (Ads), métricas de rendimiento y CRO.',
+            cards: [
+                { icon: 'ph-funnel', label: 'Embudo de Ventas (Funnels)', sub: 'Flujo completo de lead a cliente recurrente', prompt: 'Diseña un embudo de ventas TOFU-MOFU-BOFU con oferta gancho y retargeting' },
+                { icon: 'ph-currency-dollar', label: 'Estrategia de Meta Ads', sub: 'Estructura de campañas ABO/CBO y audiencias', prompt: '¿Cómo estructurar una campaña de Meta Ads rentable para captar clientes calificados?' },
+                { icon: 'ph-chart-pie-slice', label: 'Optimización de CRO', sub: 'Mejora de conversión en páginas de aterrizaje', prompt: '¿Cuáles son los 5 puntos críticos para aumentar la tasa de conversión en una landing page?' },
+                { icon: 'ph-arrows-clockwise', label: 'Reactivación de Clientes', sub: 'Estrategia de remarketing por WhatsApp/Email', prompt: 'Crea una secuencia de 3 mensajes para reactivar cotizaciones o leads antiguos' }
+            ]
+        },
+        'seo': {
+            title: 'Especialista en SEO',
+            desc: 'Posicionamiento orgánico en Google, intención de búsqueda y arquitectura web.',
+            cards: [
+                { icon: 'ph-magnifying-glass', label: 'Keyword Research', sub: 'Palabras clave con alta intención comercial', prompt: '¿Cómo investigar palabras clave transaccionales para los servicios de la agencia?' },
+                { icon: 'ph-article', label: 'Optimización On-Page', sub: 'Estructura de H1, H2, meta title y URLs limpias', prompt: 'Dame una checklist de optimización SEO On-Page para un artículo o servicio' },
+                { icon: 'ph-tree-structure', label: 'Arquitectura de Contenidos', sub: 'Topic clusters y enlazado interno estratégico', prompt: 'Explica cómo armar una estrategia de Topic Clusters para posicionar en Google' },
+                { icon: 'ph-speedometer', label: 'SEO Técnico Básico', sub: 'Velocidad, Core Web Vitals y schema markup', prompt: '¿Qué aspectos técnicos de SEO debemos auditar antes de lanzar una página web?' }
+            ]
+        }
     };
 
-    const descEl = document.getElementById('romita-welcome-desc');
-    if (descEl && descriptions[spec]) {
-        descEl.innerText = descriptions[spec];
+    const data = specialtyData[spec] || specialtyData['director_360'];
+
+    chatContainer.innerHTML = `
+        <div id="romita-welcome-view" class="rg-welcome-view">
+            <div class="rg-welcome-orb">
+                <div class="rg-orb-glow"></div>
+                <div class="rg-orb-icon">
+                    <i class="ph-bold ph-sparkle"></i>
+                </div>
+            </div>
+            <h3 class="rg-welcome-title">${data.title}</h3>
+            <p class="rg-welcome-subtitle" id="romita-welcome-desc">
+                ${data.desc}
+            </p>
+            <div class="rg-suggestions-grid">
+                ${data.cards.map(c => `
+                    <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('${c.prompt.replace(/'/g, "\\'")}')">
+                        <span class="rg-card-icon"><i class="ph ${c.icon}"></i></span>
+                        <div class="rg-card-text">
+                            <strong>${c.label}</strong>
+                            <small>${c.sub}</small>
+                        </div>
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    const input = document.getElementById('romita-chat-input');
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+        input.focus();
     }
 }
 
@@ -1681,55 +1806,7 @@ async function sendRomitaMessage() {
 // 10. Clear Chat
 function clearRomitaCurrentChat() {
     romitaCurrentChatId = null;
-    const chatContainer = document.getElementById('romita-chat-messages');
-    if (!chatContainer) return;
-
-    chatContainer.innerHTML = `
-        <div id="romita-welcome-view" class="rg-welcome-view">
-            <div class="rg-welcome-orb">
-                <div class="rg-orb-glow"></div>
-                <div class="rg-orb-icon">
-                    <i class="ph-bold ph-sparkle"></i>
-                </div>
-            </div>
-            <h3 class="rg-welcome-title">Nueva conversación</h3>
-            <p class="rg-welcome-subtitle" id="romita-welcome-desc">
-                ¿En qué puedo orientarte hoy? Selecciona una especialidad o escribe directamente.
-            </p>
-            <div class="rg-suggestions-grid">
-                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Qué proyectos tenemos activos actualmente en la agencia?')">
-                    <span class="rg-card-icon"><i class="ph ph-kanban"></i></span>
-                    <div class="rg-card-text">
-                        <strong>Proyectos activos</strong>
-                        <small>Resumen de producción de la agencia</small>
-                    </div>
-                </button>
-                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Dame 3 ideas creativas de contenido con gancho para las marcas de este mes')">
-                    <span class="rg-card-icon"><i class="ph ph-lightbulb"></i></span>
-                    <div class="rg-card-text">
-                        <strong>Ideas de contenido</strong>
-                        <small>Estrategia con ganchos para el mes</small>
-                    </div>
-                </button>
-                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('¿Cómo podemos estructurar un embudo de ventas TOFU-MOFU-BOFU de alta conversión?')">
-                    <span class="rg-card-icon"><i class="ph ph-funnel"></i></span>
-                    <div class="rg-card-text">
-                        <strong>Embudo de conversión</strong>
-                        <small>Estructura estratégica TOFU-MOFU-BOFU</small>
-                    </div>
-                </button>
-                <button type="button" class="rg-suggestion-card" onclick="sendRomitaQuickPrompt('Revisa las mejores prácticas de SEO para optimizar las páginas de servicios')">
-                    <span class="rg-card-icon"><i class="ph ph-chart-line-up"></i></span>
-                    <div class="rg-card-text">
-                        <strong>Optimización SEO</strong>
-                        <small>Directrices para páginas de servicios</small>
-                    </div>
-                </button>
-            </div>
-        </div>
-    `;
-    const input = document.getElementById('romita-chat-input');
-    if (input) input.focus();
+    renderSpecialtyWelcome(romitaSpecialty);
 }
 
 // 11. Global Keyboard Shortcut Listener (Tecla R / Escape)
