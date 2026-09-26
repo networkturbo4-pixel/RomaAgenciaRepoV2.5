@@ -137,7 +137,7 @@ if (!isset($_SESSION['user_id'])) return;
         <!-- Input Bar (Modern Floating App Style) -->
         <div class="rg-footer">
             <div class="rg-input-box" id="romita-chat-input-box">
-                <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Escribe tu consulta o pide una recomendación estratégica..." onkeydown="handleRomitaInputKeydown(event)" oninput="autoGrowRomitaTextarea(this)"></textarea>
+                <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Escribe tu consulta a Romita..." onkeydown="handleRomitaInputKeydown(event)" oninput="autoGrowRomitaTextarea(this)"></textarea>
                 <div class="rg-input-actions">
                     <button type="button" id="btn-romita-send" class="rg-send-btn" onclick="sendRomitaMessage()" aria-label="Enviar mensaje">
                         <i class="ph-bold ph-arrow-up"></i>
@@ -177,9 +177,11 @@ body:has(.modal.show) .romita-fab-container,
 body:has(.modal.in) .romita-fab-container,
 body:has(.swal2-container) .romita-fab-container,
 body.modal-open .romita-fab-container,
+body.romita-modal-open .romita-fab-container,
 body.swal2-shown .romita-fab-container,
 body.has-active-modal .romita-fab-container,
 .modal-overlay.active ~ * .romita-fab-container,
+#romita-global-overlay:not([style*="display: none"]):not([style*="display:none"]) ~ * .romita-fab-container,
 .romita-fab-container.is-hidden-by-modal {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -1136,6 +1138,8 @@ body.has-active-modal .romita-fab-container,
     border-radius: 16px !important;
     padding: 12px 18px !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 [data-theme="dark"] .rg-neural-bubble {
@@ -1147,9 +1151,11 @@ body.has-active-modal .romita-fab-container,
 .romita-chat-orbital-card {
     display: flex;
     align-items: center;
-    gap: 16px;
-    min-width: 290px;
+    gap: 14px;
+    min-width: 0;
+    width: 100%;
     max-width: 480px;
+    box-sizing: border-box;
 }
 
 .romita-orbital-core {
@@ -1261,9 +1267,9 @@ body.has-active-modal .romita-fab-container,
     font-weight: 700;
     color: #6366f1;
     letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.35;
     transition: opacity 0.2s ease;
 }
 
@@ -1437,6 +1443,324 @@ body.has-active-modal .romita-fab-container,
     border-color: rgba(255, 255, 255, 0.12);
     color: #cbd5e1;
 }
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (MOBILE APP EXPERIENCE & TABLET ADAPTATION)
+   ========================================================================== */
+
+@media (max-width: 640px) {
+    /* Overlay Fullscreen */
+    .romita-global-overlay {
+        padding: 0 !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        background: rgba(8, 10, 15, 0.95);
+    }
+
+    /* Dialog Edge-to-Edge Native Mobile App */
+    .romita-global-dialog {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        animation: rgMobileSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes rgMobileSlideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .rg-dialog-laser {
+        border-radius: 0 !important;
+    }
+
+    /* Iluminación perimetral interna en móviles cuando está generando */
+    .romita-global-dialog.is-generating {
+        box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.9),
+                    inset 0 0 20px rgba(56, 189, 248, 0.45),
+                    inset 0 0 45px rgba(236, 72, 153, 0.25) !important;
+        animation: rgMobilePerimeterAura 2s infinite alternate ease-in-out !important;
+    }
+
+    @keyframes rgMobilePerimeterAura {
+        0% {
+            box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.9),
+                        inset 0 0 16px rgba(99, 102, 241, 0.45),
+                        inset 0 0 35px rgba(168, 85, 247, 0.25);
+        }
+        50% {
+            box-shadow: inset 0 0 0 2.5px rgba(56, 189, 248, 0.95),
+                        inset 0 0 24px rgba(56, 189, 248, 0.6),
+                        inset 0 0 50px rgba(168, 85, 247, 0.3);
+        }
+        100% {
+            box-shadow: inset 0 0 0 2px rgba(236, 72, 153, 0.9),
+                        inset 0 0 20px rgba(236, 72, 153, 0.5),
+                        inset 0 0 40px rgba(99, 102, 241, 0.25);
+        }
+    }
+
+    /* Header en Mobile */
+    .rg-header {
+        padding: 10px 14px;
+        padding-top: max(10px, env(safe-area-inset-top));
+        border-bottom-width: 1px;
+        gap: 8px;
+    }
+
+    .rg-avatar-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        font-size: 1.05rem;
+    }
+
+    .rg-name-row {
+        gap: 6px;
+    }
+
+    .rg-title {
+        font-size: 0.92rem;
+    }
+
+    .rg-version-tag {
+        font-size: 0.6rem;
+        padding: 1px 4px;
+    }
+
+    .rg-online-badge {
+        font-size: 0.62rem;
+        padding: 1px 6px;
+    }
+
+    .rg-screen-pill {
+        max-width: 150px;
+        font-size: 0.66rem;
+        padding: 1px 6px;
+    }
+
+    /* En móviles se oculta el botón de alternar barra lateral fija (no aplica a pantallas táctiles estrechas) */
+    #btn-romita-toggle-layout {
+        display: none !important;
+    }
+
+    .rg-icon-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.15rem;
+    }
+
+    /* Barra de Especialidades Deslizable y Fluida */
+    .rg-specialties-container {
+        padding: 6px 10px;
+    }
+
+    .rg-specialties-bar {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        padding: 3px;
+        scrollbar-width: none;
+    }
+
+    .rg-spec-tab {
+        flex: 0 0 auto !important;
+        scroll-snap-align: start;
+        padding: 6px 12px;
+        font-size: 0.72rem;
+        gap: 5px;
+        white-space: nowrap;
+    }
+
+    .rg-spec-tab i {
+        font-size: 0.85rem;
+    }
+
+    /* Cuerpo del Chat en Mobile */
+    .rg-chat-body {
+        padding: 12px 10px;
+        gap: 12px;
+        min-height: 0;
+    }
+
+    .rg-msg {
+        max-width: 95%;
+        gap: 8px;
+    }
+
+    .rg-msg-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        font-size: 0.82rem;
+    }
+
+    .rg-avatar-generating::before {
+        inset: -2px;
+        filter: blur(2px);
+    }
+
+    .rg-msg-bubble {
+        padding: 10px 13px;
+        font-size: 0.84rem;
+        line-height: 1.48;
+        border-radius: 14px;
+    }
+
+    /* Tarjeta de Generación Atom Orbital Adaptada al 100% sin Desborde */
+    .rg-neural-bubble {
+        padding: 8px 10px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .romita-chat-orbital-card {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 10px !important;
+        box-sizing: border-box !important;
+    }
+
+    .romita-orbital-core {
+        width: 32px !important;
+        height: 32px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .roc-nucleus {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 0.7rem !important;
+    }
+
+    .roc-chat-details {
+        gap: 5px !important;
+        min-width: 0 !important;
+        flex: 1 !important;
+    }
+
+    .roc-status-row {
+        gap: 6px !important;
+    }
+
+    .roc-status-msg {
+        font-size: 0.75rem !important;
+        white-space: normal !important;
+        line-height: 1.25 !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        word-break: break-word !important;
+    }
+
+    .roc-shimmer-telemetry {
+        gap: 4px !important;
+        width: 100% !important;
+    }
+
+    .roc-shimmer-bar {
+        height: 5px !important;
+    }
+
+    .roc-shimmer-bar.b1 { width: 90% !important; }
+    .roc-shimmer-bar.b2 { width: 62% !important; }
+
+    /* Vista de Bienvenida en Móvil */
+    .rg-welcome-view {
+        padding: 1rem 0.25rem;
+        gap: 0.5rem;
+    }
+
+    .rg-welcome-title {
+        font-size: 1.1rem;
+    }
+
+    .rg-welcome-subtitle {
+        font-size: 0.78rem;
+    }
+
+    .rg-suggestions-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+        width: 100% !important;
+        margin-top: 0.75rem !important;
+    }
+
+    .rg-suggestion-card {
+        padding: 9px 11px;
+        gap: 10px;
+    }
+
+    /* Footer e Input en Mobile */
+    .rg-footer {
+        padding: 8px 10px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        gap: 0;
+    }
+
+    /* En móviles se ocultan los atajos de teclado físicos (Enter, Shift+Enter, R, Esc) para ganar espacio y limpieza */
+    .rg-footer-hints {
+        display: none !important;
+    }
+
+    .rg-input-box {
+        padding: 6px 8px 6px 12px;
+        border-radius: 12px;
+    }
+
+    .rg-textarea {
+        font-size: 0.88rem;
+        line-height: 1.4;
+        max-height: 100px;
+    }
+
+    .rg-send-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    /* FAB Botón en Mobile */
+    .romita-fab-container {
+        bottom: 18px;
+        right: 18px;
+    }
+
+    .romita-fab-btn {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 850px) {
+    .romita-global-overlay {
+        padding: 0.75rem;
+    }
+    .romita-global-dialog {
+        width: 98vw;
+        max-width: 98vw;
+        height: 94vh;
+        max-height: 95vh;
+    }
+    .romita-chat-orbital-card {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    .roc-status-msg {
+        white-space: normal !important;
+    }
+}
 </style>
 
 <script>
@@ -1504,17 +1828,24 @@ function openRomitaGlobalModal() {
     if (!overlay) return;
 
     overlay.style.display = 'flex';
+    document.body.classList.add('romita-modal-open');
+    const fab = document.getElementById('romita-fab-container');
+    if (fab) fab.classList.add('is-hidden-by-modal');
+
     updateRomitaScreenPill();
 
     const input = document.getElementById('romita-chat-input');
     if (input) {
-        setTimeout(() => input.focus(), 100);
+        setTimeout(() => input.focus(), 120);
     }
 }
 
 function closeRomitaGlobalModal() {
     const overlay = document.getElementById('romita-global-overlay');
     if (overlay) overlay.style.display = 'none';
+    document.body.classList.remove('romita-modal-open');
+    const fab = document.getElementById('romita-fab-container');
+    if (fab) fab.classList.remove('is-hidden-by-modal');
 }
 
 function handleRomitaOverlayClick(e) {
@@ -1525,6 +1856,7 @@ function handleRomitaOverlayClick(e) {
 
 // 3. Layout Mode Toggle (Spotlight vs Drawer)
 function toggleRomitaLayoutMode() {
+    if (window.innerWidth <= 640) return; // En móviles no aplica modo lateral dock
     const dialog = document.getElementById('romita-global-dialog');
     const icon = document.getElementById('rg-layout-icon');
     if (!dialog) return;
@@ -1551,7 +1883,12 @@ function updateRomitaScreenPill() {
 function setRomitaSpecialty(spec, btn) {
     romitaSpecialty = spec;
     document.querySelectorAll('.rg-spec-tab').forEach(c => c.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    if (btn) {
+        btn.classList.add('active');
+        try {
+            btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        } catch(e) {}
+    }
 
     // Cambiar de pestaña crea un nuevo chat automáticamente
     romitaCurrentChatId = null;
