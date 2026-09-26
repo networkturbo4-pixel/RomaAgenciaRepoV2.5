@@ -2573,15 +2573,116 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     font-weight: 500;
 }
 .romita-popover-loading {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: #818cf8;
+    font-size: 0.78rem;
+    font-weight: 600;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+}
+[data-theme="dark"] .romita-popover-loading {
+    background: rgba(18, 18, 24, 0.85);
+    border-color: rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(99, 102, 241, 0.1);
+}
+.romita-popover-laser-scan {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #38bdf8 50%, #818cf8 80%, transparent 100%);
+    background-size: 200% 100%;
+    animation: rgLaserBeam 1.6s infinite linear;
+}
+.romita-popover-loading-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+/* Futuristic Editor Generating Placeholder */
+.romita-editor-generating {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px dashed rgba(99, 102, 241, 0.35);
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+}
+[data-theme="dark"] .romita-editor-generating {
+    background: rgba(18, 18, 24, 0.6);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+.reg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    flex-shrink: 0;
+    position: relative;
+}
+.reg-avatar::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 12px;
+    background: conic-gradient(from 0deg, #6366f1, #06b6d4, #ec4899, #6366f1);
+    animation: rgChromaticSpin 2s linear infinite;
+    z-index: -1;
+    filter: blur(3px);
+}
+.reg-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+.reg-status-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 9px 12px;
-    border-radius: 10px;
-    background: rgba(168, 85, 247, 0.12);
-    color: #a855f7;
-    font-size: 0.78rem;
+}
+.reg-tag {
+    font-size: 0.68rem;
     font-weight: 700;
+    color: #ffffff;
+    background: #4f46e5;
+    padding: 1px 6px;
+    border-radius: 5px;
+    letter-spacing: 0.02em;
+}
+.reg-subtext {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #818cf8;
+}
+[data-theme="dark"] .reg-subtext {
+    color: #a5b4fc;
+}
+.reg-shimmer-wave {
+    height: 6px;
+    width: 80%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(99, 102, 241, 0.35) 40%, rgba(56, 189, 248, 0.5) 50%, rgba(168, 85, 247, 0.35) 60%, rgba(255, 255, 255, 0.05) 100%);
+    background-size: 250% 100%;
+    animation: rgShimmerWave 1.8s infinite linear;
 }
 
 .form-control { border: 1px solid var(--border-color, #e2e8f0); background-color: var(--bg-surface, #ffffff); color: var(--color-title, #0f172a); border-radius: 12px; padding: 0.6rem 0.85rem; font-size: 0.88rem; transition: all 0.2s ease; }
@@ -3037,8 +3138,17 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 
                                                             <!-- Loading indicator inside popover -->
                                                             <div id="romita-popover-loading" class="romita-popover-loading" style="display: none;">
-                                                                <i class="ph ph-spinner ph-spin"></i>
-                                                                <span id="romita-loading-text">Romita está redactando el post...</span>
+                                                                <div class="romita-popover-laser-scan"></div>
+                                                                <div class="romita-popover-loading-content">
+                                                                    <div class="rg-neural-equalizer">
+                                                                        <span class="rg-eq-bar"></span>
+                                                                        <span class="rg-eq-bar"></span>
+                                                                        <span class="rg-eq-bar"></span>
+                                                                        <span class="rg-eq-bar"></span>
+                                                                        <span class="rg-eq-bar"></span>
+                                                                    </div>
+                                                                    <span id="romita-loading-text">Romita está redactando el post...</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -10506,9 +10616,26 @@ async function executeRomitaPostAction(subaction) {
         }
     }
 
-    // Temporary editor placeholder
+    // Temporary futuristic editor placeholder
     const originalHtml = editor.innerHTML;
-    editor.innerHTML = '<span style="color:#a855f7; font-weight: 600; font-style: italic; display: inline-flex; align-items: center; gap: 6px;"><i class="ph ph-spinner ph-spin"></i> Romita está redactando el copy...</span>';
+    let actionDesc = 'Redactando copy estratégico...';
+    if (subaction === 'desde_imagen') actionDesc = 'Analizando imagen con visión computacional...';
+    else if (subaction === 'corregir') actionDesc = 'Corrigiendo ortografía y elevando estilo...';
+    else if (subaction === 'hashtags') actionDesc = 'Generando 10 hashtags estratégicos...';
+    else if (subaction === 'persuasivo') actionDesc = 'Reescribiendo con método persuasivo AIDA...';
+
+    editor.innerHTML = `
+        <div class="romita-editor-generating">
+            <div class="reg-avatar"><i class="ph-bold ph-sparkle"></i></div>
+            <div class="reg-details">
+                <div class="reg-status-row">
+                    <span class="reg-tag">Romita IA</span>
+                    <span class="reg-subtext">${actionDesc}</span>
+                </div>
+                <div class="reg-shimmer-wave"></div>
+            </div>
+        </div>
+    `;
 
     try {
         const response = await fetch('ajax/gemini_generate.php', {

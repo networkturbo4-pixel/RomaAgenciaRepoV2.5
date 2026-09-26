@@ -56,6 +56,7 @@ if (!isset($_SESSION['user_id'])) return;
                     <i class="ph ph-x"></i>
                 </button>
             </div>
+            <div class="rg-header-laser"></div>
         </div>
 
         <!-- Specialties Selector (Segmented App Bar - Clean, Zero Emojis) -->
@@ -134,7 +135,7 @@ if (!isset($_SESSION['user_id'])) return;
 
         <!-- Input Bar (Modern Floating App Style) -->
         <div class="rg-footer">
-            <div class="rg-input-box">
+            <div class="rg-input-box" id="romita-chat-input-box">
                 <textarea id="romita-chat-input" class="rg-textarea" rows="1" placeholder="Escribe tu consulta o pide una recomendación estratégica..." onkeydown="handleRomitaInputKeydown(event)" oninput="autoGrowRomitaTextarea(this)"></textarea>
                 <div class="rg-input-actions">
                     <button type="button" id="btn-romita-send" class="rg-send-btn" onclick="sendRomitaMessage()" aria-label="Enviar mensaje">
@@ -958,28 +959,200 @@ if (!isset($_SESSION['user_id'])) return;
     font-weight: 700;
 }
 
-/* Thinking Indicator */
-.rg-typing-indicator {
+/* ==========================================================================
+   FUTURISTIC AI GENERATING ANIMATIONS (NEURAL CORE & LASER SCAN)
+   ========================================================================== */
+
+/* 1. Header Laser Scan (Traveling beam when generating) */
+.rg-header {
+    position: relative;
+}
+
+.rg-header-laser {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2.5px;
+    background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #38bdf8 50%, #ec4899 80%, transparent 100%);
+    background-size: 250% 100%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+.romita-global-dialog.is-generating .rg-header-laser {
+    opacity: 1;
+    animation: rgLaserBeam 1.8s infinite linear;
+}
+
+@keyframes rgLaserBeam {
+    0% { background-position: 250% 0; }
+    100% { background-position: -250% 0; }
+}
+
+/* 2. Dialog Ambient Breathing Glow */
+.romita-global-dialog.is-generating {
+    border-color: rgba(99, 102, 241, 0.35);
+    box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.85),
+                0 0 0 1px rgba(99, 102, 241, 0.25),
+                0 0 50px rgba(99, 102, 241, 0.18);
+    animation: rgDialogAuraPulse 3s infinite alternate ease-in-out;
+}
+
+@keyframes rgDialogAuraPulse {
+    0% { box-shadow: 0 30px 80px -15px rgba(0,0,0,0.85), 0 0 0 1px rgba(99,102,241,0.2), 0 0 35px rgba(99,102,241,0.12); }
+    100% { box-shadow: 0 30px 80px -15px rgba(0,0,0,0.85), 0 0 0 1px rgba(99,102,241,0.4), 0 0 60px rgba(139,92,246,0.28); }
+}
+
+/* 3. Holographic Chromatic Avatar Aura */
+.rg-avatar-generating {
+    position: relative;
+    z-index: 2;
+}
+
+.rg-avatar-generating::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 11px;
+    background: conic-gradient(from 0deg, #6366f1, #06b6d4, #a855f7, #ec4899, #6366f1);
+    animation: rgChromaticSpin 2s linear infinite;
+    z-index: -1;
+    filter: blur(3px);
+    opacity: 0.9;
+}
+
+@keyframes rgChromaticSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 4. Neural Generating Bubble Card */
+.rg-neural-bubble {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+    border-radius: 16px !important;
+    padding: 14px 18px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .rg-neural-bubble {
+    background: rgba(18, 18, 24, 0.7) !important;
+    border-color: rgba(99, 102, 241, 0.3) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(99, 102, 241, 0.08);
+}
+
+.rg-neural-generating-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 250px;
+}
+
+.rg-neural-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 5. Audio / Neural Frequency Equalizer Bars */
+.rg-neural-equalizer {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.rg-eq-bar {
+    width: 3px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #38bdf8 0%, #6366f1 50%, #a855f7 100%);
+    animation: rgEqDance 0.9s ease-in-out infinite alternate;
+}
+
+.rg-eq-bar:nth-child(1) { height: 8px; animation-delay: 0.1s; }
+.rg-eq-bar:nth-child(2) { height: 16px; animation-delay: 0.35s; }
+.rg-eq-bar:nth-child(3) { height: 12px; animation-delay: 0.2s; }
+.rg-eq-bar:nth-child(4) { height: 18px; animation-delay: 0.45s; }
+.rg-eq-bar:nth-child(5) { height: 10px; animation-delay: 0.25s; }
+
+@keyframes rgEqDance {
+    0% { height: 5px; opacity: 0.45; transform: scaleY(0.6); }
+    100% { height: 18px; opacity: 1; transform: scaleY(1.15); filter: drop-shadow(0 0 5px #38bdf8); }
+}
+
+/* 6. Dynamic Context Status Pill */
+.rg-neural-status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 8px 12px;
+    gap: 7px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #818cf8;
+    letter-spacing: 0.01em;
 }
 
-.rg-typing-dot {
-    width: 6px;
-    height: 6px;
+[data-theme="dark"] .rg-neural-status-pill {
+    color: #a5b4fc;
+}
+
+.rg-neural-dot {
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: #818cf8;
-    animation: rgTyping 1.4s infinite ease-in-out both;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    animation: rgDotPulse 1.2s infinite ease-in-out;
+    flex-shrink: 0;
 }
 
-.rg-typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.rg-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes rgDotPulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.25); filter: drop-shadow(0 0 6px #38bdf8); }
+}
 
-@keyframes rgTyping {
-    0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
-    40% { transform: scale(1.1); opacity: 1; }
+#rg-neural-status-text {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* 7. Holographic Shimmer Lines (Futuristic Waveform Skeleton) */
+.rg-neural-shimmer-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.rg-shimmer-line {
+    height: 7px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(99, 102, 241, 0.28) 35%, rgba(56, 189, 248, 0.45) 50%, rgba(168, 85, 247, 0.28) 65%, rgba(255, 255, 255, 0.05) 100%);
+    background-size: 250% 100%;
+    animation: rgShimmerWave 2s infinite linear;
+}
+
+.rg-shimmer-line.l1 { width: 92%; }
+.rg-shimmer-line.l2 { width: 68%; animation-delay: 0.3s; }
+
+@keyframes rgShimmerWave {
+    0% { background-position: 250% 0; }
+    100% { background-position: -250% 0; }
+}
+
+/* 8. Input Box Scanning State */
+.rg-input-box.is-generating {
+    border-color: rgba(99, 102, 241, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 0 20px rgba(99, 102, 241, 0.2) !important;
+    animation: rgInputScan 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes rgInputScan {
+    0% { border-color: rgba(99, 102, 241, 0.35); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12); }
+    100% { border-color: rgba(56, 189, 248, 0.7); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25), 0 0 22px rgba(56, 189, 248, 0.25); }
 }
 
 /* Footer & Input Bar */
@@ -1124,6 +1297,7 @@ let romitaCurrentChatId = null;
 let romitaSpecialty = 'director_360';
 let romitaIsDrawerMode = false;
 let romitaIsLoading = false;
+let romitaStatusInterval = null;
 
 // 1. Get Screen Context (Conciencia Situacional)
 function getRomitaScreenContext() {
@@ -1345,18 +1519,32 @@ async function sendRomitaMessage() {
     `;
     chatContainer.appendChild(userDiv);
 
-    // Append Typing Indicator
+    // Append Futuristic Neural Thought Indicator
     const typingDiv = document.createElement('div');
     typingDiv.className = 'rg-msg rg-msg-ai';
     typingDiv.id = 'romita-typing-indicator';
     typingDiv.innerHTML = `
-        <div class="rg-msg-avatar"><i class="ph-bold ph-sparkle"></i></div>
+        <div class="rg-msg-avatar rg-avatar-generating"><i class="ph-bold ph-sparkle"></i></div>
         <div class="rg-msg-content-wrap">
-            <div class="rg-msg-bubble">
-                <div class="rg-typing-indicator">
-                    <span class="rg-typing-dot"></span>
-                    <span class="rg-typing-dot"></span>
-                    <span class="rg-typing-dot"></span>
+            <div class="rg-msg-bubble rg-neural-bubble">
+                <div class="rg-neural-generating-card">
+                    <div class="rg-neural-header">
+                        <div class="rg-neural-equalizer">
+                            <span class="rg-eq-bar"></span>
+                            <span class="rg-eq-bar"></span>
+                            <span class="rg-eq-bar"></span>
+                            <span class="rg-eq-bar"></span>
+                            <span class="rg-eq-bar"></span>
+                        </div>
+                        <div class="rg-neural-status-pill">
+                            <span class="rg-neural-dot"></span>
+                            <span id="rg-neural-status-text">Romita está procesando el contexto...</span>
+                        </div>
+                    </div>
+                    <div class="rg-neural-shimmer-lines">
+                        <div class="rg-shimmer-line l1"></div>
+                        <div class="rg-shimmer-line l2"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1365,8 +1553,43 @@ async function sendRomitaMessage() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 
     romitaIsLoading = true;
+
+    // Window and input active generating effects
+    const dialog = document.getElementById('romita-global-dialog');
+    if (dialog) dialog.classList.add('is-generating');
+
+    const inputBox = document.getElementById('romita-chat-input-box');
+    if (inputBox) inputBox.classList.add('is-generating');
+
     const sendBtn = document.getElementById('btn-romita-send');
-    if (sendBtn) sendBtn.disabled = true;
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
+    }
+
+    // Dynamic futuristic status phrase cycling
+    const statusPhrases = [
+        'Romita está procesando el contexto...',
+        'Consultando base de proyectos y ecosistema...',
+        'Analizando pilares estratégicos y métricas...',
+        'Sintetizando propuesta de alto impacto...',
+        'Generando respuesta final...'
+    ];
+    let phraseIdx = 0;
+    if (romitaStatusInterval) clearInterval(romitaStatusInterval);
+    romitaStatusInterval = setInterval(() => {
+        phraseIdx = (phraseIdx + 1) % statusPhrases.length;
+        const statusEl = document.getElementById('rg-neural-status-text');
+        if (statusEl) {
+            statusEl.style.opacity = '0';
+            setTimeout(() => {
+                if (statusEl) {
+                    statusEl.innerText = statusPhrases[phraseIdx];
+                    statusEl.style.opacity = '1';
+                }
+            }, 180);
+        }
+    }, 2200);
 
     // Build context
     const ctx = getRomitaScreenContext();
@@ -1387,7 +1610,11 @@ async function sendRomitaMessage() {
         });
         const data = await response.json();
 
-        // Remove typing indicator
+        // Remove typing indicator & stop phrase cycling
+        if (romitaStatusInterval) {
+            clearInterval(romitaStatusInterval);
+            romitaStatusInterval = null;
+        }
         const tInd = document.getElementById('romita-typing-indicator');
         if (tInd) tInd.remove();
 
@@ -1419,6 +1646,10 @@ async function sendRomitaMessage() {
             chatContainer.appendChild(errDiv);
         }
     } catch (err) {
+        if (romitaStatusInterval) {
+            clearInterval(romitaStatusInterval);
+            romitaStatusInterval = null;
+        }
         const tInd = document.getElementById('romita-typing-indicator');
         if (tInd) tInd.remove();
 
@@ -1433,7 +1664,16 @@ async function sendRomitaMessage() {
         chatContainer.appendChild(errDiv);
     } finally {
         romitaIsLoading = false;
-        if (sendBtn) sendBtn.disabled = false;
+        if (romitaStatusInterval) {
+            clearInterval(romitaStatusInterval);
+            romitaStatusInterval = null;
+        }
+        if (dialog) dialog.classList.remove('is-generating');
+        if (inputBox) inputBox.classList.remove('is-generating');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="ph-bold ph-arrow-up"></i>';
+        }
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 }
