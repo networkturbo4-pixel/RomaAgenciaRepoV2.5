@@ -4975,5 +4975,47 @@ body:has(.romita-container) .content-wrapper {
     }
 }
 
-
-
+/* ==========================================================================
+   SIDEBAR NAV ITEM: ROMITA AI CON AVATAR
+   ========================================================================== */
+.nav-item-romita {
+    position: relative;
+}
+.nav-romita-icon-wrap {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+    background: #090e1a;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.nav-item-romita:hover .nav-romita-icon-wrap,
+.nav-item-romita.active .nav-romita-icon-wrap {
+    transform: scale(1.1);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.7);
+    border-color: #38bdf8;
+}
+.nav-romita-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.nav-romita-pill {
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0284c7, #8b5cf6);
+    color: #ffffff;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+}

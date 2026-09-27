@@ -13,6 +13,62 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $db = (new Database())->getConnection();
+
+// Función de auto-sanación de esquema de Romita (resiliencia multi-entorno y multi-base de datos)
+function ensureRomitaSchema($db) {
+    static $checked = false;
+    if ($checked || !$db) return;
+    $checked = true;
+    try {
+        $checkCol = $db->query("SHOW COLUMNS FROM `romita_messages` LIKE 'attachment_url'")->fetch();
+        if (!$checkCol) {
+            $db->exec("ALTER TABLE `romita_messages` 
+                ADD COLUMN `attachment_url` varchar(255) DEFAULT NULL,
+                ADD COLUMN `attachment_type` varchar(50) DEFAULT NULL,
+                ADD COLUMN `attachment_name` varchar(255) DEFAULT NULL,
+                ADD COLUMN `feedback` tinyint(4) DEFAULT NULL");
+        }
+    } catch (\Throwable $e) {}
+
+    try {
+        $checkShare = $db->query("SHOW COLUMNS FROM `romita_chats` LIKE 'share_token'")->fetch();
+        if (!$checkShare) {
+            $db->exec("ALTER TABLE `romita_chats` ADD COLUMN `share_token` varchar(64) DEFAULT NULL, ADD KEY `idx_romita_chats_share` (`share_token`)");
+        }
+    } catch (\Throwable $e) {}
+
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS `romita_user_preferences` (
+          `user_id` int(11) NOT NULL,
+          `response_style` varchar(50) DEFAULT 'conciso',
+          `custom_instructions` text DEFAULT NULL,
+          `default_specialty` varchar(50) DEFAULT 'all',
+          `sound_enabled` tinyint(1) DEFAULT 1,
+          `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+          `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+          PRIMARY KEY (`user_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } catch (\Throwable $e) {}
+
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS `romita_super_prompts` (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `user_id` int(11) DEFAULT NULL,
+          `title` varchar(255) NOT NULL,
+          `category` varchar(100) DEFAULT 'general',
+          `prompt` text NOT NULL,
+          `description` varchar(255) DEFAULT NULL,
+          `icon` varchar(50) DEFAULT 'ph-lightning',
+          `is_agency_template` tinyint(1) DEFAULT 0,
+          `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+          PRIMARY KEY (`id`),
+          KEY `idx_user_prompts` (`user_id`),
+          KEY `idx_agency_prompts` (`is_agency_template`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } catch (\Throwable $e) {}
+}
+ensureRomitaSchema($db);
+
 $action = $_POST['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 
@@ -838,13 +894,23 @@ try {
         }
 
         // Insertar msj usuario con metadatos de adjunto
-        $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
-        $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
+        try {
+            $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
+            $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
+        } catch (\PDOException $pdoEx) {
+            ensureRomitaSchema($db);
+            $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
+            $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
+        }
 
         // Recuperar contexto anterior (últimos 10 mensajes)
-        $stmt_hist = $db->prepare("SELECT role, content FROM romita_messages WHERE chat_id = ? ORDER BY id ASC LIMIT 10");
-        $stmt_hist->execute([$chat_id]);
-        $history = $stmt_hist->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt_hist = $db->prepare("SELECT role, content FROM romita_messages WHERE chat_id = ? ORDER BY id ASC LIMIT 10");
+            $stmt_hist->execute([$chat_id]);
+            $history = $stmt_hist->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            $history = [];
+        }
 
         $contents = [];
         $lastIdx = count($history) - 1;
@@ -1006,7 +1072,10 @@ try {
             . "- Evalúa zonas seguras para redes (evitar textos tapados por la interfaz de Reels/TikTok 9:16 o avatar/comentarios en historias).\n"
             . "- Si te piden extraer texto (OCR), transcríbelo con total fidelidad y sin inventar palabras.\n"
             . "- Ofrece recomendaciones accionables y directas para elevar la tasa de clics y la calidad estética.\n\n"
-            . "REGLA OBLIGATORIA: En los bloques de acción escribe ÚNICAMENTE el JSON puro dentro de ```romita-action:...``` o el Markdown puro en ```romita-canvas:...```. NUNCA generes código HTML, etiquetas <div>, ni snippets de código manual, ya que el sistema Roma SaaS toma automáticamente el JSON y renderiza el componente interactivo, el modal de creación y el canvas en pantalla. Fuera del bloque de acción, explica y desarrolla tu propuesta con tu elocuencia y calidez habitual.";
+            . "REGLA OBLIGATORIA DE ACCIONES Y TAREAS:\n"
+            . "1. Cuando el usuario te pida crear o listar tareas para el Kanban, pendientes o entregables, NUNCA devuelvas bloques de código estándar como ```json ni código ```html. Usa SIEMPRE el bloque interactivo ```romita-action:create_tasks.\n"
+            . "2. En los bloques de acción escribe ÚNICAMENTE el JSON puro dentro de ```romita-action:...``` (o el Markdown dentro de ```romita-canvas:...```). El sistema Roma SaaS toma automáticamente este bloque y muestra en pantalla los componentes interactivos ('Crear en Kanban', 'Abrir en Modal') para el usuario.\n"
+            . "3. Fuera del bloque de acción, explica tu propuesta con tu elocuencia, calidez y visión estratégica habitual.";
         $sysInstructions[] = $agenticInstructions;
 
         // FASE 3: Lector de Enlaces Web en Vivo
@@ -1280,9 +1349,16 @@ try {
             exit();
         }
 
-        $stmt = $db->prepare("SELECT id, role, content, feedback, attachment_url, attachment_type, attachment_name FROM romita_messages WHERE chat_id = ? ORDER BY id ASC");
-        $stmt->execute([$chat_id]);
-        $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $db->prepare("SELECT id, role, content, feedback, attachment_url, attachment_type, attachment_name FROM romita_messages WHERE chat_id = ? ORDER BY id ASC");
+            $stmt->execute([$chat_id]);
+            $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $pe) {
+            ensureRomitaSchema($db);
+            $stmt = $db->prepare("SELECT id, role, content FROM romita_messages WHERE chat_id = ? ORDER BY id ASC");
+            $stmt->execute([$chat_id]);
+            $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
         echo json_encode(['success' => true, 'messages' => $messages]);
         exit();
     }
@@ -1642,14 +1718,26 @@ try {
             exit();
         }
 
-        $stmtMsgs = $db->prepare("
-            SELECT id, role, content, feedback, attachment_url, attachment_type, attachment_name, created_at 
-            FROM romita_messages 
-            WHERE chat_id = ? 
-            ORDER BY id ASC
-        ");
-        $stmtMsgs->execute([$chat['id']]);
-        $messages = $stmtMsgs->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmtMsgs = $db->prepare("
+                SELECT id, role, content, feedback, attachment_url, attachment_type, attachment_name, created_at 
+                FROM romita_messages 
+                WHERE chat_id = ? 
+                ORDER BY id ASC
+            ");
+            $stmtMsgs->execute([$chat['id']]);
+            $messages = $stmtMsgs->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $pe) {
+            ensureRomitaSchema($db);
+            $stmtMsgs = $db->prepare("
+                SELECT id, role, content, created_at 
+                FROM romita_messages 
+                WHERE chat_id = ? 
+                ORDER BY id ASC
+            ");
+            $stmtMsgs->execute([$chat['id']]);
+            $messages = $stmtMsgs->fetchAll(PDO::FETCH_ASSOC);
+        }
 
         echo json_encode([
             'success' => true,

@@ -5024,10 +5024,34 @@ function escapeRomitaHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+function safeParseJson(raw) {
+    if (!raw) return null;
+    let clean = String(raw).trim();
+    clean = clean.replace(/^```[a-z0-9_-]*\s*/i, '').replace(/```\s*$/, '').trim();
+    clean = clean.replace(/,\s*([}\]])/g, '$1');
+    try {
+        return JSON.parse(clean);
+    } catch (e) {
+        try {
+            return JSON.parse(clean.replace(/'/g, '"'));
+        } catch (e2) {
+            return null;
+        }
+    }
+}
+
 function renderRomitaTaskActionCard(jsonContent) {
     try {
-        const data = JSON.parse(jsonContent.trim());
-        const tasks = data.tasks || [];
+        const data = safeParseJson(jsonContent);
+        if (!data) return `<pre><code>${jsonContent}</code></pre>`;
+        let tasks = [];
+        if (Array.isArray(data)) {
+            tasks = data;
+        } else if (Array.isArray(data.tasks)) {
+            tasks = data.tasks;
+        } else if (data.title) {
+            tasks = [data];
+        }
         if (!tasks.length) return '';
 
         const cardId = 'rac-' + Math.random().toString(36).substr(2, 9);
@@ -5923,50 +5947,90 @@ function renderRomitaMarkdown(text) {
     // Lista de bloques agénticos interceptados antes de pasar por marked.parse()
     const actionPlaceholders = [];
 
-    out = out.replace(/```romita-action:create_tasks\s*([\s\S]*?)```/g, function(match, jsonContent) {
+    // 1. Tareas (acepta cualquier variación de create_tasks, create_task, romita-action, romita_action)
+    out = out.replace(/```(?:romita[-_]?action:?|action:)?create_tasks?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
         const placeholder = '<!--ROMITA_ACTION_TASKS_' + actionPlaceholders.length + '-->';
         actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaTaskActionCard(jsonContent) });
         return '\n\n' + placeholder + '\n\n';
     });
 
-    out = out.replace(/```romita-action:schedule_meeting\s*([\s\S]*?)```/g, function(match, jsonContent) {
+    // 2. Reuniones
+    out = out.replace(/```(?:romita[-_]?action:?|action:)?schedule_meetings?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
         const placeholder = '<!--ROMITA_ACTION_MEET_' + actionPlaceholders.length + '-->';
         actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaMeetingActionCard(jsonContent) });
         return '\n\n' + placeholder + '\n\n';
     });
 
-    out = out.replace(/```romita-action:whatsapp_message\s*([\s\S]*?)```/g, function(match, jsonContent) {
+    // 3. WhatsApp
+    out = out.replace(/```(?:romita[-_]?action:?|action:)?whatsapp_messages?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
         const placeholder = '<!--ROMITA_ACTION_WA_' + actionPlaceholders.length + '-->';
         actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaWhatsappActionCard(jsonContent) });
         return '\n\n' + placeholder + '\n\n';
     });
 
-    // FASE 2: Interceptar Posts de Redes Sociales
-    out = out.replace(/```romita-action:social_post\s*([\s\S]*?)```/g, function(match, jsonContent) {
+    // 4. FASE 2: Interceptar Posts de Redes Sociales
+    out = out.replace(/```(?:romita[-_]?action:?|action:)?social_posts?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
         const placeholder = '<!--ROMITA_ACTION_SOCIAL_' + actionPlaceholders.length + '-->';
         actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaSocialCard(jsonContent) });
         return '\n\n' + placeholder + '\n\n';
     });
 
-    // FASE 2: Interceptar Tabs de Variaciones de Copy
-    out = out.replace(/```romita-action:copy_variations\s*([\s\S]*?)```/g, function(match, jsonContent) {
+    // 5. FASE 2: Interceptar Tabs de Variaciones de Copy
+    out = out.replace(/```(?:romita[-_]?action:?|action:)?copy_variations?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
         const placeholder = '<!--ROMITA_ACTION_VARS_' + actionPlaceholders.length + '-->';
         actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaVariationsCard(jsonContent) });
         return '\n\n' + placeholder + '\n\n';
     });
 
-    // FASE 2: Interceptar Bloque Canvas
-    out = out.replace(/```romita-canvas:title="([^"]+)"\s*([\s\S]*?)```/g, function(match, title, canvasBody) {
+    // 6. FASE 2: Interceptar Bloque Canvas
+    out = out.replace(/```romita-canvas:title="([^"]+)"\s*([\s\S]*?)```/gi, function(match, title, canvasBody) {
         const placeholder = '<!--ROMITA_ACTION_CANVAS_' + actionPlaceholders.length + '-->';
         actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaCanvasTrigger(title, canvasBody) });
         return '\n\n' + placeholder + '\n\n';
     });
 
-    // FASE 3: Interceptar Prompts Visuales (Midjourney / FLUX)
-    out = out.replace(/```romita-action:image_prompt\s*([\s\S]*?)```/g, function(match, jsonContent) {
+    // 7. FASE 3: Interceptar Prompts Visuales (Midjourney / FLUX)
+    out = out.replace(/```(?:romita[-_]?action:?|action:)?image_prompts?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
         const placeholder = '<!--ROMITA_ACTION_IMGP_' + actionPlaceholders.length + '-->';
         actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaImagePromptCard(jsonContent) });
         return '\n\n' + placeholder + '\n\n';
+    });
+
+    // 8. RED DE SEGURIDAD AGÉNTICA: Si Gemini devolvió un bloque ```json ... ``` estándar con tareas u objetos de acción
+    out = out.replace(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/gi, function(match, innerJson) {
+        const parsed = safeParseJson(innerJson);
+        if (!parsed) return match;
+        if (parsed.tasks || (parsed.title && (parsed.due_date || parsed.is_urgent !== undefined || parsed.prioridad || parsed.responsable))) {
+            const placeholder = '<!--ROMITA_ACTION_TASKS_' + actionPlaceholders.length + '-->';
+            actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaTaskActionCard(innerJson) });
+            return '\n\n' + placeholder + '\n\n';
+        }
+        if (parsed.meet_link || (parsed.motivo && parsed.fecha_hora)) {
+            const placeholder = '<!--ROMITA_ACTION_MEET_' + actionPlaceholders.length + '-->';
+            actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaMeetingActionCard(innerJson) });
+            return '\n\n' + placeholder + '\n\n';
+        }
+        if (parsed.recipient_name && parsed.message) {
+            const placeholder = '<!--ROMITA_ACTION_WA_' + actionPlaceholders.length + '-->';
+            actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaWhatsappActionCard(innerJson) });
+            return '\n\n' + placeholder + '\n\n';
+        }
+        if (parsed.platform && parsed.caption) {
+            const placeholder = '<!--ROMITA_ACTION_SOCIAL_' + actionPlaceholders.length + '-->';
+            actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaSocialCard(innerJson) });
+            return '\n\n' + placeholder + '\n\n';
+        }
+        if (parsed.variations && Array.isArray(parsed.variations)) {
+            const placeholder = '<!--ROMITA_ACTION_VARS_' + actionPlaceholders.length + '-->';
+            actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaVariationsCard(innerJson) });
+            return '\n\n' + placeholder + '\n\n';
+        }
+        if (parsed.prompt_en || (parsed.concept && parsed.engine)) {
+            const placeholder = '<!--ROMITA_ACTION_IMGP_' + actionPlaceholders.length + '-->';
+            actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaImagePromptCard(innerJson) });
+            return '\n\n' + placeholder + '\n\n';
+        }
+        return match;
     });
 
     let rendered = '';

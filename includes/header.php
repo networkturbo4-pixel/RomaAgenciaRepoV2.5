@@ -261,6 +261,14 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                 <i class="ph ph-briefcase"></i>
                 <span>Workspace</span>
             </a>
+
+            <a href="index.php?module=romita&action=index" class="nav-item nav-item-romita <?php echo $current_module === 'romita' ? 'active' : ''; ?>" data-title="Romita AI">
+                <span class="nav-romita-icon-wrap">
+                    <img src="assets/img/romita-avatar.png" alt="Romita AI" class="nav-romita-avatar">
+                </span>
+                <span>Romita AI</span>
+                <span class="nav-romita-pill">IA</span>
+            </a>
             <?php endif; ?>
 
             <?php if (in_array('mensajes', $perms)): ?>
