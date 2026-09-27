@@ -5516,7 +5516,22 @@ body:has(.romita-container) .content-wrapper {
     gap: 6px;
     overflow-x: auto;
     padding-bottom: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
+}
+
+.sp-filter-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.sp-filter-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sp-filter-tabs::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.3);
+    border-radius: 4px;
 }
 
 .sp-tab-btn {
@@ -5538,9 +5553,17 @@ body:has(.romita-container) .content-wrapper {
 }
 
 .sp-tab-btn.active {
-    background: #4f46e5;
-    border-color: #4f46e5;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    border-color: #2563eb;
     color: #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+[data-theme="dark"] .sp-tab-btn.active {
+    background: linear-gradient(135deg, #1e40af, #0284c7);
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
 }
 
 /* 5. Formal Corporate Print & PDF Stylesheet */
