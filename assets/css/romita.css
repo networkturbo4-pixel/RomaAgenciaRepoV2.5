@@ -2397,10 +2397,130 @@ body:has(.romita-container) .content-wrapper {
     100% { transform: translateX(260%); }
 }
 
-/* Fallback & Legacy compatibility */
+/* Quantum Orbital Atom Generation Card inside Chat Stream */
 .romita-chat-orbital-card {
-    display: none !important;
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(56, 189, 248, 0.04));
+    border: 1px dashed rgba(37, 99, 235, 0.35);
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    width: 100%;
+    max-width: 440px;
 }
+
+[data-theme="dark"] .romita-chat-orbital-card {
+    background: linear-gradient(135deg, rgba(10, 15, 29, 0.85), rgba(15, 23, 42, 0.8));
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+.romita-chat-orbital-card .romita-orbital-core {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.romita-chat-orbital-card .roc-nucleus {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #0a0f1d;
+    border: 1.5px solid rgba(56, 189, 248, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
+    z-index: 2;
+    overflow: hidden;
+    animation: rocNucleusPulse 1.4s infinite alternate ease-in-out;
+}
+
+.romita-chat-orbital-card .roc-nucleus img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.romita-chat-orbital-card .roc-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-top-color: #38bdf8;
+    border-right-color: #2563eb;
+}
+
+.romita-chat-orbital-card .roc-ring-1 {
+    animation: rocSpinRing1 1.3s infinite linear;
+}
+
+.romita-chat-orbital-card .roc-ring-2 {
+    inset: 3px;
+    border-top-color: #60a5fa;
+    border-left-color: #1d4ed8;
+    animation: rocSpinRing2 1.8s infinite linear reverse;
+}
+
+.romita-chat-orbital-card .roc-pulse {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.28);
+    filter: blur(4px);
+    animation: rocPulseGlow 1.8s infinite ease-out;
+}
+
+.roc-chat-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.roc-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.roc-status-row .reg-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+    flex-shrink: 0;
+}
+
+.roc-shimmer-telemetry {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.roc-shimmer-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(37, 99, 235, 0.4) 40%, rgba(56, 189, 248, 0.65) 50%, rgba(2, 132, 199, 0.4) 60%, rgba(255, 255, 255, 0.05) 100%);
+    background-size: 250% 100%;
+    animation: rgShimmerWave 1.8s infinite linear;
+}
+
+.roc-shimmer-bar.b1 { width: 88%; }
+.roc-shimmer-bar.b2 { width: 62%; animation-delay: 0.35s; }
 
 /* 4. Chromatic Avatar Aura (Azul, Negro y Celeste) */
 .rg-avatar-generating {

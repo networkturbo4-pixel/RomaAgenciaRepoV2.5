@@ -1778,127 +1778,132 @@ try {
 
     // 1. Crear Publicaciones en Month Board (Tablero Mensual)
     if ($action === 'tool_create_month_posts') {
-        $brandName = trim($_POST['brand_name'] ?? '');
-        $monthId = (int)($_POST['month_id'] ?? 0);
-        $projectId = (int)($_POST['project_id'] ?? 0);
-        $postsRaw = $_POST['posts'] ?? '';
-        $posts = is_array($postsRaw) ? $postsRaw : json_decode($postsRaw, true);
+        try {
+            $brandName = trim($_POST['brand_name'] ?? '');
+            $monthId = (int)($_POST['month_id'] ?? 0);
+            $projectId = (int)($_POST['project_id'] ?? 0);
+            $postsRaw = $_POST['posts'] ?? '';
+            $posts = is_array($postsRaw) ? $postsRaw : json_decode($postsRaw, true);
 
-        if (empty($posts) || !is_array($posts)) {
-            echo json_encode(['success' => false, 'error' => 'No se recibieron publicaciones válidas para registrar en el Month Board.']);
-            exit();
-        }
-
-        // Si no se proporcionó month_id, resolverlo por proyecto o por nombre de marca
-        if (!$monthId) {
-            if (!$projectId && !empty($brandName)) {
-                $stmtP = $db->prepare("
-                    SELECT p.id 
-                    FROM projects p 
-                    JOIN work_orders wo ON p.work_order_id = wo.id 
-                    WHERE wo.brand_name LIKE ? 
-                    ORDER BY p.id DESC LIMIT 1
-                ");
-                $stmtP->execute(['%' . $brandName . '%']);
-                $projectId = (int)$stmtP->fetchColumn();
+            if (empty($posts) || !is_array($posts)) {
+                echo json_encode(['success' => false, 'error' => 'No se recibieron publicaciones válidas para registrar en el Month Board.']);
+                exit();
             }
 
-            if ($projectId) {
-                // Verificar si hay fecha en el primer post para vincular al mes y año correspondiente
-                $firstPostDate = $posts[0]['post_date'] ?? '';
-                $targetMonth = 0;
-                $targetYear = 0;
-                if (!empty($firstPostDate) && preg_match('/^(\d{4})-(\d{2})/', $firstPostDate, $mMatch)) {
-                    $targetYear = (int)$mMatch[1];
-                    $targetMonth = (int)$mMatch[2];
+            // Si no se proporcionó month_id, resolverlo por proyecto o por nombre de marca
+            if (!$monthId) {
+                if (!$projectId && !empty($brandName)) {
+                    $stmtP = $db->prepare("
+                        SELECT p.id 
+                        FROM projects p 
+                        JOIN work_orders wo ON p.work_order_id = wo.id 
+                        WHERE wo.brand_name LIKE ? 
+                        ORDER BY p.id DESC LIMIT 1
+                    ");
+                    $stmtP->execute(['%' . $brandName . '%']);
+                    $projectId = (int)$stmtP->fetchColumn();
                 }
 
-                if ($targetMonth > 0 && $targetYear > 0) {
-                    $stmtM = $db->prepare("SELECT id FROM project_months WHERE project_id = ? AND month = ? AND year = ?");
-                    $stmtM->execute([$projectId, $targetMonth, $targetYear]);
-                    $monthId = (int)$stmtM->fetchColumn();
+                if ($projectId) {
+                    // Verificar si hay fecha en el primer post para vincular al mes y año correspondiente
+                    $firstPostDate = $posts[0]['post_date'] ?? '';
+                    $targetMonth = 0;
+                    $targetYear = 0;
+                    if (!empty($firstPostDate) && preg_match('/^(\d{4})-(\d{2})/', $firstPostDate, $mMatch)) {
+                        $targetYear = (int)$mMatch[1];
+                        $targetMonth = (int)$mMatch[2];
+                    }
 
-                    // Si el mes aún no ha sido creado en el proyecto, generarlo automáticamente
+                    if ($targetMonth > 0 && $targetYear > 0) {
+                        $stmtM = $db->prepare("SELECT id FROM project_months WHERE project_id = ? AND month = ? AND year = ?");
+                        $stmtM->execute([$projectId, $targetMonth, $targetYear]);
+                        $monthId = (int)$stmtM->fetchColumn();
+
+                        // Si el mes aún no ha sido creado en el proyecto, generarlo automáticamente
+                        if (!$monthId) {
+                            $stmtNewM = $db->prepare("INSERT INTO project_months (project_id, month, year, status, created_at, updated_at) VALUES (?, ?, ?, 'pendiente', NOW(), NOW())");
+                            $stmtNewM->execute([$projectId, $targetMonth, $targetYear]);
+                            $monthId = (int)$db->lastInsertId();
+                        }
+                    }
+
+                    // Si no se pudo determinar por fecha, vincular al mes activo/reciente del proyecto
                     if (!$monthId) {
-                        $stmtNewM = $db->prepare("INSERT INTO project_months (project_id, month, year, status, created_at, updated_at) VALUES (?, ?, ?, 'pendiente', NOW(), NOW())");
-                        $stmtNewM->execute([$projectId, $targetMonth, $targetYear]);
-                        $monthId = (int)$db->lastInsertId();
+                        $stmtLatestM = $db->prepare("SELECT id FROM project_months WHERE project_id = ? ORDER BY year DESC, month DESC LIMIT 1");
+                        $stmtLatestM->execute([$projectId]);
+                        $monthId = (int)$stmtLatestM->fetchColumn();
                     }
                 }
-
-                // Si no se pudo determinar por fecha, vincular al mes activo/reciente del proyecto
-                if (!$monthId) {
-                    $stmtLatestM = $db->prepare("SELECT id FROM project_months WHERE project_id = ? ORDER BY year DESC, month DESC LIMIT 1");
-                    $stmtLatestM->execute([$projectId]);
-                    $monthId = (int)$stmtLatestM->fetchColumn();
-                }
             }
-        }
 
-        if (!$monthId) {
-            echo json_encode(['success' => false, 'error' => 'No se encontró un tablero mensual (Month Board) activo para vincular estas publicaciones. Por favor selecciona el proyecto de la marca en el selector superior.']);
+            if (!$monthId) {
+                echo json_encode(['success' => false, 'error' => 'No se encontró un tablero mensual (Month Board) activo para vincular estas publicaciones. Por favor selecciona el proyecto de la marca en el selector superior.']);
+                exit();
+            }
+
+            // Obtener detalles del mes para el mensaje y redirección
+            $stmtMInfo = $db->prepare("
+                SELECT pm.id, pm.month, pm.year, wo.brand_name 
+                FROM project_months pm 
+                JOIN projects p ON pm.project_id = p.id 
+                JOIN work_orders wo ON p.work_order_id = wo.id 
+                WHERE pm.id = ?
+            ");
+            $stmtMInfo->execute([$monthId]);
+            $mInfo = $stmtMInfo->fetch(PDO::FETCH_ASSOC);
+            $resolvedBrand = $mInfo['brand_name'] ?? ($brandName ?: 'Marca');
+            $resolvedMonthText = ($mInfo ? "Mes {$mInfo['month']}/{$mInfo['year']}" : "Mes #{$monthId}");
+
+            $createdPostIds = [];
+            $stmtInsPost = $db->prepare("
+                INSERT INTO month_posts (month_id, post_date, concept, copy_text, platform, status, post_type, content_pillar, design_brief, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ");
+
+            foreach ($posts as $p) {
+                $concept = trim($p['concept'] ?? ($p['title'] ?? ''));
+                if (!$concept) continue;
+
+                // Limpiar prefijo [MONTH_BOARD: ...] si Gemini lo incluyó en el título
+                $conceptClean = preg_replace('/^\[MONTH_BOARD:[^\]]+\]\s*/i', '', $concept);
+
+                $copy = trim($p['copy_text'] ?? ($p['caption'] ?? ($p['description'] ?? '')));
+                $postDate = !empty($p['post_date']) ? $p['post_date'] : date('Y-m-d H:i:s');
+                $platform = !empty($p['platform']) ? (is_array($p['platform']) ? implode(', ', $p['platform']) : $p['platform']) : 'Instagram';
+                $status = !empty($p['status']) ? $p['status'] : 'Borrador';
+                $postType = !empty($p['post_type']) ? $p['post_type'] : (!empty($p['format']) ? $p['format'] : 'Reel');
+                $pillar = !empty($p['content_pillar']) ? $p['content_pillar'] : (!empty($p['pillar']) ? $p['pillar'] : 'Branding');
+                $brief = trim($p['design_brief'] ?? ($p['hook'] ?? ''));
+
+                $stmtInsPost->execute([$monthId, $postDate, $conceptClean, $copy, $platform, $status, $postType, $pillar, $brief]);
+                $createdPostIds[] = $db->lastInsertId();
+            }
+
+            if (empty($createdPostIds)) {
+                echo json_encode(['success' => false, 'error' => 'No se pudo crear ninguna publicación en el Month Board.']);
+                exit();
+            }
+
+            // Sincronizar tareas si existe TaskSyncHelper
+            try {
+                require_once __DIR__ . '/../includes/TaskSyncHelper.php';
+                TaskSyncHelper::syncMonthPostsCompletion($db, $monthId);
+            } catch(\Throwable $eSync) {}
+
+            echo json_encode([
+                'success' => true,
+                'count' => count($createdPostIds),
+                'post_ids' => $createdPostIds,
+                'month_id' => $monthId,
+                'brand_name' => $resolvedBrand,
+                'redirect_url' => "index.php?module=month_board&action=index&id={$monthId}",
+                'message' => count($createdPostIds) . (count($createdPostIds) === 1 ? ' post inyectado' : ' posts inyectados') . " exitosamente en el Month Board de {$resolvedBrand} ({$resolvedMonthText})."
+            ]);
+            exit();
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'error' => 'Error al procesar la inserción en el Month Board: ' . $e->getMessage()]);
             exit();
         }
-
-        // Obtener detalles del mes para el mensaje y redirección
-        $stmtMInfo = $db->prepare("
-            SELECT pm.id, pm.month, pm.year, wo.brand_name 
-            FROM project_months pm 
-            JOIN projects p ON pm.project_id = p.id 
-            JOIN work_orders wo ON p.work_order_id = wo.id 
-            WHERE pm.id = ?
-        ");
-        $stmtMInfo->execute([$monthId]);
-        $mInfo = $stmtMInfo->fetch(PDO::FETCH_ASSOC);
-        $resolvedBrand = $mInfo['brand_name'] ?? ($brandName ?: 'Marca');
-        $resolvedMonthText = ($mInfo ? "Mes {$mInfo['month']}/{$mInfo['year']}" : "Mes #{$monthId}");
-
-        $createdPostIds = [];
-        $stmtInsPost = $db->prepare("
-            INSERT INTO month_posts (month_id, post_date, concept, copy_text, platform, status, post_type, content_pillar, design_brief, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-        ");
-
-        foreach ($posts as $p) {
-            $concept = trim($p['concept'] ?? ($p['title'] ?? ''));
-            if (!$concept) continue;
-
-            // Limpiar prefijo [MONTH_BOARD: ...] si Gemini lo incluyó en el título
-            $conceptClean = preg_replace('/^\[MONTH_BOARD:[^\]]+\]\s*/i', '', $concept);
-
-            $copy = trim($p['copy_text'] ?? ($p['caption'] ?? ($p['description'] ?? '')));
-            $postDate = !empty($p['post_date']) ? $p['post_date'] : date('Y-m-d H:i:s');
-            $platform = !empty($p['platform']) ? (is_array($p['platform']) ? implode(', ', $p['platform']) : $p['platform']) : 'Instagram';
-            $status = !empty($p['status']) ? $p['status'] : 'Borrador';
-            $postType = !empty($p['post_type']) ? $p['post_type'] : (!empty($p['format']) ? $p['format'] : 'Reel');
-            $pillar = !empty($p['content_pillar']) ? $p['content_pillar'] : (!empty($p['pillar']) ? $p['pillar'] : 'Branding');
-            $brief = trim($p['design_brief'] ?? ($p['hook'] ?? ''));
-
-            $stmtInsPost->execute([$monthId, $postDate, $conceptClean, $copy, $platform, $status, $postType, $pillar, $brief]);
-            $createdPostIds[] = $db->lastInsertId();
-        }
-
-        if (empty($createdPostIds)) {
-            echo json_encode(['success' => false, 'error' => 'No se pudo crear ninguna publicación en el Month Board.']);
-            exit();
-        }
-
-        // Sincronizar tareas si existe TaskSyncHelper
-        try {
-            require_once __DIR__ . '/../includes/TaskSyncHelper.php';
-            TaskSyncHelper::syncMonthPostsCompletion($db, $monthId);
-        } catch(\Throwable $eSync) {}
-
-        echo json_encode([
-            'success' => true,
-            'count' => count($createdPostIds),
-            'post_ids' => $createdPostIds,
-            'month_id' => $monthId,
-            'brand_name' => $resolvedBrand,
-            'redirect_url' => "index.php?module=month_board&action=index&id={$monthId}",
-            'message' => count($createdPostIds) . (count($createdPostIds) === 1 ? ' post inyectado' : ' posts inyectados') . " exitosamente en el Month Board de {$resolvedBrand} ({$resolvedMonthText})."
-        ]);
-        exit();
     }
 
     // 2. Crear Tareas en Tareas & Objetivos (Task Manager)

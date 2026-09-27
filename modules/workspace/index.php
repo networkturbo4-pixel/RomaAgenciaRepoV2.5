@@ -602,7 +602,7 @@ require_once 'includes/header.php';
                 </div>
             </div>
             <div class="workspace-card-content">
-                <h3 class="workspace-card-title" style="background: linear-gradient(135deg, #818cf8, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">Romita IA</h3>
+                <h3 class="workspace-card-title" style="background: linear-gradient(135deg, #38bdf8, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">Romita IA</h3>
                 <p class="workspace-card-desc">Asistente IA para creación de contenidos y estrategias.</p>
             </div>
             <div class="workspace-card-footer">

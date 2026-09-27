@@ -2341,7 +2341,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     margin-left: auto;
 }
 .romita-hacer-btn {
-    background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%) !important;
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #38bdf8 100%) !important;
     color: #ffffff !important;
     border: none !important;
     border-radius: 10px !important;
@@ -2350,19 +2350,36 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     font-weight: 700 !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 7px !important;
     cursor: pointer !important;
     transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-    box-shadow: 0 2px 10px rgba(168, 85, 247, 0.35) !important;
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.4) !important;
     white-space: nowrap !important;
 }
 .romita-hacer-btn:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.5) !important;
+    box-shadow: 0 4px 18px rgba(56, 189, 248, 0.6) !important;
     filter: brightness(1.06) !important;
 }
 .romita-hacer-btn:active {
     transform: scale(0.97) !important;
+}
+.romita-hacer-avatar-mini {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0f1d;
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    flex-shrink: 0;
+}
+.romita-hacer-avatar-mini img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 .romita-popover-panel {
     position: absolute;
@@ -2394,11 +2411,11 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     justify-content: space-between;
     padding: 10px 14px;
     border-bottom: 1px solid var(--border-color, #e2e8f0);
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.08));
+    background: linear-gradient(135deg, rgba(29, 78, 216, 0.08), rgba(56, 189, 248, 0.08));
 }
 [data-theme="dark"] .romita-popover-header {
     border-bottom-color: rgba(255, 255, 255, 0.08);
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(236, 72, 153, 0.15));
+    background: linear-gradient(135deg, rgba(29, 78, 216, 0.18), rgba(56, 189, 248, 0.15));
 }
 .romita-popover-brand {
     display: flex;
@@ -2409,14 +2426,19 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     width: 32px;
     height: 32px;
     border-radius: 9px;
-    background: linear-gradient(135deg, #6366f1, #ec4899);
+    background: #0a0f1d;
+    border: 1px solid rgba(56, 189, 248, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
-    font-size: 1.05rem;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
     flex-shrink: 0;
+    overflow: hidden;
+}
+.romita-avatar-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 .romita-popover-title {
     font-size: 0.86rem;
@@ -2472,8 +2494,8 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     border-color: rgba(255, 255, 255, 0.12);
 }
 .romita-prompt-input-wrap:focus-within {
-    border-color: #a855f7;
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 .romita-prompt-textarea {
     width: 100%;
@@ -2498,7 +2520,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #6366f1, #a855f7);
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
     color: #ffffff;
     border: none;
     cursor: pointer;
@@ -2509,10 +2531,12 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     flex-shrink: 0;
     transition: all 0.2s;
     margin-left: 6px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 .romita-send-prompt-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+    background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.55);
 }
 .romita-quick-label {
     font-size: 0.7rem;
@@ -2546,8 +2570,8 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     color: #e2e8f0;
 }
 .romita-quick-btn:hover {
-    background: rgba(99, 102, 241, 0.08);
-    border-color: #a855f7;
+    background: rgba(37, 99, 235, 0.08);
+    border-color: #38bdf8;
     transform: translateX(3px);
 }
 .romita-quick-btn i {
@@ -2556,9 +2580,9 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 }
 .rqb-img i { color: #10b981; }
 .rqb-concept i { color: #f59e0b; }
-.rqb-fix i { color: #a78bfa; }
+.rqb-fix i { color: #38bdf8; }
 .rqb-hash i { color: #60a5fa; }
-.rqb-persuade i { color: #ec4899; }
+.rqb-persuade i { color: #2563eb; }
 .rqb-text {
     display: flex;
     flex-direction: column;
@@ -2575,27 +2599,27 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 }
 /* Animated Illumination Around Editor Box when Generating */
 .custom-wysiwyg-wrapper.is-generating {
-    border-color: rgba(99, 102, 241, 0.7) !important;
+    border-color: rgba(37, 99, 235, 0.8) !important;
     animation: rgEditorPerimeterAura 2.2s infinite alternate ease-in-out !important;
 }
 
 @keyframes rgEditorPerimeterAura {
     0% {
-        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.75),
-                    0 0 20px rgba(168, 85, 247, 0.55),
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.75),
+                    0 0 20px rgba(29, 78, 216, 0.55),
                     0 0 45px rgba(56, 189, 248, 0.35),
                     0 10px 30px rgba(0, 0, 0, 0.15);
     }
     50% {
         box-shadow: 0 0 0 2.5px rgba(56, 189, 248, 0.85),
                     0 0 28px rgba(56, 189, 248, 0.65),
-                    0 0 55px rgba(168, 85, 247, 0.45),
+                    0 0 55px rgba(37, 99, 235, 0.45),
                     0 12px 35px rgba(0, 0, 0, 0.2);
     }
     100% {
-        box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.8),
-                    0 0 32px rgba(236, 72, 153, 0.65),
-                    0 0 65px rgba(99, 102, 241, 0.45),
+        box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.8),
+                    0 0 32px rgba(56, 189, 248, 0.65),
+                    0 0 65px rgba(37, 99, 235, 0.45),
                     0 14px 40px rgba(0, 0, 0, 0.25);
     }
 }
@@ -2606,7 +2630,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     left: 0;
     width: 100%;
     height: 2.5px;
-    background: linear-gradient(90deg, transparent 0%, #38bdf8 30%, #818cf8 60%, #ec4899 85%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, #1d4ed8 25%, #38bdf8 50%, #60a5fa 75%, transparent 100%);
     background-size: 200% 100%;
     opacity: 0;
     pointer-events: none;
@@ -2633,8 +2657,8 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     gap: 16px;
     padding: 16px 20px;
     border-radius: 14px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(236, 72, 153, 0.05));
-    border: 1px dashed rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(56, 189, 248, 0.05));
+    border: 1px dashed rgba(37, 99, 235, 0.4);
     position: relative;
     overflow: hidden;
     user-select: none;
@@ -2642,14 +2666,14 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 }
 
 [data-theme="dark"] .romita-editor-generating {
-    background: linear-gradient(135deg, rgba(18, 18, 26, 0.85), rgba(30, 27, 75, 0.4));
-    border-color: rgba(99, 102, 241, 0.45);
+    background: linear-gradient(135deg, rgba(10, 15, 29, 0.9), rgba(15, 23, 42, 0.85));
+    border-color: rgba(56, 189, 248, 0.4);
 }
 
 .romita-orbital-core {
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2657,18 +2681,23 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 }
 
 .roc-nucleus {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #4f46e5, #ec4899);
+    background: #0a0f1d;
+    border: 1.5px solid rgba(56, 189, 248, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
-    font-size: 0.8rem;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.8);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.85);
     z-index: 2;
+    overflow: hidden;
     animation: rocNucleusPulse 1.4s infinite alternate ease-in-out;
+}
+.roc-nucleus img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .roc-ring {
@@ -2677,7 +2706,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     border-radius: 50%;
     border: 1.5px solid transparent;
     border-top-color: #38bdf8;
-    border-right-color: #8b5cf6;
+    border-right-color: #2563eb;
 }
 
 .roc-ring-1 {
@@ -2686,8 +2715,8 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 
 .roc-ring-2 {
     inset: 3px;
-    border-top-color: #ec4899;
-    border-left-color: #4f46e5;
+    border-top-color: #60a5fa;
+    border-left-color: #1d4ed8;
     animation: rocSpinRing2 1.8s infinite linear reverse;
 }
 
@@ -2695,7 +2724,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     position: absolute;
     inset: -3px;
     border-radius: 50%;
-    background: rgba(99, 102, 241, 0.25);
+    background: rgba(37, 99, 235, 0.28);
     filter: blur(4px);
     animation: rocPulseGlow 1.8s infinite ease-out;
 }
@@ -2712,8 +2741,8 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
 }
 
 @keyframes rocNucleusPulse {
-    0% { transform: scale(0.92); box-shadow: 0 0 6px rgba(99, 102, 241, 0.5); }
-    100% { transform: scale(1.08); box-shadow: 0 0 14px rgba(236, 72, 153, 0.85); }
+    0% { transform: scale(0.92); box-shadow: 0 0 8px rgba(37, 99, 235, 0.6); }
+    100% { transform: scale(1.08); box-shadow: 0 0 18px rgba(56, 189, 248, 0.95); }
 }
 
 @keyframes rocPulseGlow {
@@ -2738,27 +2767,28 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     font-size: 0.68rem;
     font-weight: 700;
     color: #ffffff;
-    background: #4f46e5;
-    padding: 2px 7px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    padding: 2px 8px;
     border-radius: 5px;
     letter-spacing: 0.03em;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
 }
 
 .reg-subtext {
     font-size: 0.84rem;
     font-weight: 600;
-    color: #4f46e5;
+    color: #1d4ed8;
 }
 
 [data-theme="dark"] .reg-subtext {
-    color: #a5b4fc;
+    color: #60a5fa;
 }
 
 .reg-shimmer-wave {
     height: 6px;
     width: 82%;
     border-radius: 3px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(99, 102, 241, 0.35) 40%, rgba(56, 189, 248, 0.55) 50%, rgba(168, 85, 247, 0.35) 60%, rgba(255, 255, 255, 0.05) 100%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(37, 99, 235, 0.4) 40%, rgba(56, 189, 248, 0.65) 50%, rgba(2, 132, 199, 0.4) 60%, rgba(255, 255, 255, 0.05) 100%);
     background-size: 250% 100%;
     animation: rgShimmerWave 1.8s infinite linear;
 }
@@ -3159,7 +3189,9 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                 <div class="wys-divider"></div>
                                                 <div class="romita-hacer-wrap">
                                                     <button type="button" class="wys-btn romita-hacer-btn" id="btn-romita-copy-assistant" onclick="toggleRomitaPopover(event)" title="Asistente de Redacción y Copywriting con Romita IA">
-                                                        <i class="ph-fill ph-sparkle"></i>
+                                                        <span class="romita-hacer-avatar-mini">
+                                                            <img src="assets/img/romita-avatar.png" alt="Romita">
+                                                        </span>
                                                         <span>Hacer con Romita</span>
                                                         <i class="ph-bold ph-caret-down" style="font-size: 0.72rem; opacity: 0.85; margin-left: 2px;"></i>
                                                     </button>
@@ -3168,7 +3200,9 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                     <div id="romita-popover-panel" class="romita-popover-panel" style="display: none;" onclick="event.stopPropagation()">
                                                         <div class="romita-popover-header">
                                                             <div class="romita-popover-brand">
-                                                                <div class="romita-avatar-icon"><i class="ph-fill ph-sparkle"></i></div>
+                                                                <div class="romita-avatar-icon">
+                                                                    <img src="assets/img/romita-avatar.png" alt="Romita">
+                                                                </div>
                                                                 <div>
                                                                     <div class="romita-popover-title">Romita • Copywriting</div>
                                                                     <div class="romita-popover-subtitle">Senior Community Manager & Copywriter</div>
@@ -10713,7 +10747,7 @@ async function executeRomitaPostAction(subaction) {
         <div class="romita-editor-generating">
             <div class="romita-orbital-core">
                 <div class="roc-nucleus">
-                    <i class="ph-bold ph-sparkle"></i>
+                    <img src="assets/img/romita-avatar.png" alt="Romita">
                 </div>
                 <div class="roc-ring roc-ring-1"></div>
                 <div class="roc-ring roc-ring-2"></div>

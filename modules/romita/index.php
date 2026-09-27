@@ -417,6 +417,27 @@ try {
                                 <span class="rg-slash-desc">Estructurar campaña de pauta con ganchos y públicos</span>
                             </div>
                         </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/copy" data-prompt="Redacta un copy persuasivo completo con gancho magnético, desarrollo persuasivo (método AIDA), llamado a la acción (CTA) y hashtags optimizados para: " onclick="selectRomitaModuleSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:linear-gradient(135deg, #1d4ed8, #38bdf8);"><i class="ph-bold ph-feather"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/copy</span>
+                                <span class="rg-slash-desc">Redacción de copy persuasivo con método AIDA y gancho magnético</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/monthboard" data-prompt="Genera 4 publicaciones estratégicas para el Month Board con concepto, copy completo, formato (Reel/Post), pilar y hashtags listas para inyectar con 1 clic para: " onclick="selectRomitaModuleSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:linear-gradient(135deg, #059669, #0284c7);"><i class="ph-bold ph-calendar-check"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/monthboard</span>
+                                <span class="rg-slash-desc">Generar publicaciones estructuradas para el Month Board</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/hashtags" data-prompt="Investiga y genera 10 a 12 hashtags estratégicos de alto impacto y alcance para: " onclick="selectRomitaModuleSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#60a5fa;"><i class="ph-bold ph-hash"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/hashtags</span>
+                                <span class="rg-slash-desc">10 hashtags estratégicos optimizados por nicho y tema</span>
+                            </div>
+                        </button>
                     </div>
                 </div>
 
@@ -1028,12 +1049,12 @@ try {
             ]
         },
         'community_manager': {
-            sub: 'Soy Romita como Senior Community Manager. Especialista en copys magnéticos, ganchos virales, calendarios y engagement.',
+            sub: 'Soy Romita como Senior Community Manager & Copywriter. Especialista en copys magnéticos, ganchos virales, método AIDA, hashtags estratégicos y publicaciones para Month Board.',
             starters: [
-                { icon: 'ph-lightning', title: '5 Ganchos para Reels', desc: 'Fórmulas de retención para primeros 3 segundos.', prompt: 'Dame 5 ganchos magnéticos para Reels de nuestras marcas este mes.' },
-                { icon: 'ph-calendar-plus', title: 'Estructura de Calendario', desc: 'Equilibrio de pilares de venta y valor.', prompt: '¿Cómo estructurar un calendario de 12 posts balanceando venta, valor y engagement?' },
-                { icon: 'ph-chats-circle', title: 'Dinámicas de Engagement', desc: 'Historias interactivas para disparar DMs.', prompt: 'Propón 4 ideas de historias interactivas para aumentar mensajes directos y respuestas.' },
-                { icon: 'ph-target', title: 'Llamados a la Acción (CTA)', desc: 'Fórmulas persuasivas que no suenan a spam.', prompt: 'Dame 5 fórmulas de Call to Action (CTA) de alta conversión para publicaciones.' }
+                { icon: 'ph-feather', title: 'Copy Persuasivo (Método AIDA)', desc: 'Gancho magnético, cuerpo persuasivo y CTA claro.', prompt: 'Redacta un copy persuasivo aplicando la fórmula AIDA (Atención, Interés, Deseo, Acción) para un post sobre: ' },
+                { icon: 'ph-calendar-check', title: 'Generar Posts para Month Board', desc: 'Inyección estructurada de publicaciones con 1 clic.', prompt: 'Genera 4 publicaciones estratégicas con concepto, copy completo, formato, pilar y hashtags para el Month Board de ' },
+                { icon: 'ph-hash', title: '10 Hashtags Estratégicos', desc: 'Optimizados para el tema, nicho y redes.', prompt: 'Genera exactamente 10 a 12 hashtags estratégicos de alto impacto y alcance para: ' },
+                { icon: 'ph-lightning', title: '5 Ganchos para Reels', desc: 'Fórmulas de retención para primeros 3 segundos.', prompt: 'Dame 5 ganchos magnéticos para Reels de nuestras marcas este mes.' }
             ]
         },
         'branding': {
@@ -3252,6 +3273,46 @@ try {
             sparkleIconEl.className = 'ph-bold ' + aiIcon;
         }
 
+        // Renderizar tarjeta cuántica orbital futurista dentro del chat stream
+        const container = document.getElementById('chatStreamInner');
+        if (container) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'romita-message assistant-message';
+            msgDiv.id = 'typingIndicator';
+            msgDiv.innerHTML = `
+                <div class="message-avatar ai-avatar rg-avatar-generating" style="background:#0a0f1d; overflow:hidden; border:1px solid rgba(56, 189, 248, 0.35);">
+                    <img src="assets/img/romita-avatar.png" alt="Romita" style="width:100%; height:100%; object-fit:cover;">
+                </div>
+                <div class="message-wrapper">
+                    <div class="message-bubble rg-neural-bubble" style="background:var(--romita-ai-bubble, #ffffff); border:1px solid var(--romita-border, rgba(0,0,0,0.08)); padding:10px 14px;">
+                        <div class="romita-chat-orbital-card">
+                            <div class="romita-orbital-core">
+                                <div class="roc-pulse"></div>
+                                <div class="roc-ring roc-ring-1"></div>
+                                <div class="roc-ring roc-ring-2"></div>
+                                <div class="roc-nucleus">
+                                    <img src="assets/img/romita-avatar.png" alt="Romita">
+                                </div>
+                            </div>
+                            <div class="roc-chat-details">
+                                <div class="roc-status-row">
+                                    <span class="reg-tag">Romita IA</span>
+                                    <span id="romita-module-stream-status-text" class="roc-status-msg">Romita está procesando el contexto...</span>
+                                </div>
+                                <div class="roc-shimmer-telemetry">
+                                    <div class="roc-shimmer-bar b1"></div>
+                                    <div class="roc-shimmer-bar b2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(msgDiv);
+            const chatArea = document.getElementById('chatArea');
+            if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
         // Efectos dinámicos en cabecera y composer
         const header = document.querySelector('.romita-header');
         if (header) header.classList.add('is-generating');
@@ -3263,7 +3324,7 @@ try {
             sendBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
         }
 
-        // Ciclado dinámico de frases futuristas de telemetría en el composer
+        // Ciclado dinámico de frases futuristas de telemetría en composer y tarjeta orbital
         const statusPhrases = [
             'Romita está procesando el contexto...',
             'Consultando base de proyectos y ecosistema...',
@@ -3274,16 +3335,29 @@ try {
         let phraseIdx = 0;
         const statusEl = document.getElementById('romita-module-status-text');
         if (statusEl) statusEl.innerText = statusPhrases[0];
+        const streamStatusEl = document.getElementById('romita-module-stream-status-text');
+        if (streamStatusEl) streamStatusEl.innerText = statusPhrases[0];
 
         if (romitaModuleStatusInterval) clearInterval(romitaModuleStatusInterval);
         romitaModuleStatusInterval = setInterval(() => {
             phraseIdx = (phraseIdx + 1) % statusPhrases.length;
+            const currentPhrase = statusPhrases[phraseIdx];
             if (statusEl) {
                 statusEl.style.opacity = '0';
                 setTimeout(() => {
                     if (statusEl) {
-                        statusEl.innerText = statusPhrases[phraseIdx];
+                        statusEl.innerText = currentPhrase;
                         statusEl.style.opacity = '1';
+                    }
+                }, 180);
+            }
+            const sStatusEl = document.getElementById('romita-module-stream-status-text');
+            if (sStatusEl) {
+                sStatusEl.style.opacity = '0';
+                setTimeout(() => {
+                    if (sStatusEl) {
+                        sStatusEl.innerText = currentPhrase;
+                        sStatusEl.style.opacity = '1';
                     }
                 }, 180);
             }

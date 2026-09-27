@@ -173,6 +173,27 @@ if ($currentHour >= 5 && $currentHour < 12) {
                                 <span class="rg-slash-desc">Estructurar campaña de pauta con ganchos y públicos</span>
                             </div>
                         </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/copy" data-prompt="Redacta un copy persuasivo completo con gancho magnético, desarrollo persuasivo (método AIDA), llamado a la acción (CTA) y hashtags optimizados para: " onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:linear-gradient(135deg, #1d4ed8, #38bdf8);"><i class="ph-bold ph-feather"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/copy</span>
+                                <span class="rg-slash-desc">Redacción de copy persuasivo con método AIDA y gancho magnético</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/monthboard" data-prompt="Genera 4 publicaciones estratégicas para el Month Board con concepto, copy completo, formato (Reel/Post), pilar y hashtags listas para inyectar con 1 clic para: " onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:linear-gradient(135deg, #059669, #0284c7);"><i class="ph-bold ph-calendar-check"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/monthboard</span>
+                                <span class="rg-slash-desc">Generar publicaciones estructuradas para el Month Board</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rg-slash-item" data-cmd="/hashtags" data-prompt="Investiga y genera 10 a 12 hashtags estratégicos de alto impacto y alcance para: " onclick="selectRomitaSlashCommand(this)">
+                            <span class="rg-slash-icon" style="background:#60a5fa;"><i class="ph-bold ph-hash"></i></span>
+                            <div class="rg-slash-text">
+                                <span class="rg-slash-name">/hashtags</span>
+                                <span class="rg-slash-desc">10 hashtags estratégicos optimizados por nicho y tema</span>
+                            </div>
+                        </button>
                     </div>
                 </div>
 
@@ -4686,13 +4707,13 @@ function renderSpecialtyWelcome(spec) {
             ]
         },
         'community_manager': {
-            title: 'Senior Community Manager',
-            desc: 'Especialista en copys magnéticos, ganchos virales, calendarios y dinámicas de engagement.',
+            title: 'Senior Community Manager & Copywriter',
+            desc: 'Especialista en copys magnéticos, ganchos virales, método AIDA, hashtags y publicaciones para Month Board.',
             cards: [
-                { icon: 'ph-lightning', label: '5 Ganchos para Reels', sub: 'Fórmulas de retención para primeros 3 segundos', prompt: 'Dame 5 ganchos magnéticos para Reels de nuestras marcas este mes' },
-                { icon: 'ph-calendar-plus', label: 'Estructura de Calendario', sub: 'Equilibrio de pilares de contenido', prompt: '¿Cómo estructurar un calendario de 12 posts balanceando venta, valor y engagement?' },
-                { icon: 'ph-chats-circle', label: 'Dinámicas de Engagement', sub: 'Stickers interactivos y preguntas en historias', prompt: 'Propón 4 ideas de historias interactivas para aumentar mensajes directos y respuestas' },
-                { icon: 'ph-target', label: 'Llamados a la Acción (CTA)', sub: 'Fórmulas persuasivas que no suenan a spam', prompt: 'Dame 5 fórmulas de Call to Action (CTA) de alta conversión para publicaciones' }
+                { icon: 'ph-feather', label: 'Copy Persuasivo AIDA', sub: 'Gancho magnético, cuerpo persuasivo y CTA', prompt: 'Redacta un copy persuasivo aplicando la fórmula AIDA (Atención, Interés, Deseo, Acción) para un post sobre: ' },
+                { icon: 'ph-calendar-check', label: 'Crear Posts Month Board', sub: 'Inyección estructurada de publicaciones con 1 clic', prompt: 'Genera 4 publicaciones estructuradas con concepto, copy completo, pilar y hashtags para el Month Board' },
+                { icon: 'ph-hash', label: '10 Hashtags Estratégicos', sub: 'Optimizados para el tema, nicho y redes', prompt: 'Genera exactamente 10 a 12 hashtags estratégicos de alto impacto y alcance para: ' },
+                { icon: 'ph-lightning', label: '5 Ganchos para Reels', sub: 'Fórmulas de retención para primeros 3 segundos', prompt: 'Dame 5 ganchos magnéticos para Reels de nuestras marcas este mes' }
             ]
         },
         'branding': {
