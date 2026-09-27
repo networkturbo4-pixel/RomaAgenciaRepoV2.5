@@ -1596,10 +1596,98 @@ try {
         }
     }
 
+    function renderRomitaMonthBoardActionCard(jsonContent) {
+        try {
+            const data = safeParseJson(jsonContent);
+            if (!data) return `<pre><code>${jsonContent}</code></pre>`;
+            let posts = data.posts || [];
+            if (!posts.length && data.tasks) posts = data.tasks;
+            if (!posts.length && Array.isArray(data)) posts = data;
+            if (!posts.length && (data.concept || data.title)) posts = [data];
+            if (!posts.length) return '';
+
+            const brandName = data.brand_name || (selectedBrand ? selectedBrand.name : 'Marca');
+            const monthName = data.month_name || 'Tablero Mensual';
+            const monthId = data.month_id || '';
+            const projectId = data.project_id || (selectedBrand && selectedBrand.type === 'project' ? selectedBrand.id : '');
+
+            const cardId = 'rac-mb-' + Math.random().toString(36).substr(2, 9);
+            const encodedData = encodeURIComponent(JSON.stringify(posts));
+
+            let postsHtml = '';
+            posts.forEach((p, i) => {
+                let concept = p.concept || p.title || `Publicación #${i + 1}`;
+                concept = concept.replace(/^\[MONTH_BOARD:[^\]]+\]\s*/i, '');
+
+                const postType = p.post_type || p.format || 'Reel';
+                const pillar = p.content_pillar || p.pillar || 'Branding';
+                const postDate = p.post_date || p.due_date || '';
+                const platform = p.platform || 'Instagram';
+                const copyText = p.copy_text || p.caption || p.description || '';
+
+                const typeBadge = `<span class="rac-badge rac-badge-type" style="background:rgba(59,130,246,0.12); color:#2563eb; border:1px solid rgba(59,130,246,0.25);"><i class="ph-bold ph-video-camera"></i> ${escapeRomitaHtml(postType)}</span>`;
+                const pillarBadge = `<span class="rac-badge rac-badge-pillar" style="background:rgba(168,85,247,0.12); color:#7c3aed; border:1px solid rgba(168,85,247,0.25);"><i class="ph ph-target"></i> ${escapeRomitaHtml(pillar)}</span>`;
+                const dateBadge = postDate ? `<span class="rac-badge rac-badge-date"><i class="ph ph-calendar"></i> ${escapeRomitaHtml(postDate)}</span>` : '';
+                const platformBadge = `<span class="rac-badge rac-badge-platform" style="background:rgba(236,72,153,0.12); color:#db2777; border:1px solid rgba(236,72,153,0.25);"><i class="ph ph-share-network"></i> ${escapeRomitaHtml(platform)}</span>`;
+
+                postsHtml += `<div class="rac-task-item rac-mb-item" id="${cardId}-item-${i}">`
+                    + `<input type="checkbox" id="${cardId}-p-${i}" class="rac-task-check" checked data-post-index="${i}" onchange="updateRomitaActionMonthPostCount('${cardId}')">`
+                    + `<div class="rac-task-content">`
+                    + `<div class="rac-task-header">`
+                    + `<span class="rac-task-title" id="${cardId}-title-${i}">${escapeRomitaHtml(concept)}</span>`
+                    + `<div class="rac-task-tags">`
+                    + typeBadge
+                    + pillarBadge
+                    + dateBadge
+                    + platformBadge
+                    + `</div>`
+                    + `</div>`
+                    + `<p class="rac-task-desc" id="${cardId}-desc-${i}" style="${copyText ? '' : 'display:none;'}">${escapeRomitaHtml(copyText)}</p>`
+                    + `</div>`
+                    + `</div>`;
+            });
+
+            const targetLink = monthId ? `index.php?module=month_board&action=index&id=${monthId}` : `index.php?module=calendar&action=index`;
+
+            return `<div class="romita-action-card rac-monthboard-card" id="${cardId}" data-raw-posts="${encodedData}" data-brand-name="${escapeRomitaHtml(brandName)}" data-month-id="${monthId}" data-project-id="${projectId}">`
+                + `<div class="rac-header">`
+                + `<div class="rac-header-left">`
+                + `<span class="rac-icon-pill rac-icon-month-board" style="background:linear-gradient(135deg,#10b981,#0284c7); color:#fff;"><i class="ph-bold ph-calendar-check"></i></span>`
+                + `<div class="rac-header-titles">`
+                + `<strong class="rac-title">Acción: Crear posts en Month Board</strong>`
+                + `<span class="rac-sub" id="${cardId}-sub">${escapeRomitaHtml(brandName)} • ${posts.length} posts listos para el tablero mensual</span>`
+                + `</div>`
+                + `</div>`
+                + `<span class="rac-chip-status" style="background:rgba(16,185,129,0.15); color:#059669; border-color:rgba(16,185,129,0.3);"><i class="ph-bold ph-sparkle"></i> Month Board</span>`
+                + `</div>`
+                + `<div class="rac-body">`
+                + `<div class="rac-tasks-list">${postsHtml}</div>`
+                + `</div>`
+                + `<div class="rac-footer">`
+                + `<button type="button" class="btn-rac-execute btn-rac-execute-mb" style="background:linear-gradient(135deg,#059669,#0284c7);" onclick="executeRomitaCreateMonthPosts('${cardId}')">`
+                + `<i class="ph-bold ph-plus-circle"></i> <span class="btn-text">Insertar ${posts.length} posts en Month Board</span>`
+                + `</button>`
+                + `<a href="${targetLink}" target="_blank" class="rac-link-kanban" title="Abrir tablero mensual">`
+                + `Ir al Month Board <i class="ph ph-arrow-up-right"></i>`
+                + `</a>`
+                + `</div>`
+                + `</div>`;
+        } catch (e) {
+            console.warn('Error parsing create_month_posts action:', e);
+            return `<pre><code>${jsonContent}</code></pre>`;
+        }
+    }
+
     function renderRomitaTaskActionCard(jsonContent) {
         try {
             const data = safeParseJson(jsonContent);
             if (!data) return `<pre><code>${jsonContent}</code></pre>`;
+
+            // Redirección inteligente: si las tareas son publicaciones para el Month Board
+            if (data.posts || data.target_module === 'month_board' || (Array.isArray(data.tasks) && data.tasks.some(t => (t.title && t.title.includes('[MONTH_BOARD')) || t.post_type || t.concept))) {
+                return renderRomitaMonthBoardActionCard(jsonContent);
+            }
+
             let tasks = [];
             if (Array.isArray(data)) {
                 tasks = data;
@@ -1637,9 +1725,9 @@ try {
             return `<div class="romita-action-card rac-tasks-card" id="${cardId}" data-raw-tasks="${encodedData}">`
                 + `<div class="rac-header">`
                 + `<div class="rac-header-left">`
-                + `<span class="rac-icon-pill rac-icon-kanban"><i class="ph-bold ph-kanban"></i></span>`
+                + `<span class="rac-icon-pill rac-icon-kanban" style="background:linear-gradient(135deg,#3b82f6,#6366f1); color:#fff;"><i class="ph-bold ph-check-square-offset"></i></span>`
                 + `<div class="rac-header-titles">`
-                + `<strong class="rac-title">Acción: Crear tareas en Kanban</strong>`
+                + `<strong class="rac-title">Acción: Crear tareas en Tareas & Objetivos</strong>`
                 + `<span class="rac-sub" id="${cardId}-sub">${tasks.length} tareas listas para asignar</span>`
                 + `</div>`
                 + `</div>`
@@ -1650,13 +1738,13 @@ try {
                 + `</div>`
                 + `<div class="rac-footer">`
                 + `<button type="button" class="btn-rac-execute" onclick="executeRomitaCreateTasks('${cardId}')">`
-                + `<i class="ph-bold ph-plus-circle"></i> <span class="btn-text">Insertar ${tasks.length} tareas en el Kanban</span>`
+                + `<i class="ph-bold ph-plus-circle"></i> <span class="btn-text">Insertar ${tasks.length} tareas en Tareas & Objetivos</span>`
                 + `</button>`
                 + `<button type="button" class="btn-rac-modal" onclick="openRomitaTaskEditModal('${cardId}', 0)" title="Abrir y configurar en Modal">`
                 + `<i class="ph ph-sliders-horizontal"></i> <span>Abrir en Modal</span>`
                 + `</button>`
-                + `<a href="index.php?module=tasks" target="_blank" class="rac-link-kanban" title="Abrir módulo de tareas">`
-                + `Ir al Kanban <i class="ph ph-arrow-up-right"></i>`
+                + `<a href="index.php?module=task_manager&action=index" target="_blank" class="rac-link-kanban" title="Abrir Tareas & Objetivos">`
+                + `Ir a Tareas & Objetivos <i class="ph ph-arrow-up-right"></i>`
                 + `</a>`
                 + `</div>`
                 + `</div>`;
@@ -2321,9 +2409,9 @@ try {
                         footer.innerHTML = `
                             <div class="rac-success-banner">
                                 <i class="ph-fill ph-check-circle"></i>
-                                <span>¡Tarea "${escapeRomitaHtml(title)}" creada en el Kanban!</span>
-                                <a href="index.php?module=tasks" target="_blank" class="rac-btn-view">
-                                    Abrir Kanban <i class="ph ph-arrow-up-right"></i>
+                                <span>¡Tarea "${escapeRomitaHtml(title)}" creada en Tareas & Objetivos!</span>
+                                <a href="index.php?module=task_manager&action=index" target="_blank" class="rac-btn-view">
+                                    Abrir Tareas & Objetivos <i class="ph ph-arrow-up-right"></i>
                                 </a>
                             </div>
                         `;
@@ -2338,6 +2426,90 @@ try {
             }
         } catch (err) {
             alert('Error de conexión');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    }
+
+    function updateRomitaActionMonthPostCount(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        const total = card.querySelectorAll('.rac-task-check').length;
+        const checked = card.querySelectorAll('.rac-task-check:checked').length;
+        const sub = document.getElementById(cardId + '-sub');
+        const btn = card.querySelector('.btn-rac-execute');
+        const brandName = card.getAttribute('data-brand-name') || 'Marca';
+        if (sub) sub.innerText = `${brandName} • ${checked} de ${total} posts seleccionados`;
+        if (btn) {
+            btn.querySelector('.btn-text').innerText = checked > 0 ? `Insertar ${checked} posts en Month Board` : 'Selecciona al menos 1 post';
+            btn.disabled = checked === 0;
+        }
+    }
+
+    async function executeRomitaCreateMonthPosts(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+
+        const rawData = card.getAttribute('data-raw-posts');
+        if (!rawData) return;
+
+        const allPosts = JSON.parse(decodeURIComponent(rawData));
+        const checkboxes = card.querySelectorAll('.rac-task-check:checked');
+        const selectedIndices = Array.from(checkboxes).map(c => parseInt(c.getAttribute('data-post-index')));
+        const selectedPosts = allPosts.filter((_, i) => selectedIndices.includes(i));
+
+        if (!selectedPosts.length) {
+            alert('Por favor selecciona al menos una publicación para inyectar.');
+            return;
+        }
+
+        const brandName = card.getAttribute('data-brand-name') || '';
+        const monthId = card.getAttribute('data-month-id') || '';
+        const projectId = card.getAttribute('data-project-id') || (selectedBrand && selectedBrand.type === 'project' ? selectedBrand.id : '');
+
+        const btn = card.querySelector('.btn-rac-execute');
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Inyectando en Month Board...';
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'tool_create_month_posts');
+            formData.append('brand_name', brandName);
+            formData.append('month_id', monthId);
+            formData.append('project_id', projectId);
+            formData.append('posts', JSON.stringify(selectedPosts));
+
+            const res = await fetch('ajax/ajax_romita.php', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if (data.success) {
+                card.querySelectorAll('.rac-task-check').forEach(c => c.disabled = true);
+                const footer = card.querySelector('.rac-footer');
+                if (footer) {
+                    footer.innerHTML = `
+                        <div class="rac-success-banner" style="background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); color:#059669;">
+                            <i class="ph-fill ph-check-circle" style="color:#10b981; font-size:1.4rem;"></i>
+                            <span>¡${data.count} ${data.count === 1 ? 'post inyectado' : 'posts inyectados'} exitosamente en el Month Board!</span>
+                            <a href="${data.redirect_url || 'index.php?module=calendar&action=index'}" target="_blank" class="rac-btn-view" style="background:#059669;">
+                                Abrir Month Board <i class="ph ph-arrow-up-right"></i>
+                            </a>
+                        </div>
+                    `;
+                }
+            } else {
+                alert(data.error || 'Error al inyectar posts en Month Board');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        } catch (err) {
+            alert('Error de conexión con el servidor');
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = origHtml;
@@ -2366,13 +2538,16 @@ try {
         const origHtml = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Creando en Kanban...';
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Creando en Tareas & Objetivos...';
         }
 
         try {
             const formData = new FormData();
             formData.append('action', 'tool_create_tasks');
             formData.append('tasks', JSON.stringify(selectedTasks));
+            if (selectedBrand && selectedBrand.type === 'project') {
+                formData.append('project_id', selectedBrand.id);
+            }
 
             const res = await fetch('ajax/ajax_romita.php', { method: 'POST', body: formData });
             const data = await res.json();
@@ -2385,8 +2560,8 @@ try {
                         <div class="rac-success-banner">
                             <i class="ph-fill ph-check-circle"></i>
                             <span>¡${data.count} ${data.count === 1 ? 'tarea creada' : 'tareas creadas'} exitosamente!</span>
-                            <a href="index.php?module=tasks" target="_blank" class="rac-btn-view">
-                                Abrir Kanban <i class="ph ph-arrow-up-right"></i>
+                            <a href="${data.redirect_url || 'index.php?module=task_manager&action=index'}" target="_blank" class="rac-btn-view">
+                                Abrir Tareas & Objetivos <i class="ph ph-arrow-up-right"></i>
                             </a>
                         </div>
                     `;
@@ -2564,6 +2739,13 @@ try {
             // Lista de bloques agénticos interceptados antes de pasar por marked.parse()
             const actionPlaceholders = [];
 
+            // 0. Publicaciones en Month Board (Tablero Mensual)
+            preprocessed = preprocessed.replace(/```(?:romita[-_]?action:?|action:)?create_month_posts?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
+                const placeholder = '<!--ROMITA_ACTION_MB_' + actionPlaceholders.length + '-->';
+                actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaMonthBoardActionCard(jsonContent) });
+                return '\n\n' + placeholder + '\n\n';
+            });
+
             // 1. Tareas (acepta cualquier variación de create_tasks, create_task, romita-action, romita_action)
             preprocessed = preprocessed.replace(/```(?:romita[-_]?action:?|action:)?create_tasks?\s*([\s\S]*?)```/gi, function(match, jsonContent) {
                 const placeholder = '<!--ROMITA_ACTION_TASKS_' + actionPlaceholders.length + '-->';
@@ -2617,6 +2799,11 @@ try {
             preprocessed = preprocessed.replace(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/gi, function(match, innerJson) {
                 const parsed = safeParseJson(innerJson);
                 if (!parsed) return match;
+                if (parsed.posts || parsed.target_module === 'month_board' || (parsed.tasks && Array.isArray(parsed.tasks) && parsed.tasks.some(t => (t.title && t.title.includes('[MONTH_BOARD')) || t.post_type || t.concept))) {
+                    const placeholder = '<!--ROMITA_ACTION_MB_' + actionPlaceholders.length + '-->';
+                    actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaMonthBoardActionCard(innerJson) });
+                    return '\n\n' + placeholder + '\n\n';
+                }
                 if (parsed.tasks || (parsed.title && (parsed.due_date || parsed.is_urgent !== undefined || parsed.prioridad || parsed.responsable))) {
                     const placeholder = '<!--ROMITA_ACTION_TASKS_' + actionPlaceholders.length + '-->';
                     actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaTaskActionCard(innerJson) });

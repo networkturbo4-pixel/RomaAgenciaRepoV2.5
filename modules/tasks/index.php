@@ -1,9 +1,9 @@
 <?php
-// modules/tasks/index.php — Centro de Tareas v2
+// modules/tasks/index.php — Módulo residual redirigido automáticamente a Tareas & Objetivos
 if (session_status() === PHP_SESSION_NONE) session_start();
-if (!isset($_SESSION['user_id'])) { header("Location: index.php?module=auth&action=login"); exit(); }
-require_once 'includes/header.php';
-$userId = $_SESSION['user_id'];
+header("Location: index.php?module=task_manager&action=index");
+exit();
+
 $isAdmin = ($_SESSION['user_role'] === 'admin');
 
 // Check granular permission

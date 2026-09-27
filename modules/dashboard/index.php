@@ -54,7 +54,7 @@ if (has_perm('project_board')) {
 if (has_perm('month_board')) {
     try {
         $stmt = $db->query("SELECT COUNT(*) FROM month_posts");
-        $stats[] = ['icon' => 'ph-calendar-check', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.1)', 'value' => $stmt->fetchColumn(), 'label' => 'Tareas del Mes', 'link' => 'index.php?module=tasks&action=index'];
+        $stats[] = ['icon' => 'ph-calendar-check', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.1)', 'value' => $stmt->fetchColumn(), 'label' => 'Posts del Mes', 'link' => 'index.php?module=calendar&action=index'];
     } catch (Exception $e) {}
 }
 if (has_perm('reuniones')) {

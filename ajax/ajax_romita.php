@@ -996,15 +996,40 @@ try {
         // 2.5 Capacidades Agénticas y Acciones con 1 Clic (Roma Actions)
         $agenticInstructions = "CAPACIDADES AGÉNTICAS Y ACCIONES CON 1 CLIC (ROMA ACTIONS):\n"
             . "Como copiloto activo de Roma Agencia, tienes la capacidad de generar bloques de acción ejecutables e interactivos para que el usuario guarde datos reales en el sistema con un solo clic. Utiliza estos bloques especiales al final de tu respuesta cuando sea pertinente:\n\n"
-            . "1. CREACIÓN DE TAREAS EN KANBAN:\n"
-            . "Si el usuario te pide tareas, entregables, pendientes o desglosas un plan de acción concreto con pasos, incluye al final un bloque exactamente así:\n"
-            . "```romita-action:create_tasks\n"
+            . "1. CREACIÓN DE POSTS EN EL TABLERO MENSUAL (MONTH BOARD / CALENDARIO):\n"
+            . "Si el usuario te pide crear publicaciones, una grilla de contenidos, o te dice explícitamente 'ponlo en el month_board' o 'crea los posts en el calendario / mes':\n"
+            . "Incluye al final un bloque de acción EXACTAMENTE así:\n"
+            . "```romita-action:create_month_posts\n"
             . "{\n"
-            . "  \"tasks\": [\n"
-            . "    {\"title\": \"Nombre claro y directo\", \"description\": \"Detalles breves del entregable\", \"due_date\": \"YYYY-MM-DD\", \"is_urgent\": 0}\n"
+            . "  \"brand_name\": \"Nombre de la Marca (ej: Victoria Specialty Coffee)\",\n"
+            . "  \"month_name\": \"Mes y Año (ej: Octubre 2026)\",\n"
+            . "  \"posts\": [\n"
+            . "    {\n"
+            . "      \"concept\": \"Concepto claro del post (ej: Reel ASMR: Día Internacional del Café)\",\n"
+            . "      \"copy_text\": \"Copy persuasivo con emojis, ganchos y llamados a la acción\",\n"
+            . "      \"post_date\": \"YYYY-MM-DD\",\n"
+            . "      \"platform\": \"Instagram, TikTok\",\n"
+            . "      \"post_type\": \"Reel\",\n"
+            . "      \"content_pillar\": \"Branding\",\n"
+            . "      \"design_brief\": \"Pauta visual o notas para producción\",\n"
+            . "      \"status\": \"Borrador\"\n"
+            . "    }\n"
             . "  ]\n"
             . "}\n"
-            . "```\n\n"
+            . "```\n"
+            . "Esto inyectará los posts DIRECTAMENTE en la tabla del Month Board de esa marca y le dará al usuario un botón de 1 clic para verlos en el tablero mensual.\n\n"
+            . "2. CREACIÓN DE TAREAS OPERATIVAS EN TAREAS & OBJETIVOS (TASK MANAGER):\n"
+            . "Si el usuario te pide tareas operativas, pendientes, checklists o metas de equipo (que NO sean posts de redes):\n"
+            . "Incluye al final un bloque exactamente así:\n"
+            . "```romita-action:create_tasks\n"
+            . "{\n"
+            . "  \"area\": \"general\",\n"
+            . "  \"tasks\": [\n"
+            . "    {\"title\": \"Nombre claro y directo\", \"description\": \"Detalles breves del entregable\", \"due_date\": \"YYYY-MM-DD\", \"priority\": \"urgent|high|medium|low\", \"area\": \"general\"}\n"
+            . "  ]\n"
+            . "}\n"
+            . "```\n"
+            . "Esto guardará las tareas en el módulo 'Tareas & Objetivos' (task_manager). NOTA: NO existe ningún módulo llamado 'Centro de Tareas' ni uses nunca 'module=tasks'.\n\n"
             . "2. AGENDAMIENTO DE REUNIÓN:\n"
             . "Si se acuerda, coordina o propone una reunión o sesión de trabajo, incluye al final:\n"
             . "```romita-action:schedule_meeting\n"
@@ -1751,7 +1776,132 @@ try {
     // ACCIONES AGÉNTICAS CON 1 CLIC (ROMA ACTIONS EXECUTION)
     // =========================================================================
 
-    // 1. Crear Tareas masivas en Kanban
+    // 1. Crear Publicaciones en Month Board (Tablero Mensual)
+    if ($action === 'tool_create_month_posts') {
+        $brandName = trim($_POST['brand_name'] ?? '');
+        $monthId = (int)($_POST['month_id'] ?? 0);
+        $projectId = (int)($_POST['project_id'] ?? 0);
+        $postsRaw = $_POST['posts'] ?? '';
+        $posts = is_array($postsRaw) ? $postsRaw : json_decode($postsRaw, true);
+
+        if (empty($posts) || !is_array($posts)) {
+            echo json_encode(['success' => false, 'error' => 'No se recibieron publicaciones válidas para registrar en el Month Board.']);
+            exit();
+        }
+
+        // Si no se proporcionó month_id, resolverlo por proyecto o por nombre de marca
+        if (!$monthId) {
+            if (!$projectId && !empty($brandName)) {
+                $stmtP = $db->prepare("
+                    SELECT p.id 
+                    FROM projects p 
+                    JOIN work_orders wo ON p.work_order_id = wo.id 
+                    WHERE wo.brand_name LIKE ? 
+                    ORDER BY p.id DESC LIMIT 1
+                ");
+                $stmtP->execute(['%' . $brandName . '%']);
+                $projectId = (int)$stmtP->fetchColumn();
+            }
+
+            if ($projectId) {
+                // Verificar si hay fecha en el primer post para vincular al mes y año correspondiente
+                $firstPostDate = $posts[0]['post_date'] ?? '';
+                $targetMonth = 0;
+                $targetYear = 0;
+                if (!empty($firstPostDate) && preg_match('/^(\d{4})-(\d{2})/', $firstPostDate, $mMatch)) {
+                    $targetYear = (int)$mMatch[1];
+                    $targetMonth = (int)$mMatch[2];
+                }
+
+                if ($targetMonth > 0 && $targetYear > 0) {
+                    $stmtM = $db->prepare("SELECT id FROM project_months WHERE project_id = ? AND month = ? AND year = ?");
+                    $stmtM->execute([$projectId, $targetMonth, $targetYear]);
+                    $monthId = (int)$stmtM->fetchColumn();
+
+                    // Si el mes aún no ha sido creado en el proyecto, generarlo automáticamente
+                    if (!$monthId) {
+                        $stmtNewM = $db->prepare("INSERT INTO project_months (project_id, month, year, status, created_at, updated_at) VALUES (?, ?, ?, 'pendiente', NOW(), NOW())");
+                        $stmtNewM->execute([$projectId, $targetMonth, $targetYear]);
+                        $monthId = (int)$db->lastInsertId();
+                    }
+                }
+
+                // Si no se pudo determinar por fecha, vincular al mes activo/reciente del proyecto
+                if (!$monthId) {
+                    $stmtLatestM = $db->prepare("SELECT id FROM project_months WHERE project_id = ? ORDER BY year DESC, month DESC LIMIT 1");
+                    $stmtLatestM->execute([$projectId]);
+                    $monthId = (int)$stmtLatestM->fetchColumn();
+                }
+            }
+        }
+
+        if (!$monthId) {
+            echo json_encode(['success' => false, 'error' => 'No se encontró un tablero mensual (Month Board) activo para vincular estas publicaciones. Por favor selecciona el proyecto de la marca en el selector superior.']);
+            exit();
+        }
+
+        // Obtener detalles del mes para el mensaje y redirección
+        $stmtMInfo = $db->prepare("
+            SELECT pm.id, pm.month, pm.year, wo.brand_name 
+            FROM project_months pm 
+            JOIN projects p ON pm.project_id = p.id 
+            JOIN work_orders wo ON p.work_order_id = wo.id 
+            WHERE pm.id = ?
+        ");
+        $stmtMInfo->execute([$monthId]);
+        $mInfo = $stmtMInfo->fetch(PDO::FETCH_ASSOC);
+        $resolvedBrand = $mInfo['brand_name'] ?? ($brandName ?: 'Marca');
+        $resolvedMonthText = ($mInfo ? "Mes {$mInfo['month']}/{$mInfo['year']}" : "Mes #{$monthId}");
+
+        $createdPostIds = [];
+        $stmtInsPost = $db->prepare("
+            INSERT INTO month_posts (month_id, post_date, concept, copy_text, platform, status, post_type, content_pillar, design_brief, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ");
+
+        foreach ($posts as $p) {
+            $concept = trim($p['concept'] ?? ($p['title'] ?? ''));
+            if (!$concept) continue;
+
+            // Limpiar prefijo [MONTH_BOARD: ...] si Gemini lo incluyó en el título
+            $conceptClean = preg_replace('/^\[MONTH_BOARD:[^\]]+\]\s*/i', '', $concept);
+
+            $copy = trim($p['copy_text'] ?? ($p['caption'] ?? ($p['description'] ?? '')));
+            $postDate = !empty($p['post_date']) ? $p['post_date'] : date('Y-m-d H:i:s');
+            $platform = !empty($p['platform']) ? (is_array($p['platform']) ? implode(', ', $p['platform']) : $p['platform']) : 'Instagram';
+            $status = !empty($p['status']) ? $p['status'] : 'Borrador';
+            $postType = !empty($p['post_type']) ? $p['post_type'] : (!empty($p['format']) ? $p['format'] : 'Reel');
+            $pillar = !empty($p['content_pillar']) ? $p['content_pillar'] : (!empty($p['pillar']) ? $p['pillar'] : 'Branding');
+            $brief = trim($p['design_brief'] ?? ($p['hook'] ?? ''));
+
+            $stmtInsPost->execute([$monthId, $postDate, $conceptClean, $copy, $platform, $status, $postType, $pillar, $brief]);
+            $createdPostIds[] = $db->lastInsertId();
+        }
+
+        if (empty($createdPostIds)) {
+            echo json_encode(['success' => false, 'error' => 'No se pudo crear ninguna publicación en el Month Board.']);
+            exit();
+        }
+
+        // Sincronizar tareas si existe TaskSyncHelper
+        try {
+            require_once __DIR__ . '/../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncMonthPostsCompletion($db, $monthId);
+        } catch(\Throwable $eSync) {}
+
+        echo json_encode([
+            'success' => true,
+            'count' => count($createdPostIds),
+            'post_ids' => $createdPostIds,
+            'month_id' => $monthId,
+            'brand_name' => $resolvedBrand,
+            'redirect_url' => "index.php?module=month_board&action=index&id={$monthId}",
+            'message' => count($createdPostIds) . (count($createdPostIds) === 1 ? ' post inyectado' : ' posts inyectados') . " exitosamente en el Month Board de {$resolvedBrand} ({$resolvedMonthText})."
+        ]);
+        exit();
+    }
+
+    // 2. Crear Tareas en Tareas & Objetivos (Task Manager)
     if ($action === 'tool_create_tasks') {
         $tasksRaw = $_POST['tasks'] ?? '';
         $tasks = is_array($tasksRaw) ? $tasksRaw : json_decode($tasksRaw, true);
@@ -1761,24 +1911,122 @@ try {
             exit();
         }
 
+        // Auto-detección inteligente: si las tareas son en realidad publicaciones para el month_board (ej: tienen prefijo [MONTH_BOARD:)
+        $isMonthBoardContent = false;
+        foreach ($tasks as $chk) {
+            $tTitle = $chk['title'] ?? ($chk['concept'] ?? '');
+            if (stripos($tTitle, '[MONTH_BOARD') !== false || !empty($chk['post_type']) || !empty($chk['concept'])) {
+                $isMonthBoardContent = true;
+                break;
+            }
+        }
+
+        if ($isMonthBoardContent) {
+            // Re-enrutar limpiamente hacia Month Board
+            $_POST['posts'] = $tasks;
+            $_POST['brand_name'] = $_POST['brand_name'] ?? '';
+            $_POST['month_id'] = $_POST['month_id'] ?? 0;
+            $_POST['project_id'] = $_POST['project_id'] ?? 0;
+            // Ejecutar lógica de month_board
+            $firstT = $tasks[0]['title'] ?? '';
+            if (preg_match('/\[MONTH_BOARD:\s*([^-\]]+)/i', $firstT, $bMatch)) {
+                if (empty($_POST['brand_name'])) $_POST['brand_name'] = trim($bMatch[1]);
+            }
+            // Invocar el bloque de month_board directamente
+            $action = 'tool_create_month_posts';
+            // Ejecutar tool_create_month_posts reinyectando
+            $stmtP = $db->prepare("SELECT p.id FROM projects p JOIN work_orders wo ON p.work_order_id = wo.id WHERE wo.brand_name LIKE ? ORDER BY p.id DESC LIMIT 1");
+            $stmtP->execute(['%' . ($_POST['brand_name'] ?? 'Victoria') . '%']);
+            $resolvedProjId = (int)$stmtP->fetchColumn();
+
+            $stmtLatestM = $db->prepare("SELECT id FROM project_months WHERE project_id = ? ORDER BY year DESC, month DESC LIMIT 1");
+            $stmtLatestM->execute([$resolvedProjId]);
+            $resolvedMonthId = (int)$stmtLatestM->fetchColumn();
+
+            if ($resolvedMonthId > 0) {
+                $createdPostIds = [];
+                $stmtInsPost = $db->prepare("
+                    INSERT INTO month_posts (month_id, post_date, concept, copy_text, platform, status, post_type, content_pillar, design_brief, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 'Instagram, TikTok', 'Borrador', 'Reel', 'Branding', ?, NOW(), NOW())
+                ");
+
+                foreach ($tasks as $p) {
+                    $rawTitle = $p['title'] ?? ($p['concept'] ?? '');
+                    if (!$rawTitle) continue;
+                    $cleanConcept = preg_replace('/^\[MONTH_BOARD:[^\]]+\]\s*/i', '', $rawTitle);
+                    $desc = $p['description'] ?? ($p['copy_text'] ?? '');
+                    $pDate = (!empty($p['due_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $p['due_date'])) ? $p['due_date'] . ' 10:00:00' : date('Y-m-d H:i:s');
+                    $stmtInsPost->execute([$resolvedMonthId, $pDate, $cleanConcept, $desc, $desc]);
+                    $createdPostIds[] = $db->lastInsertId();
+                }
+
+                if (!empty($createdPostIds)) {
+                    echo json_encode([
+                        'success' => true,
+                        'count' => count($createdPostIds),
+                        'month_id' => $resolvedMonthId,
+                        'redirect_url' => "index.php?module=month_board&action=index&id={$resolvedMonthId}",
+                        'message' => count($createdPostIds) . " publicaciones creadas directamente en el Month Board (#{$resolvedMonthId})."
+                    ]);
+                    exit();
+                }
+            }
+        }
+
         $createdIds = [];
-        $stmtIns = $db->prepare("
+        $defaultAssigned = json_encode([(string)$user_id]);
+
+        // Guardar en tm_tasks (módulo oficial Tareas & Objetivos: task_manager)
+        $stmtInsTM = $db->prepare("
+            INSERT INTO tm_tasks (title, description, status, priority, frequency, area, project_id, assigned_users, created_by, due_date, start_date, is_daily_objective, created_at, updated_at)
+            VALUES (?, ?, 'pending', ?, 'one_time', ?, ?, ?, ?, ?, NOW(), 0, NOW(), NOW())
+        ");
+
+        // También registrar en tasks para retrocompatibilidad defensiva
+        $stmtInsLegacy = $db->prepare("
             INSERT INTO tasks (title, description, status, assigned_to, created_by, due_date, is_urgent, created_at, updated_at)
             VALUES (?, ?, 'pending', ?, ?, ?, ?, NOW(), NOW())
         ");
 
-        $defaultAssigned = json_encode([(string)$user_id]);
+        $defaultArea = trim($_POST['area'] ?? 'general');
+        $validAreas = ['general', 'desarrollo_marca', 'desarrollo_web', 'audiovisual', 'pizarras'];
+        if (!in_array($defaultArea, $validAreas)) $defaultArea = 'general';
+
+        $projectId = (int)($_POST['project_id'] ?? 0);
 
         foreach ($tasks as $t) {
             $title = trim($t['title'] ?? '');
             if (!$title) continue;
 
             $desc = trim($t['description'] ?? '');
-            $dueDate = (!empty($t['due_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $t['due_date'])) ? $t['due_date'] : null;
-            $isUrgent = !empty($t['is_urgent']) ? 1 : 0;
+            $dueDate = (!empty($t['due_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $t['due_date'])) ? $t['due_date'] . ' 23:59:59' : null;
+            $dueDateLegacy = (!empty($t['due_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $t['due_date'])) ? $t['due_date'] : null;
+            
+            $rawPrio = strtolower(trim($t['priority'] ?? ''));
+            $isUrgent = (!empty($t['is_urgent']) || $rawPrio === 'urgent' || $rawPrio === 'urgente') ? 1 : 0;
+            
+            $priority = 'medium';
+            if ($isUrgent) {
+                $priority = 'urgent';
+            } elseif ($rawPrio === 'high' || $rawPrio === 'alta') {
+                $priority = 'high';
+            } elseif ($rawPrio === 'low' || $rawPrio === 'baja') {
+                $priority = 'low';
+            }
 
-            $stmtIns->execute([$title, $desc, $defaultAssigned, $user_id, $dueDate, $isUrgent]);
-            $createdIds[] = $db->lastInsertId();
+            $taskArea = trim($t['area'] ?? $defaultArea);
+            if (!in_array($taskArea, $validAreas)) $taskArea = $defaultArea;
+
+            // Inserción en tm_tasks
+            try {
+                $stmtInsTM->execute([$title, $desc, $priority, $taskArea, $projectId ?: null, $defaultAssigned, $user_id, $dueDate]);
+                $createdIds[] = $db->lastInsertId();
+            } catch (\PDOException $tmErr) {}
+
+            // Inserción en tasks (legacy)
+            try {
+                $stmtInsLegacy->execute([$title, $desc, $defaultAssigned, $user_id, $dueDateLegacy, $isUrgent]);
+            } catch (\PDOException $legErr) {}
         }
 
         if (empty($createdIds)) {
@@ -1790,7 +2038,8 @@ try {
             'success' => true,
             'count' => count($createdIds),
             'task_ids' => $createdIds,
-            'message' => count($createdIds) . (count($createdIds) === 1 ? ' tarea creada' : ' tareas creadas') . ' exitosamente en el Kanban.'
+            'redirect_url' => 'index.php?module=task_manager&action=index',
+            'message' => count($createdIds) . (count($createdIds) === 1 ? ' tarea creada' : ' tareas creadas') . ' exitosamente en Tareas & Objetivos.'
         ]);
         exit();
     }
