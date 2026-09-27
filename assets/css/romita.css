@@ -630,10 +630,12 @@ body:has(.romita-container) .content-wrapper {
 }
 
 .rod-item {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 10px;
-    width: 100%;
+    width: 100% !important;
+    min-height: 44px;
+    height: auto !important;
     padding: 8px 10px;
     border-radius: 8px;
     border: none;
@@ -642,6 +644,22 @@ body:has(.romita-container) .content-wrapper {
     cursor: pointer;
     text-align: left;
     transition: background 0.15s ease;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+.rod-sound-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+.rod-sound-item.sound-muted i {
+    color: #ef4444 !important;
 }
 
 .rod-item:hover {
@@ -908,26 +926,54 @@ body:has(.romita-container) .content-wrapper {
 .romita-hero-glow {
     position: relative;
     margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.romita-hero-glow::before {
+    content: '';
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(37, 99, 235, 0.22) 50%, transparent 72%);
+    filter: blur(14px);
+    z-index: 0;
+    pointer-events: none;
+    animation: heroHaloPulse 3s infinite ease-in-out;
+}
+
+@keyframes heroHaloPulse {
+    0%, 100% { transform: scale(0.92); opacity: 0.55; }
+    50% { transform: scale(1.22); opacity: 0.95; }
 }
 
 .romita-hero-icon {
     width: 72px;
     height: 72px;
     border-radius: 22px;
-    background: var(--romita-gradient);
+    background: #0a0f1d;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 2.5rem;
     color: white;
-    box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 10px 30px rgba(56, 189, 248, 0.4), 0 0 20px rgba(37, 99, 235, 0.3);
     position: relative;
+    z-index: 1;
     animation: pulseSlow 3s infinite ease-in-out;
 }
 
 @keyframes pulseSlow {
-    0%, 100% { transform: scale(1); box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4); }
-    50% { transform: scale(1.04); box-shadow: 0 16px 45px rgba(236, 72, 153, 0.5); }
+    0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 10px 30px rgba(56, 189, 248, 0.38), 0 0 16px rgba(37, 99, 235, 0.25); 
+    }
+    50% { 
+        transform: scale(1.05); 
+        box-shadow: 0 16px 45px rgba(56, 189, 248, 0.7), 0 0 35px rgba(37, 99, 235, 0.45); 
+    }
 }
 
 .romita-hero-title {
@@ -997,7 +1043,8 @@ body:has(.romita-container) .content-wrapper {
     flex-shrink: 0;
 }
 
-.prompt-starter-icon.copywriting { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
+.prompt-starter-icon.copywriting { background: rgba(56, 189, 248, 0.15); color: #0284c7; }
+[data-theme="dark"] .prompt-starter-icon.copywriting { color: #38bdf8; }
 .prompt-starter-icon.sales { background: rgba(16, 185, 129, 0.12); color: #10b981; }
 .prompt-starter-icon.analysis { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
 .prompt-starter-icon.automation { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
@@ -1283,9 +1330,50 @@ body:has(.romita-container) .content-wrapper {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     margin-top: 0.4rem;
     padding-top: 0.3rem;
     border-top: 1px solid var(--romita-border-light);
+}
+
+.romita-composer-bottom .romita-pill-selector-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.romita-composer-bottom .romita-pill-select {
+    height: 32px;
+    padding: 0 1.8rem 0 2rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--romita-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .romita-composer-bottom .romita-pill-select {
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(56, 189, 248, 0.28);
+    color: #f1f5f9;
+}
+
+.romita-composer-bottom .romita-pill-select:hover,
+.romita-composer-bottom .romita-pill-select:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
 }
 
 .composer-hints {
@@ -1318,12 +1406,12 @@ body:has(.romita-container) .content-wrapper {
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
 }
 
 .romita-send-btn:hover {
     transform: scale(1.08);
-    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6);
 }
 
 .romita-send-btn:disabled {
@@ -5196,9 +5284,9 @@ body:has(.romita-container) .content-wrapper {
     height: 32px;
     padding: 0 12px;
     border-radius: 9999px;
-    background: rgba(236, 72, 153, 0.08);
-    border: 1px solid rgba(236, 72, 153, 0.25);
-    color: #db2777;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    color: #0284c7;
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
@@ -5208,14 +5296,14 @@ body:has(.romita-container) .content-wrapper {
 }
 
 [data-theme="dark"] .rg-superprompts-btn {
-    background: rgba(236, 72, 153, 0.15);
-    border-color: rgba(236, 72, 153, 0.35);
-    color: #f472b6;
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.35);
+    color: #38bdf8;
 }
 
 .rg-superprompts-btn:hover {
-    background: rgba(236, 72, 153, 0.16);
-    border-color: rgba(236, 72, 153, 0.5);
+    background: rgba(56, 189, 248, 0.18);
+    border-color: rgba(56, 189, 248, 0.55);
     transform: translateY(-1px);
 }
 
@@ -5313,9 +5401,9 @@ body:has(.romita-container) .content-wrapper {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(236, 72, 153, 0.15));
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    color: #6366f1;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(56, 189, 248, 0.16));
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #0284c7;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5324,7 +5412,7 @@ body:has(.romita-container) .content-wrapper {
 }
 
 [data-theme="dark"] .sp-icon-box {
-    color: #a5b4fc;
+    color: #38bdf8;
 }
 
 .sp-meta {

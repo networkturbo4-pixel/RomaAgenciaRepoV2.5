@@ -230,64 +230,6 @@ try {
                 <button class="btn-toggle-sidebar" onclick="toggleSidebar()" title="Ver Historial de Chats">
                     <i class="ph ph-sidebar-simple"></i>
                 </button>
-                <div class="romita-logo" style="overflow: hidden; padding: 0; background: #0a0f1d; border: 1.5px solid rgba(56, 189, 248, 0.4); box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);">
-                    <img src="assets/img/romita-avatar.png" alt="Romita" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
-                <div class="romita-brand-info">
-                    <div class="romita-brand-title-wrap">
-                        <h2 class="romita-greeting-title">
-                            <span>Romita AI</span>
-                            <span class="user-greeting-pill">• Hola, <?php echo $first_name; ?></span>
-                        </h2>
-                    </div>
-                </div>
-
-                <!-- Selector de Marca / Proyecto como Pill Flotante -->
-                <div class="romita-pill-selector-wrap" title="Vincular con Proyecto de Calendario o Marca Prept">
-                    <i class="ph ph-briefcase romita-pill-icon"></i>
-                    <select id="activeBrandSelect" class="romita-pill-select" onchange="handleBrandSelection(this.value)">
-                        <option value="">Sin Marca (Modo Libre)</option>
-                        <?php if (!empty($calendarProjects)): ?>
-                            <optgroup label="Proyectos de Calendario (Historial de Meses)">
-                                <?php foreach($calendarProjects as $cp): ?>
-                                    <option value="project_<?php echo $cp['project_id']; ?>" 
-                                            data-type="project" 
-                                            data-id="<?php echo $cp['project_id']; ?>" 
-                                            data-name="<?php echo htmlspecialchars($cp['brand_name']); ?>"
-                                            data-months="<?php echo $cp['total_months']; ?>"
-                                            data-posts="<?php echo $cp['total_posts']; ?>">
-                                        <?php echo htmlspecialchars($cp['brand_name']); ?> (<?php echo $cp['total_months']; ?>m • <?php echo $cp['total_posts']; ?>p)
-                                    </option>
-                                <?php endforeach; ?>
-                            </optgroup>
-                        <?php endif; ?>
-                        <?php if (!empty($prepts)): ?>
-                            <optgroup label="Marcas Prepts (Instrucción Manual)">
-                                <?php foreach($prepts as $p): ?>
-                                    <option value="prept_<?php echo $p['id']; ?>" 
-                                            data-type="prept" 
-                                            data-id="<?php echo $p['id']; ?>" 
-                                            data-name="<?php echo htmlspecialchars($p['name']); ?>">
-                                        <?php echo htmlspecialchars($p['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </optgroup>
-                        <?php endif; ?>
-                    </select>
-                    <i class="ph ph-caret-down romita-pill-caret"></i>
-                </div>
-
-                <!-- Chip de Inteligencia de Marca Activa -->
-                <div class="brand-intel-chip" id="brandIntelChip" style="display:none;"></div>
-            </div>
-
-            <!-- Centro: Badge sutil del Modelo Gemini -->
-            <div class="romita-header-center hide-mobile">
-                <span class="romita-model-badge-modern" title="Motor Gemini 2.5 Flash con Grounding en Vivo">
-                    <span class="rmb-pulse-dot"></span>
-                    <span class="rmb-text">Gemini 2.5 Flash</span>
-                    <i class="ph-bold ph-sparkle rmb-sparkle"></i>
-                </span>
             </div>
 
             <!-- Derecha: Acciones limpias y compactas -->
@@ -341,7 +283,7 @@ try {
                                 <span class="rod-item-desc">Tono de respuesta y contexto</span>
                             </div>
                         </button>
-                        <button type="button" class="rod-item btn-romita-sound" id="romitaSoundToggle" onclick="toggleRomitaSound()">
+                        <button type="button" class="rod-item rod-sound-item" id="romitaSoundToggle" onclick="toggleRomitaSound()">
                             <i class="ph ph-speaker-high" id="menuSoundIcon"></i>
                             <div class="rod-item-info">
                                 <span class="rod-item-title">Efectos de sonido</span>
@@ -613,10 +555,44 @@ try {
                         </button>
                     </div>
 
-                    <div class="composer-hints hide-mobile">
-                        <span><kbd class="composer-hint-badge">Shift + Enter</kbd> salto</span>
-                        <span style="margin-left: 6px;"><kbd class="composer-hint-badge">/</kbd> comandos</span>
+                    <!-- Selector Deslizable de Marca / Proyecto en Barra Inferior (Reemplaza instrucciones de comandos) -->
+                    <div class="romita-pill-selector-wrap" title="Elegir qué marca o proyecto trabajar">
+                        <i class="ph ph-briefcase romita-pill-icon"></i>
+                        <select id="activeBrandSelect" class="romita-pill-select" onchange="handleBrandSelection(this.value)">
+                            <option value="">Sin Marca (Modo Libre)</option>
+                            <?php if (!empty($calendarProjects)): ?>
+                                <optgroup label="Proyectos de Calendario (Historial de Meses)">
+                                    <?php foreach($calendarProjects as $cp): ?>
+                                        <option value="project_<?php echo $cp['project_id']; ?>" 
+                                                data-type="project" 
+                                                data-id="<?php echo $cp['project_id']; ?>" 
+                                                data-name="<?php echo htmlspecialchars($cp['brand_name']); ?>"
+                                                data-months="<?php echo $cp['total_months']; ?>"
+                                                data-posts="<?php echo $cp['total_posts']; ?>">
+                                            <?php echo htmlspecialchars($cp['brand_name']); ?> (<?php echo $cp['total_months']; ?>m • <?php echo $cp['total_posts']; ?>p)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </optgroup>
+                            <?php endif; ?>
+                            <?php if (!empty($prepts)): ?>
+                                <optgroup label="Marcas Prepts (Instrucción Manual)">
+                                    <?php foreach($prepts as $p): ?>
+                                        <option value="prept_<?php echo $p['id']; ?>" 
+                                                data-type="prept" 
+                                                data-id="<?php echo $p['id']; ?>" 
+                                                data-name="<?php echo htmlspecialchars($p['name']); ?>">
+                                            <?php echo htmlspecialchars($p['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </optgroup>
+                            <?php endif; ?>
+                        </select>
+                        <i class="ph ph-caret-down romita-pill-caret"></i>
                     </div>
+
+                    <!-- Chip de Inteligencia de Marca Activa -->
+                    <div class="brand-intel-chip" id="brandIntelChip" style="display:none;"></div>
+
 
                     <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
                         <button type="button" class="rg-attach-btn" id="btn-romita-attach" onclick="document.getElementById('romitaModuleFileInput').click()" title="Adjuntar imagen o documento (PDF, CSV, TXT)">
@@ -845,7 +821,7 @@ try {
     <div class="romita-modal-card" style="max-width: 820px; width: 95%;">
         <div class="romita-modal-header">
             <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #ec4899, #7c3aed); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem;">
+                <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #1d4ed8, #38bdf8); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);">
                     <i class="ph-bold ph-sparkle"></i>
                 </div>
                 <div>
@@ -2381,26 +2357,36 @@ try {
 
     function updateRomitaSoundButtons() {
         const isMuted = localStorage.getItem('romita_sound_enabled') === '0';
+        
+        // Elemento del menú de opciones (···)
+        const soundItem = document.getElementById('romitaSoundToggle');
+        if (soundItem) {
+            const iconEl = document.getElementById('menuSoundIcon') || soundItem.querySelector('i');
+            const subEl = document.getElementById('menuSoundSub') || soundItem.querySelector('.rod-item-desc');
+            if (isMuted) {
+                soundItem.classList.add('sound-muted');
+                if (iconEl) iconEl.className = 'ph ph-speaker-simple-slash';
+                if (subEl) subEl.textContent = 'Silenciado (Clic para activar)';
+                soundItem.title = 'Sonido silenciado (Clic para activar)';
+            } else {
+                soundItem.classList.remove('sound-muted');
+                if (iconEl) iconEl.className = 'ph ph-speaker-high';
+                if (subEl) subEl.textContent = 'Sonido activado (Clic para silenciar)';
+                soundItem.title = 'Sonido activado (Clic para silenciar)';
+            }
+        }
+
+        // Para cualquier otro botón con clase .btn-romita-sound
         document.querySelectorAll('.btn-romita-sound').forEach(btn => {
+            if (btn.id === 'romitaSoundToggle') return;
             const iconEl = btn.querySelector('i');
-            const subEl = btn.querySelector('#menuSoundSub') || btn.querySelector('.rod-item-desc');
             if (isMuted) {
                 btn.classList.add('sound-muted');
-                if (iconEl) {
-                    iconEl.className = 'ph ph-speaker-simple-slash';
-                } else {
-                    btn.innerHTML = '<i class="ph ph-speaker-simple-slash"></i>';
-                }
-                if (subEl) subEl.textContent = 'Silenciado (Clic para activar)';
+                if (iconEl) iconEl.className = 'ph ph-speaker-simple-slash';
                 btn.title = 'Sonido silenciado (Clic para activar)';
             } else {
                 btn.classList.remove('sound-muted');
-                if (iconEl) {
-                    iconEl.className = 'ph ph-speaker-high';
-                } else {
-                    btn.innerHTML = '<i class="ph ph-speaker-high"></i>';
-                }
-                if (subEl) subEl.textContent = 'Activado (Clic para silenciar)';
+                if (iconEl) iconEl.className = 'ph ph-speaker-high';
                 btn.title = 'Sonido activado (Clic para silenciar)';
             }
         });
