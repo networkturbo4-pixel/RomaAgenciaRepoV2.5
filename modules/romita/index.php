@@ -203,27 +203,6 @@ try {
     
     <!-- Área de Chat Principal -->
     <main class="romita-main">
-        <!-- Overlay Global de Drag & Drop para Imágenes y Archivos -->
-        <div class="romita-global-drag-overlay" id="romitaGlobalDragOverlay">
-            <div class="rgdo-inner">
-                <div class="rgdo-icon-wrap">
-                    <div class="rgdo-halo"></div>
-                    <div class="rgdo-avatar">
-                        <img src="assets/img/romita-avatar.png" alt="Romita">
-                    </div>
-                    <div class="rgdo-cloud-badge">
-                        <i class="ph-bold ph-cloud-arrow-up"></i>
-                    </div>
-                </div>
-                <h3 class="rgdo-title">Suelta tu imagen o archivo aquí</h3>
-                <p class="rgdo-desc">Romita auditará la jerarquía visual, legibilidad, zonas seguras (9:16) y extraerá texto con Gemini 2.5 Flash.</p>
-                <div class="rgdo-badges">
-                    <span class="rgdo-badge"><i class="ph ph-image"></i> Imágenes (PNG, JPG, WEBP)</span>
-                    <span class="rgdo-badge"><i class="ph ph-file-pdf"></i> Documentos (PDF, TXT, CSV)</span>
-                </div>
-            </div>
-        </div>
-
         <!-- Topbar / Header Moderno & Minimalista -->
         <header class="romita-header romita-header-modern">
             <div class="romita-header-left">
@@ -312,7 +291,6 @@ try {
                     </div>
                 </div>
             </div>
-            <div class="romita-header-laser"></div>
         </header>
 
         <?php if ($sharedChat): ?>
@@ -3395,50 +3373,8 @@ try {
             sparkleIconEl.className = 'ph-bold ' + aiIcon;
         }
 
-        // Renderizar tarjeta cuántica orbital futurista dentro del chat stream
-        const container = document.getElementById('chatStreamInner');
-        if (container) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'romita-message assistant-message';
-            msgDiv.id = 'typingIndicator';
-            msgDiv.innerHTML = `
-                <div class="message-avatar ai-avatar rg-avatar-generating" style="background:#0a0f1d; overflow:hidden; border:1px solid rgba(56, 189, 248, 0.35);">
-                    <img src="assets/img/romita-avatar.png" alt="Romita" style="width:100%; height:100%; object-fit:cover;">
-                </div>
-                <div class="message-wrapper">
-                    <div class="message-bubble rg-neural-bubble" style="background:var(--romita-ai-bubble, #ffffff); border:1px solid var(--romita-border, rgba(0,0,0,0.08)); padding:10px 14px;">
-                        <div class="romita-chat-orbital-card">
-                            <div class="romita-orbital-core">
-                                <div class="roc-pulse"></div>
-                                <div class="roc-ring roc-ring-1"></div>
-                                <div class="roc-ring roc-ring-2"></div>
-                                <div class="roc-nucleus">
-                                    <img src="assets/img/romita-avatar.png" alt="Romita">
-                                </div>
-                            </div>
-                            <div class="roc-chat-details">
-                                <div class="roc-status-row">
-                                    <span class="reg-tag">Romita IA</span>
-                                    <span id="romita-module-stream-status-text" class="roc-status-msg">Romita está procesando el contexto...</span>
-                                </div>
-                                <div class="roc-shimmer-telemetry">
-                                    <div class="roc-shimmer-bar b1"></div>
-                                    <div class="roc-shimmer-bar b2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(msgDiv);
-            const chatArea = document.getElementById('chatArea');
-            if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
-        }
-
-        // Efectos dinámicos en cabecera y composer
-        const header = document.querySelector('.romita-header');
-        if (header) header.classList.add('is-generating');
-        const composer = document.querySelector('.romita-input-container');
+        // Solo iluminar y activar telemetría en la caja de mensaje (Composer)
+        const composer = document.querySelector('.romita-input-container') || document.getElementById('romitaComposerCard');
         if (composer) composer.classList.add('is-generating');
         const sendBtn = document.getElementById('sendBtn');
         if (sendBtn) {
@@ -3446,7 +3382,7 @@ try {
             sendBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i>';
         }
 
-        // Ciclado dinámico de frases futuristas de telemetría en composer y tarjeta orbital
+        // Ciclado dinámico de frases futuristas de telemetría solo en composer
         const statusPhrases = [
             'Romita está procesando el contexto...',
             'Consultando base de proyectos y ecosistema...',
@@ -3457,8 +3393,6 @@ try {
         let phraseIdx = 0;
         const statusEl = document.getElementById('romita-module-status-text');
         if (statusEl) statusEl.innerText = statusPhrases[0];
-        const streamStatusEl = document.getElementById('romita-module-stream-status-text');
-        if (streamStatusEl) streamStatusEl.innerText = statusPhrases[0];
 
         if (romitaModuleStatusInterval) clearInterval(romitaModuleStatusInterval);
         romitaModuleStatusInterval = setInterval(() => {
@@ -3470,16 +3404,6 @@ try {
                     if (statusEl) {
                         statusEl.innerText = currentPhrase;
                         statusEl.style.opacity = '1';
-                    }
-                }, 180);
-            }
-            const sStatusEl = document.getElementById('romita-module-stream-status-text');
-            if (sStatusEl) {
-                sStatusEl.style.opacity = '0';
-                setTimeout(() => {
-                    if (sStatusEl) {
-                        sStatusEl.innerText = currentPhrase;
-                        sStatusEl.style.opacity = '1';
                     }
                 }, 180);
             }
@@ -3599,15 +3523,13 @@ try {
     function initRomitaModuleMultimodalListeners() {
         const composer = document.getElementById('romitaComposerCard') || document.querySelector('.romita-input-container') || document.querySelector('.romita-composer');
         const input = document.getElementById('chatInput');
-        const overlay = document.getElementById('romitaGlobalDragOverlay');
-
-        // 1. Drag & Drop Global en la Ventana / Chat con Overlay
+        // 1. Drag & Drop directo sobre el Compositor y en la Ventana (Estilo Burbuja Romita)
         let dragCounter = 0;
 
         window.addEventListener('dragenter', e => {
             if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
                 dragCounter++;
-                if (overlay) overlay.classList.add('active');
+                if (composer) composer.classList.add('drag-over');
             }
         });
 
@@ -3615,7 +3537,7 @@ try {
             dragCounter--;
             if (dragCounter <= 0) {
                 dragCounter = 0;
-                if (overlay) overlay.classList.remove('active');
+                if (composer) composer.classList.remove('drag-over');
             }
         });
 
@@ -3626,9 +3548,7 @@ try {
         window.addEventListener('drop', e => {
             e.preventDefault();
             dragCounter = 0;
-            if (overlay) overlay.classList.remove('active');
             if (composer) composer.classList.remove('drag-over');
-
             if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
                 setRomitaModuleAttachment(e.dataTransfer.files[0]);
             }
@@ -3654,7 +3574,6 @@ try {
                 e.preventDefault();
                 e.stopPropagation();
                 composer.classList.remove('drag-over');
-                if (overlay) overlay.classList.remove('active');
                 if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
                     setRomitaModuleAttachment(e.dataTransfer.files[0]);
                 }
