@@ -203,13 +203,34 @@ try {
     
     <!-- Área de Chat Principal -->
     <main class="romita-main">
-        <!-- Topbar / Header -->
-        <header class="romita-header">
-            <div class="romita-brand">
-                <button class="btn-toggle-sidebar" onclick="toggleSidebar()" title="Ver Historial">
+        <!-- Overlay Global de Drag & Drop para Imágenes y Archivos -->
+        <div class="romita-global-drag-overlay" id="romitaGlobalDragOverlay">
+            <div class="rgdo-inner">
+                <div class="rgdo-icon-wrap">
+                    <div class="rgdo-halo"></div>
+                    <div class="rgdo-avatar">
+                        <img src="assets/img/romita-avatar.png" alt="Romita">
+                    </div>
+                    <div class="rgdo-cloud-badge">
+                        <i class="ph-bold ph-cloud-arrow-up"></i>
+                    </div>
+                </div>
+                <h3 class="rgdo-title">Suelta tu imagen o archivo aquí</h3>
+                <p class="rgdo-desc">Romita auditará la jerarquía visual, legibilidad, zonas seguras (9:16) y extraerá texto con Gemini 2.5 Flash.</p>
+                <div class="rgdo-badges">
+                    <span class="rgdo-badge"><i class="ph ph-image"></i> Imágenes (PNG, JPG, WEBP)</span>
+                    <span class="rgdo-badge"><i class="ph ph-file-pdf"></i> Documentos (PDF, TXT, CSV)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topbar / Header Moderno & Minimalista -->
+        <header class="romita-header romita-header-modern">
+            <div class="romita-header-left">
+                <button class="btn-toggle-sidebar" onclick="toggleSidebar()" title="Ver Historial de Chats">
                     <i class="ph ph-sidebar-simple"></i>
                 </button>
-                <div class="romita-logo" style="overflow: hidden; padding: 0; background: #0a0f1d; border: 1px solid rgba(56, 189, 248, 0.3);">
+                <div class="romita-logo" style="overflow: hidden; padding: 0; background: #0a0f1d; border: 1.5px solid rgba(56, 189, 248, 0.4); box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);">
                     <img src="assets/img/romita-avatar.png" alt="Romita" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <div class="romita-brand-info">
@@ -219,28 +240,13 @@ try {
                             <span class="user-greeting-pill">• Hola, <?php echo $first_name; ?></span>
                         </h2>
                     </div>
-                    <div class="romita-badge-wrap">
-                        <span class="romita-model-badge">
-                            <i class="ph ph-lightning"></i>
-                            <span class="badge-text-desktop">Gemini 2.5 Flash • Web Grounding</span>
-                            <span class="badge-text-mobile">Gemini 2.5</span>
-                        </span>
-                    </div>
                 </div>
-            </div>
 
-            <div class="romita-actions">
-                <!-- Buscador dentro del chat activo -->
-                <div class="search-chat-container hide-mobile">
-                    <i class="ph ph-magnifying-glass"></i>
-                    <input type="text" id="chatSearch" placeholder="Buscar en mensaje..." class="search-chat-input" onkeyup="searchChat(this.value)">
-                </div>
-                
-                <!-- Selector de Marca / Proyecto de Calendario -->
-                <div class="prept-select-wrap" title="Vincular con Proyecto de Calendario o Marca Prept">
-                    <i class="ph ph-briefcase prept-select-icon"></i>
-                    <select id="activeBrandSelect" class="prept-select-custom" onchange="handleBrandSelection(this.value)">
-                        <option value="">-- Sin Marca (Modo Libre) --</option>
+                <!-- Selector de Marca / Proyecto como Pill Flotante -->
+                <div class="romita-pill-selector-wrap" title="Vincular con Proyecto de Calendario o Marca Prept">
+                    <i class="ph ph-briefcase romita-pill-icon"></i>
+                    <select id="activeBrandSelect" class="romita-pill-select" onchange="handleBrandSelection(this.value)">
+                        <option value="">Sin Marca (Modo Libre)</option>
                         <?php if (!empty($calendarProjects)): ?>
                             <optgroup label="Proyectos de Calendario (Historial de Meses)">
                                 <?php foreach($calendarProjects as $cp): ?>
@@ -250,7 +256,7 @@ try {
                                             data-name="<?php echo htmlspecialchars($cp['brand_name']); ?>"
                                             data-months="<?php echo $cp['total_months']; ?>"
                                             data-posts="<?php echo $cp['total_posts']; ?>">
-                                        <?php echo htmlspecialchars($cp['brand_name']); ?> (<?php echo $cp['total_months']; ?> meses • <?php echo $cp['total_posts']; ?> posts)
+                                        <?php echo htmlspecialchars($cp['brand_name']); ?> (<?php echo $cp['total_months']; ?>m • <?php echo $cp['total_posts']; ?>p)
                                     </option>
                                 <?php endforeach; ?>
                             </optgroup>
@@ -268,37 +274,100 @@ try {
                             </optgroup>
                         <?php endif; ?>
                     </select>
-                    <i class="ph ph-caret-down prept-select-caret"></i>
+                    <i class="ph ph-caret-down romita-pill-caret"></i>
                 </div>
 
                 <!-- Chip de Inteligencia de Marca Activa -->
                 <div class="brand-intel-chip" id="brandIntelChip" style="display:none;"></div>
+            </div>
 
-                <div class="romita-header-buttons">
-                    <button type="button" class="btn-romita-sound" id="romitaSoundToggle" onclick="toggleRomitaSound()" title="Sonido activado (Clic para silenciar)">
-                        <i class="ph ph-speaker-high"></i>
-                    </button>
-                    <button type="button" class="btn-romita-action" id="btnShareChat" onclick="shareCurrentChat()" title="Compartir este chat con un compañero">
-                        <i class="ph ph-share-network"></i> <span class="hide-mobile">Compartir</span>
-                    </button>
-                    <button type="button" class="btn-romita-action" id="btnExportPdf" onclick="exportChatToPdf()" title="Exportar conversación a PDF membretado">
-                        <i class="ph ph-file-pdf"></i> <span class="hide-mobile">PDF</span>
-                    </button>
-                    <button type="button" class="btn-romita-action" id="btnUserPrefs" onclick="openUserPrefsModal()" title="Preferencias de Respuesta y Memoria Permanente">
-                        <i class="ph ph-gear-six"></i> <span class="hide-mobile">Memoria</span>
-                    </button>
-                    <button class="btn-romita-action" onclick="newConversation()" title="Limpiar y empezar nuevo chat">
-                        <i class="ph ph-broom"></i> <span class="hide-mobile">Limpiar</span>
-                    </button>
+            <!-- Centro: Badge sutil del Modelo Gemini -->
+            <div class="romita-header-center hide-mobile">
+                <span class="romita-model-badge-modern" title="Motor Gemini 2.5 Flash con Grounding en Vivo">
+                    <span class="rmb-pulse-dot"></span>
+                    <span class="rmb-text">Gemini 2.5 Flash</span>
+                    <i class="ph-bold ph-sparkle rmb-sparkle"></i>
+                </span>
+            </div>
 
-                    <?php if($is_admin): ?>
-                        <button class="btn-romita-action" onclick="openPreptsModal()" title="Gestionar Marcas (Prepts & Memoria de Tono)">
-                            <i class="ph ph-buildings"></i> <span class="hide-mobile">Prepts</span>
+            <!-- Derecha: Acciones limpias y compactas -->
+            <div class="romita-header-right">
+                <!-- Buscador inline desplegable -->
+                <div class="romita-inline-search-wrap" id="romitaInlineSearchWrap">
+                    <button type="button" class="btn-romita-icon-action" id="btnToggleSearch" onclick="toggleHeaderSearch()" title="Buscar en esta conversación">
+                        <i class="ph ph-magnifying-glass"></i>
+                    </button>
+                    <div class="romita-inline-search-bar" id="romitaInlineSearchBar" style="display:none;">
+                        <i class="ph ph-magnifying-glass search-bar-icon"></i>
+                        <input type="text" id="chatSearch" placeholder="Buscar en conversación..." class="search-bar-input" onkeyup="searchChat(this.value)">
+                        <button type="button" class="btn-search-clear" onclick="clearAndCloseSearch()" title="Cerrar búsqueda"><i class="ph ph-x"></i></button>
+                    </div>
+                </div>
+
+                <!-- Botón Nuevo Chat Destacado -->
+                <button type="button" class="btn-romita-new-chat-pill" onclick="newConversation()" title="Iniciar conversación limpia">
+                    <i class="ph-bold ph-plus"></i>
+                    <span class="hide-mobile">Nuevo Chat</span>
+                </button>
+
+                <!-- Menú Desplegable de Opciones y Herramientas (···) -->
+                <div class="romita-options-menu-wrap">
+                    <button type="button" class="btn-romita-icon-action" id="btnRomitaOptions" onclick="toggleRomitaOptionsMenu(event)" title="Más herramientas y opciones">
+                        <i class="ph-bold ph-dots-three-vertical"></i>
+                    </button>
+                    
+                    <div class="romita-options-dropdown" id="romitaOptionsDropdown" style="display:none;" onclick="event.stopPropagation()">
+                        <div class="rod-header">
+                            <span>Herramientas de Romita</span>
+                        </div>
+                        <button type="button" class="rod-item" id="btnShareChat" onclick="shareCurrentChat(); closeRomitaOptionsMenu();">
+                            <i class="ph ph-share-network"></i>
+                            <div class="rod-item-info">
+                                <span class="rod-item-title">Compartir conversación</span>
+                                <span class="rod-item-desc">Generar link público de lectura</span>
+                            </div>
                         </button>
-                        <button class="btn-romita-action" onclick="openSkillsModal()" title="Configurar Habilidades (Skills)">
-                            <i class="ph ph-sliders"></i> <span class="hide-mobile">Skills</span>
+                        <button type="button" class="rod-item" id="btnExportPdf" onclick="exportChatToPdf(); closeRomitaOptionsMenu();">
+                            <i class="ph ph-file-pdf"></i>
+                            <div class="rod-item-info">
+                                <span class="rod-item-title">Exportar a PDF</span>
+                                <span class="rod-item-desc">Descargar resumen membretado</span>
+                            </div>
                         </button>
-                    <?php endif; ?>
+                        <button type="button" class="rod-item" id="btnUserPrefs" onclick="openUserPrefsModal(); closeRomitaOptionsMenu();">
+                            <i class="ph ph-gear-six"></i>
+                            <div class="rod-item-info">
+                                <span class="rod-item-title">Memoria y Preferencias</span>
+                                <span class="rod-item-desc">Tono de respuesta y contexto</span>
+                            </div>
+                        </button>
+                        <button type="button" class="rod-item btn-romita-sound" id="romitaSoundToggle" onclick="toggleRomitaSound()">
+                            <i class="ph ph-speaker-high" id="menuSoundIcon"></i>
+                            <div class="rod-item-info">
+                                <span class="rod-item-title">Efectos de sonido</span>
+                                <span class="rod-item-desc" id="menuSoundSub">Sonido activado</span>
+                            </div>
+                        </button>
+
+                        <?php if($is_admin): ?>
+                            <div class="rod-divider"></div>
+                            <div class="rod-header"><span>Administración</span></div>
+                            <button type="button" class="rod-item" onclick="openPreptsModal(); closeRomitaOptionsMenu();">
+                                <i class="ph ph-buildings"></i>
+                                <div class="rod-item-info">
+                                    <span class="rod-item-title">Gestión de Marcas (Prepts)</span>
+                                    <span class="rod-item-desc">Manuales de tono y reglas</span>
+                                </div>
+                            </button>
+                            <button type="button" class="rod-item" onclick="openSkillsModal(); closeRomitaOptionsMenu();">
+                                <i class="ph ph-sliders"></i>
+                                <div class="rod-item-info">
+                                    <span class="rod-item-title">Configurar Habilidades (Skills)</span>
+                                    <span class="rod-item-desc">Especialidades y prompts base</span>
+                                </div>
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
             <div class="romita-header-laser"></div>
@@ -367,7 +436,7 @@ try {
             </div>
 
             <!-- Caja de Entrada -->
-            <div class="romita-input-container">
+            <div class="romita-input-container romita-composer rg-composer-card" id="romitaComposerCard">
                 <!-- Slash Commands Autocomplete Menu -->
                 <div class="rg-slash-menu" id="rg-slash-menu" style="display:none;" onclick="event.stopPropagation()">
                     <div class="rg-slash-header">
@@ -1180,6 +1249,61 @@ try {
             }
         });
     }
+
+    // Control del buscador inline desplegable en el header moderno
+    function toggleHeaderSearch() {
+        const bar = document.getElementById('romitaInlineSearchBar');
+        const input = document.getElementById('chatSearch');
+        if (!bar) return;
+        if (bar.style.display === 'none' || !bar.style.display) {
+            bar.style.display = 'flex';
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        } else {
+            clearAndCloseSearch();
+        }
+    }
+
+    function clearAndCloseSearch() {
+        const bar = document.getElementById('romitaInlineSearchBar');
+        const input = document.getElementById('chatSearch');
+        if (input) {
+            input.value = '';
+            searchChat('');
+        }
+        if (bar) bar.style.display = 'none';
+    }
+
+    // Control del menú de opciones y herramientas (···) en el header moderno
+    function toggleRomitaOptionsMenu(e) {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById('romitaOptionsDropdown');
+        if (!menu) return;
+        const isOpen = menu.style.display === 'block';
+        menu.style.display = isOpen ? 'none' : 'block';
+    }
+
+    function closeRomitaOptionsMenu() {
+        const menu = document.getElementById('romitaOptionsDropdown');
+        if (menu) menu.style.display = 'none';
+    }
+
+    // Cerrar menús al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        const menuWrap = document.querySelector('.romita-options-menu-wrap');
+        if (menuWrap && !menuWrap.contains(e.target)) {
+            closeRomitaOptionsMenu();
+        }
+        const searchWrap = document.getElementById('romitaInlineSearchWrap');
+        if (searchWrap && !searchWrap.contains(e.target)) {
+            const input = document.getElementById('chatSearch');
+            if (input && input.value.trim() === '') {
+                clearAndCloseSearch();
+            }
+        }
+    });
 
     // Filtro en vivo del historial en el sidebar
     function filterSidebarChats(query) {
@@ -2258,13 +2382,25 @@ try {
     function updateRomitaSoundButtons() {
         const isMuted = localStorage.getItem('romita_sound_enabled') === '0';
         document.querySelectorAll('.btn-romita-sound').forEach(btn => {
+            const iconEl = btn.querySelector('i');
+            const subEl = btn.querySelector('#menuSoundSub') || btn.querySelector('.rod-item-desc');
             if (isMuted) {
                 btn.classList.add('sound-muted');
-                btn.innerHTML = '<i class="ph ph-speaker-simple-slash"></i>';
+                if (iconEl) {
+                    iconEl.className = 'ph ph-speaker-simple-slash';
+                } else {
+                    btn.innerHTML = '<i class="ph ph-speaker-simple-slash"></i>';
+                }
+                if (subEl) subEl.textContent = 'Silenciado (Clic para activar)';
                 btn.title = 'Sonido silenciado (Clic para activar)';
             } else {
                 btn.classList.remove('sound-muted');
-                btn.innerHTML = '<i class="ph ph-speaker-high"></i>';
+                if (iconEl) {
+                    iconEl.className = 'ph ph-speaker-high';
+                } else {
+                    btn.innerHTML = '<i class="ph ph-speaker-high"></i>';
+                }
+                if (subEl) subEl.textContent = 'Activado (Clic para silenciar)';
                 btn.title = 'Sonido activado (Clic para silenciar)';
             }
         });
@@ -3475,9 +3611,44 @@ try {
 
     // FASE 3: Listeners de Drag & Drop y Pegado de Portapapeles (Ctrl+V)
     function initRomitaModuleMultimodalListeners() {
-        const composer = document.querySelector('.romita-composer') || document.querySelector('.romita-input-box');
+        const composer = document.getElementById('romitaComposerCard') || document.querySelector('.romita-input-container') || document.querySelector('.romita-composer');
         const input = document.getElementById('chatInput');
+        const overlay = document.getElementById('romitaGlobalDragOverlay');
 
+        // 1. Drag & Drop Global en la Ventana / Chat con Overlay
+        let dragCounter = 0;
+
+        window.addEventListener('dragenter', e => {
+            if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                dragCounter++;
+                if (overlay) overlay.classList.add('active');
+            }
+        });
+
+        window.addEventListener('dragleave', e => {
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                if (overlay) overlay.classList.remove('active');
+            }
+        });
+
+        window.addEventListener('dragover', e => {
+            e.preventDefault();
+        });
+
+        window.addEventListener('drop', e => {
+            e.preventDefault();
+            dragCounter = 0;
+            if (overlay) overlay.classList.remove('active');
+            if (composer) composer.classList.remove('drag-over');
+
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                setRomitaModuleAttachment(e.dataTransfer.files[0]);
+            }
+        });
+
+        // 2. Drag & Drop directo sobre el Compositor
         if (composer) {
             ['dragenter', 'dragover'].forEach(evt => {
                 composer.addEventListener(evt, e => {
@@ -3494,28 +3665,41 @@ try {
                 });
             });
             composer.addEventListener('drop', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                composer.classList.remove('drag-over');
+                if (overlay) overlay.classList.remove('active');
                 if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
                     setRomitaModuleAttachment(e.dataTransfer.files[0]);
                 }
             });
         }
 
-        if (input) {
-            input.addEventListener('paste', e => {
-                if (e.clipboardData && e.clipboardData.items) {
-                    for (let i = 0; i < e.clipboardData.items.length; i++) {
-                        const item = e.clipboardData.items[i];
-                        if (item.kind === 'file' && item.type.startsWith('image/')) {
-                            const file = item.getAsFile();
-                            if (file) {
-                                setRomitaModuleAttachment(file);
-                                break;
-                            }
+        // 3. Pegado de Portapapeles (Ctrl+V) tanto en el Textarea como Global
+        const handlePasteEvent = (e) => {
+            if (e.clipboardData && e.clipboardData.items) {
+                for (let i = 0; i < e.clipboardData.items.length; i++) {
+                    const item = e.clipboardData.items[i];
+                    if (item.kind === 'file') {
+                        const file = item.getAsFile();
+                        if (file) {
+                            e.preventDefault();
+                            setRomitaModuleAttachment(file);
+                            break;
                         }
                     }
                 }
-            });
+            }
+        };
+
+        if (input) {
+            input.addEventListener('paste', handlePasteEvent);
         }
+        document.addEventListener('paste', e => {
+            if (e.target !== input && !e.target.matches('input, textarea')) {
+                handlePasteEvent(e);
+            }
+        });
     }
 
     <?php if($is_admin): ?>
