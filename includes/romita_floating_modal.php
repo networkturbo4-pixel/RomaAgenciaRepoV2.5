@@ -1549,9 +1549,10 @@ body.has-active-modal .romita-fab-container,
     vertical-align: top;
     background: transparent;
     white-space: normal !important;
-    word-break: normal !important;
-    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
     min-width: 140px;
+    box-sizing: border-box;
 }
 [data-theme="dark"] .romita-table-container td,
 [data-theme="dark"] .rg-msg-bubble td {

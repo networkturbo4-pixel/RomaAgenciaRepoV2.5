@@ -239,8 +239,18 @@ require_once 'includes/header.php';
     box-shadow: 0 8px 20px -3px rgba(99, 102, 241, 0.45);
 }
 .icon-romita {
-    background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
-    box-shadow: 0 8px 20px -3px rgba(236, 72, 153, 0.45);
+    background: #0b1120;
+    box-shadow: 0 8px 20px -3px rgba(56, 189, 248, 0.45);
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.icon-romita img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    display: block;
 }
 .icon-brand {
     background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
@@ -584,8 +594,8 @@ require_once 'includes/header.php';
         <?php if (in_array('romita', $perms)): ?>
         <a href="index.php?module=romita&action=index" class="workspace-card" data-title="Romita IA" data-desc="Asistente inteligente con IA creación contenidos estrategias automatización">
             <div class="workspace-card-top">
-                <div class="workspace-card-icon icon-romita">
-                    <i class="ph-bold ph-sparkle"></i>
+                <div class="workspace-card-icon icon-romita" title="Romita IA">
+                    <img src="assets/img/romita-avatar.png" alt="Romita IA">
                 </div>
                 <div class="app-launch-chip">
                     <i class="ph-bold ph-arrow-up-right"></i>

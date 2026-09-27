@@ -28,9 +28,9 @@ try {
     $skills = [];
 }
 
-// 2. Fetch Prepts (con control de excepciones independiente)
+// 2. Fetch Prepts con Manual de Tono y Memoria de Marca (Fase 4)
 try {
-    $stmtPrepts = $db->query("SELECT id, name, tone, audience, rules FROM romita_prepts ORDER BY name ASC");
+    $stmtPrepts = $db->query("SELECT id, name, tone, archetype, audience, rules, forbidden_words FROM romita_prepts ORDER BY name ASC");
     if ($stmtPrepts) $prepts = $stmtPrepts->fetchAll(PDO::FETCH_ASSOC);
 } catch(Exception $e) {
     $prepts = [];
@@ -84,6 +84,58 @@ try {
 $first_name = htmlspecialchars(explode(' ', $_SESSION['user_name'] ?? 'Usuario')[0]);
 $hour = (int)date('H');
 $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && $hour < 19) ? 'Buenas tardes' : 'Buenas noches');
+
+// Fase 4: Carga de Chat Compartido si existe token
+$share_token = trim($_GET['share'] ?? '');
+$sharedChat = null;
+$sharedMessages = [];
+if (!empty($share_token)) {
+    try {
+        $stmtShare = $db->prepare("
+            SELECT rc.id, rc.title, rc.created_at, u.name as author_name 
+            FROM romita_chats rc 
+            JOIN users u ON rc.user_id = u.id 
+            WHERE rc.share_token = ?
+        ");
+        $stmtShare->execute([$share_token]);
+        $sharedChat = $stmtShare->fetch(PDO::FETCH_ASSOC);
+
+        if ($sharedChat) {
+            $stmtMsgs = $db->prepare("
+                SELECT id, role, content, feedback, attachment_url, attachment_type, attachment_name, created_at 
+                FROM romita_messages 
+                WHERE chat_id = ? 
+                ORDER BY id ASC
+            ");
+            $stmtMsgs->execute([$sharedChat['id']]);
+            $sharedMessages = $stmtMsgs->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } catch(Exception $e) {}
+}
+
+// Fase 4: Memoria de Preferencias del Usuario
+$userPrefs = null;
+try {
+    $stmtPref = $db->prepare("SELECT response_style, custom_instructions, default_specialty, sound_enabled FROM romita_user_preferences WHERE user_id = ?");
+    $stmtPref->execute([$_SESSION['user_id']]);
+    $userPrefs = $stmtPref->fetch(PDO::FETCH_ASSOC);
+} catch(Exception $e) {}
+if (!$userPrefs) {
+    $userPrefs = [
+        'response_style' => 'strategic',
+        'custom_instructions' => '',
+        'default_specialty' => 'director_360',
+        'sound_enabled' => 1
+    ];
+}
+
+// Fase 4: Biblioteca de Super-Prompts
+$superPrompts = [];
+try {
+    $stmtSP = $db->prepare("SELECT * FROM romita_super_prompts WHERE (is_agency_template = 1 OR user_id = ?) ORDER BY is_agency_template DESC, id DESC");
+    $stmtSP->execute([$_SESSION['user_id']]);
+    $superPrompts = $stmtSP->fetchAll(PDO::FETCH_ASSOC);
+} catch(Exception $e) {}
 ?>
 
 <link rel="stylesheet" href="assets/css/romita.css?v=<?php echo file_exists('assets/css/romita.css') ? filemtime('assets/css/romita.css') : time(); ?>">
@@ -226,12 +278,21 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                     <button type="button" class="btn-romita-sound" id="romitaSoundToggle" onclick="toggleRomitaSound()" title="Sonido activado (Clic para silenciar)">
                         <i class="ph ph-speaker-high"></i>
                     </button>
+                    <button type="button" class="btn-romita-action" id="btnShareChat" onclick="shareCurrentChat()" title="Compartir este chat con un compañero">
+                        <i class="ph ph-share-network"></i> <span class="hide-mobile">Compartir</span>
+                    </button>
+                    <button type="button" class="btn-romita-action" id="btnExportPdf" onclick="exportChatToPdf()" title="Exportar conversación a PDF membretado">
+                        <i class="ph ph-file-pdf"></i> <span class="hide-mobile">PDF</span>
+                    </button>
+                    <button type="button" class="btn-romita-action" id="btnUserPrefs" onclick="openUserPrefsModal()" title="Preferencias de Respuesta y Memoria Permanente">
+                        <i class="ph ph-gear-six"></i> <span class="hide-mobile">Memoria</span>
+                    </button>
                     <button class="btn-romita-action" onclick="newConversation()" title="Limpiar y empezar nuevo chat">
                         <i class="ph ph-broom"></i> <span class="hide-mobile">Limpiar</span>
                     </button>
 
                     <?php if($is_admin): ?>
-                        <button class="btn-romita-action" onclick="openPreptsModal()" title="Gestionar Marcas (Prepts)">
+                        <button class="btn-romita-action" onclick="openPreptsModal()" title="Gestionar Marcas (Prepts & Memoria de Tono)">
                             <i class="ph ph-buildings"></i> <span class="hide-mobile">Prepts</span>
                         </button>
                         <button class="btn-romita-action" onclick="openSkillsModal()" title="Configurar Habilidades (Skills)">
@@ -243,31 +304,26 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             <div class="romita-header-laser"></div>
         </header>
 
-        <!-- Segmented Specialties Bar (Modern SaaS App Style - Zero Emojis) -->
-        <div class="romita-module-specialties">
-            <div class="rg-specialties-bar">
-                <button type="button" class="rg-spec-tab active" data-spec="director_360" onclick="setModuleSpecialty('director_360', this)">
-                    <i class="ph ph-compass"></i>
-                    <span>Directora 360°</span>
+        <?php if ($sharedChat): ?>
+        <!-- Banner de Visualización de Chat Compartido (Fase 4) -->
+        <div class="romita-shared-notice-banner" id="sharedNoticeBanner">
+            <div class="rsnb-left">
+                <div class="rsnb-icon"><i class="ph-bold ph-share-network"></i></div>
+                <div>
+                    <strong>Conversación compartida por <?php echo htmlspecialchars($sharedChat['author_name']); ?>:</strong>
+                    <span><?php echo htmlspecialchars($sharedChat['title']); ?></span>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button type="button" class="rsnb-btn" onclick="cloneSharedChat(<?php echo $sharedChat['id']; ?>)">
+                    <i class="ph-bold ph-copy-simple"></i> Guardar en mis chats
                 </button>
-                <button type="button" class="rg-spec-tab" data-spec="community_manager" onclick="setModuleSpecialty('community_manager', this)">
-                    <i class="ph ph-chat-circle-dots"></i>
-                    <span>Senior CM</span>
-                </button>
-                <button type="button" class="rg-spec-tab" data-spec="branding" onclick="setModuleSpecialty('branding', this)">
-                    <i class="ph ph-palette"></i>
-                    <span>Branding</span>
-                </button>
-                <button type="button" class="rg-spec-tab" data-spec="marketing" onclick="setModuleSpecialty('marketing', this)">
-                    <i class="ph ph-trend-up"></i>
-                    <span>Marketing</span>
-                </button>
-                <button type="button" class="rg-spec-tab" data-spec="seo" onclick="setModuleSpecialty('seo', this)">
-                    <i class="ph ph-magnifying-glass"></i>
-                    <span>SEO</span>
-                </button>
+                <a href="index.php?module=romita&action=index" class="rsnb-btn" title="Cerrar visor y nuevo chat">
+                    <i class="ph ph-x"></i> Salir
+                </a>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Feed del Chat -->
         <div class="romita-chat-area" id="chatArea">
@@ -408,11 +464,71 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
                 </div>
 
                 <div class="romita-composer-bottom">
-                    <div class="composer-hints">
-                        <span><kbd class="composer-hint-badge">Shift + Enter</kbd> para salto de línea</span>
-                        <span style="margin-left: 8px;"><kbd class="composer-hint-badge">/</kbd> comandos rápidos</span>
+                    <div class="rg-composer-tools-left">
+                        <!-- Selector de Especialidad Flotante en el Composer (Estilo Imagen 3) -->
+                        <div class="rg-specialty-picker-wrap">
+                            <button type="button" class="rg-specialty-pill-btn" id="module-specialty-trigger-btn" onclick="toggleModuleSpecialtyMenu(event)" aria-expanded="false" title="Cambiar especialidad de Romita">
+                                <i class="ph ph-compass" id="module-trigger-icon"></i>
+                                <span id="module-trigger-label">Directora 360°</span>
+                                <i class="ph-bold ph-caret-down rg-caret"></i>
+                            </button>
+                            <!-- Menú Emergente de Especialidades -->
+                            <div class="rg-specialties-popover" id="module-specialties-popover" style="display:none;" onclick="event.stopPropagation()">
+                                <button type="button" class="rg-popover-item active" data-spec="director_360" onclick="selectModuleSpecialty('director_360', 'Directora 360°', 'ph-compass')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-compass"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Directora 360°</span>
+                                        <span class="rg-popover-item-desc">Visión integral y coordinación de proyectos</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="community_manager" onclick="selectModuleSpecialty('community_manager', 'Senior CM', 'ph-chat-circle-dots')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-chat-circle-dots"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Senior CM</span>
+                                        <span class="rg-popover-item-desc">Copywriting, redes y tono de voz</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="branding" onclick="selectModuleSpecialty('branding', 'Branding', 'ph-palette')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-palette"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Branding</span>
+                                        <span class="rg-popover-item-desc">Manual de marca y dirección visual</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="marketing" onclick="selectModuleSpecialty('marketing', 'Marketing & Growth', 'ph-trend-up')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-trend-up"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Marketing & Growth</span>
+                                        <span class="rg-popover-item-desc">Embudos, pauta digital y conversión</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                                <button type="button" class="rg-popover-item" data-spec="seo" onclick="selectModuleSpecialty('seo', 'Especialista SEO', 'ph-magnifying-glass')">
+                                    <span class="rg-popover-item-icon"><i class="ph ph-magnifying-glass"></i></span>
+                                    <div class="rg-popover-item-content">
+                                        <span class="rg-popover-item-title">Especialista SEO</span>
+                                        <span class="rg-popover-item-desc">Posicionamiento y optimización de búsqueda</span>
+                                    </div>
+                                    <span class="rg-popover-item-check"><i class="ph-bold ph-check"></i></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Biblioteca de Super-Prompts (Fase 4) -->
+                        <button type="button" class="rg-superprompts-btn" onclick="openSuperPromptsModal()" title="Biblioteca de Super-Prompts de la Agencia">
+                            <i class="ph-bold ph-sparkle"></i> <span class="hide-mobile">Super-Prompts</span>
+                        </button>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
+
+                    <div class="composer-hints hide-mobile">
+                        <span><kbd class="composer-hint-badge">Shift + Enter</kbd> salto</span>
+                        <span style="margin-left: 6px;"><kbd class="composer-hint-badge">/</kbd> comandos</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
                         <button type="button" class="rg-attach-btn" id="btn-romita-attach" onclick="document.getElementById('romitaModuleFileInput').click()" title="Adjuntar imagen o documento (PDF, CSV, TXT)">
                             <i class="ph ph-paperclip"></i>
                         </button>
@@ -572,44 +688,60 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
 
 <!-- Modal de Gestión de Prepts -->
 <div class="romita-modal-overlay" id="modal-prepts">
-    <div class="romita-modal-card">
+    <div class="romita-modal-card" style="max-width: 580px;">
         <div class="romita-modal-header">
-            <h3><i class="ph ph-buildings" style="color: #8b5cf6;"></i> Gestión de Prepts (Marcas)</h3>
+            <h3><i class="ph ph-buildings" style="color: #8b5cf6;"></i> Manual de Tono & Memoria de Marca (Prepts)</h3>
             <button type="button" class="btn-close-modal" onclick="document.getElementById('modal-prepts').classList.remove('active')"><i class="ph ph-x"></i></button>
         </div>
         <div class="romita-modal-body">
             <form id="form-prept" onsubmit="event.preventDefault(); savePrept();">
                 <input type="hidden" id="preptId" name="prept_id">
-                <div style="margin-bottom: 0.85rem;">
-                    <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Nombre de la Marca</label>
-                    <input type="text" id="preptName" class="form-control" required placeholder="Ej: Roma Agencia" style="border-radius:8px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 0.85rem;">
+                    <div>
+                        <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Nombre de la Marca <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="preptName" class="form-control" required placeholder="Ej: Roma Agencia" style="border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Arquetipo de Marca</label>
+                        <input type="text" id="preptArchetype" class="form-control" placeholder="Ej: El Sabio, El Creador, El Héroe..." style="border-radius:8px;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 0.85rem;">
+                    <div>
+                        <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Tono de voz</label>
+                        <input type="text" id="preptTone" class="form-control" placeholder="Ej: Profesional, disruptivo, empático..." style="border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Audiencia objetivo</label>
+                        <input type="text" id="preptAudience" class="form-control" placeholder="Ej: Emprendedores B2B, CEOs..." style="border-radius:8px;">
+                    </div>
                 </div>
                 <div style="margin-bottom: 0.85rem;">
-                    <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Tono de voz</label>
-                    <input type="text" id="preptTone" class="form-control" placeholder="Ej: Profesional, disruptivo, empático..." style="border-radius:8px;">
-                </div>
-                <div style="margin-bottom: 0.85rem;">
-                    <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Audiencia objetivo</label>
-                    <input type="text" id="preptAudience" class="form-control" placeholder="Ej: Dueños de negocios B2B en Latinoamérica" style="border-radius:8px;">
+                    <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Palabras Prohibidas (Blacklist Romita)</label>
+                    <input type="text" id="preptForbiddenWords" class="form-control" placeholder="Ej: barato, gratis, el mejor del mundo, 100% garantizado (separadas por comas)" style="border-radius:8px;">
+                    <small style="color:var(--romita-text-muted); font-size:0.73rem; display:block; margin-top:2px;">Romita NUNCA usará estas palabras en copys ni propuestas para esta marca.</small>
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label style="display:block; margin-bottom:0.3rem; font-weight:600; font-size:0.82rem;">Reglas de contenido adicionales</label>
-                    <textarea id="preptRules" class="form-control" rows="3" placeholder="Ej: Siempre usar lenguaje positivo, nunca mencionar competidores directamente..." style="border-radius:8px;"></textarea>
+                    <textarea id="preptRules" class="form-control" rows="3" placeholder="Ej: Siempre usar lenguaje positivo, usar datos verídicos, nunca comparar con competidores..." style="border-radius:8px;"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%; border-radius:8px;"><i class="ph ph-floppy-disk"></i> Guardar Marca (Prept)</button>
+                <button type="submit" class="btn btn-primary" style="width:100%; border-radius:8px;"><i class="ph ph-floppy-disk"></i> Guardar Memoria de Marca</button>
             </form>
             
             <hr style="margin: 1.25rem 0; border-color: var(--romita-border);">
             
-            <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:0.75rem;">Marcas Existentes</h4>
+            <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:0.75rem;">Marcas Registradas</h4>
             <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 180px; overflow-y: auto;">
                 <?php foreach($prepts as $p): ?>
                     <div style="display:flex; justify-content:space-between; align-items:center; background:var(--romita-card-hover); padding:0.6rem 0.85rem; border-radius:8px; border:1px solid var(--romita-border);">
                         <div>
                             <strong style="font-size:0.85rem;"><?php echo htmlspecialchars($p['name']); ?></strong>
-                            <div style="font-size:0.75rem; color:var(--romita-text-muted);"><?php echo htmlspecialchars($p['tone']); ?></div>
+                            <div style="font-size:0.75rem; color:var(--romita-text-muted);">
+                                <?php if (!empty($p['archetype'])): ?><span class="badge" style="background:rgba(99,102,241,0.15); color:#6366f1; padding:2px 6px; border-radius:4px; font-size:0.68rem; margin-right:4px;"><?php echo htmlspecialchars($p['archetype']); ?></span><?php endif; ?>
+                                <?php echo htmlspecialchars($p['tone'] ?: 'Sin tono especificado'); ?>
+                            </div>
                         </div>
-                        <button class="btn btn-sm btn-outline" onclick="editPrept(<?php echo $p['id']; ?>, '<?php echo addslashes($p['name']); ?>', '<?php echo addslashes($p['tone']); ?>', '<?php echo addslashes($p['audience']); ?>', '<?php echo addslashes($p['rules']); ?>')" style="border-radius:6px;"><i class="ph ph-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline" onclick="editPrept(<?php echo $p['id']; ?>, '<?php echo addslashes($p['name']); ?>', '<?php echo addslashes($p['tone'] ?? ''); ?>', '<?php echo addslashes($p['archetype'] ?? ''); ?>', '<?php echo addslashes($p['audience'] ?? ''); ?>', '<?php echo addslashes($p['rules'] ?? ''); ?>', '<?php echo addslashes($p['forbidden_words'] ?? ''); ?>')" style="border-radius:6px;"><i class="ph ph-pencil"></i></button>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -617,6 +749,156 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
     </div>
 </div>
 <?php endif; ?>
+
+<!-- Modal: Biblioteca de Super-Prompts de la Agencia (Fase 4) -->
+<div class="romita-modal-overlay" id="modal-super-prompts">
+    <div class="romita-modal-card" style="max-width: 820px; width: 95%;">
+        <div class="romita-modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #ec4899, #7c3aed); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem;">
+                    <i class="ph-bold ph-sparkle"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-size:1.05rem;">Biblioteca de Super-Prompts</h3>
+                    <span style="font-size:0.75rem; color:var(--romita-text-muted);">Plantillas probadas de alto rendimiento para el equipo de ROMA</span>
+                </div>
+            </div>
+            <button type="button" class="btn-close-modal" onclick="closeSuperPromptsModal()"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="romita-modal-body" style="padding: 16px 22px;">
+            <!-- Buscador y Filtro por Categoría -->
+            <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                <div style="position:relative; flex:1; min-width:220px;">
+                    <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--romita-text-muted);"></i>
+                    <input type="text" id="spSearchInput" placeholder="Buscar super-prompt por palabra clave..." class="form-control" style="padding-left:36px; border-radius:9999px; height:38px; font-size:0.85rem;" onkeyup="filterSuperPrompts()">
+                </div>
+                <button type="button" class="btn btn-outline" onclick="toggleCreatePromptForm()" style="border-radius:9999px; height:38px; font-size:0.82rem; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="ph-bold ph-plus"></i> Guardar Nuevo Prompt
+                </button>
+            </div>
+
+            <!-- Formulario Colapsable para Crear Nuevo Prompt -->
+            <div id="spCreateFormWrap" style="display:none; background:var(--romita-card-hover); border:1px solid var(--romita-border); border-radius:12px; padding:14px; margin-bottom:14px;">
+                <h5 style="margin:0 0 10px 0; font-size:0.88rem; font-weight:700;"><i class="ph-bold ph-floppy-disk"></i> Nuevo Super-Prompt</h5>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="newSpTitle" class="form-control" placeholder="Título del Prompt (Ej: Auditoría SEO Técnica)">
+                    <select id="newSpCategory" class="form-control">
+                        <option value="Redes Sociales">Redes Sociales</option>
+                        <option value="Contenido Educativo">Contenido Educativo</option>
+                        <option value="Copywriting & Ads">Copywriting & Ads</option>
+                        <option value="Estrategia & Research">Estrategia & Research</option>
+                        <option value="Ventas & Clientes">Ventas & Clientes</option>
+                        <option value="Planificación">Planificación</option>
+                    </select>
+                </div>
+                <textarea id="newSpPrompt" class="form-control" rows="3" placeholder="Instrucción detallada para Romita. Puedes usar [Corchetes] para variables..." style="margin-bottom:10px;"></textarea>
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-sm btn-outline" onclick="toggleCreatePromptForm()">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="saveNewSuperPrompt()"><i class="ph ph-check"></i> Guardar</button>
+                </div>
+            </div>
+
+            <!-- Tabs de Filtro de Categoría -->
+            <div class="sp-filter-tabs">
+                <button type="button" class="sp-tab-btn active" data-cat="all" onclick="filterCategorySp('all', this)">Todos</button>
+                <button type="button" class="sp-tab-btn" data-cat="Redes Sociales" onclick="filterCategorySp('Redes Sociales', this)">Redes Sociales</button>
+                <button type="button" class="sp-tab-btn" data-cat="Contenido Educativo" onclick="filterCategorySp('Contenido Educativo', this)">Contenido Educativo</button>
+                <button type="button" class="sp-tab-btn" data-cat="Copywriting & Ads" onclick="filterCategorySp('Copywriting & Ads', this)">Copy & Ads</button>
+                <button type="button" class="sp-tab-btn" data-cat="Ventas & Clientes" onclick="filterCategorySp('Ventas & Clientes', this)">Ventas & Role-Play</button>
+                <button type="button" class="sp-tab-btn" data-cat="Estrategia & Research" onclick="filterCategorySp('Estrategia & Research', this)">Estrategia</button>
+                <button type="button" class="sp-tab-btn" data-cat="Planificación" onclick="filterCategorySp('Planificación', this)">Planificación</button>
+            </div>
+
+            <!-- Grid de Prompts -->
+            <div class="superprompt-grid" id="superPromptsList">
+                <?php foreach($superPrompts as $sp): ?>
+                <div class="superprompt-card" data-category="<?php echo htmlspecialchars($sp['category']); ?>" data-title="<?php echo htmlspecialchars(strtolower($sp['title'])); ?>">
+                    <div>
+                        <div class="sp-header">
+                            <div class="sp-icon-box"><i class="ph <?php echo htmlspecialchars($sp['icon'] ?: 'ph-sparkle'); ?>"></i></div>
+                            <div class="sp-meta">
+                                <span class="sp-category-pill"><?php echo htmlspecialchars($sp['category']); ?></span>
+                                <h4 class="sp-title"><?php echo htmlspecialchars($sp['title']); ?></h4>
+                            </div>
+                        </div>
+                        <p class="sp-desc"><?php echo htmlspecialchars($sp['description'] ?: substr($sp['prompt'], 0, 90) . '...'); ?></p>
+                    </div>
+                    <div class="sp-actions">
+                        <span style="font-size:0.7rem; color:var(--romita-text-muted);">
+                            <?php echo !empty($sp['is_agency_template']) ? 'Plantilla Agencia' : 'Mi Prompt'; ?>
+                        </span>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <button type="button" class="btn-sp-copy" onclick="copySuperPromptText(<?php echo htmlspecialchars(json_encode($sp['prompt'])); ?>)" title="Copiar al portapapeles">
+                                <i class="ph ph-copy"></i>
+                            </button>
+                            <button type="button" class="btn-sp-use" onclick="useSuperPromptText(<?php echo htmlspecialchars(json_encode($sp['prompt'])); ?>)">
+                                <i class="ph-bold ph-arrow-elbow-down-right"></i> Usar Prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Preferencias de Usuario & Memoria Permanente (Fase 4) -->
+<div class="romita-modal-overlay" id="modal-user-prefs">
+    <div class="romita-modal-card" style="max-width: 560px; width: 95%;">
+        <div class="romita-modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #4f46e5, #06b6d4); display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem;">
+                    <i class="ph-bold ph-brain"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-size:1.05rem;">Preferencias y Memoria de Romita</h3>
+                    <span style="font-size:0.75rem; color:var(--romita-text-muted);">Personaliza cómo Romita responde y recuerda tus preferencias</span>
+                </div>
+            </div>
+            <button type="button" class="btn-close-modal" onclick="closeUserPrefsModal()"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="romita-modal-body" style="padding: 18px 22px;">
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display:block; margin-bottom:0.4rem; font-weight:700; font-size:0.85rem;">Estilo de Respuesta Predeterminado</label>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <label style="display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border:1.5px solid var(--romita-border); border-radius:10px; cursor:pointer; background:var(--romita-bg);">
+                        <input type="radio" name="pref_response_style" value="strategic" <?php echo ($userPrefs['response_style'] === 'strategic') ? 'checked' : ''; ?> style="margin-top:3px;">
+                        <div>
+                            <strong style="font-size:0.85rem; color:var(--romita-text); display:block;">📐 Modo Estratégico 360° (Recomendado)</strong>
+                            <span style="font-size:0.75rem; color:var(--romita-text-muted);">Tablas ordenables, marcos de trabajo (AIDA/PAS), pasos fundamentados y visión integral.</span>
+                        </div>
+                    </label>
+                    <label style="display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border:1.5px solid var(--romita-border); border-radius:10px; cursor:pointer; background:var(--romita-bg);">
+                        <input type="radio" name="pref_response_style" value="executive" <?php echo ($userPrefs['response_style'] === 'executive') ? 'checked' : ''; ?> style="margin-top:3px;">
+                        <div>
+                            <strong style="font-size:0.85rem; color:var(--romita-text); display:block;">⚡ Modo Ejecutivo y Breve</strong>
+                            <span style="font-size:0.75rem; color:var(--romita-text-muted);">Ultra-sintético, viñetas de alta densidad, conclusiones operativas directas sin rodeos.</span>
+                        </div>
+                    </label>
+                    <label style="display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border:1.5px solid var(--romita-border); border-radius:10px; cursor:pointer; background:var(--romita-bg);">
+                        <input type="radio" name="pref_response_style" value="creative" <?php echo ($userPrefs['response_style'] === 'creative') ? 'checked' : ''; ?> style="margin-top:3px;">
+                        <div>
+                            <strong style="font-size:0.85rem; color:var(--romita-text); display:block;">✨ Modo Creativo & Publicitario</strong>
+                            <span style="font-size:0.75rem; color:var(--romita-text-muted);">Enfoque persuasivo de agencia, copywriting cautivador, ganchos dinámicos y storytelling.</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display:block; margin-bottom:0.4rem; font-weight:700; font-size:0.85rem;">Instrucciones Permanentes para Romita (Memoria)</label>
+                <textarea id="prefCustomInstructions" class="form-control" rows="4" placeholder="Ej: Háblame siempre de tú. Prefiero que los copys de Instagram lleven hashtags al final. Cuando pida un reel incluye siempre un gancho de 3 segundos." style="border-radius:10px; font-size:0.83rem;"><?php echo htmlspecialchars($userPrefs['custom_instructions'] ?? ''); ?></textarea>
+                <small style="color:var(--romita-text-muted); font-size:0.74rem; display:block; margin-top:4px;">Romita recordará estas directrices en todas tus conversaciones futuras.</small>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-outline" onclick="closeUserPrefsModal()">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveUserPreferences()"><i class="ph ph-floppy-disk"></i> Guardar Preferencias</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     let currentSpecialty = 'director_360';
@@ -783,16 +1065,47 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         }
     };
 
-    function setModuleSpecialty(spec, btn) {
-        currentSpecialty = spec;
-        document.querySelectorAll('.romita-module-specialties .rg-spec-tab').forEach(c => c.classList.remove('active'));
-        if (btn) {
-            btn.classList.add('active');
-            try {
-                btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-            } catch(e) {}
+    function toggleModuleSpecialtyMenu(event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
         }
-        
+        const popover = document.getElementById('module-specialties-popover');
+        const trigger = document.getElementById('module-specialty-trigger-btn');
+        if (!popover) return;
+        const isVisible = popover.style.display !== 'none';
+        if (isVisible) {
+            closeModuleSpecialtyMenu();
+        } else {
+            popover.style.display = 'flex';
+            if (trigger) trigger.classList.add('is-active');
+        }
+    }
+
+    function closeModuleSpecialtyMenu() {
+        const popover = document.getElementById('module-specialties-popover');
+        const trigger = document.getElementById('module-specialty-trigger-btn');
+        if (popover) popover.style.display = 'none';
+        if (trigger) trigger.classList.remove('is-active');
+    }
+
+    function selectModuleSpecialty(spec, name, icon) {
+        currentSpecialty = spec;
+        const triggerLabel = document.getElementById('module-trigger-label');
+        const triggerIcon = document.getElementById('module-trigger-icon');
+        if (triggerLabel) triggerLabel.textContent = name;
+        if (triggerIcon) triggerIcon.className = 'ph ' + icon;
+
+        document.querySelectorAll('#module-specialties-popover .rg-popover-item').forEach(item => {
+            if (item.dataset.spec === spec) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+
+        closeModuleSpecialtyMenu();
+
         const heroSub = document.getElementById('heroSubtext');
         const data = specialtyHeroData[spec] || specialtyHeroData['director_360'];
         if (heroSub && !selectedBrand) {
@@ -803,6 +1116,17 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
             renderDefaultPromptStarters();
         }
     }
+
+    // Cerrar popover al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        const popover = document.getElementById('module-specialties-popover');
+        const trigger = document.getElementById('module-specialty-trigger-btn');
+        if (popover && popover.style.display !== 'none') {
+            if (!popover.contains(e.target) && !trigger.contains(e.target)) {
+                closeModuleSpecialtyMenu();
+            }
+        }
+    });
 
     function renderDefaultPromptStarters() {
         const grid = document.getElementById('promptGrid');
@@ -852,6 +1176,21 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         loadChatHistoryList();
         updateRomitaSoundButtons();
         initRomitaModuleMultimodalListeners();
+
+        <?php if (!empty($sharedChat) && !empty($sharedMessages)): ?>
+        loadSharedChatMessages(<?php echo json_encode($sharedMessages); ?>, <?php echo (int)$sharedChat['id']; ?>);
+        <?php endif; ?>
+
+        <?php if (!empty($userPrefs['default_specialty']) && $userPrefs['default_specialty'] !== 'director_360'): ?>
+        const defSpec = '<?php echo addslashes($userPrefs['default_specialty']); ?>';
+        const specItem = document.querySelector(`#module-specialties-popover .rg-popover-item[data-spec="${defSpec}"]`);
+        if (specItem) {
+            const specTitle = specItem.querySelector('.rg-popover-item-title').textContent.trim();
+            const specIconEl = specItem.querySelector('.rg-popover-item-icon i');
+            const specIcon = specIconEl ? specIconEl.className.replace('ph ', '') : 'ph-sparkle';
+            selectModuleSpecialty(defSpec, specTitle, specIcon);
+        }
+        <?php endif; ?>
 
         document.addEventListener('click', function(e) {
             const slashMenu = document.getElementById('rg-slash-menu');
@@ -2916,12 +3255,14 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         document.getElementById('modal-prepts').classList.add('active');
     }
 
-    function editPrept(id, name, tone, audience, rules) {
+    function editPrept(id, name, tone, archetype, audience, rules, forbidden_words) {
         document.getElementById('preptId').value = id;
         document.getElementById('preptName').value = name;
-        document.getElementById('preptTone').value = tone;
-        document.getElementById('preptAudience').value = audience;
-        document.getElementById('preptRules').value = rules;
+        document.getElementById('preptTone').value = tone || '';
+        document.getElementById('preptArchetype').value = archetype || '';
+        document.getElementById('preptAudience').value = audience || '';
+        document.getElementById('preptRules').value = rules || '';
+        document.getElementById('preptForbiddenWords').value = forbidden_words || '';
         document.getElementById('modal-prepts').classList.add('active');
     }
 
@@ -2929,15 +3270,17 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         const id = document.getElementById('preptId').value;
         const name = document.getElementById('preptName').value.trim();
         const tone = document.getElementById('preptTone').value.trim();
+        const archetype = document.getElementById('preptArchetype').value.trim();
         const audience = document.getElementById('preptAudience').value.trim();
         const rules = document.getElementById('preptRules').value.trim();
+        const forbidden_words = document.getElementById('preptForbiddenWords').value.trim();
 
         if(!name) return alert('El nombre de la marca es obligatorio');
 
         fetch('ajax/ajax_romita.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: `action=save_prept&id=${id}&name=${encodeURIComponent(name)}&tone=${encodeURIComponent(tone)}&audience=${encodeURIComponent(audience)}&rules=${encodeURIComponent(rules)}`
+            body: `action=save_prept&id=${id}&name=${encodeURIComponent(name)}&tone=${encodeURIComponent(tone)}&archetype=${encodeURIComponent(archetype)}&audience=${encodeURIComponent(audience)}&rules=${encodeURIComponent(rules)}&forbidden_words=${encodeURIComponent(forbidden_words)}`
         })
         .then(r => r.json())
         .then(res => {
@@ -2946,6 +3289,237 @@ $time_greeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && 
         });
     }
     <?php endif; ?>
+
+    // =========================================================================
+    // FASE 4: FUNCIONES JS DE MEMORIA, SUPER-PROMPTS, SHARING & EXPORTACIÓN
+    // =========================================================================
+
+    // 1. Compartir Chat Activo
+    function shareCurrentChat() {
+        if (!currentChatId) {
+            alert('Para compartir una conversación, primero inicia un chat o selecciona uno del historial.');
+            return;
+        }
+
+        const btn = document.getElementById('btnShareChat');
+        if (btn) btn.disabled = true;
+
+        fetch('ajax/ajax_romita.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `action=generate_share_link&chat_id=${currentChatId}`
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (btn) btn.disabled = false;
+            if (res.success && res.share_url) {
+                navigator.clipboard.writeText(res.share_url).then(() => {
+                    if (window.showToast) {
+                        window.showToast('¡Enlace copiado al portapapeles! Tus compañeros pueden abrirlo para ver este chat.', 'success');
+                    } else {
+                        alert('¡Enlace de chat generado y copiado al portapapeles!\n\n' + res.share_url);
+                    }
+                }).catch(() => {
+                    prompt('Copia este enlace para compartir la conversación con tu equipo:', res.share_url);
+                });
+            } else {
+                alert(res.error || 'No se pudo generar el enlace para compartir.');
+            }
+        })
+        .catch(err => {
+            if (btn) btn.disabled = false;
+            alert('Error de conexión al generar el enlace de compartir.');
+        });
+    }
+
+    // 2. Clonar / Importar Chat Compartido a Mis Chats
+    function cloneSharedChat(chatId) {
+        if (!confirm('¿Deseas clonar este chat compartido para continuar la conversación en tus propios chats?')) return;
+        
+        fetch('ajax/ajax_romita.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `action=get_messages&chat_id=${chatId}`
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success && res.messages && res.messages.length > 0) {
+                currentChatId = null;
+                const container = document.getElementById('chatStreamInner');
+                const messages = container.querySelectorAll('.romita-message');
+                messages.forEach(m => m.remove());
+                const emptyState = document.getElementById('emptyState');
+                if(emptyState) emptyState.style.display = 'none';
+
+                chatHistory = [];
+                res.messages.forEach(msg => {
+                    chatHistory.push({role: msg.role, content: msg.content});
+                    addMessageToUI(msg.role, msg.content, null, null, msg.attachment_url, msg.attachment_type, msg.attachment_name);
+                });
+
+                const banner = document.getElementById('sharedNoticeBanner');
+                if (banner) banner.style.display = 'none';
+
+                window.history.replaceState({}, document.title, 'index.php?module=romita&action=index');
+                if (window.showToast) window.showToast('¡Chat clonado! Ahora puedes continuar interactuando con Romita.', 'success');
+            } else {
+                alert('No se pudieron obtener los mensajes para clonar.');
+            }
+        });
+    }
+
+    // 3. Exportación Formal a PDF con Membrete Corporativo
+    function exportChatToPdf() {
+        const streamInner = document.getElementById('chatStreamInner');
+        if (!streamInner || streamInner.querySelectorAll('.romita-message').length === 0) {
+            alert('No hay mensajes para exportar en esta conversación.');
+            return;
+        }
+
+        window.print();
+    }
+
+    // 4. Modal de Preferencias del Usuario & Memoria Permanente
+    function openUserPrefsModal() {
+        const modal = document.getElementById('modal-user-prefs');
+        if (modal) modal.classList.add('active');
+    }
+
+    function closeUserPrefsModal() {
+        const modal = document.getElementById('modal-user-prefs');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function saveUserPreferences() {
+        const selectedRadio = document.querySelector('input[name="pref_response_style"]:checked');
+        const style = selectedRadio ? selectedRadio.value : 'strategic';
+        const instructions = document.getElementById('prefCustomInstructions').value.trim();
+
+        fetch('ajax/ajax_romita.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `action=save_user_preferences&response_style=${encodeURIComponent(style)}&custom_instructions=${encodeURIComponent(instructions)}&default_specialty=${encodeURIComponent(currentSpecialty)}`
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                closeUserPrefsModal();
+                if (window.showToast) {
+                    window.showToast('¡Preferencias de memoria guardadas! Romita adaptará su estilo en tus próximas interacciones.', 'success');
+                } else {
+                    alert('Preferencias guardadas exitosamente.');
+                }
+            } else {
+                alert(res.error || 'Error al guardar las preferencias.');
+            }
+        });
+    }
+
+    // 5. Modal de Biblioteca de Super-Prompts
+    function openSuperPromptsModal() {
+        const modal = document.getElementById('modal-super-prompts');
+        if (modal) modal.classList.add('active');
+    }
+
+    function closeSuperPromptsModal() {
+        const modal = document.getElementById('modal-super-prompts');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function filterSuperPrompts() {
+        const query = (document.getElementById('spSearchInput').value || '').toLowerCase().trim();
+        const activeCatBtn = document.querySelector('.sp-tab-btn.active');
+        const cat = activeCatBtn ? activeCatBtn.dataset.cat : 'all';
+
+        document.querySelectorAll('#superPromptsList .superprompt-card').forEach(card => {
+            const cardTitle = (card.dataset.title || '').toLowerCase();
+            const cardCat = card.dataset.category || '';
+            const matchQuery = !query || cardTitle.includes(query) || (card.innerText || '').toLowerCase().includes(query);
+            const matchCat = (cat === 'all' || cardCat === cat);
+
+            card.style.display = (matchQuery && matchCat) ? 'flex' : 'none';
+        });
+    }
+
+    function filterCategorySp(category, btn) {
+        document.querySelectorAll('.sp-tab-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        filterSuperPrompts();
+    }
+
+    function useSuperPromptText(promptText) {
+        closeSuperPromptsModal();
+        usePromptStarter(promptText);
+    }
+
+    function copySuperPromptText(promptText) {
+        navigator.clipboard.writeText(promptText).then(() => {
+            if (window.showToast) {
+                window.showToast('Prompt copiado al portapapeles.', 'info');
+            } else {
+                alert('Prompt copiado al portapapeles.');
+            }
+        });
+    }
+
+    function toggleCreatePromptForm() {
+        const wrap = document.getElementById('spCreateFormWrap');
+        if (wrap) {
+            wrap.style.display = (wrap.style.display === 'none') ? 'block' : 'none';
+            if (wrap.style.display === 'block') {
+                document.getElementById('newSpTitle').focus();
+            }
+        }
+    }
+
+    function saveNewSuperPrompt() {
+        const title = document.getElementById('newSpTitle').value.trim();
+        const category = document.getElementById('newSpCategory').value;
+        const prompt = document.getElementById('newSpPrompt').value.trim();
+
+        if (!title || !prompt) {
+            alert('Por favor completa el título y el prompt.');
+            return;
+        }
+
+        fetch('ajax/ajax_romita.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `action=save_super_prompt&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&prompt=${encodeURIComponent(prompt)}`
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                location.reload();
+            } else {
+                alert(res.error || 'Error al guardar el super-prompt.');
+            }
+        });
+    }
+
+    // 6. Carga automática de mensajes compartidos si existe token
+    function loadSharedChatMessages(messages, chatId) {
+        currentChatId = chatId;
+        const emptyState = document.getElementById('emptyState');
+        if(emptyState) emptyState.style.display = 'none';
+
+        messages.forEach(msg => {
+            let actualRole = msg.role;
+            if (actualRole === 'user' && (
+                msg.content.includes('"project_id"') || 
+                msg.content.includes('|---|') || 
+                msg.content.includes('| :---') ||
+                msg.content.startsWith('¡Hola') || 
+                msg.content.startsWith('¡Excelente') ||
+                msg.content.startsWith('Como tu experto') ||
+                msg.content.length > 300
+            )) {
+                actualRole = 'assistant';
+            }
+            chatHistory.push({role: actualRole, content: msg.content, id: msg.id});
+            addMessageToUI(actualRole, msg.content, msg.id, msg.feedback, msg.attachment_url, msg.attachment_type, msg.attachment_name);
+        });
+    }
 </script>
 
 <?php

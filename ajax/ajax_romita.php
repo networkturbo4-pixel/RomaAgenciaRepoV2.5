@@ -1033,23 +1033,27 @@ try {
             $sysInstructions[] = $skill_prompt;
         }
 
-        // Si hay un Prept asociado, leer sus datos y publicaciones anteriores
+        // Si hay un Prept asociado, leer sus datos, manual de tono, arquetipo y palabras prohibidas (Fase 4: Brand Memories)
         $prept_id = $_POST['prept_id'] ?? null;
         if ($prept_id) {
-            $stmt = $db->prepare("SELECT name, tone, audience, rules FROM romita_prepts WHERE id = ?");
+            $stmt = $db->prepare("SELECT name, tone, archetype, audience, rules, forbidden_words FROM romita_prepts WHERE id = ?");
             $stmt->execute([$prept_id]);
             $prept = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($prept) {
-                $preptCtx = "Eres el gestor de contenido de la marca '{$prept['name']}'.\n";
-                $preptCtx .= "Tono: {$prept['tone']}\nAudiencia: {$prept['audience']}\nReglas: {$prept['rules']}\n\n";
+                $preptCtx = "=== MANUAL DE TONO & MEMORIA DE MARCA: '{$prept['name']}' ===\n";
+                if (!empty($prept['archetype'])) $preptCtx .= "- Arquetipo de Marca: {$prept['archetype']}\n";
+                if (!empty($prept['tone'])) $preptCtx .= "- Tono de Voz: {$prept['tone']}\n";
+                if (!empty($prept['audience'])) $preptCtx .= "- Audiencia Objetivo / Buyer Persona: {$prept['audience']}\n";
+                if (!empty($prept['rules'])) $preptCtx .= "- Reglas de Estilo & Directrices: {$prept['rules']}\n";
+                if (!empty($prept['forbidden_words'])) $preptCtx .= "- PALABRAS ESTRICTAMENTE PROHIBIDAS (NUNCA usar en copys ni propuestas): {$prept['forbidden_words']}\n";
                 
                 $stmt2 = $db->prepare("SELECT topic, content_summary, created_at FROM romita_prept_content WHERE prept_id = ? ORDER BY created_at DESC LIMIT 10");
                 $stmt2->execute([$prept_id]);
                 $pastContents = $stmt2->fetchAll(PDO::FETCH_ASSOC);
                 
                 if (count($pastContents) > 0) {
-                    $preptCtx .= "HISTORIAL DE CONTENIDOS PREVIOS (NO REPETIR ESTOS TEMAS):\n";
+                    $preptCtx .= "\nHISTORIAL DE CONTENIDOS PREVIOS (NO REPETIR ESTOS TEMAS):\n";
                     foreach($pastContents as $pc) {
                         $preptCtx .= "- Fecha: {$pc['created_at']}, Tema: {$pc['topic']}, Resumen: {$pc['content_summary']}\n";
                     }
@@ -1057,6 +1061,36 @@ try {
                 
                 $sysInstructions[] = $preptCtx;
             }
+        }
+
+        // Memoria de Preferencias del Usuario (Fase 4)
+        try {
+            $stmtPref = $db->prepare("SELECT response_style, custom_instructions FROM romita_user_preferences WHERE user_id = ?");
+            $stmtPref->execute([$user_id]);
+            $userPref = $stmtPref->fetch(PDO::FETCH_ASSOC);
+            if ($userPref) {
+                $prefGuidelines = [];
+                $style = $userPref['response_style'] ?? 'strategic';
+                if ($style === 'executive') {
+                    $prefGuidelines[] = "PREFERENCIA DE RESPUESTA DEL USUARIO: Modo Ejecutivo y Breve. Respuestas sintéticas, directas al grano, viñetas operativas sin rodeos.";
+                } elseif ($style === 'creative') {
+                    $prefGuidelines[] = "PREFERENCIA DE RESPUESTA DEL USUARIO: Modo Creativo & Publicitario. Enfoque persuasivo, storytelling cautivador, ganchos dinámicos y lenguaje moderno de agencia creativa.";
+                } else {
+                    $prefGuidelines[] = "PREFERENCIA DE RESPUESTA DEL USUARIO: Modo Estratégico 360°. Presenta marcos estructurados, tablas comparativas, métricas de impacto y justificación metodológica.";
+                }
+                if (!empty($userPref['custom_instructions'])) {
+                    $prefGuidelines[] = "INSTRUCCIONES PERMANENTES DEL USUARIO (MEMORIA):\n" . trim($userPref['custom_instructions']);
+                }
+                if (!empty($prefGuidelines)) {
+                    $sysInstructions[] = implode("\n", $prefGuidelines);
+                }
+            }
+        } catch(Exception $e) {}
+
+        // Detección de Modo Role-Play de Objeciones (Fase 4)
+        $msgLowerForRoleplay = mb_strtolower($message);
+        if (strpos($msgLowerForRoleplay, 'role-play') !== false || strpos($msgLowerForRoleplay, 'roleplay') !== false || strpos($msgLowerForRoleplay, 'objecion') !== false || strpos($msgLowerForRoleplay, 'objeción') !== false) {
+            $sysInstructions[] = "MODO ROLE-PLAY DE VENTAS ACTIVO: Actúa como un cliente exigente y escéptico. Plantea objeciones reales de negocios (precio, tiempo, satisfacción actual). Tras la respuesta del usuario, evalúa su técnica de 1 a 10 con feedback breve y lanza una contra-objeción más retadora para entrenarlo.";
         }
 
         // Si hay un Proyecto de Calendario asociado, inyectar base de conocimiento histórica
@@ -1390,10 +1424,12 @@ try {
             exit();
         }
         $id = $_POST['id'] ?? '';
-        $name = $_POST['name'] ?? '';
-        $tone = $_POST['tone'] ?? '';
-        $audience = $_POST['audience'] ?? '';
-        $rules = $_POST['rules'] ?? '';
+        $name = trim($_POST['name'] ?? '');
+        $tone = trim($_POST['tone'] ?? '');
+        $archetype = trim($_POST['archetype'] ?? '');
+        $audience = trim($_POST['audience'] ?? '');
+        $rules = trim($_POST['rules'] ?? '');
+        $forbidden_words = trim($_POST['forbidden_words'] ?? '');
 
         if(empty($name)) {
             echo json_encode(['success' => false, 'error' => 'El nombre es obligatorio']);
@@ -1401,49 +1437,226 @@ try {
         }
 
         if ($id) {
-            $stmt = $db->prepare("UPDATE romita_prepts SET name=?, tone=?, audience=?, rules=? WHERE id=?");
-            $stmt->execute([$name, $tone, $audience, $rules, $id]);
+            $stmt = $db->prepare("UPDATE romita_prepts SET name=?, tone=?, archetype=?, audience=?, rules=?, forbidden_words=? WHERE id=?");
+            $stmt->execute([$name, $tone, $archetype, $audience, $rules, $forbidden_words, $id]);
         } else {
-            $stmt = $db->prepare("INSERT INTO romita_prepts (name, tone, audience, rules) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$name, $tone, $audience, $rules]);
-        }
-        
-        echo json_encode(['success' => true]);
-        exit();
-    }
-    
-    // Acciones de Administrador
-    if (!$is_admin) {
-        echo json_encode(['success' => false, 'error' => 'Permisos insuficientes']);
-        exit();
-    }
-
-    if ($action === 'save_skill') {
-        $id = $_POST['id'] ?? '';
-        $name = $_POST['name'] ?? '';
-        $prompt = $_POST['prompt_base'] ?? '';
-        $role = $_POST['role'] ?? 'all';
-        $desc = "Skill personalizado para $name";
-
-        if ($id) {
-            $stmt = $db->prepare("UPDATE romita_skills SET name=?, description=?, prompt_base=?, allowed_role=? WHERE id=?");
-            $stmt->execute([$name, $desc, $prompt, $role, $id]);
-        } else {
-            $stmt = $db->prepare("INSERT INTO romita_skills (name, description, prompt_base, allowed_role, is_active) VALUES (?, ?, ?, ?, 1)");
-            $stmt->execute([$name, $desc, $prompt, $role]);
+            $stmt = $db->prepare("INSERT INTO romita_prepts (name, tone, archetype, audience, rules, forbidden_words) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $tone, $archetype, $audience, $rules, $forbidden_words]);
         }
         
         echo json_encode(['success' => true]);
         exit();
     }
 
-    if ($action === 'delete_skill') {
-        $id = $_POST['id'] ?? '';
-        if($id) {
-            $stmt = $db->prepare("DELETE FROM romita_skills WHERE id = ?");
-            $stmt->execute([$id]);
+    // =========================================================================
+    // FASE 4: MEMORIA, PERSONALIZACIÓN Y COLABORACIÓN
+    // =========================================================================
+
+    // 1. Obtener y Guardar Memoria de Marca (Brand Memory)
+    if ($action === 'get_brand_memory') {
+        $prept_id = (int)($_POST['prept_id'] ?? 0);
+        if (!$prept_id) {
+            echo json_encode(['success' => false, 'error' => 'ID de marca no proporcionado']);
+            exit();
+        }
+        $stmt = $db->prepare("SELECT id, name, tone, archetype, audience, rules, forbidden_words FROM romita_prepts WHERE id = ?");
+        $stmt->execute([$prept_id]);
+        $memory = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo json_encode(['success' => true, 'memory' => $memory]);
+        exit();
+    }
+
+    if ($action === 'save_brand_memory') {
+        $prept_id = (int)($_POST['prept_id'] ?? 0);
+        $archetype = trim($_POST['archetype'] ?? '');
+        $tone = trim($_POST['tone'] ?? '');
+        $audience = trim($_POST['audience'] ?? '');
+        $rules = trim($_POST['rules'] ?? '');
+        $forbidden_words = trim($_POST['forbidden_words'] ?? '');
+
+        if (!$prept_id) {
+            echo json_encode(['success' => false, 'error' => 'ID de marca no válido']);
+            exit();
+        }
+
+        $stmt = $db->prepare("UPDATE romita_prepts SET archetype=?, tone=?, audience=?, rules=?, forbidden_words=? WHERE id=?");
+        $stmt->execute([$archetype, $tone, $audience, $rules, $forbidden_words, $prept_id]);
+        echo json_encode(['success' => true, 'message' => 'Manual de tono y memoria de marca actualizados.']);
+        exit();
+    }
+
+    // 2. Memoria de Preferencias del Usuario (Estilo de respuesta, instrucciones permanentes)
+    if ($action === 'get_user_preferences') {
+        $stmt = $db->prepare("SELECT response_style, custom_instructions, default_specialty, sound_enabled FROM romita_user_preferences WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $prefs = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$prefs) {
+            $prefs = [
+                'response_style' => 'strategic',
+                'custom_instructions' => '',
+                'default_specialty' => 'director_360',
+                'sound_enabled' => 1
+            ];
+        }
+        echo json_encode(['success' => true, 'preferences' => $prefs]);
+        exit();
+    }
+
+    if ($action === 'save_user_preferences') {
+        $response_style = trim($_POST['response_style'] ?? 'strategic');
+        $custom_instructions = trim($_POST['custom_instructions'] ?? '');
+        $default_specialty = trim($_POST['default_specialty'] ?? 'director_360');
+        $sound_enabled = isset($_POST['sound_enabled']) ? (int)$_POST['sound_enabled'] : 1;
+
+        $stmt = $db->prepare("
+            INSERT INTO romita_user_preferences (user_id, response_style, custom_instructions, default_specialty, sound_enabled, updated_at)
+            VALUES (?, ?, ?, ?, ?, NOW())
+            ON DUPLICATE KEY UPDATE 
+                response_style = VALUES(response_style),
+                custom_instructions = VALUES(custom_instructions),
+                default_specialty = VALUES(default_specialty),
+                sound_enabled = VALUES(sound_enabled),
+                updated_at = NOW()
+        ");
+        $stmt->execute([$user_id, $response_style, $custom_instructions, $default_specialty, $sound_enabled]);
+        echo json_encode(['success' => true, 'message' => 'Tus preferencias de memoria se guardaron exitosamente.']);
+        exit();
+    }
+
+    // 3. Biblioteca de Super-Prompts de la Agencia
+    if ($action === 'get_super_prompts') {
+        $category = trim($_POST['category'] ?? '');
+        $query = "SELECT id, user_id, title, category, prompt, description, icon, is_agency_template, created_at FROM romita_super_prompts WHERE (is_agency_template = 1 OR user_id = ?)";
+        $params = [$user_id];
+        if (!empty($category) && $category !== 'all') {
+            $query .= " AND category = ?";
+            $params[] = $category;
+        }
+        $query .= " ORDER BY is_agency_template DESC, id DESC";
+        $stmt = $db->prepare($query);
+        $stmt->execute($params);
+        $prompts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(['success' => true, 'prompts' => $prompts]);
+        exit();
+    }
+
+    if ($action === 'save_super_prompt') {
+        $title = trim($_POST['title'] ?? '');
+        $category = trim($_POST['category'] ?? 'Estrategia');
+        $prompt = trim($_POST['prompt'] ?? '');
+        $desc = trim($_POST['description'] ?? '');
+        $icon = trim($_POST['icon'] ?? 'ph-sparkle');
+        $is_agency = ($is_admin && !empty($_POST['is_agency_template'])) ? 1 : 0;
+
+        if (!$title || !$prompt) {
+            echo json_encode(['success' => false, 'error' => 'El título y el prompt son obligatorios']);
+            exit();
+        }
+
+        $stmt = $db->prepare("INSERT INTO romita_super_prompts (user_id, title, category, prompt, description, icon, is_agency_template, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([$user_id, $title, $category, $prompt, $desc, $icon, $is_agency]);
+        $newId = $db->lastInsertId();
+
+        echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Super-Prompt guardado en la biblioteca.']);
+        exit();
+    }
+
+    if ($action === 'delete_super_prompt') {
+        $promptId = (int)($_POST['id'] ?? 0);
+        if (!$promptId) {
+            echo json_encode(['success' => false, 'error' => 'ID inválido']);
+            exit();
+        }
+
+        if ($is_admin) {
+            $stmt = $db->prepare("DELETE FROM romita_super_prompts WHERE id = ?");
+            $stmt->execute([$promptId]);
+        } else {
+            $stmt = $db->prepare("DELETE FROM romita_super_prompts WHERE id = ? AND user_id = ?");
+            $stmt->execute([$promptId, $user_id]);
         }
         echo json_encode(['success' => true]);
+        exit();
+    }
+
+    // 4. Compartir Chat con un Compañero (Generar Enlace Seguro)
+    if ($action === 'generate_share_link') {
+        $chat_id = (int)($_POST['chat_id'] ?? 0);
+        if (!$chat_id) {
+            echo json_encode(['success' => false, 'error' => 'Chat ID no proporcionado']);
+            exit();
+        }
+
+        // Verificar pertenencia o admin
+        $stmtCheck = $db->prepare("SELECT id, share_token, title FROM romita_chats WHERE id = ? AND (user_id = ? OR ? = 1)");
+        $stmtCheck->execute([$chat_id, $user_id, $is_admin ? 1 : 0]);
+        $chatRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+        if (!$chatRow) {
+            echo json_encode(['success' => false, 'error' => 'No se encontró la conversación o no tienes permisos.']);
+            exit();
+        }
+
+        $shareToken = $chatRow['share_token'];
+        if (empty($shareToken)) {
+            $shareToken = bin2hex(random_bytes(16));
+            $stmtUp = $db->prepare("UPDATE romita_chats SET share_token = ? WHERE id = ?");
+            $stmtUp->execute([$shareToken, $chat_id]);
+        }
+
+        // Construir URL completa
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $baseUrl = dirname($_SERVER['PHP_SELF']); // /ajax o similar
+        $appPath = preg_replace('/\/ajax$/', '', $baseUrl);
+        $shareUrl = "{$protocol}://{$host}{$appPath}/index.php?module=romita&share={$shareToken}";
+
+        echo json_encode([
+            'success' => true,
+            'share_token' => $shareToken,
+            'share_url' => $shareUrl,
+            'title' => $chatRow['title']
+        ]);
+        exit();
+    }
+
+    // 5. Obtener Chat Compartido por Token
+    if ($action === 'get_shared_chat') {
+        $token = trim($_POST['share_token'] ?? '');
+        if (!$token) {
+            echo json_encode(['success' => false, 'error' => 'Token no proporcionado']);
+            exit();
+        }
+
+        $stmt = $db->prepare("
+            SELECT rc.id, rc.title, rc.created_at, u.name as author_name 
+            FROM romita_chats rc 
+            JOIN users u ON rc.user_id = u.id 
+            WHERE rc.share_token = ?
+        ");
+        $stmt->execute([$token]);
+        $chat = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$chat) {
+            echo json_encode(['success' => false, 'error' => 'El chat compartido no existe o fue eliminado.']);
+            exit();
+        }
+
+        $stmtMsgs = $db->prepare("
+            SELECT id, role, content, feedback, attachment_url, attachment_type, attachment_name, created_at 
+            FROM romita_messages 
+            WHERE chat_id = ? 
+            ORDER BY id ASC
+        ");
+        $stmtMsgs->execute([$chat['id']]);
+        $messages = $stmtMsgs->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'success' => true,
+            'chat' => $chat,
+            'messages' => $messages
+        ]);
+        exit();
     }
 
     // =========================================================================
@@ -1536,6 +1749,41 @@ try {
             'meeting_id' => $meetingId,
             'message' => 'Reunión agendada exitosamente en la Agenda.'
         ]);
+        exit();
+    }
+
+    // Acciones estrictas de Administrador
+    if (!$is_admin) {
+        echo json_encode(['success' => false, 'error' => 'Permisos insuficientes']);
+        exit();
+    }
+
+    if ($action === 'save_skill') {
+        $id = $_POST['id'] ?? '';
+        $name = $_POST['name'] ?? '';
+        $prompt = $_POST['prompt_base'] ?? '';
+        $role = $_POST['role'] ?? 'all';
+        $desc = "Skill personalizado para $name";
+
+        if ($id) {
+            $stmt = $db->prepare("UPDATE romita_skills SET name=?, description=?, prompt_base=?, allowed_role=? WHERE id=?");
+            $stmt->execute([$name, $desc, $prompt, $role, $id]);
+        } else {
+            $stmt = $db->prepare("INSERT INTO romita_skills (name, description, prompt_base, allowed_role, is_active) VALUES (?, ?, ?, ?, 1)");
+            $stmt->execute([$name, $desc, $prompt, $role]);
+        }
+        
+        echo json_encode(['success' => true]);
+        exit();
+    }
+
+    if ($action === 'delete_skill') {
+        $id = $_POST['id'] ?? '';
+        if($id) {
+            $stmt = $db->prepare("DELETE FROM romita_skills WHERE id = ?");
+            $stmt->execute([$id]);
+        }
+        echo json_encode(['success' => true]);
         exit();
     }
 
