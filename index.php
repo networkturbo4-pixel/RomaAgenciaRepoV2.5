@@ -44,8 +44,13 @@ if (!empty($_GET['k']) && is_numeric($_GET['k'])) {
     $action = 'view';
     $_GET['id'] = (int)$_GET['kb'];
 } else {
-    $module = !empty($_GET['module']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['module']) : 'dashboard';
-    $action = !empty($_GET['action']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['action']) : 'index';
+    if (!empty($_GET['module'])) {
+        $module = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['module']);
+        $action = !empty($_GET['action']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['action']) : 'index';
+    } else {
+        $module = isset($_SESSION['user_id']) ? 'dashboard' : 'public';
+        $action = isset($_SESSION['user_id']) ? 'index' : 'landing';
+    }
 }
 
 if (empty($module)) $module = 'dashboard';

@@ -2893,7 +2893,8 @@ document.addEventListener('DOMContentLoaded', () => {
       servicios = existingNote.servicios || [];
       cronograma = existingNote.cronograma || [];
       abonos = existingNote.abonos || [];
-      document.getElementById('invoice-header-info').innerHTML = `<strong>${existingNote.id}</strong> &middot; THE ROMA AGENCY CORPORACION S.A.C.`;
+      const headerInfo = document.getElementById('invoice-header-info');
+      if (headerInfo) headerInfo.innerHTML = `<strong>${existingNote.id}</strong> &middot; THE ROMA AGENCY CORPORACION S.A.C.`;
       
       const clientSelect = document.getElementById('note-client');
       let optionExists = Array.from(clientSelect.options).some(opt => opt.value === existingNote.client);
@@ -4313,7 +4314,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCronogramaCards();
   initPaymentCopy();
 
-  document.getElementById('btn-guardar-nota-total').addEventListener('click', () => {
+  document.getElementById('btn-guardar-nota-total')?.addEventListener('click', () => {
       // Auto-save any open inline form
       if (isEditingServicio) {
           const name = document.getElementById('new-serv-name')?.value;
