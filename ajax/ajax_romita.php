@@ -16,9 +16,8 @@ $db = (new Database())->getConnection();
 
 // Función de auto-sanación de esquema de Romita (resiliencia multi-entorno y multi-base de datos)
 function ensureRomitaSchema($db) {
-    static $checked = false;
-    if ($checked || !$db) return;
-    $checked = true;
+    if (!$db) return;
+    if (!empty($_SESSION['romita_schema_ensured'])) return;
     try {
         $checkCol = $db->query("SHOW COLUMNS FROM `romita_messages` LIKE 'attachment_url'")->fetch();
         if (!$checkCol) {
@@ -127,6 +126,7 @@ function ensureRomitaSchema($db) {
                 $stmtSeed->execute($dp);
             }
         }
+        $_SESSION['romita_schema_ensured'] = true;
     } catch (\Throwable $e) {}
 }
 ensureRomitaSchema($db);
@@ -974,6 +974,7 @@ try {
         }
 
         // Guarda mensaje del usuario
+        Database::reconnectIfDead($db);
         $chat_id = $_POST['chat_id'] ?? null;
         
         if (!$chat_id) {
@@ -989,6 +990,7 @@ try {
             $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
             $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
         } catch (\PDOException $pdoEx) {
+            Database::reconnectIfDead($db);
             ensureRomitaSchema($db);
             $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
             $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
@@ -1251,7 +1253,8 @@ try {
             . "}\n"
             . "```\n"
             . "Tipos permitidos para 'type': 'text' (corto), 'textarea' (párrafo), 'email', 'phone', 'date', 'select' (opciones únicas), 'checkbox' (casillas múltiples), 'dropdown' (menú), 'file' (archivos), 'range' (escala), 'number_range' (rango numérico), 'color' (paleta), 'icon_card' (cards con íconos), 'divider' (separador/paso multi-step).\n"
-            . "Esto insertará el formulario DIRECTAMENTE en el Módulo de Formularios de Roma Agencia y le dará al usuario un botón de 1 clic para crearlo y obtener su enlace público inmediato.\n\n"
+            . "Esto insertará el formulario DIRECTAMENTE en el Módulo de Formularios de Roma Agencia y le dará al usuario un botón de 1 clic para crearlo y obtener su enlace público inmediato.\n"
+            . "- MODIFICACIONES O PREGUNTAS ADICIONALES: Si el usuario te pide modificar, ampliar o agregar más preguntas a un formulario previamente generado o discutido (ej: añadir secciones sobre contenido por página, detalles de servicios, requerimientos técnicos, etc.), genera nuevamente el bloque ```romita-action:create_form con el formulario ampliado y enriquecido incorporando las nuevas preguntas y secciones solicitadas para que el usuario pueda crearlo de inmediato.\n\n"
             . "2. AGENDAMIENTO DE REUNIÓN:\n"
             . "Si se acuerda, coordina o propone una reunión o sesión de trabajo, incluye al final:\n"
             . "```romita-action:schedule_meeting\n"
@@ -1629,18 +1632,37 @@ try {
             }
         }
 
-        // Insertar msj IA
-        $stmt_ai_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content) VALUES (?, 'assistant', ?)");
-        $stmt_ai_msg->execute([$chat_id, $ia_response]);
-        $ai_msg_id = (int)$db->lastInsertId();
+        // Garantizar reconexión activa ante posibles timeouts de la inferencia IA
+        Database::reconnectIfDead($db);
+
+        $ai_msg_id = 0;
+        try {
+            $stmt_ai_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content) VALUES (?, 'assistant', ?)");
+            $stmt_ai_msg->execute([$chat_id, $ia_response]);
+            $ai_msg_id = (int)$db->lastInsertId();
+        } catch (\PDOException $pEx) {
+            // Si la conexión cayó durante la inferencia de IA, forzar reconexión y reintentar
+            if (strpos($pEx->getMessage(), '2006') !== false || strpos($pEx->getMessage(), 'gone away') !== false || strpos($pEx->getMessage(), '2013') !== false) {
+                $db = (new Database())->getConnection();
+                if ($db) {
+                    $stmt_ai_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content) VALUES (?, 'assistant', ?)");
+                    $stmt_ai_msg->execute([$chat_id, $ia_response]);
+                    $ai_msg_id = (int)$db->lastInsertId();
+                }
+            } else {
+                throw $pEx;
+            }
+        }
 
         // Si hay un Prept asociado y la IA generó contenido (por ejemplo, más de 200 caracteres), guardarlo en el historial del prept
-        if ($prept_id && strlen($ia_response) > 200) {
-            // Guardamos un fragmento como tema y el inicio como resumen
-            $topic = mb_substr($message, 0, 100);
-            $summary = mb_substr($ia_response, 0, 500) . '...';
-            $stmt = $db->prepare("INSERT INTO romita_prept_content (prept_id, topic, content_summary) VALUES (?, ?, ?)");
-            $stmt->execute([$prept_id, $topic, $summary]);
+        if ($prept_id && strlen($ia_response) > 200 && $db) {
+            try {
+                // Guardamos un fragmento como tema y el inicio como resumen
+                $topic = mb_substr($message, 0, 100);
+                $summary = mb_substr($ia_response, 0, 500) . '...';
+                $stmt = $db->prepare("INSERT INTO romita_prept_content (prept_id, topic, content_summary) VALUES (?, ?, ?)");
+                $stmt->execute([$prept_id, $topic, $summary]);
+            } catch (\Throwable $thPrept) {}
         }
 
         // Backup a Google Drive sigue intacto
@@ -2844,6 +2866,10 @@ try {
     }
 
     echo json_encode(['success' => false, 'error' => 'Acción inválida']);
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+} catch (\Throwable $e) {
+    $errStr = $e->getMessage();
+    if (strpos($errStr, '2006') !== false || strpos($errStr, 'gone away') !== false || strpos($errStr, '2013') !== false) {
+        $errStr = "El motor de base de datos se ha reconectado de forma segura tras la respuesta de la IA. Por favor reintenta tu mensaje.";
+    }
+    echo json_encode(['success' => false, 'error' => $errStr]);
 }

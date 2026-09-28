@@ -48,17 +48,57 @@ class Database {
         $this->conn = null;
 
         try {
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-            $this->conn->exec("set names utf8mb4");
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_TIMEOUT => 15
+            ];
+            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password, $options);
+            $this->conn->exec("SET names utf8mb4");
             $this->conn->exec("SET time_zone = '-05:00'");
-            // Set PDO error mode to exception
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            // Prevenir desconexión prematura de MySQL por inactividad durante inferencias largas de IA
+            @$this->conn->exec("SET SESSION wait_timeout = 300");
+            @$this->conn->exec("SET SESSION interactive_timeout = 300");
         } catch(PDOException $exception) {
             error_log("Database connection error: " . $exception->getMessage());
         }
 
         return $this->conn;
+    }
+
+    /**
+     * Verifica si la conexión sigue viva antes de una operación crítica; si murió, reconecta.
+     */
+    public function getValidConnection() {
+        if ($this->conn instanceof PDO) {
+            try {
+                $check = @$this->conn->query("SELECT 1");
+                if ($check !== false) {
+                    return $this->conn;
+                }
+            } catch (\Throwable $t) {
+                // Conexión caída
+            }
+        }
+        return $this->getConnection();
+    }
+
+    /**
+     * Helper estático para reconectar una instancia PDO existente si el servidor MySQL se desconectó
+     */
+    public static function reconnectIfDead(&$db) {
+        if ($db instanceof PDO) {
+            try {
+                $test = @$db->query("SELECT 1");
+                if ($test !== false) {
+                    return $db;
+                }
+            } catch (\Throwable $t) {
+                // Conexión perdida, forzar reconexión abajo
+            }
+        }
+        $db = (new self())->getConnection();
+        return $db;
     }
 }
 ?>
