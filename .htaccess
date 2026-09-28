@@ -61,6 +61,10 @@ Options -Indexes
     # Ruta amigable para chat de invitados: /m/TOKEN
     RewriteRule ^m/([^/]+)/?$ index.php?module=mensajes&action=guest&token=$1 [QSA,L]
 
+    # Ruta amigable corta para Brand Guidelines: /b/SLUG o /brand/SLUG
+    RewriteRule ^b/([^/]+)/?$ index.php?module=brand_guidelines&action=view&slug=$1 [QSA,L]
+    RewriteRule ^brand/([^/]+)/?$ index.php?module=brand_guidelines&action=view&slug=$1 [QSA,L]
+
     # Ruta amigable para un servicio especifico: /servicio/22/slug
     RewriteRule ^servicio/([0-9]+)/([^/]+)/?$ index.php?module=public&action=service&id=$1&slug=$2 [QSA,L]
 

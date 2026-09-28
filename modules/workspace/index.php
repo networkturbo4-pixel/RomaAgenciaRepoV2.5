@@ -256,6 +256,10 @@ require_once 'includes/header.php';
     background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
     box-shadow: 0 8px 20px -3px rgba(14, 165, 233, 0.45);
 }
+.icon-brand-guidelines {
+    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+    box-shadow: 0 8px 20px -3px rgba(236, 72, 153, 0.45);
+}
 .icon-kb {
     background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
     box-shadow: 0 8px 20px -3px rgba(139, 92, 246, 0.45);
@@ -541,6 +545,7 @@ require_once 'includes/header.php';
     if (in_array('task_manager', $perms)) $active_apps_count++;
     if (in_array('romita', $perms)) $active_apps_count++;
     if (in_array('desarrollo_marca', $perms)) $active_apps_count++;
+    if (in_array('brand_guidelines', $perms) || in_array('desarrollo_marca', $perms) || (($_SESSION['role_id'] ?? 0) == 1)) $active_apps_count++;
     if (in_array('knowledge_base', $perms)) $active_apps_count++;
     if (in_array('forms', $perms)) $active_apps_count++;
     if (in_array('reuniones', $perms)) $active_apps_count++;
@@ -628,6 +633,27 @@ require_once 'includes/header.php';
             </div>
             <div class="workspace-card-footer">
                 <span class="ws-app-tag">Branding</span>
+            </div>
+        </a>
+        <?php endif; ?>
+
+        <!-- Brand Guidelines (Manual de Marca) -->
+        <?php if (in_array('brand_guidelines', $perms) || in_array('desarrollo_marca', $perms) || (($_SESSION['role_id'] ?? 0) == 1)): ?>
+        <a href="index.php?module=brand_guidelines&action=index" class="workspace-card" data-title="Brand Guidelines" data-desc="Creador de manual de marca logos variaciones iconos paleta de colores pdf enlaces cortos publico privado">
+            <div class="workspace-card-top">
+                <div class="workspace-card-icon icon-brand-guidelines">
+                    <i class="ph-bold ph-book-bookmark"></i>
+                </div>
+                <div class="app-launch-chip">
+                    <i class="ph-bold ph-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="workspace-card-content">
+                <h3 class="workspace-card-title">Brand Guidelines</h3>
+                <p class="workspace-card-desc">Creador de manuales de marca, logos, paleta cromática, PDF y enlaces compartibles.</p>
+            </div>
+            <div class="workspace-card-footer">
+                <span class="ws-app-tag">Identidad de Marca</span>
             </div>
         </a>
         <?php endif; ?>

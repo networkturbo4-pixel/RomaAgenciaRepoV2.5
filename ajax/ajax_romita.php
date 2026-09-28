@@ -14,6 +14,29 @@ if (!isset($_SESSION['user_id'])) {
 
 $db = (new Database())->getConnection();
 
+// Función de reconexión ultra-resiliente para evitar caídas de conexión durante inferencias IA
+function romitaEnsureDbConnection(&$db) {
+    if ($db instanceof PDO) {
+        try {
+            $test = @$db->query("SELECT 1");
+            if ($test !== false) {
+                return $db;
+            }
+        } catch (\Throwable $t) {
+            // Conexión perdida, forzar reconexión
+        }
+    }
+    if (class_exists('Database')) {
+        if (method_exists('Database', 'reconnectIfDead')) {
+            $db = Database::reconnectIfDead($db);
+            return $db;
+        }
+        $db = (new Database())->getConnection();
+        return $db;
+    }
+    return $db;
+}
+
 // Función de auto-sanación de esquema de Romita (resiliencia multi-entorno y multi-base de datos)
 function ensureRomitaSchema($db) {
     if (!$db) return;
@@ -974,7 +997,7 @@ try {
         }
 
         // Guarda mensaje del usuario
-        Database::reconnectIfDead($db);
+        romitaEnsureDbConnection($db);
         $chat_id = $_POST['chat_id'] ?? null;
         
         if (!$chat_id) {
@@ -990,7 +1013,7 @@ try {
             $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
             $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
         } catch (\PDOException $pdoEx) {
-            Database::reconnectIfDead($db);
+            romitaEnsureDbConnection($db);
             ensureRomitaSchema($db);
             $stmt_user_msg = $db->prepare("INSERT INTO romita_messages (chat_id, role, content, attachment_url, attachment_type, attachment_name) VALUES (?, 'user', ?, ?, ?, ?)");
             $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
@@ -1633,7 +1656,7 @@ try {
         }
 
         // Garantizar reconexión activa ante posibles timeouts de la inferencia IA
-        Database::reconnectIfDead($db);
+        romitaEnsureDbConnection($db);
 
         $ai_msg_id = 0;
         try {

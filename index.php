@@ -43,6 +43,14 @@ if (!empty($_GET['k']) && is_numeric($_GET['k'])) {
     $module = 'knowledge_base';
     $action = 'view';
     $_GET['id'] = (int)$_GET['kb'];
+} elseif (!empty($_GET['bg'])) {
+    $module = 'brand_guidelines';
+    $action = 'view';
+    $_GET['slug'] = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['bg']);
+} elseif (!empty($_GET['b'])) {
+    $module = 'brand_guidelines';
+    $action = 'view';
+    $_GET['slug'] = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['b']);
 } else {
     $module = !empty($_GET['module']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['module']) : 'dashboard';
     $action = !empty($_GET['action']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['action']) : 'index';
@@ -68,6 +76,7 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'quotes' && $action === 'public')
         && !($module === 'suppliers' && $action === 'public')
         && !($module === 'knowledge_base' && (!empty($_SESSION['client_portal_id']) || $action === 'view'))
+        && !($module === 'brand_guidelines' && in_array($action, ['view', 'pdf', 'download_asset', 'verify_password', 'ajax']))
         && $module !== 'public'
     ) {
         header("Location: index.php?module=auth&action=login");
@@ -82,7 +91,7 @@ if (!isset($_SESSION['user_id'])) {
     $user_requires_attendance = isset($currentUserData['requires_attendance']) ? (int)$currentUserData['requires_attendance'] : 1;
 
     $user_permissions = [];
-    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'audiovisual', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
+    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'brand_guidelines', 'audiovisual', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
     
     $role_name = '';
     $role_requires_attendance = 1;
@@ -144,6 +153,7 @@ if (!isset($_SESSION['user_id'])) {
         && !($module === 'quotes' && $action === 'public')
         && !($module === 'suppliers' && $action === 'public')
         && !($module === 'knowledge_base' && (!empty($_SESSION['client_portal_id']) || $action === 'view'))
+        && !($module === 'brand_guidelines' && in_array($action, ['view', 'pdf', 'download_asset', 'verify_password']))
         && $module !== 'public'
     ) {
         if (!in_array($module, $user_permissions)) {
@@ -276,7 +286,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Map modules to their respective files
-$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca', 'audiovisual', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
+$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca', 'brand_guidelines', 'audiovisual', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
 if (in_array($module, $allowed_modules)) {
     $module_file = "modules/{$module}/{$action}.php";
     if (file_exists($module_file)) {
