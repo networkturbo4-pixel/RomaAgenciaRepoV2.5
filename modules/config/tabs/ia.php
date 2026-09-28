@@ -34,13 +34,13 @@ $hasGemini = !empty($settings['gemini_api_key']);
         </div>
 
         <div class="form-group">
-            <label for="gemini_api_key">Gemini API Key</label>
+            <label for="gemini_api_key">Gemini API Key (o múltiples claves separadas por coma)</label>
             <div class="input-with-icon">
                 <i class="ph ph-sparkle" style="color: #8b5cf6;"></i>
-                <input type="password" name="gemini_api_key" id="gemini_api_key" class="form-control" value="<?php echo htmlspecialchars($settings['gemini_api_key'] ?? ''); ?>" placeholder="AIzaSy...">
+                <input type="password" name="gemini_api_key" id="gemini_api_key" class="form-control" value="<?php echo htmlspecialchars($settings['gemini_api_key'] ?? ''); ?>" placeholder="AIzaSy... (o clave1, clave2)">
             </div>
             <small class="text-muted" style="display:block; margin-top:0.35rem; font-size: 11.5px;">
-                Obtén tu clave de forma gratuita en <a href="https://aistudio.google.com/" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline;">Google AI Studio</a>.
+                Obtén tu clave de forma gratuita en <a href="https://aistudio.google.com/" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline;">Google AI Studio</a>. Puedes ingresar una o varias claves separadas por comas para balanceo de carga y contingencia automática en caso de límites de cuota (Rate Limits).
             </small>
         </div>
 

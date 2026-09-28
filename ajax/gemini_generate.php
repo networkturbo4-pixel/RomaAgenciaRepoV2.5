@@ -35,14 +35,21 @@ if (empty($action)) {
 // 1. Get API Key
 $db = (new Database())->getConnection();
 $stmt = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
-$dbKey = $stmt ? trim($stmt->fetchColumn() ?: '') : '';
+$dbKeyRaw = $stmt ? trim($stmt->fetchColumn() ?: '') : '';
 
-$apiKeysToTry = array_values(array_filter([
-    $dbKey,
-    getenv('GEMINI_API_KEY') ?: '',
-    'AIzaSyDIzZJ62tamjKWL73CgEORCDxzifIlIkUw',
-    'AQ.Ab8RN6IMDdwCwC9tCRzve5p6Vf8te8CVRhFAjucDPSCJ9wy5Mg'
-]));
+$apiKeysToTry = [];
+if (!empty($dbKeyRaw)) {
+    $splitKeys = preg_split('/[\r\n,;]+/', $dbKeyRaw);
+    foreach ($splitKeys as $k) {
+        $k = trim($k);
+        if (!empty($k)) $apiKeysToTry[] = $k;
+    }
+}
+$envKey = trim(getenv('GEMINI_API_KEY') ?: '');
+if (!empty($envKey)) {
+    $apiKeysToTry[] = $envKey;
+}
+$apiKeysToTry = array_values(array_unique($apiKeysToTry));
 
 if (empty($apiKeysToTry)) {
     echo json_encode(['success' => false, 'error' => 'La API Key de Gemini no está configurada. Ve a Ajustes > IA para ingresarla.']);
@@ -310,7 +317,15 @@ Hazlo irresistible para la audiencia, con un gancho potente al inicio, desarroll
 }
 
 // Model list
-$modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
+$modelsToTry = [
+    'gemini-3.6-flash',
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite'
+];
 $successResponse = null;
 $lastError = 'Error al procesar la solicitud con Gemini';
 
@@ -368,11 +383,14 @@ foreach ($apiKeysToTry as $currentKey) {
         } else {
             $apiError = $result['error']['message'] ?? "HTTP $httpCode";
             $lastError = $apiError;
-            if ($httpCode === 404) {
-                continue; // Try next model
+            if ($httpCode === 404 || $httpCode === 503) {
+                continue; // Probar siguiente modelo (404 o 503 sobrecarga temporal)
+            }
+            if ($httpCode === 429) {
+                break; // Rate limit en la clave actual, probar siguiente clave
             }
             if ($httpCode === 400 || $httpCode === 401 || $httpCode === 403) {
-                break; // Try next API key
+                break; // Clave inválida, probar siguiente clave
             }
         }
     }

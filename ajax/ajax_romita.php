@@ -965,46 +965,113 @@ try {
             $stmt_user_msg->execute([$chat_id, $message, $attachment_url, $attachment_type, $attachment_name]);
         }
 
-        // Recuperar contexto anterior (últimos 10 mensajes)
+        // Recuperar contexto anterior (últimos mensajes en orden cronológico)
         try {
-            $stmt_hist = $db->prepare("SELECT role, content FROM romita_messages WHERE chat_id = ? ORDER BY id ASC LIMIT 10");
+            $stmt_hist = $db->prepare("SELECT id, role, content FROM (
+                SELECT id, role, content FROM romita_messages 
+                WHERE chat_id = ? 
+                ORDER BY id DESC 
+                LIMIT 20
+            ) sub ORDER BY id ASC");
             $stmt_hist->execute([$chat_id]);
             $history = $stmt_hist->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             $history = [];
         }
 
+        // Sanitización y armado del payload para Gemini (reglas estrictas de alternancia user -> model)
+        $rawTurns = [];
+        foreach ($history as $h) {
+            $content = trim($h['content'] ?? '');
+            if (empty($content)) continue;
+
+            // Omitir del historial mensajes de contingencia o errores previos para no corromper el contexto
+            if (strpos($content, 'modo autónomo local') !== false ||
+                strpos($content, 'Límite de solicitudes') !== false ||
+                strpos($content, 'Alta demanda en los servidores') !== false) {
+                continue;
+            }
+
+            $rawTurns[] = [
+                'role' => ($h['role'] === 'user') ? 'user' : 'model',
+                'text' => $content
+            ];
+        }
+
+        // Asegurar que el mensaje actual del usuario esté al final
+        $totalRaw = count($rawTurns);
+        if ($totalRaw === 0 || $rawTurns[$totalRaw - 1]['role'] !== 'user' || $rawTurns[$totalRaw - 1]['text'] !== $message) {
+            $rawTurns[] = [
+                'role' => 'user',
+                'text' => $message
+            ];
+        }
+
+        // Regla 1: Debe iniciar siempre con un turno 'user'
+        while (!empty($rawTurns) && $rawTurns[0]['role'] !== 'user') {
+            array_shift($rawTurns);
+        }
+        if (empty($rawTurns)) {
+            $rawTurns[] = ['role' => 'user', 'text' => $message];
+        }
+
+        // Regla 2: Alternancia estricta (no permitir dos turnos seguidos del mismo rol)
+        $alternatedTurns = [];
+        foreach ($rawTurns as $turn) {
+            if (empty($alternatedTurns)) {
+                $alternatedTurns[] = $turn;
+            } else {
+                $prevIdx = count($alternatedTurns) - 1;
+                if ($alternatedTurns[$prevIdx]['role'] === $turn['role']) {
+                    $alternatedTurns[$prevIdx]['text'] .= "\n\n" . $turn['text'];
+                } else {
+                    $alternatedTurns[] = $turn;
+                }
+            }
+        }
+
+        // Regla 3: El último turno DEBE ser obligatoriamente 'user' (requisito estricto de la API de Gemini)
+        if (empty($alternatedTurns) || $alternatedTurns[count($alternatedTurns) - 1]['role'] !== 'user') {
+            $alternatedTurns[] = ['role' => 'user', 'text' => $message];
+        }
+
+        // Construir la estructura final de 'contents' para Gemini
         $contents = [];
-        $lastIdx = count($history) - 1;
-        foreach($history as $idx => $h) {
-            $geminiRole = $h['role'] === 'user' ? 'user' : 'model';
-            
-            // Si es el mensaje actual recién enviado y tiene adjunto multimodal (imagen o PDF)
-            if ($idx === $lastIdx && $h['role'] === 'user' && !empty($attachment_base64)) {
-                $promptWithAtt = ($attachment_type === 'image' 
-                    ? "IMAGEN ADJUNTA ({$attachment_name}):\n" . $h['content']
-                    : "DOCUMENTO PDF ADJUNTO ({$attachment_name}):\n" . $h['content']);
-                $contents[] = [
-                    "role" => "user",
-                    "parts" => [
-                        [
-                            "inline_data" => [
-                                "mime_type" => $attachment_mime,
-                                "data" => $attachment_base64
-                            ]
-                        ],
-                        ["text" => $promptWithAtt]
-                    ]
-                ];
-            } elseif ($idx === $lastIdx && $h['role'] === 'user' && !empty($attachment_text)) {
-                $contents[] = [
-                    "role" => "user",
-                    "parts" => [["text" => "CONTENIDO DEL ARCHIVO ADJUNTO ({$attachment_name}):\n```\n{$attachment_text}\n```\n\nCONSULTA: " . $h['content']]]
-                ];
+        $lastAlternatedIdx = count($alternatedTurns) - 1;
+        foreach ($alternatedTurns as $idx => $turn) {
+            if ($idx === $lastAlternatedIdx && $turn['role'] === 'user') {
+                // Adjunto multimodal o de texto en el mensaje actual
+                if (!empty($attachment_base64) && !empty($attachment_mime)) {
+                    $promptWithAtt = ($attachment_type === 'image' 
+                        ? "IMAGEN ADJUNTA ({$attachment_name}):\n" . $turn['text']
+                        : "DOCUMENTO PDF ADJUNTO ({$attachment_name}):\n" . $turn['text']);
+                    $contents[] = [
+                        "role" => "user",
+                        "parts" => [
+                            [
+                                "inline_data" => [
+                                    "mime_type" => $attachment_mime,
+                                    "data" => $attachment_base64
+                                ]
+                            ],
+                            ["text" => $promptWithAtt]
+                        ]
+                    ];
+                } elseif (!empty($attachment_text)) {
+                    $contents[] = [
+                        "role" => "user",
+                        "parts" => [["text" => "CONTENIDO DEL ARCHIVO ADJUNTO ({$attachment_name}):\n```\n{$attachment_text}\n```\n\nCONSULTA: " . $turn['text']]]
+                    ];
+                } else {
+                    $contents[] = [
+                        "role" => "user",
+                        "parts" => [["text" => $turn['text']]]
+                    ];
+                }
             } else {
                 $contents[] = [
-                    "role" => $geminiRole,
-                    "parts" => [["text" => $h['content']]]
+                    "role" => $turn['role'],
+                    "parts" => [["text" => $turn['text']]]
                 ];
             }
         }
@@ -1284,17 +1351,36 @@ try {
 
         // 4. Conexión a Gemini API con multi-key y multi-model fallbacks
         $stmtKey = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
-        $dbApiKey = $stmtKey ? trim($stmtKey->fetchColumn() ?: '') : '';
-        $apiKeysToTry = array_values(array_filter([
-            $dbApiKey,
-            getenv('GEMINI_API_KEY') ?: '',
-            'AIzaSyDIzZJ62tamjKWL73CgEORCDxzifIlIkUw',
-            'AQ.Ab8RN6IMDdwCwC9tCRzve5p6Vf8te8CVRhFAjucDPSCJ9wy5Mg'
-        ]));
+        $dbApiKeyRaw = $stmtKey ? trim($stmtKey->fetchColumn() ?: '') : '';
+        
+        $apiKeysToTry = [];
+        if (!empty($dbApiKeyRaw)) {
+            // Soportar múltiples API keys ingresadas por el usuario (separadas por comas, punto y coma o saltos de línea)
+            $splitKeys = preg_split('/[\r\n,;]+/', $dbApiKeyRaw);
+            foreach ($splitKeys as $k) {
+                $k = trim($k);
+                if (!empty($k)) $apiKeysToTry[] = $k;
+            }
+        }
+        $envKey = trim(getenv('GEMINI_API_KEY') ?: '');
+        if (!empty($envKey)) {
+            $apiKeysToTry[] = $envKey;
+        }
+        $apiKeysToTry = array_values(array_unique($apiKeysToTry));
 
-        $modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
+        // Modelos ordenados por disponibilidad y estabilidad comprobada
+        $modelsToTry = [
+            'gemini-3.6-flash',
+            'gemini-3.8-flash',
+            'gemini-3.7-flash',
+            'gemini-3.5-flash',
+            'gemini-flash-latest',
+            'gemini-3.5-flash-lite',
+            'gemini-3.1-flash-lite'
+        ];
         $ia_response = "";
         $lastError = "No se pudo conectar con la IA de Romita.";
+        $lastHttpCode = 0;
 
         $breakOuter = false;
         foreach ($apiKeysToTry as $currentApiKey) {
@@ -1318,6 +1404,8 @@ try {
                 $curlErr = curl_error($ch);
                 curl_close($ch);
 
+                $lastHttpCode = $httpcode;
+
                 if ($curlErr) {
                     $lastError = "Error de red: " . $curlErr;
                     continue;
@@ -1331,24 +1419,44 @@ try {
                     break;
                 } else {
                     $lastError = $responseData['error']['message'] ?? "Error HTTP $httpcode";
-                    if ($httpcode === 404) {
-                        continue; // Probar otro modelo
+                    if ($httpcode === 404 || $httpcode === 503) {
+                        continue; // Probar otro modelo (404 no encontrado, 503 sobrecarga temporal de ese modelo)
+                    }
+                    if ($httpcode === 429) {
+                        // Rate limit en la API key actual: probar siguiente clave de inmediato si existe
+                        break;
                     }
                     if ($httpcode === 400 || $httpcode === 401 || $httpcode === 403) {
-                        break; // Probar siguiente API key
+                        break; // Error de autenticación / clave inválida: probar siguiente clave
                     }
                 }
             }
         }
 
         if (empty($ia_response)) {
-            // Asistente de contingencia de Romita para que el usuario no reciba un error bloqueante
-            $ia_response = "👋 **¡Hola! Soy Romita**, asistente estratégica y creativa de Roma Agencia.\n\n" .
-                "Actualmente estoy operando en **modo autónomo local** porque la **API Key de Gemini** aún no está configurada o se encuentra inactiva.\n\n" .
-                "### 🚀 ¿Cómo activarme al 100% con IA en vivo?\n" .
-                "1. Obtén tu clave gratuita en [Google AI Studio (aistudio.google.com)](https://aistudio.google.com/app/apikey).\n" .
-                "2. Ve a **Ajustes > IA** en el sistema y pega tu clave allí.\n\n" .
-                "⚡ *Una vez guardada la clave, podré redactar copies avanzados, analizar imágenes y responder consultas en tiempo real sin límites.*";
+            if (empty($apiKeysToTry)) {
+                // Modo contingencia: No hay ninguna clave configurada
+                $ia_response = "👋 **¡Hola! Soy Romita**, asistente estratégica y creativa de Roma Agencia.\n\n" .
+                    "Actualmente estoy operando en **modo autónomo local** porque la **API Key de Gemini** aún no está configurada en el sistema.\n\n" .
+                    "### 🚀 ¿Cómo activarme al 100% con IA en vivo?\n" .
+                    "1. Obtén tu clave gratuita en [Google AI Studio (aistudio.google.com)](https://aistudio.google.com/app/apikey).\n" .
+                    "2. Ve a **Ajustes > IA** en el sistema y pega tu clave allí.\n\n" .
+                    "⚡ *Una vez guardada la clave, podré redactar copies avanzados, analizar imágenes y responder consultas en tiempo real sin límites.*";
+            } elseif ($lastHttpCode === 429) {
+                // Límite de tasa por minuto de Gemini Free Tier
+                $ia_response = "⏳ **Límite de consultas temporalmente alcanzado**\n\n" .
+                    "La API de Google Gemini (Free Tier) tiene una cuota de consultas por minuto.\n\n" .
+                    "💡 **Solución rápida:** Espera 15 a 30 segundos y vuelve a enviar tu mensaje. Si tu equipo utiliza Romita con mucha frecuencia, puedes registrar una segunda clave gratuita en **Ajustes > IA** (separadas por comas) para balancear la carga automáticamente.";
+            } elseif ($lastHttpCode === 503) {
+                // Sobrecarga general temporal de Google
+                $ia_response = "⚡ **Alta demanda en los servidores de Google Gemini**\n\n" .
+                    "Los servidores de IA de Google están experimentando un pico de demanda momentáneo (Error 503).\n\n" .
+                    "Por favor intenta reenviar tu consulta en unos momentos.";
+            } else {
+                // Error descriptivo en lugar de confuso
+                $ia_response = "⚠️ **No se pudo procesar la respuesta con Gemini** (" . htmlspecialchars($lastError) . ").\n\n" .
+                    "Por favor verifica el estado de tu clave de API en **Ajustes > IA** o intenta enviar tu consulta nuevamente.";
+            }
         }
 
         // Insertar msj IA
