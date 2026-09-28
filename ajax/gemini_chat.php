@@ -12,14 +12,27 @@ if (!isset($_SESSION['user_id'])) {
 
 $query = $_POST['query'] ?? '';
 
+$provider = $_POST['provider'] ?? 'all'; // 'groq', 'gemini', or 'all'
+
 if (empty($query)) {
     echo json_encode(['error' => 'Consulta vacía']);
     exit();
 }
 
 $db = (new Database())->getConnection();
+if (!$db) {
+    echo json_encode(['error' => 'No se pudo conectar a la base de datos.']);
+    exit();
+}
 
-// Get Gemini Key(s)
+// 1. Clave de Groq
+$stmtGroq = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'groq_api_key'");
+$groqApiKey = $stmtGroq ? trim($stmtGroq->fetchColumn() ?: '') : '';
+if (empty($groqApiKey)) {
+    $groqApiKey = trim(getenv('GROQ_API_KEY') ?: '');
+}
+
+// 2. Claves de Gemini
 $stmt = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
 $rawKeys = $stmt ? trim($stmt->fetchColumn() ?: '') : '';
 $keysToTry = [];
@@ -34,12 +47,20 @@ $envKey = trim(getenv('GEMINI_API_KEY') ?: '');
 if (!empty($envKey)) $keysToTry[] = $envKey;
 $keysToTry = array_values(array_unique($keysToTry));
 
-if (empty($keysToTry)) {
+if ($provider === 'groq' && empty($groqApiKey)) {
+    echo json_encode(['error' => 'La API Key de Groq no está configurada en Configuración > IA.']);
+    exit();
+}
+if ($provider === 'gemini' && empty($keysToTry)) {
     echo json_encode(['error' => 'La API Key de Gemini no está configurada en Configuración > IA.']);
     exit();
 }
+if (empty($groqApiKey) && empty($keysToTry)) {
+    echo json_encode(['error' => 'No hay claves de API configuradas para Groq ni para Gemini en Configuración > IA.']);
+    exit();
+}
 
-// --- Fetch Context for Gemini ---
+// --- Fetch Context for AI ---
 $user_id = $_SESSION['user_id'];
 $context = "Eres Roma AI, el asistente inteligente exclusivo del sistema CRM Roma Agencia. Responde de forma concisa, amigable y profesional.\n\n";
 $context .= "--- CONTEXTO DEL SISTEMA ACTUAL ---\n";
@@ -78,77 +99,137 @@ $context .= "\nMarcas/Clientes activos (muestra): " . implode(", ", $brands) . "
 $context .= "-----------------------------------\n\n";
 $context .= "Consulta del usuario: " . $query;
 
-$payload = [
-    'contents' => [
-        [
-            'parts' => [
-                ['text' => $context]
-            ]
-        ]
-    ]
-];
-
-$modelsToTry = [
-    'gemini-3.6-flash',
-    'gemini-3.8-flash',
-    'gemini-3.7-flash',
-    'gemini-3.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.5-flash-lite',
-    'gemini-3.1-flash-lite'
-];
-
 $success = false;
 $reply = '';
-$lastError = 'Error inesperado al comunicarse con Gemini.';
+$lastError = 'Error inesperado al comunicarse con el motor de IA.';
+$usedProvider = '';
 
-$breakAll = false;
-foreach ($keysToTry as $currentKey) {
-    if ($breakAll) break;
+// Probar primero con Groq si corresponde
+if (($provider === 'groq' || $provider === 'all') && !empty($groqApiKey)) {
+    $groqModels = [
+        'qwen/qwen3.8-27b',
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant',
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b'
+    ];
 
-    foreach ($modelsToTry as $modelName) {
-        $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $currentKey);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curl_error = curl_error($ch);
-        curl_close($ch);
+    foreach ($groqModels as $gModel) {
+        $chGroq = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        curl_setopt($chGroq, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($chGroq, CURLOPT_POST, true);
+        curl_setopt($chGroq, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $groqApiKey,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($chGroq, CURLOPT_POSTFIELDS, json_encode([
+            'model' => $gModel,
+            'messages' => [
+                ['role' => 'system', 'content' => $context],
+                ['role' => 'user', 'content' => $query]
+            ],
+            'temperature' => 0.6,
+            'max_tokens' => 800
+        ]));
+        curl_setopt($chGroq, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($chGroq, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        curl_setopt($chGroq, CURLOPT_CONNECTTIMEOUT, 6);
+        curl_setopt($chGroq, CURLOPT_TIMEOUT, 20);
 
-        if ($response === false) {
-            $lastError = 'Error de conexión: ' . $curl_error;
-            continue;
+        $groqResponse = curl_exec($chGroq);
+        $groqHttpCode = curl_getinfo($chGroq, CURLINFO_HTTP_CODE);
+        $groqErr = curl_error($chGroq);
+        curl_close($chGroq);
+
+        if ($groqHttpCode === 200 && !empty($groqResponse)) {
+            $dataGroq = json_decode($groqResponse, true);
+            $groqText = trim($dataGroq['choices'][0]['message']['content'] ?? '');
+            if (!empty($groqText)) {
+                $reply = $groqText;
+                $success = true;
+                $usedProvider = "Groq ($gModel)";
+                break;
+            }
+        } else {
+            $lastError = "Error en Groq ({$gModel}) [HTTP $groqHttpCode]: " . ($groqErr ?: $groqResponse);
         }
+    }
+}
 
-        $data = json_decode($response, true);
-        if ($httpCode === 200 && isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-            $reply = $data['candidates'][0]['content']['parts'][0]['text'];
-            $success = true;
-            $breakAll = true;
-            break;
-        } elseif (isset($data['error']['message'])) {
-            $lastError = 'Error de la API de Gemini (' . $modelName . '): ' . $data['error']['message'];
-            if ($httpCode === 404 || $httpCode === 503) {
+// Fallback a Gemini si Groq no se usó o no pudo responder
+if (!$success && ($provider === 'gemini' || $provider === 'all') && !empty($keysToTry)) {
+    $payload = [
+        'contents' => [
+            [
+                'parts' => [
+                    ['text' => $context]
+                ]
+            ]
+        ]
+    ];
+
+    $modelsToTry = [
+        'gemini-flash-latest',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-3.6-flash',
+        'gemini-3.8-flash',
+        'gemini-3.7-flash',
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite'
+    ];
+
+    $breakAll = false;
+    foreach ($keysToTry as $currentKey) {
+        if ($breakAll) break;
+
+        foreach ($modelsToTry as $modelName) {
+            $ch = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $currentKey);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curl_error = curl_error($ch);
+            curl_close($ch);
+
+            if ($response === false) {
+                $lastError = 'Error de conexión: ' . $curl_error;
                 continue;
             }
-            if ($httpCode === 429) {
-                break; // Rate limit en esta clave, pasar a la siguiente clave
-            }
-            if ($httpCode === 400 || $httpCode === 401 || $httpCode === 403) {
-                break; // Clave inválida, pasar a la siguiente clave
+
+            $data = json_decode($response, true);
+            if ($httpCode === 200 && isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                $reply = $data['candidates'][0]['content']['parts'][0]['text'];
+                $success = true;
+                $usedProvider = "Gemini ($modelName)";
+                $breakAll = true;
+                break;
+            } elseif (isset($data['error']['message'])) {
+                $lastError = 'Error de la API de Gemini (' . $modelName . '): ' . $data['error']['message'];
+                if ($httpCode === 404 || $httpCode === 503) {
+                    continue;
+                }
+                if ($httpCode === 429) {
+                    break;
+                }
+                if ($httpCode === 400 || $httpCode === 401 || $httpCode === 403) {
+                    break;
+                }
             }
         }
     }
 }
 
 if ($success) {
-    echo json_encode(['success' => true, 'response' => $reply]);
+    echo json_encode(['success' => true, 'response' => $reply, 'provider' => $usedProvider]);
 } else {
     echo json_encode(['error' => $lastError]);
 }

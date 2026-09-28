@@ -5309,6 +5309,127 @@ function renderRomitaWhatsappActionCard(jsonContent) {
     }
 }
 
+// Renderizar Tarjeta Interactiva de Formulario / Brief en Modal Flotante
+function renderRomitaFormActionCard(jsonContent) {
+    try {
+        const data = safeParseJson(jsonContent);
+        if (!data) return `<pre><code>${jsonContent}</code></pre>`;
+
+        const title = data.title || 'Nuevo Formulario Dinámico';
+        const description = data.description || '';
+        const fields = Array.isArray(data.fields) ? data.fields : [];
+        const settings = data.settings || {};
+
+        const cardId = 'rac-f-' + Math.random().toString(36).substr(2, 9);
+        const encodedData = encodeURIComponent(JSON.stringify(data));
+
+        const TYPE_LABELS = {
+            text: 'Texto Corto',
+            textarea: 'Párrafo',
+            email: 'Correo',
+            phone: 'Teléfono',
+            date: 'Fecha',
+            select: 'Opción Única',
+            checkbox: 'Casillas',
+            dropdown: 'Desplegable',
+            file: 'Archivos',
+            range: 'Escala 1-5',
+            number_range: 'Rango Num.',
+            color: 'Paleta Color',
+            icon_card: 'Cards con Ícono',
+            image_compare: 'Comparativa',
+            divider: 'Sección / Paso'
+        };
+
+        const TYPE_ICONS = {
+            text: 'ph-text-aa',
+            textarea: 'ph-text-align-left',
+            email: 'ph-envelope-simple',
+            phone: 'ph-phone',
+            date: 'ph-calendar-blank',
+            select: 'ph-radio-button',
+            checkbox: 'ph-check-square',
+            dropdown: 'ph-caret-down',
+            file: 'ph-cloud-arrow-up',
+            range: 'ph-sliders-horizontal',
+            number_range: 'ph-arrows-out-line-horizontal',
+            color: 'ph-paint-brush',
+            icon_card: 'ph-star',
+            image_compare: 'ph-images',
+            divider: 'ph-split-horizontal'
+        };
+
+        let fieldsPreviewHtml = '';
+        fields.forEach((f, i) => {
+            const isDivider = f.type === 'divider';
+            if (i < 8) {
+                const typeLabel = TYPE_LABELS[f.type] || f.type || 'Pregunta';
+                const iconClass = TYPE_ICONS[f.type] || 'ph-question';
+                const reqBadge = f.required ? '<span class="rac-badge rac-badge-urgent" style="font-size:0.68rem; padding:2px 6px;">Obligatorio</span>' : '';
+
+                if (isDivider) {
+                    fieldsPreviewHtml += `
+                        <div style="padding: 6px 10px; margin: 4px 0; background: rgba(99, 102, 241, 0.08); border-left: 3px solid #6366f1; border-radius: 6px; font-size: 0.78rem; font-weight: 700; color: var(--color-title, #1e293b); display: flex; align-items: center; gap: 6px;">
+                            <i class="ph-bold ph-split-horizontal" style="color: #6366f1;"></i>
+                            <span>${escapeRomitaHtml(f.label || 'Sección')}</span>
+                        </div>`;
+                } else {
+                    fieldsPreviewHtml += `
+                        <div class="rac-task-item" style="padding: 6px 10px; margin-bottom: 4px;">
+                            <span style="width: 22px; height: 22px; border-radius: 6px; background: rgba(99, 102, 241, 0.12); color: #6366f1; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0;">
+                                <i class="ph-bold ${iconClass}"></i>
+                            </span>
+                            <div class="rac-task-content" style="min-width: 0;">
+                                <div class="rac-task-header" style="gap: 6px;">
+                                    <span class="rac-task-title" style="font-size: 0.8rem; font-weight: 600;">${escapeRomitaHtml(f.label || 'Pregunta')}</span>
+                                    <div class="rac-task-tags">
+                                        <span class="rac-badge rac-badge-date" style="font-size: 0.68rem;">${typeLabel}</span>
+                                        ${reqBadge}
+                                    </div>
+                                </div>
+                                ${f.description ? `<p class="rac-task-desc" style="font-size:0.72rem; margin:2px 0 0;">${escapeRomitaHtml(f.description)}</p>` : ''}
+                            </div>
+                        </div>`;
+                }
+            }
+        });
+
+        if (fields.length > 8) {
+            fieldsPreviewHtml += `<div style="text-align: center; font-size: 0.75rem; color: var(--text-muted); padding: 5px;">+ ${fields.length - 8} preguntas adicionales incluidas</div>`;
+        }
+
+        const coverName = settings.cover_image || 'gradient_aurora';
+
+        return `<div class="romita-action-card rac-form-card" id="${cardId}" data-raw-form="${encodedData}">`
+            + `<div class="rac-header">`
+            + `<div class="rac-header-left">`
+            + `<span class="rac-icon-pill" style="background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff;"><i class="ph-bold ph-textbox"></i></span>`
+            + `<div class="rac-header-titles">`
+            + `<strong class="rac-title">Acción: Crear Formulario en Módulo</strong>`
+            + `<span class="rac-sub" id="${cardId}-sub">${escapeRomitaHtml(title)} • ${fields.length} campos • Portada ${escapeRomitaHtml(coverName)}</span>`
+            + `</div>`
+            + `</div>`
+            + `<span class="rac-chip-status" style="background:rgba(99,102,241,0.15); color:#6366f1; border-color:rgba(99,102,241,0.3);"><i class="ph-bold ph-sparkle"></i> Formularios</span>`
+            + `</div>`
+            + `<div class="rac-body">`
+            + (description ? `<div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.65rem; line-height: 1.45;">${escapeRomitaHtml(description)}</div>` : '')
+            + `<div class="rac-tasks-list">${fieldsPreviewHtml}</div>`
+            + `</div>`
+            + `<div class="rac-footer" id="${cardId}-footer">`
+            + `<button type="button" class="btn-rac-execute" style="background:linear-gradient(135deg,#4f46e5,#7c3aed); box-shadow:0 3px 10px rgba(79,70,229,0.35);" onclick="executeRomitaCreateForm('${cardId}')">`
+            + `<i class="ph-bold ph-plus-circle"></i> <span class="btn-text">Crear Formulario en Módulo</span>`
+            + `</button>`
+            + `<a href="index.php?module=forms" target="_blank" class="rac-link-kanban" title="Abrir módulo de formularios">`
+            + `Ir a Formularios <i class="ph ph-arrow-up-right"></i>`
+            + `</a>`
+            + `</div>`
+            + `</div>`;
+    } catch (e) {
+        console.warn('Error parsing create_form action in floating modal:', e);
+        return `<pre><code>${jsonContent}</code></pre>`;
+    }
+}
+
 // FASE 2: Renderizar Tarjeta Interactiva de Post para Redes Sociales
 function renderRomitaSocialCard(jsonContent) {
     try {
@@ -6106,6 +6227,85 @@ async function executeRomitaScheduleMeeting(cardId) {
     }
 }
 
+async function executeRomitaCreateForm(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    const rawData = card.getAttribute('data-raw-form');
+    if (!rawData) return;
+
+    let formData;
+    try {
+        formData = JSON.parse(decodeURIComponent(rawData));
+    } catch(e) {
+        alert('Error al procesar datos del formulario.');
+        return;
+    }
+
+    const btn = card.querySelector('.btn-rac-execute');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Registrando en Formularios...';
+    }
+
+    try {
+        const payload = new FormData();
+        payload.append('action', 'tool_create_form');
+        payload.append('title', formData.title || 'Nuevo Formulario');
+        payload.append('description', formData.description || '');
+        payload.append('status', formData.status || 'active');
+        payload.append('fields', JSON.stringify(formData.fields || []));
+        payload.append('settings', JSON.stringify(formData.settings || {}));
+
+        const res = await fetch('ajax/ajax_romita.php', { method: 'POST', body: payload });
+        const data = await res.json();
+
+        if (data.success) {
+            const footer = card.querySelector('.rac-footer') || document.getElementById(cardId + '-footer');
+            if (footer) {
+                const basePath = window.location.pathname.replace(/\/index\.php.*$/, '').replace(/\/$/, '');
+                const fullPublicUrl = window.location.origin + (basePath ? basePath : '') + '/' + data.public_url;
+
+                footer.innerHTML = `
+                    <div class="rac-success-banner" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 10px 14px; width: 100%; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                            <div style="display: flex; align-items: center; gap: 7px; color: #10b981; font-weight: 700; font-size: 0.84rem;">
+                                <i class="ph-fill ph-check-circle" style="font-size: 1.15rem;"></i>
+                                <span>¡Formulario #${data.id} creado con éxito!</span>
+                            </div>
+                            <span style="font-size: 0.72rem; color: var(--text-muted);">${data.total_fields} preguntas registradas</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 2px;">
+                            <a href="${data.builder_url}" target="_blank" class="btn btn-sm" style="background: #4f46e5; color: #fff; border-radius: 8px; font-size: 0.76rem; font-weight: 600; padding: 5px 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="ph-bold ph-pencil-simple"></i> Abrir en Constructor
+                            </a>
+                            <a href="${data.public_url}" target="_blank" class="btn btn-sm" style="background: #10b981; color: #fff; border-radius: 8px; font-size: 0.76rem; font-weight: 600; padding: 5px 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="ph-bold ph-arrow-square-out"></i> Ver Formulario Público
+                            </a>
+                            <button type="button" class="btn btn-sm" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-size: 0.76rem; font-weight: 600; padding: 5px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="navigator.clipboard.writeText('${fullPublicUrl}').then(() => alert('¡Enlace público copiado: ${fullPublicUrl}!'))">
+                                <i class="ph-bold ph-copy"></i> Copiar Enlace
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            alert(data.error || 'Error al crear formulario');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    } catch (err) {
+        alert('Error de conexión al crear formulario');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+}
+
 // Preprocesador para reparar tablas Markdown que omitan fila separadora
 function preprocessMarkdownTables(text) {
     if (!text || !text.includes('|')) return text;
@@ -6203,10 +6403,22 @@ function renderRomitaMarkdown(text) {
         return '\n\n' + placeholder + '\n\n';
     });
 
+    // 7.5 Formularios y Briefs en Módulo de Formularios (create_form)
+    out = out.replace(/```(?:romita[-_]?action:?|action:)?(?:create_form|create_form_template|create_formulario)\s*([\s\S]*?)```/gi, function(match, jsonContent) {
+        const placeholder = '<!--ROMITA_ACTION_FORM_' + actionPlaceholders.length + '-->';
+        actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaFormActionCard(jsonContent) });
+        return '\n\n' + placeholder + '\n\n';
+    });
+
     // 8. RED DE SEGURIDAD AGÉNTICA: Si Gemini devolvió un bloque ```json ... ``` estándar con tareas u objetos de acción
     out = out.replace(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/gi, function(match, innerJson) {
         const parsed = safeParseJson(innerJson);
         if (!parsed) return match;
+        if (parsed.fields && Array.isArray(parsed.fields) && (parsed.title || parsed.settings || parsed.view_style)) {
+            const placeholder = '<!--ROMITA_ACTION_FORM_' + actionPlaceholders.length + '-->';
+            actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaFormActionCard(innerJson) });
+            return '\n\n' + placeholder + '\n\n';
+        }
         if (parsed.posts || parsed.target_module === 'month_board' || (Array.isArray(parsed.tasks) && parsed.tasks.some(t => (t.title && t.title.includes('[MONTH_BOARD')) || t.post_type || t.concept))) {
             const placeholder = '<!--ROMITA_ACTION_MONTH_BOARD_' + actionPlaceholders.length + '-->';
             actionPlaceholders.push({ placeholder: placeholder, html: renderRomitaMonthBoardActionCard(innerJson) });

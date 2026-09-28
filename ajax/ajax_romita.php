@@ -451,6 +451,17 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
                     if ($kbArt) {
                         $context .= "  • Artículo de Conocimiento en Pantalla: '{$kbArt['title']}' (Categoría: {$kbArt['category_name']})\n";
                     }
+                } elseif ($current_module === 'forms' && $canAccess('forms')) {
+                    if ($entity_id > 0) {
+                        $stmtFt = $db->prepare("SELECT title, status, description FROM form_templates WHERE id = ?");
+                        $stmtFt->execute([$entity_id]);
+                        $ftRow = $stmtFt->fetch(PDO::FETCH_ASSOC);
+                        if ($ftRow) {
+                            $context .= "  • Formulario en Pantalla: '{$ftRow['title']}' [Estado: {$ftRow['status']}]\n";
+                        }
+                    } else {
+                        $context .= "  • El usuario está navegando el Módulo de Formularios (Plantillas y Respuestas)\n";
+                    }
                 }
             } catch (Exception $e) {}
         }
@@ -679,7 +690,25 @@ function getAgencyFullEcosystemContext($db, $current_module = '', $entity_id = 0
             }
         }
 
-        // K. Balance Financiero Ejecutivo en Tiempo Real (Solo si tiene permiso 'admin')
+        // K. Formularios y Briefs Registrados
+        if ($canAccess('forms')) {
+            $stmtForms = $db->query("
+                SELECT id, title, status, 
+                       (SELECT COUNT(*) FROM form_submissions WHERE template_id = form_templates.id) as total_subs
+                FROM form_templates
+                ORDER BY id DESC LIMIT 6
+            ");
+            $formsList = $stmtForms ? $stmtForms->fetchAll(PDO::FETCH_ASSOC) : [];
+            if (!empty($formsList)) {
+                $context .= "FORMULARIOS Y BRIEFS EN EL MÓDULO DE FORMULARIOS:\n";
+                foreach ($formsList as $fl) {
+                    $context .= "- Formulario #{$fl['id']}: '{$fl['title']}' [{$fl['status']}] ({$fl['total_subs']} respuestas registradas)\n";
+                }
+                $context .= "\n";
+            }
+        }
+
+        // L. Balance Financiero Ejecutivo en Tiempo Real (Solo si tiene permiso 'admin')
         if ($canAccess('admin')) {
             $curMonth = date('Y-m');
             $stmtInc = $db->prepare("SELECT COALESCE(SUM(monto), 0) as total FROM finance_incomes WHERE DATE_FORMAT(fecha_pago, '%Y-%m') = ?");
@@ -1159,6 +1188,70 @@ try {
             . "}\n"
             . "```\n"
             . "Esto guardará las tareas en el módulo 'Tareas & Objetivos' (task_manager). NOTA: NO existe ningún módulo llamado 'Centro de Tareas' ni uses nunca 'module=tasks'.\n\n"
+            . "3. CREACIÓN DE FORMULARIOS Y BRIEFS EN EL MÓDULO DE FORMULARIOS (FORMS MODULE):\n"
+            . "Si el usuario te pide crear un formulario, brief de cliente, encuesta de satisfacción, diagnóstico, cuestionario o evaluación usando el módulo de formularios (o te dice 'crea un formulario'):\n"
+            . "Diseña la estructura completa del formulario con preguntas inteligentes y añade al final de tu respuesta EXACTAMENTE este bloque de acción:\n"
+            . "```romita-action:create_form\n"
+            . "{\n"
+            . "  \"title\": \"Título profesional y claro del Formulario\",\n"
+            . "  \"description\": \"Instrucción concisa y motivadora para los usuarios que responderán\",\n"
+            . "  \"status\": \"active\",\n"
+            . "  \"settings\": {\n"
+            . "    \"view_style\": \"hero_cover\",\n"
+            . "    \"cover_image\": \"gradient_aurora\",\n"
+            . "    \"multi_step\": true,\n"
+            . "    \"welcome_screen\": true,\n"
+            . "    \"require_name\": true,\n"
+            . "    \"require_email\": true,\n"
+            . "    \"show_logo\": true\n"
+            . "  },\n"
+            . "  \"fields\": [\n"
+            . "    {\n"
+            . "      \"type\": \"divider\",\n"
+            . "      \"label\": \"Nombre de la Sección (Paso 1)\"\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"text\",\n"
+            . "      \"label\": \"¿Cuál es el nombre de tu empresa o marca?\",\n"
+            . "      \"placeholder\": \"Ej: Victoria Specialty Coffee\",\n"
+            . "      \"required\": true\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"textarea\",\n"
+            . "      \"label\": \"Describe la propuesta de valor o desafío principal\",\n"
+            . "      \"placeholder\": \"Escribe aquí los detalles...\",\n"
+            . "      \"required\": true\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"select\",\n"
+            . "      \"label\": \"Selecciona tu presupuesto aproximado\",\n"
+            . "      \"options\": [\"Menos de $1,000\", \"$1,000 - $3,000\", \"Más de $3,000\"],\n"
+            . "      \"required\": true\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"icon_card\",\n"
+            . "      \"label\": \"¿Cuál es tu objetivo prioritario?\",\n"
+            . "      \"icon_options\": [\n"
+            . "        {\"icon\": \"ph-rocket\", \"text\": \"Lanzamiento Rápido\"},\n"
+            . "        {\"icon\": \"ph-megaphone\", \"text\": \"Captación de Clientes\"},\n"
+            . "        {\"icon\": \"ph-sparkle\", \"text\": \"Rebranding Total\"}\n"
+            . "      ],\n"
+            . "      \"required\": true\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"range\",\n"
+            . "      \"label\": \"Nivel de urgencia del proyecto\",\n"
+            . "      \"range_min\": 1,\n"
+            . "      \"range_max\": 5,\n"
+            . "      \"range_label_min\": \"Bajo\",\n"
+            . "      \"range_label_max\": \"Urgente\",\n"
+            . "      \"required\": false\n"
+            . "    }\n"
+            . "  ]\n"
+            . "}\n"
+            . "```\n"
+            . "Tipos permitidos para 'type': 'text' (corto), 'textarea' (párrafo), 'email', 'phone', 'date', 'select' (opciones únicas), 'checkbox' (casillas múltiples), 'dropdown' (menú), 'file' (archivos), 'range' (escala), 'number_range' (rango numérico), 'color' (paleta), 'icon_card' (cards con íconos), 'divider' (separador/paso multi-step).\n"
+            . "Esto insertará el formulario DIRECTAMENTE en el Módulo de Formularios de Roma Agencia y le dará al usuario un botón de 1 clic para crearlo y obtener su enlace público inmediato.\n\n"
             . "2. AGENDAMIENTO DE REUNIÓN:\n"
             . "Si se acuerda, coordina o propone una reunión o sesión de trabajo, incluye al final:\n"
             . "```romita-action:schedule_meeting\n"
@@ -1349,113 +1442,190 @@ try {
             ];
         }
 
-        // 4. Conexión a Gemini API con multi-key y multi-model fallbacks
-        $stmtKey = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
-        $dbApiKeyRaw = $stmtKey ? trim($stmtKey->fetchColumn() ?: '') : '';
-        
-        $apiKeysToTry = [];
-        if (!empty($dbApiKeyRaw)) {
-            // Soportar múltiples API keys ingresadas por el usuario (separadas por comas, punto y coma o saltos de línea)
-            $splitKeys = preg_split('/[\r\n,;]+/', $dbApiKeyRaw);
-            foreach ($splitKeys as $k) {
-                $k = trim($k);
-                if (!empty($k)) $apiKeysToTry[] = $k;
-            }
-        }
-        $envKey = trim(getenv('GEMINI_API_KEY') ?: '');
-        if (!empty($envKey)) {
-            $apiKeysToTry[] = $envKey;
-        }
-        $apiKeysToTry = array_values(array_unique($apiKeysToTry));
-
-        // Modelos ordenados por disponibilidad y estabilidad comprobada
-        $modelsToTry = [
-            'gemini-3.6-flash',
-            'gemini-3.8-flash',
-            'gemini-3.7-flash',
-            'gemini-3.5-flash',
-            'gemini-flash-latest',
-            'gemini-3.5-flash-lite',
-            'gemini-3.1-flash-lite'
-        ];
+        // 4. Inferencia de Inteligencia Artificial (Motor Híbrido: Groq Open Source + Gemini Fallback)
         $ia_response = "";
         $lastError = "No se pudo conectar con la IA de Romita.";
         $lastHttpCode = 0;
 
-        $breakOuter = false;
-        foreach ($apiKeysToTry as $currentApiKey) {
-            if ($breakOuter) break;
+        // 4A. Motor Principal: Groq Cloud (Modelos Open Source: Qwen / Llama 3)
+        $stmtGroq = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'groq_api_key'");
+        $groqApiKey = $stmtGroq ? trim($stmtGroq->fetchColumn() ?: '') : '';
+        if (empty($groqApiKey)) {
+            $groqApiKey = trim(getenv('GROQ_API_KEY') ?: '');
+        }
 
-            foreach ($modelsToTry as $modelName) {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $currentApiKey;
-
-                $ch = curl_init($url);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-                
-                $response = curl_exec($ch);
-                $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $curlErr = curl_error($ch);
-                curl_close($ch);
-
-                $lastHttpCode = $httpcode;
-
-                if ($curlErr) {
-                    $lastError = "Error de red: " . $curlErr;
-                    continue;
+        // Si no hay imagen binaria que requiera visión obligatoria, intentar primero con Groq (ultra-rápido y gratis)
+        if (!empty($groqApiKey) && empty($attachment_base64)) {
+            $groqMessages = [];
+            if (!empty($sysInstructions)) {
+                $groqMessages[] = [
+                    'role' => 'system',
+                    'content' => implode("\n\n---\n\n", $sysInstructions)
+                ];
+            }
+            foreach ($alternatedTurns as $idx => $turn) {
+                $groqRole = ($turn['role'] === 'model') ? 'assistant' : 'user';
+                $turnText = $turn['text'];
+                if ($idx === $lastAlternatedIdx && !empty($attachment_text)) {
+                    $turnText .= "\n\n[CONTENIDO DE ARCHIVO ADJUNTO: {$attachment_name}]\n" . $attachment_text;
                 }
+                $groqMessages[] = [
+                    'role' => $groqRole,
+                    'content' => $turnText
+                ];
+            }
 
-                $responseData = json_decode($response, true);
+            $groqModels = [
+                'qwen/qwen3.8-27b',
+                'llama-3.3-70b-versatile',
+                'llama-3.1-8b-instant',
+                'openai/gpt-oss-120b',
+                'openai/gpt-oss-20b'
+            ];
 
-                if ($httpcode >= 200 && $httpcode < 300 && isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
-                    $ia_response = trim($responseData['candidates'][0]['content']['parts'][0]['text']);
-                    $breakOuter = true;
-                    break;
-                } else {
-                    $lastError = $responseData['error']['message'] ?? "Error HTTP $httpcode";
-                    if ($httpcode === 404 || $httpcode === 503) {
-                        continue; // Probar otro modelo (404 no encontrado, 503 sobrecarga temporal de ese modelo)
-                    }
-                    if ($httpcode === 429) {
-                        // Rate limit en la API key actual: probar siguiente clave de inmediato si existe
+            foreach ($groqModels as $gModel) {
+                $chGroq = curl_init('https://api.groq.com/openai/v1/chat/completions');
+                curl_setopt($chGroq, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($chGroq, CURLOPT_POST, true);
+                curl_setopt($chGroq, CURLOPT_HTTPHEADER, [
+                    'Authorization: Bearer ' . $groqApiKey,
+                    'Content-Type: application/json'
+                ]);
+                $groqPayload = [
+                    'model' => $gModel,
+                    'messages' => $groqMessages,
+                    'temperature' => 0.6,
+                    'max_tokens' => 1200
+                ];
+                curl_setopt($chGroq, CURLOPT_POSTFIELDS, json_encode($groqPayload));
+                curl_setopt($chGroq, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($chGroq, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+                curl_setopt($chGroq, CURLOPT_CONNECTTIMEOUT, 6);
+                curl_setopt($chGroq, CURLOPT_TIMEOUT, 20);
+
+                $groqRes = curl_exec($chGroq);
+                $groqHttp = curl_getinfo($chGroq, CURLINFO_HTTP_CODE);
+                $groqErr = curl_error($chGroq);
+                curl_close($chGroq);
+
+                if ($groqHttp === 200 && !empty($groqRes)) {
+                    $groqData = json_decode($groqRes, true);
+                    $groqText = trim($groqData['choices'][0]['message']['content'] ?? '');
+                    if (!empty($groqText)) {
+                        $ia_response = $groqText;
                         break;
                     }
-                    if ($httpcode === 400 || $httpcode === 401 || $httpcode === 403) {
-                        break; // Error de autenticación / clave inválida: probar siguiente clave
+                }
+            }
+        }
+
+        // 4B. Motor Secundario / Fallback: Google Gemini API (con multi-key y multi-model)
+        $apiKeysToTry = [];
+        if (empty($ia_response)) {
+            $stmtKey = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
+            $dbApiKeyRaw = $stmtKey ? trim($stmtKey->fetchColumn() ?: '') : '';
+            
+            if (!empty($dbApiKeyRaw)) {
+                $splitKeys = preg_split('/[\r\n,;]+/', $dbApiKeyRaw);
+                foreach ($splitKeys as $k) {
+                    $k = trim($k);
+                    if (!empty($k)) $apiKeysToTry[] = $k;
+                }
+            }
+            $envKey = trim(getenv('GEMINI_API_KEY') ?: '');
+            if (!empty($envKey)) {
+                $apiKeysToTry[] = $envKey;
+            }
+            $apiKeysToTry = array_values(array_unique($apiKeysToTry));
+
+            // Modelos ordenados por disponibilidad y estabilidad comprobada
+            $modelsToTry = [
+                'gemini-flash-latest',
+                'gemini-2.5-flash',
+                'gemini-2.0-flash',
+                'gemini-1.5-flash',
+                'gemini-3.6-flash',
+                'gemini-3.8-flash',
+                'gemini-3.7-flash',
+                'gemini-3.5-flash',
+                'gemini-3.5-flash-lite',
+                'gemini-3.1-flash-lite'
+            ];
+
+            $breakOuter = false;
+            foreach ($apiKeysToTry as $currentApiKey) {
+                if ($breakOuter) break;
+
+                foreach ($modelsToTry as $modelName) {
+                    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $currentApiKey;
+
+                    $ch = curl_init($url);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                    
+                    $response = curl_exec($ch);
+                    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $curlErr = curl_error($ch);
+                    curl_close($ch);
+
+                    $lastHttpCode = $httpcode;
+
+                    if ($curlErr) {
+                        $lastError = "Error de red: " . $curlErr;
+                        continue;
+                    }
+
+                    $responseData = json_decode($response, true);
+
+                    if ($httpcode >= 200 && $httpcode < 300 && isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+                        $ia_response = trim($responseData['candidates'][0]['content']['parts'][0]['text']);
+                        $breakOuter = true;
+                        break;
+                    } else {
+                        $lastError = $responseData['error']['message'] ?? "Error HTTP $httpcode";
+                        if ($httpcode === 404 || $httpcode === 503) {
+                            continue;
+                        }
+                        if ($httpcode === 429) {
+                            break;
+                        }
+                        if ($httpcode === 400 || $httpcode === 401 || $httpcode === 403) {
+                            break;
+                        }
                     }
                 }
             }
         }
 
         if (empty($ia_response)) {
-            if (empty($apiKeysToTry)) {
+            if (empty($apiKeysToTry) && empty($groqApiKey)) {
                 // Modo contingencia: No hay ninguna clave configurada
                 $ia_response = "👋 **¡Hola! Soy Romita**, asistente estratégica y creativa de Roma Agencia.\n\n" .
-                    "Actualmente estoy operando en **modo autónomo local** porque la **API Key de Gemini** aún no está configurada en el sistema.\n\n" .
+                    "Actualmente estoy operando en **modo autónomo local** porque las **API Keys de Groq / Gemini** aún no están configuradas en el sistema.\n\n" .
                     "### 🚀 ¿Cómo activarme al 100% con IA en vivo?\n" .
-                    "1. Obtén tu clave gratuita en [Google AI Studio (aistudio.google.com)](https://aistudio.google.com/app/apikey).\n" .
+                    "1. Configura tu clave gratuita de **Groq** en [console.groq.com](https://console.groq.com) o de **Gemini** en [Google AI Studio](https://aistudio.google.com/).\n" .
                     "2. Ve a **Ajustes > IA** en el sistema y pega tu clave allí.\n\n" .
-                    "⚡ *Una vez guardada la clave, podré redactar copies avanzados, analizar imágenes y responder consultas en tiempo real sin límites.*";
+                    "⚡ *Una vez guardada la clave, podré atender consultas en tiempo real sin límites y a máxima velocidad.*";
             } elseif ($lastHttpCode === 429) {
                 // Límite de tasa por minuto de Gemini Free Tier
                 $ia_response = "⏳ **Límite de consultas temporalmente alcanzado**\n\n" .
-                    "La API de Google Gemini (Free Tier) tiene una cuota de consultas por minuto.\n\n" .
-                    "💡 **Solución rápida:** Espera 15 a 30 segundos y vuelve a enviar tu mensaje. Si tu equipo utiliza Romita con mucha frecuencia, puedes registrar una segunda clave gratuita en **Ajustes > IA** (separadas por comas) para balancear la carga automáticamente.";
+                    "La cuota por minuto se ha completado temporalmente.\n\n" .
+                    "💡 **Solución rápida:** Espera 15 a 30 segundos y vuelve a enviar tu mensaje. Si tu equipo utiliza Romita con mucha frecuencia, puedes registrar una segunda clave en **Ajustes > IA** para balancear la carga.";
             } elseif ($lastHttpCode === 503) {
-                // Sobrecarga general temporal de Google
-                $ia_response = "⚡ **Alta demanda en los servidores de Google Gemini**\n\n" .
-                    "Los servidores de IA de Google están experimentando un pico de demanda momentáneo (Error 503).\n\n" .
+                // Sobrecarga general temporal
+                $ia_response = "⚡ **Alta demanda en los servidores de IA**\n\n" .
+                    "Los servidores de IA están experimentando un pico de demanda momentáneo.\n\n" .
                     "Por favor intenta reenviar tu consulta en unos momentos.";
             } else {
-                // Error descriptivo en lugar de confuso
-                $ia_response = "⚠️ **No se pudo procesar la respuesta con Gemini** (" . htmlspecialchars($lastError) . ").\n\n" .
-                    "Por favor verifica el estado de tu clave de API en **Ajustes > IA** o intenta enviar tu consulta nuevamente.";
+                // Error descriptivo
+                $ia_response = "⚠️ **No se pudo procesar la respuesta con el motor de IA** (" . htmlspecialchars($lastError) . ").\n\n" .
+                    "Por favor verifica el estado de tus claves de API en **Ajustes > IA** o intenta enviar tu consulta nuevamente.";
             }
         }
 
@@ -2260,6 +2430,380 @@ try {
             'success' => true,
             'meeting_id' => $meetingId,
             'message' => 'Reunión agendada exitosamente en la Agenda.'
+        ]);
+        exit();
+    }
+
+    // ==========================================
+    // ACCIONES AGÉNTICAS: MÓDULO DE FORMULARIOS
+    // ==========================================
+
+    // Generar y crear formulario completo directamente con IA (Groq Cloud + Gemini Fallback)
+    if ($action === 'ai_generate_form') {
+        $prompt = trim($_POST['prompt'] ?? '');
+        if (empty($prompt)) {
+            echo json_encode(['success' => false, 'error' => 'Por favor escribe una descripción del formulario a generar.']);
+            exit();
+        }
+
+        // Obtener claves de Groq y Gemini
+        $stmtGroq = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'groq_api_key'");
+        $groqApiKey = $stmtGroq ? trim($stmtGroq->fetchColumn() ?: '') : '';
+        if (empty($groqApiKey)) {
+            $groqApiKey = trim(getenv('GROQ_API_KEY') ?: '');
+        }
+
+        $stmtKey = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
+        $dbApiKeyRaw = $stmtKey ? trim($stmtKey->fetchColumn() ?: '') : '';
+        $geminiKeys = [];
+        if (!empty($dbApiKeyRaw)) {
+            $geminiKeys = array_values(array_filter(array_map('trim', preg_split('/[\r\n,;]+/', $dbApiKeyRaw))));
+        }
+        $envKey = trim(getenv('GEMINI_API_KEY') ?: '');
+        if (!empty($envKey)) $geminiKeys[] = $envKey;
+
+        $formPrompt = "Eres el Diseñador Experto de Formularios y Briefs de Roma Agencia CRM. Tu tarea es diseñar un formulario interactivo y altamente profesional basado en la siguiente solicitud:\n\"{$prompt}\"\n\n"
+            . "Debes responder ÚNICAMENTE con un objeto JSON válido (sin texto explicativo antes ni después, sin markdown ni ```json) con la siguiente estructura exacta:\n"
+            . "{\n"
+            . "  \"title\": \"Título profesional del formulario\",\n"
+            . "  \"description\": \"Instrucción concisa y amigable para quien responde\",\n"
+            . "  \"status\": \"active\",\n"
+            . "  \"settings\": {\n"
+            . "    \"view_style\": \"hero_cover\",\n"
+            . "    \"cover_image\": \"gradient_aurora\",\n"
+            . "    \"multi_step\": true,\n"
+            . "    \"welcome_screen\": true,\n"
+            . "    \"require_name\": true,\n"
+            . "    \"require_email\": true,\n"
+            . "    \"show_logo\": true\n"
+            . "  },\n"
+            . "  \"fields\": [\n"
+            . "    {\n"
+            . "      \"type\": \"divider\",\n"
+            . "      \"label\": \"Paso 1: Información General\"\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"text\",\n"
+            . "      \"label\": \"Nombre de tu empresa o marca\",\n"
+            . "      \"placeholder\": \"Ej: Mi Marca SAC\",\n"
+            . "      \"required\": true\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"textarea\",\n"
+            . "      \"label\": \"Describe el objetivo principal\",\n"
+            . "      \"placeholder\": \"Detalla tu respuesta...\",\n"
+            . "      \"required\": true\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"select\",\n"
+            . "      \"label\": \"Presupuesto estimado\",\n"
+            . "      \"options\": [\"Menos de $1,000\", \"$1,000 - $3,000\", \"Más de $3,000\"],\n"
+            . "      \"required\": true\n"
+            . "    },\n"
+            . "    {\n"
+            . "      \"type\": \"icon_card\",\n"
+            . "      \"label\": \"Objetivo prioritario\",\n"
+            . "      \"icon_options\": [\n"
+            . "        {\"icon\": \"ph-rocket\", \"text\": \"Lanzamiento\"},\n"
+            . "        {\"icon\": \"ph-megaphone\", \"text\": \"Ventas / Leads\"},\n"
+            . "        {\"icon\": \"ph-sparkle\", \"text\": \"Posicionamiento\"}\n"
+            . "      ],\n"
+            . "      \"required\": true\n"
+            . "    }\n"
+            . "  ]\n"
+            . "}\n"
+            . "Genera entre 5 y 9 preguntas inteligentes y pertinentes con variedad de tipos acordes al tema (text, textarea, select, checkbox, dropdown, file, range, number_range, color, icon_card, divider).";
+
+        $generatedJsonText = '';
+
+        // 1. Probar Groq Cloud (Ultra-rápido)
+        if (!empty($groqApiKey)) {
+            $groqModels = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+            foreach ($groqModels as $gModel) {
+                $chGroq = curl_init('https://api.groq.com/openai/v1/chat/completions');
+                curl_setopt($chGroq, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($chGroq, CURLOPT_POST, true);
+                curl_setopt($chGroq, CURLOPT_HTTPHEADER, [
+                    'Authorization: Bearer ' . $groqApiKey,
+                    'Content-Type: application/json'
+                ]);
+                curl_setopt($chGroq, CURLOPT_POSTFIELDS, json_encode([
+                    'model' => $gModel,
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'Eres un generador de datos que responde EXCLUSIVAMENTE con JSON válido sin formato markdown ni rodeos.'],
+                        ['role' => 'user', 'content' => $formPrompt]
+                    ],
+                    'temperature' => 0.4,
+                    'max_tokens' => 2500
+                ]));
+                curl_setopt($chGroq, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($chGroq, CURLOPT_CONNECTTIMEOUT, 8);
+                curl_setopt($chGroq, CURLOPT_TIMEOUT, 30);
+                $gRes = curl_exec($chGroq);
+                $gCode = curl_getinfo($chGroq, CURLINFO_HTTP_CODE);
+                curl_close($chGroq);
+
+                if ($gCode === 200 && !empty($gRes)) {
+                    $gData = json_decode($gRes, true);
+                    $content = trim($gData['choices'][0]['message']['content'] ?? '');
+                    if (!empty($content)) {
+                        $generatedJsonText = $content;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback a Google Gemini
+        if (empty($generatedJsonText) && !empty($geminiKeys)) {
+            $geminiModels = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+            $payloadGemini = [
+                'contents' => [['parts' => [['text' => $formPrompt]]]]
+            ];
+            foreach ($geminiKeys as $gKey) {
+                if (!empty($generatedJsonText)) break;
+                foreach ($geminiModels as $gemModel) {
+                    $chG = curl_init("https://generativelanguage.googleapis.com/v1beta/models/{$gemModel}:generateContent?key=" . $gKey);
+                    curl_setopt($chG, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($chG, CURLOPT_POST, true);
+                    curl_setopt($chG, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($chG, CURLOPT_POSTFIELDS, json_encode($payloadGemini));
+                    curl_setopt($chG, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($chG, CURLOPT_CONNECTTIMEOUT, 8);
+                    curl_setopt($chG, CURLOPT_TIMEOUT, 30);
+                    $resG = curl_exec($chG);
+                    $codeG = curl_getinfo($chG, CURLINFO_HTTP_CODE);
+                    curl_close($chG);
+
+                    if ($codeG === 200 && !empty($resG)) {
+                        $dataG = json_decode($resG, true);
+                        $txt = trim($dataG['candidates'][0]['content']['parts'][0]['text'] ?? '');
+                        if (!empty($txt)) {
+                            $generatedJsonText = $txt;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($generatedJsonText)) {
+            echo json_encode(['success' => false, 'error' => 'No se pudo conectar con los motores de IA para generar el formulario. Por favor verifica tus API Keys.']);
+            exit();
+        }
+
+        // Limpiar bloques de código si la IA los incluyó
+        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', trim($generatedJsonText));
+        $cleanJson = preg_replace('/\s*```$/i', '', $cleanJson);
+        $formData = json_decode($cleanJson, true);
+
+        if (!$formData || !is_array($formData)) {
+            if (preg_match('/\{[\s\S]*\}/', $generatedJsonText, $matches)) {
+                $formData = json_decode($matches[0], true);
+            }
+        }
+
+        if (!$formData || !is_array($formData)) {
+            echo json_encode(['success' => false, 'error' => 'Respuesta no estructurada de la IA.', 'raw' => $generatedJsonText]);
+            exit();
+        }
+
+        $_POST['title'] = $formData['title'] ?? 'Formulario Generado con IA';
+        $_POST['description'] = $formData['description'] ?? '';
+        $_POST['status'] = $formData['status'] ?? 'active';
+        $_POST['fields'] = $formData['fields'] ?? [];
+        $_POST['settings'] = $formData['settings'] ?? [];
+        $action = 'tool_create_form';
+    }
+
+    // Crear formulario directamente en la base de datos (form_templates)
+    if ($action === 'tool_create_form') {
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $status = trim($_POST['status'] ?? 'active');
+        if (!in_array($status, ['active', 'draft', 'archived'])) {
+            $status = 'active';
+        }
+
+        // Obtener fields
+        $fieldsRaw = $_POST['fields'] ?? ($_POST['fields_json'] ?? '[]');
+        $fields = is_array($fieldsRaw) ? $fieldsRaw : json_decode($fieldsRaw, true);
+        if (!is_array($fields)) {
+            $fields = [];
+        }
+
+        // Obtener settings
+        $settingsRaw = $_POST['settings'] ?? ($_POST['settings_json'] ?? '{}');
+        $settings = is_array($settingsRaw) ? $settingsRaw : json_decode($settingsRaw, true);
+        if (!is_array($settings)) {
+            $settings = [];
+        }
+
+        // Fallback si vino un payload consolidado en 'form_data'
+        if (empty($title) && !empty($_POST['form_data'])) {
+            $formData = is_array($_POST['form_data']) ? $_POST['form_data'] : json_decode($_POST['form_data'], true);
+            if (is_array($formData)) {
+                $title = trim($formData['title'] ?? '');
+                $description = trim($formData['description'] ?? '');
+                $status = trim($formData['status'] ?? $status);
+                if (!empty($formData['fields']) && is_array($formData['fields'])) {
+                    $fields = $formData['fields'];
+                }
+                if (!empty($formData['settings']) && is_array($formData['settings'])) {
+                    $settings = array_merge($settings, $formData['settings']);
+                }
+            }
+        }
+
+        if (empty($title)) {
+            echo json_encode(['success' => false, 'error' => 'El título del formulario es obligatorio.']);
+            exit();
+        }
+
+        // Normalizar fields asegurando IDs únicos y atributos estándar
+        $normalizedFields = [];
+        foreach ($fields as $idx => $f) {
+            if (!is_array($f)) continue;
+            $fType = trim($f['type'] ?? 'text');
+            $fLabel = trim($f['label'] ?? 'Pregunta sin título');
+            $fPlaceholder = trim($f['placeholder'] ?? '');
+            $fRequired = !empty($f['required']);
+            $fWidth = in_array($f['width'] ?? '', ['half', 'full']) ? $f['width'] : 'full';
+            $fId = !empty($f['id']) ? $f['id'] : ('f_' . bin2hex(random_bytes(5)));
+            
+            $item = [
+                'id' => $fId,
+                'type' => $fType,
+                'label' => $fLabel,
+                'placeholder' => $fPlaceholder,
+                'required' => $fRequired,
+                'width' => $fWidth,
+                'description' => trim($f['description'] ?? '')
+            ];
+
+            if (isset($f['options']) && is_array($f['options'])) {
+                $item['options'] = array_values(array_filter(array_map('trim', $f['options'])));
+            } elseif (in_array($fType, ['select', 'checkbox', 'dropdown'])) {
+                $item['options'] = ['Opción 1', 'Opción 2'];
+            }
+
+            if ($fType === 'range') {
+                $item['range_min'] = isset($f['range_min']) ? (int)$f['range_min'] : 1;
+                $item['range_max'] = isset($f['range_max']) ? (int)$f['range_max'] : 5;
+                $item['range_label_min'] = trim($f['range_label_min'] ?? 'Bajo');
+                $item['range_label_max'] = trim($f['range_label_max'] ?? 'Alto');
+            }
+
+            if ($fType === 'number_range') {
+                $item['nr_min'] = isset($f['nr_min']) ? (int)$f['nr_min'] : 18;
+                $item['nr_max'] = isset($f['nr_max']) ? (int)$f['nr_max'] : 65;
+                $item['nr_step'] = isset($f['nr_step']) ? (int)$f['nr_step'] : 1;
+            }
+
+            if ($fType === 'color') {
+                $item['color_options'] = !empty($f['color_options']) && is_array($f['color_options']) 
+                    ? $f['color_options'] 
+                    : ['#4f46e5', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6'];
+                $item['color_multi'] = isset($f['color_multi']) ? (bool)$f['color_multi'] : true;
+            }
+
+            if ($fType === 'icon_card') {
+                $item['icon_options'] = !empty($f['icon_options']) && is_array($f['icon_options']) 
+                    ? $f['icon_options'] 
+                    : [['icon' => 'ph-star', 'text' => 'Opción 1'], ['icon' => 'ph-rocket', 'text' => 'Opción 2']];
+                $item['icon_multi'] = isset($f['icon_multi']) ? (bool)$f['icon_multi'] : false;
+            }
+
+            if ($fType === 'image_compare') {
+                $item['compare_options'] = !empty($f['compare_options']) && is_array($f['compare_options']) ? $f['compare_options'] : [];
+                $item['compare_multi'] = isset($f['compare_multi']) ? (bool)$f['compare_multi'] : false;
+            }
+
+            $normalizedFields[] = $item;
+        }
+
+        // Si no se proporcionaron campos, crear campo por defecto
+        if (empty($normalizedFields)) {
+            $normalizedFields[] = [
+                'id' => 'f_' . bin2hex(random_bytes(5)),
+                'type' => 'text',
+                'label' => 'Nombre completo o de la empresa',
+                'placeholder' => 'Ingresa tu respuesta...',
+                'required' => true,
+                'width' => 'full',
+                'description' => ''
+            ];
+        }
+
+        // Settings por defecto modernos
+        $finalSettings = array_merge([
+            'show_logo' => true,
+            'require_name' => true,
+            'require_email' => true,
+            'multi_step' => true,
+            'view_style' => 'hero_cover',
+            'welcome_screen' => true,
+            'cover_image' => 'gradient_aurora',
+            'custom_avatar' => ''
+        ], $settings);
+
+        $fieldsJson = json_encode($normalizedFields, JSON_UNESCAPED_UNICODE);
+        $settingsJson = json_encode($finalSettings, JSON_UNESCAPED_UNICODE);
+        $token = bin2hex(random_bytes(16));
+        $userId = (int)($_SESSION['user_id'] ?? 1);
+
+        $stmtInsert = $db->prepare("
+            INSERT INTO form_templates 
+            (title, description, fields_json, settings_json, public_token, status, created_by, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        ");
+        $stmtInsert->execute([$title, $description, $fieldsJson, $settingsJson, $token, $status, $userId]);
+        $newFormId = (int)$db->lastInsertId();
+
+        // Si está publicado, intentar crear carpeta en Google Drive de forma segura
+        if ($status === 'active') {
+            try {
+                if (file_exists(__DIR__ . '/../includes/GoogleDriveHelper.php')) {
+                    require_once __DIR__ . '/../includes/GoogleDriveHelper.php';
+                    $drive = new GoogleDriveHelper();
+                    if ($drive->isConfigured()) {
+                        $briefsFolder = null;
+                        $rootFolders = $drive->listFolders('root');
+                        if ($rootFolders) {
+                            foreach ($rootFolders as $f) {
+                                if (strtolower(trim($f->name)) === 'briefs') { $briefsFolder = $f->id; break; }
+                            }
+                        }
+                        if (!$briefsFolder) $briefsFolder = $drive->createFolder('Briefs');
+                        if ($briefsFolder) {
+                            $formFolder = $drive->createFolder($title, $briefsFolder);
+                            if ($formFolder) {
+                                $db->prepare("UPDATE form_templates SET drive_folder_id=? WHERE id=?")->execute([$formFolder, $newFormId]);
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $eDrive) {
+                error_log("Romita tool_create_form Drive Warning: " . $eDrive->getMessage());
+            }
+        }
+
+        $shortToken = substr($token, 0, 8);
+        $publicUrl = "f/" . $shortToken;
+        $builderUrl = "index.php?module=forms&action=builder&id=" . $newFormId;
+
+        echo json_encode([
+            'success' => true,
+            'id' => $newFormId,
+            'title' => $title,
+            'token' => $token,
+            'short_token' => $shortToken,
+            'total_fields' => count($normalizedFields),
+            'status' => $status,
+            'public_url' => $publicUrl,
+            'builder_url' => $builderUrl,
+            'redirect_url' => $builderUrl,
+            'message' => "¡Formulario '{$title}' creado exitosamente con " . count($normalizedFields) . " preguntas!"
         ]);
         exit();
     }

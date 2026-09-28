@@ -855,9 +855,14 @@ foreach ($forms as $f) {
                 <p class="forms-header-desc">Gestiona plantillas de brief, recopila respuestas y comparte formularios interactivos</p>
             </div>
         </div>
-        <a href="index.php?module=forms&action=builder" class="btn-new-form">
-            <i class="ph-bold ph-plus"></i> Nuevo Formulario
-        </a>
+        <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-new-form" onclick="openCreateFormAIModal()" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+                <i class="ph-bold ph-sparkle"></i> Crear con IA
+            </button>
+            <a href="index.php?module=forms&action=builder" class="btn-new-form" style="background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: none;">
+                <i class="ph-bold ph-plus"></i> En blanco
+            </a>
+        </div>
     </div>
 
     <!-- Quick Metrics -->
@@ -1080,6 +1085,56 @@ foreach ($forms as $f) {
     </div>
 </div>
 
+<!-- Modern Create Form with AI Modal -->
+<div class="modal-overlay" id="createFormAIModal" style="z-index: 1060;">
+    <div class="modal-app-card" style="max-width: 580px; width: 100%;">
+        <button class="modal-close-btn" onclick="closeCreateFormAIModal()"><i class="ph ph-x"></i></button>
+        <div style="display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.25rem;">
+            <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.25)); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+                <i class="ph-bold ph-sparkle"></i>
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--color-title);">Crear Formulario con Inteligencia Artificial</h3>
+                <p style="margin: 0.2rem 0 0; font-size: 0.8125rem; color: var(--text-muted);">
+                    Motor dual activo: <strong style="color: #f59e0b;">Groq Cloud</strong> + <strong style="color: #8b5cf6;">Google Gemini</strong>
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.45rem; color: var(--color-title);">
+                ¿Qué tipo de formulario o brief deseas crear?
+            </label>
+            <textarea id="aiFormPrompt" class="form-control" rows="4" style="width: 100%; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-surface); padding: 0.75rem 1rem; font-size: 0.875rem; color: var(--text-main); resize: vertical;" placeholder="Ej: Brief completo para desarrollo de marca de café de especialidad. Necesito recopilar arquetipo, público objetivo, presupuesto, entregables y paleta de colores preferida..."></textarea>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <span style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Sugerencias rápidas:</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                <button type="button" class="btn btn-sm" onclick="fillAIPrompt('Brief estratégico de Branding y Desarrollo de Marca con objetivos, arquetipo, competencia y paleta de color')" style="font-size: 0.74rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; color: var(--text-main); cursor: pointer;">
+                    🎨 Brief de Branding
+                </button>
+                <button type="button" class="btn btn-sm" onclick="fillAIPrompt('Formulario de captación y perfilamiento de leads para clientes de alta gama')" style="font-size: 0.74rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; color: var(--text-main); cursor: pointer;">
+                    🎯 Captación de Leads
+                </button>
+                <button type="button" class="btn btn-sm" onclick="fillAIPrompt('Encuesta de satisfacción y control de calidad post-entrega de proyecto publicitario')" style="font-size: 0.74rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; color: var(--text-main); cursor: pointer;">
+                    ⭐ Encuesta Satisfacción
+                </button>
+                <button type="button" class="btn btn-sm" onclick="fillAIPrompt('Brief técnico para desarrollo web y tienda virtual e-commerce con funcionalidades y pasarelas')" style="font-size: 0.74rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; color: var(--text-main); cursor: pointer;">
+                    💻 Brief Sitio Web
+                </button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <button type="button" class="btn-card-action" onclick="closeCreateFormAIModal()" style="padding: 0.65rem 1.25rem;">Cancelar</button>
+            <button type="button" class="btn-new-form" id="btnSubmitAIForm" onclick="generateFormWithAI()" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); padding: 0.65rem 1.5rem;">
+                <i class="ph-bold ph-sparkle"></i> Generar y Crear Formulario
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Modern Delete Confirm Modal -->
 <div class="modal-overlay" id="deleteFormModal" style="z-index: 1070;">
     <div class="modal-app-card" style="max-width: 400px; text-align: center;">
@@ -1178,6 +1233,71 @@ function deleteForm(id) {
         document.getElementById('deleteFormModal').classList.remove('active');
     };
     document.getElementById('deleteFormModal').classList.add('active');
+}
+
+function openCreateFormAIModal() {
+    document.getElementById('createFormAIModal').classList.add('active');
+    setTimeout(() => {
+        const inp = document.getElementById('aiFormPrompt');
+        if (inp) inp.focus();
+    }, 100);
+}
+
+function closeCreateFormAIModal() {
+    document.getElementById('createFormAIModal').classList.remove('active');
+}
+
+function fillAIPrompt(text) {
+    const el = document.getElementById('aiFormPrompt');
+    if (el) {
+        el.value = text;
+        el.focus();
+    }
+}
+
+async function generateFormWithAI() {
+    const input = document.getElementById('aiFormPrompt');
+    const prompt = input ? input.value.trim() : '';
+    if (!prompt) {
+        alert('Por favor escribe qué tipo de formulario o brief deseas generar.');
+        if (input) input.focus();
+        return;
+    }
+
+    const btn = document.getElementById('btnSubmitAIForm');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Diseñando con IA...';
+    }
+
+    try {
+        const fd = new FormData();
+        fd.append('action', 'ai_generate_form');
+        fd.append('prompt', prompt);
+
+        const res = await fetch('ajax/ajax_romita.php', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.success) {
+            if (btn) btn.innerHTML = '<i class="ph-bold ph-check"></i> ¡Formulario Creado!';
+            setTimeout(() => {
+                window.location.href = data.redirect_url || `index.php?module=forms&action=builder&id=${data.id}`;
+            }, 500);
+        } else {
+            alert(data.error || 'Error al generar el formulario.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    } catch (e) {
+        alert('Error de conexión con el motor de IA.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
 }
 
 // Close modals on backdrop click
