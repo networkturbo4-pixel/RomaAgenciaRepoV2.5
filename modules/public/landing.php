@@ -249,7 +249,7 @@ $base_url = $protocol . '://' . $host . rtrim(dirname($_SERVER['PHP_SELF']), '/\
         <nav class="w-full glass-panel rounded-full px-4 sm:px-6 py-3 flex items-center justify-between shadow-2xl border border-dark-borderLight">
             
             <!-- Brand Mark / Logo -->
-            <a href="<?php echo $base_url; ?>" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brand-indigo rounded-full pr-2">
+            <a href="landing" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brand-indigo rounded-full pr-2">
                 <?php if (!empty($logo_light)): ?>
                     <img src="<?php echo $logo_light; ?>" alt="<?php echo $site_name; ?>" class="h-8 w-auto object-contain">
                 <?php else: ?>
