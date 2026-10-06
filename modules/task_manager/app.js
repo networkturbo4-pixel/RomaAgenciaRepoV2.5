@@ -41,6 +41,7 @@ const TM = {
         this.initAttachmentHandlers();
         this.loadContextData();
         this.loadTasks();
+        this.initKpiToggle();
         setInterval(() => this.updateAllTimers(), 1000);
     },
 
@@ -1480,6 +1481,26 @@ const TM = {
         if (document.getElementById('count-pill-pinned')) {
             document.getElementById('count-pill-pinned').innerText = stats.pinned_count || 0;
         }
+    },
+
+    initKpiToggle: function() {
+        const isCollapsed = localStorage.getItem('tm_kpis_collapsed') === 'true';
+        const dashboard = document.getElementById('tm-dashboard');
+        const toggleBtn = document.getElementById('tm-toggle-kpis-btn');
+        if (isCollapsed) {
+            if (dashboard) dashboard.classList.add('is-collapsed');
+            if (toggleBtn) toggleBtn.classList.add('is-collapsed');
+        }
+    },
+
+    toggleKpis: function() {
+        const dashboard = document.getElementById('tm-dashboard');
+        const toggleBtn = document.getElementById('tm-toggle-kpis-btn');
+        if (!dashboard) return;
+        const willCollapse = !dashboard.classList.contains('is-collapsed');
+        dashboard.classList.toggle('is-collapsed', willCollapse);
+        if (toggleBtn) toggleBtn.classList.toggle('is-collapsed', willCollapse);
+        localStorage.setItem('tm_kpis_collapsed', willCollapse ? 'true' : 'false');
     },
 
     switchView: function(viewName) {

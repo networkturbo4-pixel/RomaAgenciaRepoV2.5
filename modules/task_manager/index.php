@@ -44,12 +44,15 @@ try {
             <div class="tm-icon-box"><i class="ph ph-check-square-offset"></i></div>
             <div>
                 <h1>Centro de Tareas & Objetivos</h1>
-                <p>Planifica tareas diarias, semanales, evalúa tus metas y sincroniza con proyectos y áreas clave.</p>
             </div>
         </div>
         <div class="tm-header-actions">
-            <button class="tm-btn-eval" onclick="TM.openDailyEvaluationModal()" title="Evaluar cumplimiento del día">
-                <i class="ph ph-target"></i> <span>Evaluar Objetivos Diarios</span>
+            <button class="tm-btn-kpi-toggle" id="tm-toggle-kpis-btn" onclick="TM.toggleKpis()" title="Mostrar u ocultar métricas">
+                <i class="ph ph-chart-bar"></i> <span>Métricas</span>
+                <i class="ph ph-caret-down tm-kpi-caret"></i>
+            </button>
+            <button class="tm-btn-eval" onclick="TM.openDailyEvaluationModal()" title="Evaluar cumplimiento de metas del día">
+                <i class="ph ph-target"></i> <span>Evaluar Objetivos</span>
             </button>
             <button class="tm-btn-primary" onclick="TM.openCreateModal()">
                 <i class="ph ph-plus-circle"></i> <span>Nueva Tarea</span>
@@ -59,35 +62,35 @@ try {
 
     <!-- KPIs Bar -->
     <div class="tm-dashboard" id="tm-dashboard">
-        <div class="tm-kpi tm-kpi-new">
+        <div class="tm-kpi tm-kpi-new" title="Tareas Nuevas">
             <div class="tm-kpi-icon"><i class="ph ph-sparkle"></i></div>
             <div class="tm-kpi-info">
                 <span class="tm-kpi-val" id="kpi-new">0</span>
                 <span class="tm-kpi-label">Nuevas</span>
             </div>
         </div>
-        <div class="tm-kpi tm-kpi-pending">
+        <div class="tm-kpi tm-kpi-pending" title="Tareas En Curso o Pendientes">
             <div class="tm-kpi-icon"><i class="ph ph-clock"></i></div>
             <div class="tm-kpi-info">
                 <span class="tm-kpi-val" id="kpi-pending">0</span>
-                <span class="tm-kpi-label">En Curso / Pendientes</span>
+                <span class="tm-kpi-label">En Curso</span>
             </div>
         </div>
-        <div class="tm-kpi tm-kpi-overdue">
+        <div class="tm-kpi tm-kpi-overdue" title="Tareas Retrasadas">
             <div class="tm-kpi-icon"><i class="ph ph-warning-circle"></i></div>
             <div class="tm-kpi-info">
                 <span class="tm-kpi-val" id="kpi-overdue">0</span>
                 <span class="tm-kpi-label">Retrasadas</span>
             </div>
         </div>
-        <div class="tm-kpi tm-kpi-completed">
+        <div class="tm-kpi tm-kpi-completed" title="Tareas Terminadas o Aprobadas">
             <div class="tm-kpi-icon"><i class="ph ph-check-circle"></i></div>
             <div class="tm-kpi-info">
                 <span class="tm-kpi-val" id="kpi-completed">0</span>
                 <span class="tm-kpi-label">Terminadas</span>
             </div>
         </div>
-        <div class="tm-kpi tm-kpi-objectives" onclick="TM.switchView('daily')">
+        <div class="tm-kpi tm-kpi-objectives" onclick="TM.switchView('daily')" title="Ver Objetivos Diarios">
             <div class="tm-kpi-icon"><i class="ph ph-target"></i></div>
             <div class="tm-kpi-info">
                 <span class="tm-kpi-val" id="kpi-daily-objectives">0 / 0</span>
