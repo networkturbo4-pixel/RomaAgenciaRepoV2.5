@@ -9,41 +9,44 @@ require_once 'includes/header.php';
    Apple Bento UI + Glassmorphic Off-Canvas Drawer
    ========================================================================== */
 
+/* ==========================================================================
+   MODERN STARTUP APP DESIGN SYSTEM - AUDIOVISUAL
+   Clean, Compact, Responsive & Unified with System Colors
+   ========================================================================== */
+
 :root {
-    --av-primary: #f59e0b;
-    --av-primary-rgb: 245, 158, 11;
-    --av-secondary: #ef4444;
-    --av-accent: #f97316;
-    --av-bg: var(--bg-color, #09090b);
+    --av-primary: var(--primary-color, #4f46e5);
+    --av-primary-hover: var(--primary-hover, #4338ca);
+    --av-primary-light: color-mix(in srgb, var(--primary-color, #4f46e5) 10%, transparent);
+    --av-primary-border: color-mix(in srgb, var(--primary-color, #4f46e5) 24%, transparent);
+    --av-secondary: var(--secondary-color, #10b981);
+    --av-accent: #6366f1;
+    --av-bg: var(--bg-color, #f8fafc);
     --av-card-bg: var(--bg-surface, #ffffff);
-    --av-text-main: var(--color-title, #0f172a);
-    --av-text-muted: var(--color-text, #64748b);
-    --av-border: var(--border-color, rgba(0, 0, 0, 0.08));
-    --av-radius-card: 26px;
-    --av-radius-sub: 18px;
+    --av-text-main: var(--text-main, #0f172a);
+    --av-text-muted: var(--text-muted, #64748b);
+    --av-border: var(--border-color, #e2e8f0);
+    --av-radius-card: 16px;
+    --av-radius-sub: 12px;
     --av-radius-pill: 9999px;
-    --av-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-    --av-shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-    --av-shadow-hover: 0 20px 35px -8px rgba(245, 158, 11, 0.12), 0 12px 16px -8px rgba(0, 0, 0, 0.06);
+    --av-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --av-shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+    --av-shadow-hover: 0 10px 24px -4px rgba(0, 0, 0, 0.08), 0 3px 8px -2px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="dark"] {
-    --av-primary: #f59e0b;
-    --av-primary-rgb: 245, 158, 11;
-    --av-secondary: #ef4444;
-    --av-accent: #f97316;
     --av-card-bg: #141721;
     --av-text-main: #f8fafc;
     --av-text-muted: #94a3b8;
     --av-border: rgba(255, 255, 255, 0.08);
-    --av-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-    --av-shadow-md: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
-    --av-shadow-hover: 0 22px 40px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(245, 158, 11, 0.15);
+    --av-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+    --av-shadow-md: 0 6px 20px -3px rgba(0, 0, 0, 0.45);
+    --av-shadow-hover: 0 14px 28px -4px rgba(0, 0, 0, 0.6);
 }
 
 .brand-container {
-    padding: 1.75rem 2rem;
-    max-width: 1440px;
+    padding: 1.15rem 1.4rem;
+    max-width: 1400px;
     margin: 0 auto;
     font-family: var(--font-family, 'Inter', sans-serif);
 }
@@ -53,37 +56,36 @@ require_once 'includes/header.php';
     background: var(--av-card-bg);
     border: 1px solid var(--av-border);
     border-radius: var(--av-radius-card);
-    padding: 1.15rem 1.75rem;
+    padding: 0.85rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.1rem;
     flex-wrap: wrap;
-    gap: 1.25rem;
-    box-shadow: var(--av-shadow-md);
-    transition: all 0.3s ease;
+    gap: 0.85rem;
+    box-shadow: var(--av-shadow-sm);
+    transition: all 0.2s ease;
 }
 
 .brand-title-group {
     display: flex;
     align-items: center;
-    gap: 1.1rem;
+    gap: 0.85rem;
 }
 
 .brand-back-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     background: var(--bg-body, #f8fafc);
     border: 1px solid var(--av-border);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--av-text-main);
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     text-decoration: none;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
 }
 
 [data-theme="dark"] .brand-back-btn {
@@ -95,66 +97,59 @@ require_once 'includes/header.php';
     background: var(--av-primary);
     color: #ffffff !important;
     border-color: var(--av-primary);
-    transform: translateX(-3px) scale(1.05);
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+    transform: translateY(-1px);
 }
 
 .brand-title-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.1rem;
 }
 
 .brand-kicker {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.72rem;
-    font-weight: 800;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     color: var(--av-primary);
 }
 
 .brand-kicker i {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
 }
 
 .brand-main-title {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.55rem;
 }
 
 .brand-main-title h1 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 800;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
     color: var(--av-text-main);
 }
 
 .app-count-badge {
-    background: rgba(245, 158, 11, 0.12);
-    color: #d97706;
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    font-size: 0.75rem;
+    background: var(--av-primary-light);
+    color: var(--av-primary);
+    border: 1px solid var(--av-primary-border);
+    font-size: 0.72rem;
     font-weight: 700;
-    padding: 0.2rem 0.65rem;
+    padding: 0.15rem 0.55rem;
     border-radius: var(--av-radius-pill);
     letter-spacing: 0.2px;
-}
-
-[data-theme="dark"] .app-count-badge {
-    background: rgba(245, 158, 11, 0.18);
-    color: #fbbf24;
-    border-color: rgba(245, 158, 11, 0.35);
 }
 
 .brand-toolbar {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.65rem;
     flex-wrap: wrap;
 }
 
@@ -163,21 +158,20 @@ require_once 'includes/header.php';
     position: relative;
     display: flex;
     align-items: center;
-    width: 260px;
-    transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    width: 240px;
+    transition: width 0.25s ease;
 }
 
 .app-search-box:focus-within {
-    width: 320px;
+    width: 290px;
 }
 
 .app-search-box .search-icon {
     position: absolute;
-    left: 1rem;
+    left: 0.85rem;
     color: var(--av-text-muted);
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     pointer-events: none;
-    transition: color 0.2s ease;
 }
 
 .app-search-box:focus-within .search-icon {
@@ -186,15 +180,15 @@ require_once 'includes/header.php';
 
 .app-search-input {
     width: 100%;
-    padding: 0.62rem 2.4rem 0.62rem 2.6rem;
-    border-radius: var(--av-radius-pill);
+    padding: 0.52rem 2.2rem 0.52rem 2.4rem;
+    border-radius: 10px;
     background: var(--bg-body, #f8fafc);
-    border: 1.5px solid var(--av-border);
+    border: 1px solid var(--av-border);
     color: var(--av-text-main);
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     font-weight: 500;
     outline: none;
-    transition: all 0.25s ease;
+    transition: all 0.2s ease;
 }
 
 [data-theme="dark"] .app-search-input {
@@ -204,23 +198,22 @@ require_once 'includes/header.php';
 .app-search-input:focus {
     border-color: var(--av-primary);
     background: var(--av-card-bg);
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 0 0 3px var(--av-primary-light);
 }
 
 .app-search-box .clear-btn {
     position: absolute;
-    right: 0.85rem;
+    right: 0.7rem;
     background: transparent;
     border: none;
     color: var(--av-text-muted);
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     cursor: pointer;
     padding: 0.2rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
 }
 
 .app-search-box .clear-btn:hover {
@@ -229,30 +222,30 @@ require_once 'includes/header.php';
 }
 
 .btn-app-primary {
-    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    background: var(--av-primary);
     color: #ffffff !important;
     border: none;
-    padding: 0.68rem 1.45rem;
-    border-radius: var(--av-radius-pill);
-    font-weight: 700;
-    font-size: 0.88rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.84rem;
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.45rem;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 6px 20px -4px rgba(245, 158, 11, 0.45);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--av-primary) 30%, transparent);
 }
 
 .btn-app-primary:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px -4px rgba(239, 68, 68, 0.5);
-    filter: brightness(1.06);
+    background: var(--av-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--av-primary) 40%, transparent);
 }
 
 /* --- SEGMENTED TABS FILTER (APPLE STYLE) --- */
 .app-segmented-container {
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.1rem;
     display: flex;
     justify-content: flex-start;
 }
@@ -261,29 +254,29 @@ require_once 'includes/header.php';
     display: inline-flex;
     background: var(--av-card-bg);
     border: 1px solid var(--av-border);
-    padding: 0.35rem;
-    border-radius: var(--av-radius-pill);
-    gap: 0.35rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    padding: 0.22rem;
+    border-radius: 11px;
+    gap: 0.25rem;
+    box-shadow: var(--av-shadow-sm);
 }
 
 .segmented-tab {
     background: transparent;
     border: none;
-    padding: 0.48rem 1.15rem;
-    border-radius: var(--av-radius-pill);
+    padding: 0.4rem 0.95rem;
+    border-radius: 8px;
     color: var(--av-text-muted);
-    font-size: 0.82rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 0.45rem;
+    transition: all 0.18s ease;
 }
 
 .segmented-tab i {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .segmented-tab:hover {
@@ -296,46 +289,34 @@ require_once 'includes/header.php';
 }
 
 .segmented-tab.active {
-    background: var(--av-text-main);
-    color: var(--av-card-bg);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+    background: var(--av-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--av-primary) 35%, transparent);
 }
 
 [data-theme="dark"] .segmented-tab.active {
-    background: #ffffff;
-    color: #0f172a;
+    background: var(--av-primary);
+    color: #ffffff;
 }
 
 .tab-badge {
     background: rgba(0, 0, 0, 0.08);
-    padding: 0.1rem 0.5rem;
+    padding: 0.1rem 0.45rem;
     border-radius: var(--av-radius-pill);
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: 0.7rem;
+    font-weight: 700;
 }
 
 .segmented-tab.active .tab-badge {
     background: rgba(255, 255, 255, 0.25);
-    color: inherit;
-}
-
-[data-theme="dark"] .segmented-tab.active .tab-badge {
-    background: rgba(15, 23, 42, 0.15);
-    color: #0f172a;
+    color: #ffffff;
 }
 
 /* --- APPLE BENTO GRID --- */
 .brand-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 1.6rem;
-}
-
-@media (max-width: 540px) {
-    .brand-grid {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
-    }
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 1.15rem;
 }
 
 /* Project Card Bento Style */
@@ -343,12 +324,12 @@ require_once 'includes/header.php';
     background: var(--av-card-bg);
     border: 1px solid var(--av-border);
     border-radius: var(--av-radius-card);
-    padding: 1.5rem;
+    padding: 1.15rem 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 0.85rem;
     box-shadow: var(--av-shadow-sm);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
 }
@@ -357,16 +338,16 @@ require_once 'includes/header.php';
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #f59e0b, #ef4444);
+    height: 3px;
+    background: var(--av-primary);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease;
 }
 
 .project-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
     box-shadow: var(--av-shadow-hover);
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: var(--av-primary-border);
 }
 
 .project-card:hover::before {
@@ -383,7 +364,7 @@ require_once 'includes/header.php';
 .app-card-badges-left {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
     flex-wrap: wrap;
 }
 
@@ -391,13 +372,13 @@ require_once 'includes/header.php';
 .app-status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0.28rem 0.75rem;
+    gap: 0.4rem;
+    padding: 0.22rem 0.65rem;
     border-radius: var(--av-radius-pill);
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     border: 1px solid transparent;
 }
 
@@ -410,7 +391,7 @@ require_once 'includes/header.php';
 
 .app-status-badge.active,
 .app-status-badge.activo {
-    background: rgba(16, 185, 129, 0.12);
+    background: rgba(16, 185, 129, 0.1);
     color: #10b981;
     border-color: rgba(16, 185, 129, 0.25);
 }
@@ -423,9 +404,9 @@ require_once 'includes/header.php';
 
 .app-status-badge.pending,
 .app-status-badge.pendiente {
-    background: rgba(245, 158, 11, 0.12);
+    background: rgba(245, 158, 11, 0.1);
     color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: rgba(245, 158, 11, 0.25);
 }
 .app-status-badge.pending .status-dot,
 .app-status-badge.pendiente .status-dot {
@@ -434,21 +415,23 @@ require_once 'includes/header.php';
 }
 
 .app-status-badge.completed,
-.app-status-badge.completado {
-    background: rgba(99, 102, 241, 0.12);
+.app-status-badge.completado,
+.app-status-badge.listo {
+    background: rgba(99, 102, 241, 0.1);
     color: #818cf8;
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: rgba(99, 102, 241, 0.25);
 }
 .app-status-badge.completed .status-dot,
-.app-status-badge.completado .status-dot {
+.app-status-badge.completado .status-dot,
+.app-status-badge.listo .status-dot {
     background: #818cf8;
 }
 
 .app-status-badge.archived,
 .app-status-badge.archivado {
-    background: rgba(148, 163, 184, 0.12);
+    background: rgba(148, 163, 184, 0.1);
     color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.3);
+    border-color: rgba(148, 163, 184, 0.25);
 }
 .app-status-badge.archived .status-dot,
 .app-status-badge.archivado .status-dot {
@@ -456,8 +439,8 @@ require_once 'includes/header.php';
 }
 
 @keyframes ledPulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+    70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
@@ -465,27 +448,27 @@ require_once 'includes/header.php';
 .modern-timer {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    color: #f59e0b;
-    padding: 0.24rem 0.65rem;
+    gap: 0.3rem;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #2563eb;
+    padding: 0.2rem 0.55rem;
     border-radius: var(--av-radius-pill);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.2px;
 }
 
 .modern-timer.expired {
-    background: rgba(239, 68, 68, 0.12) !important;
-    border-color: rgba(239, 68, 68, 0.35) !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.25) !important;
     color: #ef4444 !important;
 }
 
 .app-btn-more {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     background: var(--bg-body, #f8fafc);
     border: 1px solid var(--av-border);
     color: var(--av-text-muted);
@@ -493,8 +476,8 @@ require_once 'includes/header.php';
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.15rem;
-    transition: all 0.2s ease;
+    font-size: 1.1rem;
+    transition: all 0.15s ease;
 }
 
 [data-theme="dark"] .app-btn-more {
@@ -504,39 +487,39 @@ require_once 'includes/header.php';
 .app-btn-more:hover {
     background: var(--av-text-main);
     color: var(--av-card-bg);
-    transform: scale(1.08);
 }
 
 /* Card Hero (Avatar + Title + Client) */
 .app-bento-hero {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.85rem;
     cursor: pointer;
 }
 
 .app-av-avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 1.35rem;
+    font-size: 1.15rem;
+    font-weight: 800;
     flex-shrink: 0;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-    transition: transform 0.25s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease;
 }
 
 .project-card:hover .app-av-avatar {
-    transform: scale(1.06);
+    transform: scale(1.05);
 }
 
-.app-av-grad-0 { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); }
-.app-av-grad-1 { background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); }
-.app-av-grad-2 { background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%); }
-.app-av-grad-3 { background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%); }
+.app-av-grad-0 { background: linear-gradient(135deg, var(--av-primary, #4f46e5) 0%, #7c3aed 100%); }
+.app-av-grad-1 { background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); }
+.app-av-grad-2 { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+.app-av-grad-3 { background: linear-gradient(135deg, #475569 0%, #0f172a 100%); }
 
 .app-hero-info {
     flex: 1;
@@ -544,13 +527,17 @@ require_once 'includes/header.php';
 }
 
 .app-bento-title {
-    margin: 0 0 0.4rem 0;
-    font-size: 1.12rem;
-    font-weight: 800;
+    margin: 0 0 0.3rem 0;
+    font-size: 1.02rem;
+    font-weight: 700;
     color: var(--av-text-main);
     line-height: 1.35;
-    letter-spacing: -0.3px;
-    transition: color 0.2s ease;
+    letter-spacing: -0.2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color 0.18s ease;
 }
 
 .project-card:hover .app-bento-title {
@@ -560,18 +547,18 @@ require_once 'includes/header.php';
 .app-hero-meta {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .app-client-chip,
 .app-date-chip {
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     color: var(--av-text-muted);
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.3rem;
 }
 
 .app-client-chip {
@@ -583,22 +570,22 @@ require_once 'includes/header.php';
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.75rem;
-    min-height: 28px;
+    gap: 0.65rem;
+    min-height: 26px;
 }
 
 .app-card-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
+    gap: 0.3rem;
     flex: 1;
 }
 
 .tag-pill {
-    padding: 0.22rem 0.65rem;
-    border-radius: 8px;
-    font-size: 0.72rem;
-    font-weight: 700;
+    padding: 0.18rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
     letter-spacing: 0.2px;
     border: 1px solid transparent;
 }
@@ -609,62 +596,62 @@ require_once 'includes/header.php';
 }
 
 .avatar-sm {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--av-card-bg);
-    margin-left: -8px;
+    margin-left: -6px;
     transition: transform 0.2s;
 }
 
 .avatar-placeholder {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #f59e0b, #ef4444);
-    color: #ffffff;
-    font-size: 0.72rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: var(--av-primary-light);
+    color: var(--av-primary);
     border: 2px solid var(--av-card-bg);
-    margin-left: -8px;
-}
-
-.avatar-more {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--bg-body, #f1f5f9);
-    border: 2px solid var(--av-card-bg);
-    color: var(--av-text-muted);
     font-size: 0.68rem;
     font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: -8px;
+    margin-left: -6px;
+}
+
+.avatar-more {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--bg-body, #f1f5f9);
+    border: 2px solid var(--av-card-bg);
+    color: var(--av-text-muted);
+    font-size: 0.65rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: -6px;
 }
 
 .avatar-sm:hover,
 .avatar-placeholder:hover {
-    transform: translateY(-2px) scale(1.15);
+    transform: translateY(-2px) scale(1.12);
     z-index: 5;
 }
 
-/* Progress Box Apple Fitness Style */
+/* Progress Section Sleek Style */
 .card-progress-section {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
-    padding: 1rem 1.15rem;
+    gap: 0.45rem;
+    padding: 0.65rem 0.85rem;
     border-radius: var(--av-radius-sub);
     background: var(--bg-body, #f8fafc);
     border: 1px solid var(--av-border);
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: all 0.2s ease;
 }
 
 [data-theme="dark"] .card-progress-section {
@@ -672,8 +659,8 @@ require_once 'includes/header.php';
 }
 
 .card-progress-section:hover {
-    border-color: rgba(245, 158, 11, 0.4);
-    background: rgba(245, 158, 11, 0.03);
+    border-color: var(--av-primary-border);
+    background: var(--av-primary-light);
 }
 
 .card-progress-header {
@@ -683,46 +670,46 @@ require_once 'includes/header.php';
 }
 
 .progress-header-title {
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.6px;
     color: var(--av-text-muted);
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.35rem;
 }
 
 .progress-header-title i {
-    font-size: 1rem;
+    font-size: 0.85rem;
     color: var(--av-primary);
 }
 
 .progress-percentage-badge {
-    font-size: 0.78rem;
-    font-weight: 800;
-    padding: 0.18rem 0.65rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 0.12rem 0.5rem;
     border-radius: var(--av-radius-pill);
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
     font-variant-numeric: tabular-nums;
 }
 
 .progress-percentage-badge.low {
-    background: rgba(148, 163, 184, 0.15);
+    background: rgba(148, 163, 184, 0.12);
     color: #94a3b8;
 }
 .progress-percentage-badge.mid {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
 }
 .progress-percentage-badge.high {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(16, 185, 129, 0.12);
     color: #10b981;
 }
 
 .card-progress-track {
     width: 100%;
-    height: 8px;
+    height: 5px;
     border-radius: var(--av-radius-pill);
     background: rgba(0, 0, 0, 0.06);
     overflow: hidden;
@@ -735,167 +722,106 @@ require_once 'includes/header.php';
 .card-progress-fill {
     height: 100%;
     border-radius: var(--av-radius-pill);
-    background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(90deg, var(--av-primary, #4f46e5) 0%, #10b981 100%);
+    transition: width 0.4s ease;
 }
 
 .card-progress-stats {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     color: var(--av-text-muted);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .stat-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-}
-
-/* Twin Date Capsules */
-.app-card-dates-box {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-}
-
-.app-date-capsule {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.65rem 0.95rem;
-    border-radius: 14px;
-    background: var(--bg-body, #f8fafc);
-    border: 1px solid var(--av-border);
-}
-
-[data-theme="dark"] .app-date-capsule {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.app-date-capsule-label {
-    font-size: 0.65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--av-text-muted);
-    display: flex;
-    align-items: center;
     gap: 0.3rem;
 }
 
-.app-date-capsule-value {
-    font-size: 0.84rem;
-    font-weight: 700;
-    color: var(--av-text-main);
-    font-variant-numeric: tabular-nums;
-}
-
-/* Google Drive CTA Pill */
-.app-drive-cta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border-radius: 14px;
-    background: rgba(59, 130, 246, 0.06);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    text-decoration: none;
-    transition: all 0.22s ease;
-    cursor: pointer;
-}
-
-.app-drive-cta:hover {
-    background: rgba(59, 130, 246, 0.12);
-    border-color: rgba(59, 130, 246, 0.4);
-    transform: translateY(-2px);
-}
-
-.drive-cta-left {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-}
-
-.drive-cta-left i {
-    font-size: 1.25rem;
-    color: #3b82f6;
-}
-
-.drive-cta-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.drive-cta-title {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--av-text-main);
-}
-
-.drive-cta-sub {
-    font-size: 0.7rem;
-    color: #3b82f6;
-    font-weight: 600;
-}
-
-.drive-cta-arrow {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    transition: transform 0.2s ease;
-}
-
-.app-drive-cta:hover .drive-cta-arrow {
-    transform: translateX(2px) scale(1.08);
-}
-
+/* Google Drive Subfolder Chips */
 .drive-sub-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.22rem 0.55rem;
-    border-radius: 7px;
-    font-size: 0.7rem;
-    font-weight: 700;
+    gap: 0.25rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
     text-decoration: none;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(59, 130, 246, 0.08);
     color: #2563eb;
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    transition: all 0.18s ease;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    transition: all 0.15s ease;
 }
 
 .drive-sub-chip:hover {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(59, 130, 246, 0.35);
     transform: translateY(-1px);
 }
 
 .drive-sub-chip.finish {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(16, 185, 129, 0.08);
     color: #059669;
-    border-color: rgba(16, 185, 129, 0.25);
+    border-color: rgba(16, 185, 129, 0.2);
 }
 
 .drive-sub-chip.finish:hover {
-    background: rgba(16, 185, 129, 0.2);
+    background: rgba(16, 185, 129, 0.16);
 }
 
 .drive-sub-chip.pack {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(139, 92, 246, 0.08);
     color: #7c3aed;
-    border-color: rgba(139, 92, 246, 0.25);
+    border-color: rgba(139, 92, 246, 0.2);
 }
 
 .drive-sub-chip.pack:hover {
-    background: rgba(139, 92, 246, 0.2);
+    background: rgba(139, 92, 246, 0.16);
+}
+
+.drive-sub-chip.root {
+    background: var(--av-primary-light);
+    color: var(--av-primary);
+    border-color: var(--av-primary-border);
+    font-weight: 700;
+}
+
+.drive-sub-chip.root:hover {
+    background: var(--av-primary);
+    color: #ffffff;
+}
+
+.app-card-drive-box {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    padding: 0.35rem 0.5rem;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--av-border);
+    border-radius: var(--av-radius-sub);
+}
+
+[data-theme="dark"] .app-card-drive-box {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.app-wo-chip {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: #2563eb !important;
+    border: 1px solid rgba(59, 130, 246, 0.22) !important;
+    padding: 0.12rem 0.45rem !important;
+    border-radius: 6px !important;
+    font-weight: 700 !important;
+}
+
+.due-expired {
+    color: #ef4444 !important;
+    font-weight: 700 !important;
 }
 
 /* Card Footer Link */
@@ -903,13 +829,13 @@ require_once 'includes/header.php';
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 0.85rem;
+    padding-top: 0.55rem;
     border-top: 1px solid var(--av-border);
     color: var(--av-text-muted);
-    font-size: 0.82rem;
-    font-weight: 700;
+    font-size: 0.78rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.18s ease;
 }
 
 .app-bento-footer:hover {
@@ -917,19 +843,19 @@ require_once 'includes/header.php';
 }
 
 .app-bento-footer i {
-    font-size: 0.95rem;
-    transition: transform 0.2s ease;
+    font-size: 0.85rem;
+    transition: transform 0.18s ease;
 }
 
 .app-bento-footer:hover i {
-    transform: translateX(4px);
+    transform: translateX(3px);
 }
 
 /* Empty State */
 .brand-empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 4.5rem 2rem;
+    padding: 3.5rem 1.5rem;
     background: var(--av-card-bg);
     border-radius: var(--av-radius-card);
     border: 1.5px dashed var(--av-border);
@@ -937,32 +863,32 @@ require_once 'includes/header.php';
 }
 
 .brand-empty-icon-box {
-    width: 72px;
-    height: 72px;
-    border-radius: 22px;
-    background: rgba(245, 158, 11, 0.12);
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--av-primary-light);
     color: var(--av-primary);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.2rem;
-    margin: 0 auto 1.25rem auto;
+    font-size: 1.8rem;
+    margin: 0 auto 1rem auto;
 }
 
 /* ==========================================================================
-   ULTRA-MODERN OFF-CANVAS DRAWER (APP STYLE)
+   OFF-CANVAS DRAWER / BOTTOM SHEET
    ========================================================================== */
 
 .brand-drawer-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(14px) saturate(180%);
-    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.32s;
+    transition: opacity 0.28s ease, visibility 0.28s;
 }
 
 .brand-drawer-overlay.active {
@@ -973,19 +899,17 @@ require_once 'includes/header.php';
 .brand-drawer {
     position: fixed;
     top: 0;
-    right: -720px;
+    right: -620px;
     width: 100%;
-    max-width: 620px;
+    max-width: 560px;
     height: 100vh;
     background: var(--av-card-bg);
     border-left: 1px solid var(--av-border);
-    border-top-left-radius: 28px;
-    border-bottom-left-radius: 28px;
-    box-shadow: -25px 0 60px rgba(0, 0, 0, 0.35);
+    box-shadow: -15px 0 45px rgba(0, 0, 0, 0.25);
     z-index: 10000;
     display: flex;
     flex-direction: column;
-    transition: right 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
 }
 
@@ -994,9 +918,18 @@ require_once 'includes/header.php';
     right: 0;
 }
 
+.mobile-drawer-handle-bar {
+    display: none;
+    width: 36px;
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--av-border);
+    margin: 8px auto 2px auto;
+}
+
 /* Drawer Header */
 .drawer-header {
-    padding: 1.5rem 2rem 1.25rem 2rem;
+    padding: 1.15rem 1.45rem;
     border-bottom: 1px solid var(--av-border);
     display: flex;
     justify-content: space-between;
@@ -1008,32 +941,32 @@ require_once 'includes/header.php';
 .drawer-header-left {
     display: flex;
     align-items: center;
-    gap: 0.95rem;
+    gap: 0.75rem;
 }
 
 .drawer-badge {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--av-primary-light);
+    color: var(--av-primary);
+    border: 1px solid var(--av-primary-border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+    font-size: 1.25rem;
     flex-shrink: 0;
 }
 
 .drawer-header-titles {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.1rem;
 }
 
 .drawer-kicker {
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: 0.68rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--av-primary);
@@ -1041,25 +974,25 @@ require_once 'includes/header.php';
 
 .drawer-header-titles h2 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: var(--av-text-main);
-    letter-spacing: -0.3px;
+    letter-spacing: -0.2px;
 }
 
 .drawer-close-btn {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: var(--bg-body, #f8fafc);
     border: 1px solid var(--av-border);
     color: var(--av-text-muted);
-    font-size: 1.15rem;
+    font-size: 1rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.18s ease;
 }
 
 [data-theme="dark"] .drawer-close-btn {
@@ -1067,30 +1000,30 @@ require_once 'includes/header.php';
 }
 
 .drawer-close-btn:hover {
-    background: rgba(239, 68, 68, 0.12);
+    background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.25);
-    transform: rotate(90deg) scale(1.08);
+    transform: rotate(90deg);
 }
 
-/* Drawer Body with Structured Field Cards */
+/* Drawer Body */
 .drawer-body {
-    padding: 1.75rem 2rem;
+    padding: 1.15rem 1.45rem;
     overflow-y: auto;
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 0.95rem;
 }
 
 .drawer-card-section {
     background: var(--bg-body, #f8fafc);
     border: 1px solid var(--av-border);
-    border-radius: 20px;
-    padding: 1.35rem 1.45rem;
+    border-radius: 14px;
+    padding: 0.95rem 1.15rem;
     display: flex;
     flex-direction: column;
-    gap: 1.15rem;
+    gap: 0.75rem;
     transition: border-color 0.2s;
 }
 
@@ -1099,59 +1032,59 @@ require_once 'includes/header.php';
 }
 
 .drawer-card-section:hover {
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: var(--av-primary-border);
 }
 
 .section-badge-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 800;
+    gap: 0.45rem;
+    font-size: 0.74rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     color: var(--av-primary);
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.45rem;
     border-bottom: 1px dashed var(--av-border);
 }
 
 .section-badge-header i {
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
-/* Form Controls App Style */
+/* Form Controls */
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.35rem;
 }
 
 .form-group label {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
     color: var(--av-text-main);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.4rem;
 }
 
 .form-group label i {
     color: var(--av-primary);
-    font-size: 0.95rem;
+    font-size: 0.88rem;
 }
 
 .form-control {
     background: var(--av-card-bg);
-    border: 1.5px solid var(--av-border);
-    padding: 0.8rem 1.1rem;
-    border-radius: 14px;
+    border: 1px solid var(--av-border);
+    padding: 0.65rem 0.95rem;
+    border-radius: 10px;
     color: var(--av-text-main);
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     font-weight: 500;
     outline: none;
-    transition: all 0.2s ease;
+    transition: all 0.18s ease;
     width: 100%;
     box-sizing: border-box;
     font-family: inherit;
@@ -1159,7 +1092,7 @@ require_once 'includes/header.php';
 
 .form-control:focus {
     border-color: var(--av-primary);
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 0 0 3px var(--av-primary-light);
 }
 
 .form-control::placeholder {
@@ -1168,23 +1101,23 @@ require_once 'includes/header.php';
 }
 
 .form-helper-text {
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     color: var(--av-text-muted);
     font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    margin-top: 0.2rem;
+    gap: 0.3rem;
+    margin-top: 0.15rem;
 }
 
 .dates-twin-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .duration-live-container {
-    margin-top: -0.4rem;
+    margin-top: -0.3rem;
 }
 
 /* Client Search with Glass Dropdown */
@@ -1199,23 +1132,22 @@ require_once 'includes/header.php';
     right: 0;
     background: var(--av-card-bg);
     border: 1px solid var(--av-border);
-    border-radius: 16px;
-    margin-top: 0.4rem;
-    max-height: 220px;
+    border-radius: 12px;
+    margin-top: 0.35rem;
+    max-height: 200px;
     overflow-y: auto;
     z-index: 100;
-    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     display: none;
-    backdrop-filter: blur(12px);
 }
 
 .client-result-item {
-    padding: 0.75rem 1.15rem;
+    padding: 0.65rem 0.95rem;
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.65rem;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.15s;
     border-bottom: 1px solid var(--av-border);
 }
 
@@ -1224,56 +1156,56 @@ require_once 'includes/header.php';
 }
 
 .client-result-item:hover {
-    background: rgba(245, 158, 11, 0.08);
+    background: var(--av-primary-light);
 }
 
 /* Tag Manager */
 .tag-manager-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.65rem;
 }
 
 .tag-list-editable {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.35rem;
 }
 
 .tag-badge-select {
-    padding: 0.35rem 0.85rem;
-    border-radius: var(--av-radius-pill);
-    font-size: 0.76rem;
-    font-weight: 700;
+    padding: 0.28rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.35rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border: 1.5px solid transparent;
+    transition: all 0.18s ease;
+    border: 1px solid transparent;
     user-select: none;
 }
 
 .tag-badge-select:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
 
 .tag-badge-select.selected {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    filter: brightness(1.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    filter: brightness(1.08);
 }
 
 .add-tag-form {
     display: flex;
-    gap: 0.6rem;
+    gap: 0.45rem;
     align-items: center;
 }
 
 .color-picker-input {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     border: none;
-    border-radius: 12px;
+    border-radius: 9px;
     cursor: pointer;
     background: transparent;
     padding: 0;
@@ -1281,36 +1213,35 @@ require_once 'includes/header.php';
 
 .new-tag-input {
     flex: 1;
-    padding: 0.65rem 1rem;
+    padding: 0.55rem 0.85rem;
 }
 
 .btn-tag-add {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    background: var(--av-text-main);
-    color: var(--av-card-bg);
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--av-primary);
+    color: #ffffff;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 1.1rem;
-    transition: all 0.2s;
+    font-size: 1rem;
+    transition: all 0.18s;
     flex-shrink: 0;
 }
 
 .btn-tag-add:hover {
-    background: var(--av-primary);
-    color: #ffffff;
-    transform: scale(1.05);
+    background: var(--av-primary-hover);
+    transform: scale(1.04);
 }
 
 /* Upload Dropzone */
 .upload-zone-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.65rem;
 }
 
 .file-input-hidden {
@@ -1318,83 +1249,84 @@ require_once 'includes/header.php';
 }
 
 .upload-dropzone {
-    border: 2px dashed var(--av-border);
-    border-radius: 16px;
-    padding: 1.5rem 1rem;
+    border: 1.5px dashed var(--av-border);
+    border-radius: 12px;
+    padding: 1rem 0.85rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: all 0.2s ease;
     background: var(--av-card-bg);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.25rem;
 }
 
 .upload-dropzone:hover {
     border-color: var(--av-primary);
-    background: rgba(245, 158, 11, 0.03);
+    background: var(--av-primary-light);
 }
 
 .upload-icon {
-    font-size: 2rem;
+    font-size: 1.5rem;
     color: var(--av-primary);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.15rem;
 }
 
 .upload-dropzone span {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: var(--av-text-main);
 }
 
 .upload-dropzone small {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--av-text-muted);
 }
 
 .cover-previews-grid {
     display: flex;
-    gap: 0.65rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .cover-thumb-preview {
-    width: 64px;
-    height: 64px;
-    border-radius: 12px;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
     object-fit: cover;
-    border: 2px solid var(--av-border);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--av-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-/* Tagify Overrides */
+/* Tagify Overrides Unified with System */
 .tagify {
-    border-radius: 14px !important;
-    border: 1.5px solid var(--av-border) !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--av-border) !important;
     background: var(--av-card-bg) !important;
-    padding: 0.4rem 0.6rem !important;
+    padding: 0.35rem 0.55rem !important;
 }
 
 .tagify:focus-within {
     border-color: var(--av-primary) !important;
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15) !important;
+    box-shadow: 0 0 0 3px var(--av-primary-light) !important;
 }
 
 .tagify__tag {
-    border-radius: 8px !important;
-    background: rgba(245, 158, 11, 0.15) !important;
-    color: var(--av-text-main) !important;
+    border-radius: 6px !important;
+    background: var(--av-primary-light) !important;
+    color: var(--av-primary) !important;
+    font-weight: 600 !important;
 }
 
 /* Drawer Sticky Footer */
 .drawer-footer {
-    padding: 1.25rem 2rem;
+    padding: 0.85rem 1.45rem;
     border-top: 1px solid var(--av-border);
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.65rem;
     background: var(--av-card-bg);
     flex-shrink: 0;
 }
@@ -1403,12 +1335,12 @@ require_once 'includes/header.php';
     background: var(--bg-body, #f8fafc);
     color: var(--av-text-muted);
     border: 1px solid var(--av-border);
-    padding: 0.75rem 1.35rem;
-    border-radius: var(--av-radius-pill);
-    font-weight: 700;
-    font-size: 0.88rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.84rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.18s;
 }
 
 [data-theme="dark"] .btn-drawer-cancel {
@@ -1416,30 +1348,198 @@ require_once 'includes/header.php';
 }
 
 .btn-drawer-cancel:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: rgba(0, 0, 0, 0.05);
     color: var(--av-text-main);
 }
 
 .btn-drawer-save {
-    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-    color: #ffffff;
+    background: var(--av-primary);
+    color: #ffffff !important;
     border: none;
-    padding: 0.75rem 1.75rem;
-    border-radius: var(--av-radius-pill);
-    font-weight: 800;
-    font-size: 0.9rem;
+    padding: 0.65rem 1.45rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.86rem;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 6px 20px -4px rgba(245, 158, 11, 0.45);
+    gap: 0.45rem;
+    transition: all 0.18s ease;
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--av-primary) 30%, transparent);
 }
 
 .btn-drawer-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px -4px rgba(239, 68, 68, 0.55);
-    filter: brightness(1.06);
+    background: var(--av-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--av-primary) 40%, transparent);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS (MOBILE & TABLET)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .brand-container {
+        padding: 0.5rem 0.65rem !important;
+        max-width: 100% !important;
+    }
+
+    .brand-header {
+        padding: 0.75rem 0.85rem !important;
+        margin-bottom: 0.75rem !important;
+        border-radius: 14px !important;
+        gap: 0.65rem !important;
+    }
+
+    .brand-title-group {
+        width: 100% !important;
+        justify-content: space-between !important;
+        gap: 0.5rem !important;
+    }
+
+    .brand-back-btn {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 9px !important;
+        font-size: 1rem !important;
+    }
+
+    .brand-main-title h1 {
+        font-size: 1.15rem !important;
+    }
+
+    .brand-toolbar {
+        width: 100% !important;
+        display: flex !important;
+        gap: 0.45rem !important;
+    }
+
+    .app-search-box {
+        flex: 1 !important;
+        width: 100% !important;
+    }
+
+    .app-search-box:focus-within {
+        width: 100% !important;
+    }
+
+    .app-search-input {
+        padding: 0.48rem 1.8rem 0.48rem 2.1rem !important;
+        font-size: 0.82rem !important;
+        border-radius: 9px !important;
+    }
+
+    .btn-app-primary {
+        padding: 0.48rem 0.85rem !important;
+        font-size: 0.8rem !important;
+        border-radius: 9px !important;
+        white-space: nowrap !important;
+    }
+
+    .app-segmented-container {
+        margin-bottom: 0.75rem !important;
+        width: 100% !important;
+    }
+
+    .app-segmented-control {
+        width: 100% !important;
+        display: flex !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 0.2rem !important;
+        border-radius: 10px !important;
+    }
+
+    .app-segmented-control::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .segmented-tab {
+        flex: 1 !important;
+        padding: 0.35rem 0.55rem !important;
+        font-size: 0.75rem !important;
+        justify-content: center !important;
+        border-radius: 7px !important;
+    }
+
+    .brand-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.65rem !important;
+    }
+
+    .project-card {
+        padding: 0.9rem !important;
+        border-radius: 14px !important;
+        gap: 0.65rem !important;
+    }
+
+    /* Mobile Bottom Sheet Drawer */
+    .brand-drawer {
+        top: auto !important;
+        bottom: -100% !important;
+        right: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: 92vh !important;
+        border-radius: 20px 20px 0 0 !important;
+        border-left: none !important;
+        border-top: 1px solid var(--av-border) !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35) !important;
+        transition: bottom 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .brand-drawer.active,
+    .brand-drawer-overlay.active .brand-drawer {
+        bottom: 0 !important;
+        right: 0 !important;
+    }
+
+    .mobile-drawer-handle-bar {
+        display: block !important;
+    }
+
+    .drawer-header {
+        padding: 0.75rem 1rem !important;
+    }
+
+    .drawer-body {
+        padding: 0.85rem 1rem !important;
+        gap: 0.75rem !important;
+    }
+
+    .drawer-card-section {
+        padding: 0.85rem 0.9rem !important;
+        border-radius: 12px !important;
+        gap: 0.65rem !important;
+    }
+
+    .drawer-footer {
+        padding: 0.75rem 1rem !important;
+        gap: 0.5rem !important;
+    }
+
+    .btn-drawer-cancel {
+        padding: 0.6rem 1rem !important;
+        font-size: 0.82rem !important;
+        border-radius: 9px !important;
+    }
+
+    .btn-drawer-save {
+        padding: 0.6rem 1.25rem !important;
+        font-size: 0.82rem !important;
+        border-radius: 9px !important;
+        flex: 1 !important;
+        justify-content: center !important;
+    }
+
+    .dates-twin-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.65rem !important;
+    }
 }
 </style>
 
@@ -1498,6 +1598,7 @@ require_once 'includes/header.php';
 <!-- Project Create/Edit Drawer Modal (Apple / iPadOS App Drawer) -->
 <div class="brand-drawer-overlay" id="brand-drawer">
     <div class="brand-drawer" onclick="event.stopPropagation()">
+        <div class="mobile-drawer-handle-bar"></div>
         <!-- Drawer Header -->
         <div class="drawer-header">
             <div class="drawer-header-left">
@@ -1614,10 +1715,17 @@ require_once 'includes/header.php';
                     </div>
                     <input type="url" id="p_drive_url" class="form-control" placeholder="https://drive.google.com/drive/folders/..." oninput="extractDriveId(this.value)">
                     <input type="hidden" id="p_drive_id" value="">
-                    <span class="form-helper-text">
-                        <i class="ph-bold ph-folders"></i> Incluye subcarpetas automáticas: <strong>01. Referencias</strong>, <strong>02. Videos Terminados</strong> y <strong>03. Empaquetados</strong>.
-                    </span>
-                    <div id="drive-subfolders-badges" style="display: none; margin-top: 0.55rem; gap: 0.4rem; flex-wrap: wrap;"></div>
+                    <div style="display:flex; flex-direction:column; gap:0.35rem; margin-top:0.35rem;">
+                        <span style="font-size:0.7rem; font-weight:700; color:var(--av-text-muted); text-transform:uppercase; letter-spacing:0.4px;">
+                            <i class="ph-bold ph-folders"></i> Estructura automática:
+                        </span>
+                        <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+                            <span class="drive-sub-chip" style="font-size:0.68rem; padding:0.18rem 0.5rem;"><i class="ph-bold ph-folders"></i> 01. Referencias</span>
+                            <span class="drive-sub-chip finish" style="font-size:0.68rem; padding:0.18rem 0.5rem;"><i class="ph-bold ph-video-camera"></i> 02. Videos</span>
+                            <span class="drive-sub-chip pack" style="font-size:0.68rem; padding:0.18rem 0.5rem;"><i class="ph-bold ph-package"></i> 03. Empaquetados</span>
+                        </div>
+                    </div>
+                    <div id="drive-subfolders-badges" style="display: none; margin-top: 0.4rem; gap: 0.35rem; flex-wrap: wrap;"></div>
                 </div>
 
                 <div class="form-group">
@@ -2291,19 +2399,22 @@ function renderProjects() {
         let statusMap = { 'Active': 'Activo', 'Pending': 'Pendiente', 'Completed': 'Listo', 'Archived': 'Archivado' };
         let statusLabel = statusMap[p.status] || p.status || 'Activo';
 
-        let subfoldersHtml = '';
+        let driveBoxHtml = '';
         let subObj = null;
         if (p.drive_subfolders_json) {
             try {
                 subObj = typeof p.drive_subfolders_json === 'string' ? JSON.parse(p.drive_subfolders_json) : p.drive_subfolders_json;
             } catch(e) {}
         }
-        if (subObj && (subObj.referencias || subObj.videos_terminados || subObj.empaquetados)) {
-            subfoldersHtml = `
-                <div class="app-drive-subfolders-quick" style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-top:0.35rem;" onclick="event.stopPropagation()">
-                    ${subObj.referencias && subObj.referencias.url ? `<a href="${subObj.referencias.url}" target="_blank" class="drive-sub-chip" title="01. Referencias Audiovisuales"><i class="ph-bold ph-folders"></i> Referencias</a>` : ''}
-                    ${subObj.videos_terminados && subObj.videos_terminados.url ? `<a href="${subObj.videos_terminados.url}" target="_blank" class="drive-sub-chip finish" title="02. Videos Terminados"><i class="ph-bold ph-video-camera"></i> Terminados</a>` : ''}
-                    ${subObj.empaquetados && subObj.empaquetados.url ? `<a href="${subObj.empaquetados.url}" target="_blank" class="drive-sub-chip pack" title="03. Empaquetados de Videos"><i class="ph-bold ph-package"></i> Empaquetados</a>` : ''}
+        if (p.drive_folder_url) {
+            driveBoxHtml = `
+                <div class="app-card-drive-box" onclick="event.stopPropagation()">
+                    <a href="${p.drive_folder_url}" target="_blank" class="drive-sub-chip root" title="Abrir carpeta raíz en Google Drive">
+                        <i class="ph-bold ph-google-drive-logo"></i> Drive
+                    </a>
+                    ${subObj && subObj.referencias && subObj.referencias.url ? `<a href="${subObj.referencias.url}" target="_blank" class="drive-sub-chip" title="01. Referencias Audiovisuales"><i class="ph-bold ph-folder-notch-open"></i> Referencias</a>` : ''}
+                    ${subObj && subObj.videos_terminados && subObj.videos_terminados.url ? `<a href="${subObj.videos_terminados.url}" target="_blank" class="drive-sub-chip finish" title="02. Videos Terminados"><i class="ph-bold ph-video-camera"></i> Terminados</a>` : ''}
+                    ${subObj && subObj.empaquetados && subObj.empaquetados.url ? `<a href="${subObj.empaquetados.url}" target="_blank" class="drive-sub-chip pack" title="03. Empaquetados"><i class="ph-bold ph-package"></i> Empaquetados</a>` : ''}
                 </div>
             `;
         }
@@ -2337,11 +2448,17 @@ function renderProjects() {
                         <div class="app-hero-meta">
                             <span class="app-client-chip"><i class="ph-bold ph-buildings"></i> ${clientDisplayName}</span>
                             ${p.work_order_correlativo ? `
-                                <span class="app-client-chip" style="background:rgba(59,130,246,0.12); color:#2563eb; border:1px solid rgba(59,130,246,0.25); padding:0.12rem 0.45rem; border-radius:6px; font-weight:700;">
+                                <span class="app-client-chip app-wo-chip">
                                     <i class="ph-bold ph-receipt"></i> ${p.work_order_correlativo}
                                 </span>
                             ` : ''}
-                            <span class="app-date-chip"><i class="ph-bold ph-calendar-blank"></i> ${formattedDate}</span>
+                            ${p.due_date ? `
+                                <span class="app-date-chip ${isOverdue ? 'due-expired' : ''}" title="Entrega: ${formatDateDisplay(p.due_date)}">
+                                    <i class="ph-bold ph-calendar-check"></i> ${formatDateDisplay(p.due_date)}
+                                </span>
+                            ` : (formattedDate ? `
+                                <span class="app-date-chip"><i class="ph-bold ph-calendar-blank"></i> ${formattedDate}</span>
+                            ` : '')}
                         </div>
                     </div>
                 </div>
@@ -2354,11 +2471,11 @@ function renderProjects() {
                     ${usersHtml ? usersHtml : '<span style="font-size:0.75rem;color:var(--av-text-muted);font-weight:600;"><i class="ph-bold ph-user-plus"></i> Sin asignar</span>'}
                 </div>
 
-                <!-- Apple Fitness Activity Box -->
+                <!-- Progress Section -->
                 <div class="card-progress-section" onclick="window.location.href='index.php?module=audiovisual&action=view&id=${p.id}'" title="Ver fases y tareas">
                     <div class="card-progress-header">
                         <span class="progress-header-title">
-                            <i class="ph-bold ph-chart-donut"></i> Escala de Progreso
+                            <i class="ph-bold ph-chart-donut"></i> Progreso
                         </span>
                         <span class="progress-percentage-badge ${progressClass}">
                             ${progress}%
@@ -2377,38 +2494,12 @@ function renderProjects() {
                     </div>
                 </div>
 
-                <!-- Twin Date Capsules -->
-                <div class="app-card-dates-box">
-                    <div class="app-date-capsule">
-                        <span class="app-date-capsule-label"><i class="ph-bold ph-calendar-blank"></i> Inicio</span>
-                        <span class="app-date-capsule-value">${p.start_date ? formatDateDisplay(p.start_date) : 'Sin definir'}</span>
-                    </div>
-                    <div class="app-date-capsule">
-                        <span class="app-date-capsule-label"><i class="ph-bold ph-clock"></i> Límite</span>
-                        <span class="app-date-capsule-value" style="${p.due_date ? 'color: #ef4444;' : ''}">${p.due_date ? formatDateDisplay(p.due_date) : 'Sin definir'}</span>
-                    </div>
-                </div>
-
-                <!-- Google Drive Folder CTA -->
-                ${p.drive_folder_url ? `
-                    <div style="display:flex; flex-direction:column; gap:0.35rem;">
-                        <a href="${p.drive_folder_url}" target="_blank" class="app-drive-cta" onclick="event.stopPropagation()" title="Abrir carpeta raíz en Google Drive">
-                            <div class="drive-cta-left">
-                                <i class="ph-fill ph-google-drive-logo"></i>
-                                <div class="drive-cta-info">
-                                    <span class="drive-cta-title">Material en la Nube</span>
-                                    <span class="drive-cta-sub">Abrir en Google Drive</span>
-                                </div>
-                            </div>
-                            <div class="drive-cta-arrow"><i class="ph-bold ph-arrow-up-right"></i></div>
-                        </a>
-                        ${subfoldersHtml}
-                    </div>
-                ` : ''}
+                <!-- Google Drive Links Bar -->
+                ${driveBoxHtml}
 
                 <!-- Direct Access Footer -->
                 <div class="app-bento-footer" onclick="window.location.href='index.php?module=audiovisual&action=view&id=${p.id}'">
-                    <span>Abrir Tablero Audiovisual</span>
+                    <span>Abrir Tablero</span>
                     <i class="ph-bold ph-arrow-right"></i>
                 </div>
             </div>
