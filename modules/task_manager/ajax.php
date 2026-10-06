@@ -12,6 +12,101 @@ try {
 } catch (Throwable $e) {}
 
 $db = (new Database())->getConnection();
+try {
+    $db->exec("ALTER TABLE tm_tasks ADD COLUMN attachments LONGTEXT DEFAULT NULL");
+} catch (Throwable $e) {}
+try {
+    $db->exec("ALTER TABLE tm_tasks ADD COLUMN drive_folder_id VARCHAR(255) DEFAULT NULL");
+} catch (Throwable $e) {}
+try {
+    $db->exec("ALTER TABLE tm_tasks ADD COLUMN drive_folder_url VARCHAR(500) DEFAULT NULL");
+} catch (Throwable $e) {}
+
+function sendEarlyJsonResponse($data) {
+    if (function_exists('fastcgi_finish_request')) {
+        echo json_encode($data);
+        fastcgi_finish_request();
+        return;
+    }
+    ignore_user_abort(true);
+    set_time_limit(120);
+    $json = json_encode($data);
+    $size = strlen($json);
+    header("Content-Type: application/json; charset=utf-8");
+    header("Content-Length: {$size}");
+    header("Connection: close");
+    echo $json;
+    while (ob_get_level() > 0) {
+        @ob_end_flush();
+    }
+    @flush();
+    if (session_id()) session_write_close();
+}
+
+function getOrCreateTaskDriveFolder($db, $taskId = null, $taskTitle = '') {
+    try {
+        require_once __DIR__ . '/../../includes/GoogleDriveHelper.php';
+        $drive = new GoogleDriveHelper();
+        if (!$drive->isConfigured()) {
+            return ['success' => false, 'error' => 'Google Drive no está configurado en el sistema.'];
+        }
+
+        $masterFolderId = null;
+        try {
+            $st = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'drive_tasks_folder_id'");
+            $masterFolderId = $st ? $st->fetchColumn() : null;
+        } catch (Throwable $e) {}
+
+        if (!$masterFolderId) {
+            $found = $drive->searchFiles("mimeType='application/vnd.google-apps.folder' and name='TAREAS_GESTOR' and trashed=false");
+            if (!empty($found)) {
+                $masterFolderId = $found[0]['id'];
+            } else {
+                $masterFolderId = $drive->createFolder('TAREAS_GESTOR');
+                if ($masterFolderId) {
+                    $drive->makePublicViewer($masterFolderId);
+                }
+            }
+            if ($masterFolderId) {
+                try {
+                    $st = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('drive_tasks_folder_id', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+                    $st->execute([$masterFolderId, $masterFolderId]);
+                } catch (Throwable $e) {}
+            }
+        }
+
+        $folderName = trim($taskTitle);
+        if ($taskId) {
+            $folderName = "[#" . $taskId . "] " . ($folderName ?: "Tarea " . $taskId);
+        } else {
+            $folderName = $folderName ? ("Tarea - " . $folderName) : ("Tarea (" . date('d-m-Y H_i') . ")");
+        }
+
+        $folderId = $drive->createFolder($folderName, $masterFolderId ?: null);
+        if (!$folderId) {
+            return ['success' => false, 'error' => 'No se pudo crear la carpeta en Google Drive.'];
+        }
+
+        $drive->makePublicViewer($folderId);
+        $folderUrl = "https://drive.google.com/drive/folders/" . $folderId;
+
+        if ($taskId) {
+            try {
+                $st = $db->prepare("UPDATE tm_tasks SET drive_folder_id = ?, drive_folder_url = ? WHERE id = ?");
+                $st->execute([$folderId, $folderUrl, $taskId]);
+            } catch (Throwable $e) {}
+        }
+
+        return [
+            'success' => true,
+            'folder_id' => $folderId,
+            'folder_url' => $folderUrl,
+            'folder_name' => $folderName
+        ];
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => 'Error con Google Drive: ' . $e->getMessage()];
+    }
+}
 
 // Robust payload parsing (supports FormData, URLSearchParams, text/plain, raw string, and JSON)
 if (empty($_POST)) {
@@ -53,10 +148,14 @@ function getUserMap($db) {
     $stmt = $db->query("SELECT id, name, avatar, role_id FROM users ORDER BY name ASC");
     $map = [];
     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $avatar = $r['avatar'];
+        if ($avatar && !file_exists(__DIR__ . '/../../' . ltrim($avatar, '/\\'))) {
+            $avatar = null;
+        }
         $map[$r['id']] = [
             'id' => (int)$r['id'],
             'name' => $r['name'],
-            'avatar' => $r['avatar'],
+            'avatar' => $avatar,
             'role_id' => (int)$r['role_id'],
             'initial' => strtoupper(substr($r['name'], 0, 1))
         ];
@@ -627,7 +726,10 @@ if ($action === 'get_all_tasks') {
                 'tags' => json_decode($t['tags']??'[]', true) ?: [],
                 'created_by_name' => $t['creator_name'] ?? 'Sistema',
                 'created_at' => $t['created_at'],
-                'subtasks' => $subStats[$t['id']] ?? null
+                'subtasks' => $subStats[$t['id']] ?? null,
+                'attachments' => json_decode($t['attachments'] ?? '[]', true) ?: [],
+                'drive_folder_id' => $t['drive_folder_id'] ?? null,
+                'drive_folder_url' => $t['drive_folder_url'] ?? null
             ];
         }
         
@@ -705,7 +807,19 @@ if ($action === 'create_task') {
     $assignedUsers = $_POST['assigned_users'] ?? '[]';
     $assignedRoles = $_POST['assigned_roles'] ?? '[]';
     $tags = $_POST['tags'] ?? '[]';
+    $attachments = $_POST['attachments'] ?? '[]';
     $subtasksJson = $_POST['subtasks'] ?? '[]';
+    $driveFolderId = trim($_POST['drive_folder_id'] ?? '');
+    $driveFolderUrl = trim($_POST['drive_folder_url'] ?? '');
+    $createDriveFolder = !empty($_POST['create_drive_folder']) ? 1 : 0;
+
+    if ($createDriveFolder && !$driveFolderId) {
+        $driveRes = getOrCreateTaskDriveFolder($db, null, $title);
+        if (!empty($driveRes['success'])) {
+            $driveFolderId = $driveRes['folder_id'];
+            $driveFolderUrl = $driveRes['folder_url'];
+        }
+    }
 
     if (!$title) { echo json_encode(['success'=>false, 'error'=>'El título es obligatorio']); exit; }
 
@@ -714,25 +828,15 @@ if ($action === 'create_task') {
             INSERT INTO tm_tasks (
                 title, description, priority, status, frequency, area, 
                 project_id, project_month_id, brand_project_id, brand_group_id, project_service_id, whiteboard_id, is_daily_objective, is_pinned, objective_date, 
-                start_date, due_date, assigned_users, assigned_roles, tags, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                start_date, due_date, assigned_users, assigned_roles, tags, attachments, drive_folder_id, drive_folder_url, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $title, $desc, $priority, $status, $frequency, $area,
             $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $whiteboardId, $isDailyObjective, $isPinned, $objectiveDate,
-            $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $userId
+            $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $attachments, $driveFolderId ?: null, $driveFolderUrl ?: null, $userId
         ]);
         $taskId = $db->lastInsertId();
-
-        // Sincronizar fechas con el Mes de Calendario vinculado para reiniciar el cronómetro del mes
-        syncCalendarMonthDates($db, $projectMonthId, $startDate, $dueDate);
-
-        // Sincronizar fechas con la Fase / Grupo de Marca si está vinculada
-        syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate);
-
-        // Sincronizar estado con el Mes de Calendario vinculado
-        require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
-        TaskSyncHelper::syncTaskStatusToMonth($db, $taskId, $status);
 
         // Insert subtasks
         $subtasksArr = json_decode($subtasksJson, true) ?: [];
@@ -745,7 +849,19 @@ if ($action === 'create_task') {
             }
         }
 
-        // In-app and push notifications to assigned users
+        // RESPUESTA INSTANTÁNEA AL NAVEGADOR (Cierra el modal en < 50ms)
+        sendEarlyJsonResponse(['success' => true, 'task_id' => $taskId]);
+
+        // Procesos de fondo (Sincronización y Notificaciones sin bloquear la interfaz)
+        syncCalendarMonthDates($db, $projectMonthId, $startDate, $dueDate);
+        syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate);
+
+        try {
+            require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncTaskStatusToMonth($db, $taskId, $status);
+        } catch(Throwable $e) {}
+
+        // Notificaciones internas y en vivo en segundo plano
         try {
             $assigned = json_decode($assignedUsers, true) ?: [];
             $assignedIds = array_values(array_diff($assigned, [$userId]));
@@ -761,12 +877,11 @@ if ($action === 'create_task') {
                     'link'    => 'index.php?module=task_manager',
                     'type'    => 'task',
                     'icon'    => 'ph-check-square',
+                    'channels'=> ['db', 'pusher'],
                     'extra'   => ['module' => 'task_manager', 'task_id' => $taskId]
                 ], $db);
             }
         } catch(Throwable $e) {}
-
-        echo json_encode(['success'=>true, 'task_id'=>$taskId]);
     } catch(Throwable $e) {
         echo json_encode(['success'=>false, 'error'=>$e->getMessage()]);
     }
@@ -799,6 +914,7 @@ if ($action === 'get_task') {
             }
             $task['assigned_roles'] = json_decode($task['assigned_roles'] ?? '[]', true) ?: [];
             $task['tags'] = json_decode($task['tags'] ?? '[]', true) ?: [];
+            $task['attachments'] = json_decode($task['attachments'] ?? '[]', true) ?: [];
             $task['is_pinned'] = (int)($task['is_pinned'] ?? 0);
             $task['whiteboard_id'] = (int)($task['whiteboard_id'] ?? 0);
             $task['whiteboard_title'] = null;
@@ -906,6 +1022,17 @@ if ($action === 'get_task') {
 }
 
 // ══════════════════════════════════════════════════════════
+// 4.1 CREATE TASK GOOGLE DRIVE FOLDER ON DEMAND
+// ══════════════════════════════════════════════════════════
+if ($action === 'create_task_drive_folder') {
+    $taskId = !empty($_POST['task_id']) ? (int)$_POST['task_id'] : null;
+    $title = trim($_POST['title'] ?? 'Tarea');
+    $result = getOrCreateTaskDriveFolder($db, $taskId, $title);
+    echo json_encode($result);
+    exit;
+}
+
+// ══════════════════════════════════════════════════════════
 // 5. UPDATE TASK DETAILS
 // ══════════════════════════════════════════════════════════
 if ($action === 'update_task_details') {
@@ -935,7 +1062,19 @@ if ($action === 'update_task_details') {
     $assignedUsers = $_POST['assigned_users'] ?? '[]';
     $assignedRoles = $_POST['assigned_roles'] ?? '[]';
     $tags = $_POST['tags'] ?? '[]';
+    $attachments = $_POST['attachments'] ?? '[]';
     $newSubtasksJson = $_POST['new_subtasks'] ?? '[]';
+    $driveFolderId = isset($_POST['drive_folder_id']) ? trim($_POST['drive_folder_id']) : null;
+    $driveFolderUrl = isset($_POST['drive_folder_url']) ? trim($_POST['drive_folder_url']) : null;
+    $createDriveFolder = !empty($_POST['create_drive_folder']) ? 1 : 0;
+
+    if ($createDriveFolder && empty($driveFolderId)) {
+        $driveRes = getOrCreateTaskDriveFolder($db, $taskId, $title);
+        if (!empty($driveRes['success'])) {
+            $driveFolderId = $driveRes['folder_id'];
+            $driveFolderUrl = $driveRes['folder_url'];
+        }
+    }
 
     if (!$taskId || !$title) { echo json_encode(['success'=>false, 'error'=>'Datos inválidos']); exit; }
 
@@ -949,13 +1088,16 @@ if ($action === 'update_task_details') {
             UPDATE tm_tasks SET 
                 title = ?, description = ?, priority = ?, status = ?, frequency = ?, area = ?, 
                 project_id = ?, project_month_id = ?, brand_project_id = ?, brand_group_id = ?, project_service_id = ?, whiteboard_id = ?, is_daily_objective = ?, is_pinned = ?, objective_date = ?, 
-                start_date = ?, due_date = ?, assigned_users = ?, assigned_roles = ?, tags = ? 
+                start_date = ?, due_date = ?, assigned_users = ?, assigned_roles = ?, tags = ?, attachments = ?,
+                drive_folder_id = COALESCE(?, drive_folder_id), drive_folder_url = COALESCE(?, drive_folder_url)
             WHERE id = ?
         ");
         $stmt->execute([
             $title, $desc, $priority, $status, $frequency, $area,
             $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $whiteboardId, $isDailyObjective, $isPinned, $objectiveDate,
-            $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $taskId
+            $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $attachments,
+            $driveFolderId ?: null, $driveFolderUrl ?: null,
+            $taskId
         ]);
 
         if (in_array($status, ['completed', 'approved']) && $isPinned) {
@@ -983,10 +1125,301 @@ if ($action === 'update_task_details') {
             }
         }
 
-        echo json_encode(['success'=>true]);
+        sendEarlyJsonResponse([
+            'success' => true,
+            'drive_folder_id' => $driveFolderId,
+            'drive_folder_url' => $driveFolderUrl
+        ]);
+
+        // Procesos de fondo sin retrasar la respuesta
+        syncCalendarMonthDates($db, $projectMonthId, $startDate, $dueDate);
+        syncBrandGroupDates($db, $brandGroupId, $startDate, $dueDate);
+
+        try {
+            require_once __DIR__ . '/../../includes/TaskSyncHelper.php';
+            TaskSyncHelper::syncTaskStatusToMonth($db, $taskId, $status);
+        } catch(Throwable $e) {}
     } catch(Throwable $e) {
         echo json_encode(['success'=>false, 'error'=>$e->getMessage()]);
     }
+    exit;
+}
+
+// ══════════════════════════════════════════════════════════
+// 5.05 APPEND ATTACHMENT TO TASK (Subidas Asíncronas en Segundo Plano)
+// ══════════════════════════════════════════════════════════
+if ($action === 'append_task_attachment') {
+    $taskId = (int)($_POST['task_id'] ?? 0);
+    $fileRaw = $_POST['file'] ?? '';
+    if (!$taskId || !$fileRaw) {
+        echo json_encode(['success' => false, 'error' => 'Faltan parámetros']);
+        exit;
+    }
+    $fileObj = is_array($fileRaw) ? $fileRaw : json_decode($fileRaw, true);
+    if (!is_array($fileObj)) {
+        echo json_encode(['success' => false, 'error' => 'Archivo no válido']);
+        exit;
+    }
+    try {
+        $st = $db->prepare("SELECT attachments FROM tm_tasks WHERE id = ?");
+        $st->execute([$taskId]);
+        $existing = json_decode($st->fetchColumn() ?: '[]', true) ?: [];
+        
+        // Evitar duplicados por ID
+        $exists = false;
+        foreach ($existing as $ex) {
+            if (isset($ex['id']) && $ex['id'] === $fileObj['id']) {
+                $exists = true;
+                break;
+            }
+        }
+        if (!$exists) {
+            $existing[] = $fileObj;
+            $up = $db->prepare("UPDATE tm_tasks SET attachments = ? WHERE id = ?");
+            $up->execute([json_encode($existing), $taskId]);
+        }
+        echo json_encode(['success' => true, 'attachments' => $existing, 'task_id' => $taskId]);
+    } catch (Throwable $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ══════════════════════════════════════════════════════════
+// 5.1 UPLOAD TASK ATTACHMENT (Google Drive + Formatos Adobe + Pegado Ctrl+V)
+// ══════════════════════════════════════════════════════════
+if ($action === 'upload_task_attachment') {
+    $targetDir = __DIR__ . '/../../uploads/task_attachments/';
+    if (!is_dir($targetDir)) {
+        @mkdir($targetDir, 0777, true);
+    }
+
+    // Mapeo detallado de formatos Adobe y tipos de archivos
+    $adobeMap = [
+        'psd'   => ['app' => 'ps', 'name' => 'Photoshop', 'color' => '#31A8FF', 'badge' => 'Ps'],
+        'psb'   => ['app' => 'ps', 'name' => 'Photoshop Big', 'color' => '#31A8FF', 'badge' => 'Ps'],
+        'ai'    => ['app' => 'ai', 'name' => 'Illustrator', 'color' => '#FF9A00', 'badge' => 'Ai'],
+        'eps'   => ['app' => 'ai', 'name' => 'Illustrator EPS', 'color' => '#FF9A00', 'badge' => 'Ai'],
+        'ait'   => ['app' => 'ai', 'name' => 'Illustrator Template', 'color' => '#FF9A00', 'badge' => 'Ai'],
+        'indd'  => ['app' => 'id', 'name' => 'InDesign', 'color' => '#FF3366', 'badge' => 'Id'],
+        'idml'  => ['app' => 'id', 'name' => 'InDesign Markup', 'color' => '#FF3366', 'badge' => 'Id'],
+        'indt'  => ['app' => 'id', 'name' => 'InDesign Template', 'color' => '#FF3366', 'badge' => 'Id'],
+        'prproj'=> ['app' => 'pr', 'name' => 'Premiere Pro', 'color' => '#9999FF', 'badge' => 'Pr'],
+        'mogrt' => ['app' => 'pr', 'name' => 'Premiere MOGRT', 'color' => '#9999FF', 'badge' => 'Pr'],
+        'aep'   => ['app' => 'ae', 'name' => 'After Effects', 'color' => '#CF96FD', 'badge' => 'Ae'],
+        'aepx'  => ['app' => 'ae', 'name' => 'After Effects XML', 'color' => '#CF96FD', 'badge' => 'Ae'],
+        'xd'    => ['app' => 'xd', 'name' => 'Adobe XD', 'color' => '#FF61F6', 'badge' => 'Xd'],
+        'sesx'  => ['app' => 'au', 'name' => 'Audition', 'color' => '#00E4BB', 'badge' => 'Au'],
+        'dng'   => ['app' => 'lr', 'name' => 'Lightroom Raw', 'color' => '#31A8FF', 'badge' => 'Lr'],
+        'lrcat' => ['app' => 'lr', 'name' => 'Lightroom Catalog', 'color' => '#31A8FF', 'badge' => 'Lr'],
+        'pdf'   => ['app' => 'pdf', 'name' => 'Adobe Acrobat PDF', 'color' => '#FF2D2D', 'badge' => 'PDF'],
+    ];
+
+    $allowedExts = [
+        // Formatos Adobe
+        'psd', 'psb', 'ai', 'eps', 'ait', 'indd', 'idml', 'indt', 'prproj', 'mogrt', 'aep', 'aepx', 'xd', 'sesx', 'dng', 'lrcat', 'pdf',
+        // Imágenes y Vectores
+        'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'tif', 'raw', 'cr2', 'nef', 'arw',
+        // Documentos de Oficina
+        'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv',
+        // Multimedia
+        'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'ogg', 'm4a', 'aac',
+        // Comprimidos
+        'zip', 'rar', '7z', 'tar', 'gz'
+    ];
+
+    // Detección o resolución de carpeta en Google Drive de la tarea
+    $driveFolderId = trim($_POST['drive_folder_id'] ?? '');
+    $taskId = !empty($_POST['task_id']) ? (int)$_POST['task_id'] : 0;
+    if (!$driveFolderId && $taskId > 0) {
+        try {
+            $stDr = $db->prepare("SELECT drive_folder_id FROM tm_tasks WHERE id = ?");
+            $stDr->execute([$taskId]);
+            $driveFolderId = $stDr->fetchColumn() ?: '';
+        } catch (Throwable $e) {}
+    }
+
+    $drive = null;
+    if ($driveFolderId) {
+        try {
+            require_once __DIR__ . '/../../includes/GoogleDriveHelper.php';
+            $drive = new GoogleDriveHelper();
+            if (!$drive->isConfigured()) {
+                $drive = null;
+            }
+        } catch (Throwable $e) {
+            $drive = null;
+        }
+    }
+
+    // Caso 1: Imagen pegada en Base64 desde el portapapeles (Ctrl + V)
+    if (!empty($_POST['base64_data'])) {
+        $data = $_POST['base64_data'];
+        $fileName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $_POST['file_name'] ?? ('captura_' . date('Ymd_His') . '.png'));
+        if (preg_match('/^data:image\/(\w+);base64,/', $data, $matches)) {
+            $type = strtolower($matches[1]);
+            $data = substr($data, strpos($data, ',') + 1);
+            if (!in_array($type, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                $type = 'png';
+            }
+            $decoded = base64_decode($data);
+            if ($decoded !== false) {
+                $sizeBytes = strlen($decoded);
+                $sizeFormatted = $sizeBytes > 1048576 ? round($sizeBytes/1048576, 1) . ' MB' : round($sizeBytes/1024) . ' KB';
+
+                // Si la tarea tiene Google Drive activo: offload a la nube y 0 bytes en servidor
+                if ($driveFolderId && $drive) {
+                    $tempFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('paste_att_', true) . '.' . $type;
+                    file_put_contents($tempFilePath, $decoded);
+                    $driveRes = $drive->uploadFile($tempFilePath, $fileName, $driveFolderId);
+                    @unlink($tempFilePath); // Eliminado del servidor inmediatamente
+
+                    if ($driveRes && !empty($driveRes['id'])) {
+                        $drive->makePublicViewer($driveRes['id']);
+                        echo json_encode([
+                            'success' => true,
+                            'file' => [
+                                'id' => $driveRes['id'],
+                                'name' => $fileName,
+                                'url' => $driveRes['webViewLink'] ?: ('https://drive.google.com/file/d/' . $driveRes['id'] . '/view'),
+                                'download_url' => $driveRes['webContentLink'] ?: ('https://drive.google.com/uc?export=download&id=' . $driveRes['id']),
+                                'type' => 'image',
+                                'ext' => $type,
+                                'mime' => 'image/' . $type,
+                                'size' => $sizeFormatted,
+                                'bytes' => $sizeBytes,
+                                'storage' => 'drive',
+                                'drive_folder_id' => $driveFolderId
+                            ]
+                        ]);
+                        exit;
+                    }
+                }
+
+                // Fallback almacenamiento local
+                $uniqId = uniqid('att_', true);
+                $saveFile = $uniqId . '.' . $type;
+                file_put_contents($targetDir . $saveFile, $decoded);
+                echo json_encode([
+                    'success' => true,
+                    'file' => [
+                        'id' => $uniqId,
+                        'name' => $fileName,
+                        'url' => 'uploads/task_attachments/' . $saveFile,
+                        'download_url' => 'uploads/task_attachments/' . $saveFile,
+                        'type' => 'image',
+                        'ext' => $type,
+                        'mime' => 'image/' . $type,
+                        'size' => $sizeFormatted,
+                        'bytes' => $sizeBytes,
+                        'storage' => 'local'
+                    ]
+                ]);
+                exit;
+            }
+        }
+    }
+
+    // Caso 2: Archivo subido por Drag & Drop o Input
+    if (!empty($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+        $uploaded = $_FILES['file'];
+        $origName = basename($uploaded['name']);
+        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+
+        if (!in_array($ext, $allowedExts)) {
+            echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido (.' . $ext . ')']);
+            exit;
+        }
+
+        $sizeBytes = $uploaded['size'];
+        $sizeFormatted = $sizeBytes > 1048576 ? round($sizeBytes/1048576, 1) . ' MB' : round($sizeBytes/1024) . ' KB';
+        $mime = $uploaded['type'] ?: 'application/octet-stream';
+
+        $isAdobe = isset($adobeMap[$ext]);
+        $adobeInfo = $isAdobe ? $adobeMap[$ext] : null;
+        $isImage = in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
+
+        $fileType = 'document';
+        if ($isAdobe) {
+            $fileType = 'adobe';
+        } elseif ($isImage) {
+            $fileType = 'image';
+        } elseif (in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm'])) {
+            $fileType = 'video';
+        } elseif (in_array($ext, ['mp3', 'wav', 'ogg', 'm4a', 'aac'])) {
+            $fileType = 'audio';
+        } elseif (in_array($ext, ['zip', 'rar', '7z', 'tar', 'gz'])) {
+            $fileType = 'archive';
+        }
+
+        // Subida directa a Google Drive: elimina el archivo temporal y NO satura el servidor
+        if ($driveFolderId && $drive) {
+            $driveRes = $drive->uploadFile($uploaded['tmp_name'], $origName, $driveFolderId);
+            @unlink($uploaded['tmp_name']); // Eliminado de inmediato
+
+            if ($driveRes && !empty($driveRes['id'])) {
+                $drive->makePublicViewer($driveRes['id']);
+                echo json_encode([
+                    'success' => true,
+                    'file' => [
+                        'id' => $driveRes['id'],
+                        'name' => $origName,
+                        'url' => $driveRes['webViewLink'] ?: ('https://drive.google.com/file/d/' . $driveRes['id'] . '/view'),
+                        'download_url' => $driveRes['webContentLink'] ?: ('https://drive.google.com/uc?export=download&id=' . $driveRes['id']),
+                        'type' => $fileType,
+                        'ext' => $ext,
+                        'adobe_app' => $adobeInfo ? $adobeInfo['app'] : null,
+                        'adobe_name' => $adobeInfo ? $adobeInfo['name'] : null,
+                        'adobe_badge' => $adobeInfo ? $adobeInfo['badge'] : null,
+                        'adobe_color' => $adobeInfo ? $adobeInfo['color'] : null,
+                        'mime' => $mime,
+                        'size' => $sizeFormatted,
+                        'bytes' => $sizeBytes,
+                        'storage' => 'drive',
+                        'drive_id' => $driveRes['id'],
+                        'drive_folder_id' => $driveFolderId
+                    ]
+                ]);
+                exit;
+            } else {
+                echo json_encode(['success' => false, 'error' => 'No se pudo subir el archivo a Google Drive. Revisa permisos o conexión.']);
+                exit;
+            }
+        }
+
+        // Almacenamiento local (fallback cuando no se utiliza Google Drive)
+        $uniqId = uniqid('att_', true);
+        $safeName = $uniqId . '_' . preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $origName);
+        $destination = $targetDir . $safeName;
+
+        if (move_uploaded_file($uploaded['tmp_name'], $destination)) {
+            echo json_encode([
+                'success' => true,
+                'file' => [
+                    'id' => $uniqId,
+                    'name' => $origName,
+                    'url' => 'uploads/task_attachments/' . $safeName,
+                    'download_url' => 'uploads/task_attachments/' . $safeName,
+                    'type' => $fileType,
+                    'ext' => $ext,
+                    'adobe_app' => $adobeInfo ? $adobeInfo['app'] : null,
+                    'adobe_name' => $adobeInfo ? $adobeInfo['name'] : null,
+                    'adobe_badge' => $adobeInfo ? $adobeInfo['badge'] : null,
+                    'adobe_color' => $adobeInfo ? $adobeInfo['color'] : null,
+                    'mime' => $mime,
+                    'size' => $sizeFormatted,
+                    'bytes' => $sizeBytes,
+                    'storage' => 'local'
+                ]
+            ]);
+            exit;
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Error al guardar el archivo en el servidor']);
+            exit;
+        }
+    }
+
+    echo json_encode(['success' => false, 'error' => 'No se recibió ningún archivo válido']);
     exit;
 }
 

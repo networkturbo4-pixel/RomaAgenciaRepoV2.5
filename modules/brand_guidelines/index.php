@@ -70,7 +70,7 @@ $baseUrl = bg_get_base_url();
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: #ec4899;
+    color: var(--primary-color, #262ecf);
 }
 
 .bg-title-row {
@@ -103,8 +103,8 @@ $baseUrl = bg_get_base_url();
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
-    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
-    color: #ffffff !important;
+    background: var(--color-btn-bg, var(--primary-color, #262ecf));
+    color: var(--color-btn-text, #ffffff) !important;
     font-size: 0.92rem;
     font-weight: 700;
     padding: 0.75rem 1.45rem;
@@ -112,13 +112,14 @@ $baseUrl = bg_get_base_url();
     border: none;
     text-decoration: none;
     cursor: pointer;
-    box-shadow: 0 8px 20px -4px rgba(236, 72, 153, 0.45);
+    box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--primary-color, #262ecf) 45%, transparent);
     transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .bg-btn-primary:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 12px 26px -4px rgba(236, 72, 153, 0.6);
+    background: var(--color-btn-hover, var(--primary-hover, #1f25a6));
+    box-shadow: 0 10px 24px -4px color-mix(in srgb, var(--primary-color, #262ecf) 60%, transparent);
     color: #ffffff !important;
 }
 
@@ -164,8 +165,8 @@ $baseUrl = bg_get_base_url();
 }
 
 .bg-stat-icon.total {
-    background: rgba(236, 72, 153, 0.12);
-    color: #ec4899;
+    background: color-mix(in srgb, var(--primary-color, #262ecf) 14%, transparent);
+    color: var(--primary-color, #262ecf);
 }
 .bg-stat-icon.public {
     background: rgba(16, 185, 129, 0.12);
@@ -473,8 +474,8 @@ $baseUrl = bg_get_base_url();
 }
 
 .bg-shortlink-pill:hover {
-    background: color-mix(in srgb, #ec4899 8%, transparent);
-    border-color: #ec4899;
+    background: color-mix(in srgb, var(--primary-color, #262ecf) 10%, transparent);
+    border-color: var(--primary-color, #262ecf);
     color: var(--text-main, #0f172a);
 }
 
@@ -504,9 +505,9 @@ $baseUrl = bg_get_base_url();
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    background: color-mix(in srgb, var(--primary-color, #4f46e5) 12%, transparent);
-    color: var(--primary-color, #4f46e5) !important;
-    border: 1px solid color-mix(in srgb, var(--primary-color, #4f46e5) 25%, transparent);
+    background: color-mix(in srgb, var(--primary-color, #262ecf) 12%, transparent);
+    color: var(--primary-color, #262ecf) !important;
+    border: 1px solid color-mix(in srgb, var(--primary-color, #262ecf) 25%, transparent);
     font-size: 0.85rem;
     font-weight: 700;
     padding: 0.45rem 0.95rem;
@@ -516,7 +517,8 @@ $baseUrl = bg_get_base_url();
 }
 
 .bg-btn-view:hover {
-    background: var(--primary-color, #4f46e5);
+    background: var(--primary-color, #262ecf);
+    border-color: var(--primary-color, #262ecf);
     color: #ffffff !important;
     transform: translateY(-1px);
 }

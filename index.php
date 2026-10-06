@@ -25,6 +25,14 @@ require_once 'config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+if (!$db) {
+    http_response_code(500);
+    die("<div style='font-family:sans-serif;padding:30px;background:#fef2f2;border:1px solid #f87171;color:#991b1b;border-radius:8px;max-width:600px;margin:50px auto;line-height:1.6;'>
+        <h3 style='margin-top:0;'>⚠️ Error de Conexión a la Base de Datos</h3>
+        <p>No se pudo conectar al servidor MySQL. Por favor, asegúrese de que el servicio <strong>MySQL</strong> esté ejecutándose en el Panel de Control de XAMPP y que las credenciales en <code>.env</code> sean correctas.</p>
+    </div>");
+}
+
 // Fetch Global Settings
 $stmt = $db->query("SELECT * FROM settings");
 $global_settings_raw = $stmt->fetchAll();

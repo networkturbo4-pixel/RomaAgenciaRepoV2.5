@@ -38,6 +38,27 @@ if ($bg['allow_asset_download'] == 0 && !$isLoggedIn) {
     die("La descarga directa de archivos está deshabilitada para este manual.");
 }
 
+// Handle Google Drive proxy downloads
+if (strpos($fileUrl, 'drive_proxy.php') !== false) {
+    $parts = parse_url($fileUrl);
+    parse_str($parts['query'] ?? '', $q);
+    if (!empty($q['id'])) {
+        require_once __DIR__ . '/../../includes/GoogleDriveHelper.php';
+        $drive = new GoogleDriveHelper();
+        if ($drive->isConfigured()) {
+            $content = $drive->streamFile($q['id']);
+            if ($content) {
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->buffer($content) ?: 'application/octet-stream';
+                header('Content-Type: ' . $mimeType);
+                header('Content-Disposition: attachment; filename="asset_' . $q['id'] . '"');
+                echo $content;
+                exit();
+            }
+        }
+    }
+}
+
 // Sanitize path to prevent directory traversal
 $cleanPath = str_replace(['../', '..\\'], '', $fileUrl);
 $fullPath = realpath(__DIR__ . '/../../' . ltrim($cleanPath, '/'));

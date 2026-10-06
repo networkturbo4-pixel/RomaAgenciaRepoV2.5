@@ -29,14 +29,54 @@ const TM = {
     quillDesc: null,
     tagifyUsers: null,
     draggedElement: null,
+    currentAttachments: [],
+    activeUploads: new Map(),
+    imageViewerZoom: 1,
 
     init: function() {
         this.currentDailyUser = window.TM_USER_ID || 1;
         this.initEditors();
         this.initDatepickers();
+        this.initShortcuts();
+        this.initAttachmentHandlers();
         this.loadContextData();
         this.loadTasks();
         setInterval(() => this.updateAllTimers(), 1000);
+    },
+
+    initShortcuts: function() {
+        document.addEventListener('keydown', (e) => {
+            // First check if image viewer is open
+            const iv = document.getElementById('tm-image-viewer');
+            if (iv && iv.style.display !== 'none') {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    this.closeImageViewer();
+                    return;
+                }
+                if (e.key === '+' || e.key === '=') {
+                    e.preventDefault();
+                    this.zoomImageViewer(0.2);
+                    return;
+                }
+                if (e.key === '-') {
+                    e.preventDefault();
+                    this.zoomImageViewer(-0.2);
+                    return;
+                }
+            }
+
+            const taskModal = document.getElementById('tm-modal-task');
+            if (!taskModal || taskModal.style.display === 'none') return;
+
+            if (e.key === 'Escape') {
+                this.closeModal('tm-modal-task');
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('tm-submit-btn')?.click();
+            }
+        });
     },
 
     initEditors: function() {
@@ -773,7 +813,10 @@ const TM = {
         const card = document.getElementById('tm-pinned-card');
         const badge = document.getElementById('tm-pinned-badge');
         const text = document.getElementById('tm-pinned-text');
-        if (card) card.classList.toggle('is-active', Boolean(checked));
+        if (card) {
+            card.classList.toggle('is-pinned', Boolean(checked));
+            card.classList.toggle('is-active', Boolean(checked));
+        }
         if (badge) badge.style.display = checked ? 'inline-block' : 'none';
         if (text) text.textContent = checked ? 'Fijada en el tablero (repite a diario)' : 'Anclar arriba y repetir a diario';
 
@@ -1241,16 +1284,18 @@ const TM = {
         const subtext = document.getElementById('tm-objective-text');
         const hiddenInput = document.getElementById('tm-objective-date');
         const displayInput = document.getElementById('tm-objective-date-display');
+        const headerTrigger = document.getElementById('tm-header-date-trigger');
 
         if (card) card.classList.toggle('is-active', checked);
-        if (panel) panel.style.display = checked ? 'flex' : 'none';
         if (badge) badge.style.display = checked ? 'inline-flex' : 'none';
+        if (headerTrigger) headerTrigger.style.display = checked ? 'inline-flex' : 'none';
 
         if (checked) {
             const cur = hiddenInput && hiddenInput.value ? hiddenInput.value : '';
             const targetDate = cur || this.currentDailyDate || new Date().toISOString().substring(0, 10);
             this.setObjectiveDate(targetDate);
         } else {
+            if (panel) panel.style.display = 'none';
             if (subtext) subtext.textContent = 'Fijar como meta principal del día';
             if (hiddenInput) hiddenInput.value = '';
             if (displayInput) displayInput.value = '';
@@ -1265,11 +1310,14 @@ const TM = {
         const display = document.getElementById('tm-objective-date-display');
         const badge = document.getElementById('tm-objective-badge');
         const subtext = document.getElementById('tm-objective-text');
+        const headerTrigger = document.getElementById('tm-header-date-trigger');
+        const headerDisplay = document.getElementById('tm-header-date-display');
 
         if (!dateStr) {
             if (hidden) hidden.value = '';
             if (display) display.value = '';
             if (badge) badge.style.display = 'none';
+            if (headerTrigger) headerTrigger.style.display = 'none';
             if (subtext) subtext.textContent = 'Fijar como meta principal del día';
             return;
         }
@@ -1289,13 +1337,22 @@ const TM = {
 
         const parts = dateStr.split('-');
         let formatted = dateStr;
+        let shortText = 'Hoy';
+
         if (parts.length === 3) {
             const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
             const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
             const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
             formatted = `${dayNames[d.getDay()]}, ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-            if (isToday) formatted += ' • Hoy';
-            else if (isTomorrow) formatted += ' • Mañana';
+            if (isToday) {
+                formatted += ' • Hoy';
+                shortText = 'Hoy';
+            } else if (isTomorrow) {
+                formatted += ' • Mañana';
+                shortText = 'Mañana';
+            } else {
+                shortText = `${d.getDate()} ${monthNames[d.getMonth()]}`;
+            }
 
             if (subtext) {
                 subtext.textContent = isToday ? 'Meta programada para Hoy' : (isTomorrow ? 'Meta programada para Mañana' : `Meta para el ${d.getDate()} de ${monthNames[d.getMonth()]}`);
@@ -1304,6 +1361,8 @@ const TM = {
 
         if (display) display.value = formatted;
         if (badge) badge.style.display = 'inline-flex';
+        if (headerTrigger) headerTrigger.style.display = 'inline-flex';
+        if (headerDisplay) headerDisplay.textContent = shortText;
 
         // Shortcut buttons active state
         const btnToday = document.getElementById('btn-obj-today');
@@ -1332,6 +1391,16 @@ const TM = {
         const m = String(target.getMonth() + 1).padStart(2, '0');
         const day = String(target.getDate()).padStart(2, '0');
         this.setObjectiveDate(`${y}-${m}-${day}`);
+
+        const panel = document.getElementById('tm-objective-date-panel');
+        if (panel) panel.style.display = 'none';
+    },
+
+    toggleObjectiveDateDropdown: function() {
+        const panel = document.getElementById('tm-objective-date-panel');
+        if (!panel) return;
+        const isHidden = (panel.style.display === 'none' || !panel.style.display);
+        panel.style.display = isHidden ? 'flex' : 'none';
     },
 
     openObjectiveDatePicker: function() {
@@ -1344,7 +1413,7 @@ const TM = {
     },
 
     toggleDailyObjectiveFromCard: function(event) {
-        if (event.target.closest('.tm-switch') || event.target.closest('.tm-objective-date-panel') || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') {
+        if (event.target.closest('.tm-switch') || event.target.closest('.tm-objective-date-panel') || event.target.closest('.tm-hsp-date-badge') || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') {
             return;
         }
         const chk = document.getElementById('tm-is-daily-objective');
@@ -1461,6 +1530,296 @@ const TM = {
     // ══════════════════════════════════════════════════════
     // VIEW 1: KANBAN BOARD
     // ══════════════════════════════════════════════════════
+    createCardElement: function(t) {
+        const card = document.createElement('div');
+        card.className = `tm-task-card ${t.status === 'overdue' ? 'is-overdue' : ''} ${t.is_pinned ? 'is-pinned-card' : ''} tm-card-area-${t.area} ${t.is_optimistic ? 'is-optimistic' : ''}`;
+        card.draggable = !t.is_optimistic;
+        card.id = `tm-task-${t.id}`;
+        card.dataset.id = t.id;
+        card.dataset.status = t.status;
+
+        if (t.is_optimistic) {
+            card.addEventListener('click', () => this.showToast('Guardando tarea en el servidor...', 'info'));
+        } else {
+            card.addEventListener('dragstart', this.dragStart.bind(this));
+            card.addEventListener('dragend', this.dragEnd.bind(this));
+            card.addEventListener('click', () => this.openEditModalById(t.id));
+        }
+
+        // Area Badge
+        let areaBadgeHtml = '';
+        if (t.area === 'desarrollo_marca') {
+            areaBadgeHtml = `<span class="tm-badge tm-badge-brand"><i class="ph ph-paint-brush"></i> Marca</span>`;
+        } else if (t.area === 'desarrollo_web') {
+            areaBadgeHtml = `<span class="tm-badge tm-badge-web"><i class="ph ph-browser"></i> Web</span>`;
+        } else if (t.area === 'audiovisual') {
+            areaBadgeHtml = `<span class="tm-badge tm-badge-audio"><i class="ph ph-video-camera"></i> Audiovisual</span>`;
+        } else if (t.area === 'pizarras') {
+            areaBadgeHtml = `<span class="tm-badge tm-badge-pizarra"><i class="ph ph-chalkboard-simple"></i> Pizarra</span>`;
+        }
+
+        // Pinned Badge
+        let pinnedBadgeHtml = '';
+        if (t.is_pinned) {
+            pinnedBadgeHtml = `<span class="tm-badge tm-badge-pinned" title="Tarea fijada: se repite a diario"><i class="ph-fill ph-push-pin"></i> Fijada</span>`;
+        }
+
+        // Frequency & Daily Objective Badge
+        let freqBadgeHtml = '';
+        if (t.frequency === 'daily') {
+            freqBadgeHtml = `<span class="tm-badge tm-badge-daily"><i class="ph ph-lightning"></i> Diaria</span>`;
+        } else if (t.frequency === 'weekly') {
+            freqBadgeHtml = `<span class="tm-badge tm-badge-weekly"><i class="ph ph-calendar-check"></i> Semanal</span>`;
+        }
+
+        let objBadgeHtml = '';
+        if (t.is_daily_objective) {
+            objBadgeHtml = `<span class="tm-badge tm-badge-objective"><i class="ph ph-target"></i> Meta Hoy</span>`;
+        }
+
+        let savingBadgeHtml = '';
+        if (t.is_optimistic) {
+            savingBadgeHtml = `<span class="tm-badge tm-badge-saving"><i class="ph-bold ph-spinner ph-spin"></i> Guardando</span>`;
+        }
+
+        // Connected Project & Calendar Month / Brand / Service / Pizarra & Process Phase
+        let projectHtml = '';
+        let phaseChipHtml = '';
+        let entityDueDate = null;
+
+        if (t.whiteboard_id) {
+            const wbTitle = t.whiteboard_title || `Pizarra #${t.whiteboard_id}`;
+            projectHtml = `
+                <div class="tm-task-project-chip chip-pizarra" title="Clic para abrir pizarra: ${this.escapeHtml(wbTitle)}" onclick="event.stopPropagation(); window.open('index.php?module=pizarras&action=view&id=${t.whiteboard_id}', '_blank')">
+                    <i class="ph-bold ph-chalkboard-simple"></i> <span>${this.escapeHtml(wbTitle)}</span>
+                    <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
+                </div>
+            `;
+        } else if (t.project_month_info) {
+            const pm = t.project_month_info;
+            entityDueDate = pm.due_date;
+            projectHtml = `
+                <div class="tm-task-project-chip chip-calendar" title="Clic para abrir Mes en Tablero: ${this.escapeHtml(pm.label)}" onclick="event.stopPropagation(); window.open('index.php?module=month_board&id=${pm.id}', '_blank')">
+                    <i class="ph-bold ph-calendar-blank"></i> <span>${this.escapeHtml(pm.label)}</span>
+                    <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
+                </div>
+            `;
+            const safePhase = (pm.content_phase || 'En Borrador').toLowerCase().replace(/\s+/g, '-');
+            phaseChipHtml = `
+                <span class="tm-phase-chip phase-${safePhase}" title="Fase de Calendario: ${pm.content_phase}">
+                    <i class="ph-bold ph-git-branch"></i> ${this.escapeHtml(pm.content_phase)}
+                </span>
+            `;
+        } else if (t.brand_project_info) {
+            const bp = t.brand_project_info;
+            entityDueDate = (t.brand_group_info && t.brand_group_info.due_date) ? t.brand_group_info.due_date : bp.due_date;
+            let brandPhaseTxt = '';
+            if (t.brand_group_name) {
+                brandPhaseTxt = ` <span class="tm-brand-phase-txt">· ${this.escapeHtml(t.brand_group_name)}</span>`;
+            }
+            projectHtml = `
+                <div class="tm-task-project-chip chip-brand" title="Clic para abrir Proyecto de Marca: ${this.escapeHtml(bp.title)}" onclick="event.stopPropagation(); window.open('index.php?module=desarrollo_marca&action=view&id=${bp.id}', '_blank')">
+                    <i class="ph-bold ph-paint-brush"></i> <span>${this.escapeHtml(bp.title)}${brandPhaseTxt}</span>
+                    <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
+                </div>
+            `;
+            phaseChipHtml = `
+                <span class="tm-phase-chip phase-brand" title="Estado de Marca: ${bp.status}">
+                    <i class="ph-bold ph-sparkle"></i> ${this.escapeHtml(bp.status)}
+                </span>
+            `;
+        } else if (t.project_service_info) {
+            const ps = t.project_service_info;
+            entityDueDate = ps.due_date;
+            const iconClass = t.area === 'audiovisual' ? 'ph-video-camera' : 'ph-browser';
+            const srvTargetUrl = ps.project_id ? `index.php?module=projects&action=view&id=${ps.project_id}` : `index.php?module=services`;
+            projectHtml = `
+                <div class="tm-task-project-chip chip-service" title="Clic para abrir Servicio: ${this.escapeHtml(ps.title)}" onclick="event.stopPropagation(); window.open('${srvTargetUrl}', '_blank')">
+                    <i class="ph-bold ${iconClass}"></i> <span>${this.escapeHtml(ps.project_name)} · ${this.escapeHtml(ps.title)}</span>
+                    <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
+                </div>
+            `;
+            phaseChipHtml = `
+                <span class="tm-phase-chip phase-service" title="Estado del Servicio: ${ps.status}">
+                    <i class="ph-bold ${iconClass}"></i> ${this.escapeHtml(ps.status)}
+                </span>
+            `;
+        } else if (t.project_name) {
+            const projUrl = `index.php?module=project_board&id=${t.project_id}`;
+            projectHtml = `
+                <div class="tm-task-project-chip chip-project" title="Clic para abrir Proyecto: ${this.escapeHtml(t.project_name)}" onclick="event.stopPropagation(); window.open('${projUrl}', '_blank')">
+                    <i class="ph-bold ph-folder"></i> <span>${this.escapeHtml(t.project_name)}</span>
+                    <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
+                </div>
+            `;
+        }
+
+        const pinBtnHtml = t.is_optimistic ? '' : `
+            <button type="button" class="tm-btn-card-pin ${t.is_pinned ? 'is-pinned' : ''}" onclick="TM.togglePin(${t.id}, event)" title="${t.is_pinned ? 'Desfijar tarea' : 'Fijar tarea arriba (repetir diario)'}">
+                <i class="${t.is_pinned ? 'ph-fill' : 'ph-bold'} ph-push-pin"></i>
+            </button>
+        `;
+
+        let badgesHtml = `
+            <div class="tm-task-header-row">
+                <div class="tm-task-badges-row">
+                    ${savingBadgeHtml}
+                    ${pinnedBadgeHtml}
+                    <span class="tm-badge tm-badge-priority-${t.priority}">${t.priority}</span>
+                    ${areaBadgeHtml}
+                    ${phaseChipHtml}
+                    ${freqBadgeHtml}
+                    ${objBadgeHtml}
+                    ${t.status === 'overdue' ? '<span class="tm-badge tm-badge-overdue"><i class="ph ph-warning-circle"></i> Retrasada</span>' : ''}
+                </div>
+                ${pinBtnHtml}
+            </div>
+        `;
+
+        // Tags Badges Row
+        let tagsHtml = '';
+        if (t.tags && Array.isArray(t.tags) && t.tags.length > 0) {
+            tagsHtml = `<div class="tm-task-tags-row">` + 
+                t.tags.map(tag => `<span class="tm-tag-pill"><i class="ph ph-tag"></i> ${this.escapeHtml(tag)}</span>`).join('') +
+                `</div>`;
+        }
+
+        // Subtasks Progress
+        let subtasksHtml = '';
+        if (t.subtasks && t.subtasks.total > 0) {
+            const pct = Math.round((t.subtasks.completed / t.subtasks.total) * 100);
+            subtasksHtml = `
+                <div class="tm-subtasks-progress">
+                    <div class="tm-subtasks-bar"><div class="tm-subtasks-bar-fill" style="width:${pct}%"></div></div>
+                    <span class="tm-subtasks-text"><i class="ph ph-check"></i> ${t.subtasks.completed}/${t.subtasks.total}</span>
+                </div>
+            `;
+        }
+
+        // Users Avatars
+        let usersHtml = '';
+        if (t.assigned_users && t.assigned_users.length > 0) {
+            usersHtml = `<div class="tm-task-users" title="${t.assigned_users.map(u => u.name).join(', ')}">`;
+            const maxVisible = 4;
+            const visibleUsers = t.assigned_users.slice(0, maxVisible);
+            const extra = t.assigned_users.length - maxVisible;
+
+            visibleUsers.forEach(u => {
+                const safeName = this.escapeHtml(u.name || 'Usuario');
+                const initial = u.initial || (u.name ? u.name.charAt(0).toUpperCase() : 'U');
+                if (u.avatar) {
+                    usersHtml += `<div class="tm-task-user" title="${safeName}"><img src="${u.avatar}" alt="${safeName}" onerror="this.style.display='none';this.parentElement.textContent='${initial}';"></div>`;
+                } else {
+                    usersHtml += `<div class="tm-task-user" title="${safeName}">${initial}</div>`;
+                }
+            });
+
+            if (extra > 0) {
+                usersHtml += `<div class="tm-task-user tm-task-user-extra" title="+${extra} más">+${extra}</div>`;
+            }
+            usersHtml += `</div>`;
+        }
+
+        // Live Countdown Timer
+        let timerHtml = '';
+        const effectiveDue = t.due_date || entityDueDate;
+        if (effectiveDue) {
+            timerHtml = `
+                <div class="tm-timer-pill" data-due="${effectiveDue}" data-start="${t.start_date || ''}" data-status="${t.status}" title="Límite: ${effectiveDue}">
+                    <i class="ph-fill ph-hourglass-high"></i>
+                    <span class="timer-text">Calculando...</span>
+                </div>
+            `;
+        }
+
+        // Attachments & Google Drive Pills
+        let attsHtml = '';
+        const inFlightCount = t.in_flight_count || 0;
+        const attCount = (t.attachments && Array.isArray(t.attachments)) ? t.attachments.length : 0;
+
+        if (inFlightCount > 0) {
+            attsHtml += `<span class="tm-card-uploading-pill" title="Subiendo ${inFlightCount} archivo(s) en segundo plano"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo...</span>`;
+        }
+        if (attCount > 0) {
+            attsHtml += `<span class="tm-card-att-pill" title="${attCount} archivo(s) adjunto(s)"><i class="ph-bold ph-paperclip"></i> ${attCount}</span>`;
+        }
+        if (t.drive_folder_url) {
+            attsHtml += `<a href="${t.drive_folder_url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="tm-card-drive-pill" title="Abrir carpeta en Google Drive"><i class="ph-bold ph-google-drive-logo"></i> Drive</a>`;
+        }
+
+        // Process flow navigation (Retroceder y Avanzar)
+        const isDone = (t.status === 'completed' || t.status === 'approved');
+        let prevStatus = null;
+        let prevLabel = '';
+        let nextStatus = null;
+        let nextLabel = '';
+
+        if (!t.is_optimistic) {
+            if (t.status === 'new') {
+                nextStatus = 'pending';
+                nextLabel = 'Pendiente / En Curso';
+            } else if (t.status === 'pending' || t.status === 'overdue') {
+                prevStatus = 'new';
+                prevLabel = 'Nuevo';
+                nextStatus = 'completed';
+                nextLabel = 'Terminado';
+            } else if (t.status === 'completed') {
+                prevStatus = 'pending';
+                prevLabel = 'Pendiente / En Curso';
+                if (window.TM_IS_ADMIN) {
+                    nextStatus = 'approved';
+                    nextLabel = 'Aprobado';
+                }
+            } else if (t.status === 'approved') {
+                prevStatus = 'completed';
+                prevLabel = 'Terminado';
+            }
+        }
+
+        let flowNavHtml = '';
+        if (prevStatus || nextStatus) {
+            const prevBtn = prevStatus ? `
+                <button type="button" class="tm-btn-flow tm-btn-flow-prev" onclick="TM.moveTaskStep(${t.id}, '${prevStatus}', event)" title="Retroceder proceso a: ${prevLabel}">
+                    <i class="ph-bold ph-caret-left"></i>
+                </button>
+            ` : '';
+            const nextBtn = nextStatus ? `
+                <button type="button" class="tm-btn-flow tm-btn-flow-next" onclick="TM.moveTaskStep(${t.id}, '${nextStatus}', event)" title="Avanzar proceso a: ${nextLabel}">
+                    <i class="ph-bold ph-caret-right"></i>
+                </button>
+            ` : '';
+            flowNavHtml = `<div class="tm-card-flow-nav">${prevBtn}${nextBtn}</div>`;
+        }
+
+        const checkBtnHtml = t.is_optimistic ? '' : `
+            <button type="button" class="tm-btn-card-check ${isDone ? 'is-done' : ''}" onclick="TM.quickToggleTaskDone(${t.id}, '${t.status}', event)" title="${isDone ? 'Completada (Clic para reabrir a Pendiente)' : 'Marcar como Terminada'}">
+                <i class="${isDone ? 'ph-fill ph-check-circle' : 'ph-bold ph-circle'}"></i>
+            </button>
+        `;
+
+        card.innerHTML = `
+            ${badgesHtml}
+            <div class="tm-task-title-row">
+                ${checkBtnHtml}
+                <h4 class="tm-task-title ${isDone ? 'is-title-done' : ''}">${this.escapeHtml(t.title)}</h4>
+            </div>
+            ${tagsHtml}
+            ${projectHtml}
+            ${subtasksHtml}
+            <div class="tm-task-footer">
+                <div class="tm-task-footer-left">
+                    ${timerHtml}
+                    ${attsHtml}
+                </div>
+                <div class="tm-task-footer-right">
+                    ${flowNavHtml}
+                    ${usersHtml}
+                </div>
+            </div>
+        `;
+        return card;
+    },
+
     renderKanban: function() {
         // Clear columns
         ['new', 'pending', 'completed', 'approved'].forEach(status => {
@@ -1482,265 +1841,7 @@ const TM = {
             const col = document.getElementById(`col-${colStatus}`);
             if(!col) return;
 
-            const card = document.createElement('div');
-            card.className = `tm-task-card ${t.status === 'overdue' ? 'is-overdue' : ''} ${t.is_pinned ? 'is-pinned-card' : ''} tm-card-area-${t.area}`;
-            card.draggable = true;
-            card.id = `tm-task-${t.id}`;
-            card.dataset.id = t.id;
-            card.dataset.status = t.status;
-
-            card.addEventListener('dragstart', this.dragStart.bind(this));
-            card.addEventListener('dragend', this.dragEnd.bind(this));
-            card.addEventListener('click', () => this.openEditModal(t));
-
-            // Area Badge
-            let areaBadgeHtml = '';
-            if (t.area === 'desarrollo_marca') {
-                areaBadgeHtml = `<span class="tm-badge tm-badge-brand"><i class="ph ph-paint-brush"></i> Marca</span>`;
-            } else if (t.area === 'desarrollo_web') {
-                areaBadgeHtml = `<span class="tm-badge tm-badge-web"><i class="ph ph-browser"></i> Web</span>`;
-            } else if (t.area === 'audiovisual') {
-                areaBadgeHtml = `<span class="tm-badge tm-badge-audio"><i class="ph ph-video-camera"></i> Audiovisual</span>`;
-            } else if (t.area === 'pizarras') {
-                areaBadgeHtml = `<span class="tm-badge tm-badge-pizarra"><i class="ph ph-chalkboard-simple"></i> Pizarra</span>`;
-            }
-
-            // Pinned Badge
-            let pinnedBadgeHtml = '';
-            if (t.is_pinned) {
-                pinnedBadgeHtml = `<span class="tm-badge tm-badge-pinned" title="Tarea fijada: se repite a diario"><i class="ph-fill ph-push-pin"></i> Fijada</span>`;
-            }
-
-            // Frequency & Daily Objective Badge
-            let freqBadgeHtml = '';
-            if (t.frequency === 'daily') {
-                freqBadgeHtml = `<span class="tm-badge tm-badge-daily"><i class="ph ph-lightning"></i> Diaria</span>`;
-            } else if (t.frequency === 'weekly') {
-                freqBadgeHtml = `<span class="tm-badge tm-badge-weekly"><i class="ph ph-calendar-check"></i> Semanal</span>`;
-            }
-
-            let objBadgeHtml = '';
-            if (t.is_daily_objective) {
-                objBadgeHtml = `<span class="tm-badge tm-badge-objective"><i class="ph ph-target"></i> Meta Hoy</span>`;
-            }
-
-            // Connected Project & Calendar Month / Brand / Service / Pizarra & Process Phase
-            let projectHtml = '';
-            let phaseChipHtml = '';
-            let entityDueDate = null;
-
-            if (t.whiteboard_id) {
-                const wbTitle = t.whiteboard_title || `Pizarra #${t.whiteboard_id}`;
-                projectHtml = `
-                    <div class="tm-task-project-chip chip-pizarra" title="Clic para abrir pizarra: ${this.escapeHtml(wbTitle)}" onclick="event.stopPropagation(); window.open('index.php?module=pizarras&action=view&id=${t.whiteboard_id}', '_blank')">
-                        <i class="ph-bold ph-chalkboard-simple"></i> <span>${this.escapeHtml(wbTitle)}</span>
-                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
-                    </div>
-                `;
-            } else if (t.project_month_info) {
-                const pm = t.project_month_info;
-                entityDueDate = pm.due_date;
-                projectHtml = `
-                    <div class="tm-task-project-chip chip-calendar" title="Clic para abrir Mes en Tablero: ${this.escapeHtml(pm.label)}" onclick="event.stopPropagation(); window.open('index.php?module=month_board&id=${pm.id}', '_blank')">
-                        <i class="ph-bold ph-calendar-blank"></i> <span>${this.escapeHtml(pm.label)}</span>
-                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
-                    </div>
-                `;
-                const safePhase = (pm.content_phase || 'En Borrador').toLowerCase().replace(/\s+/g, '-');
-                phaseChipHtml = `
-                    <span class="tm-phase-chip phase-${safePhase}" title="Fase de Calendario: ${pm.content_phase}">
-                        <i class="ph-bold ph-git-branch"></i> ${this.escapeHtml(pm.content_phase)}
-                    </span>
-                `;
-            } else if (t.brand_project_info) {
-                const bp = t.brand_project_info;
-                entityDueDate = (t.brand_group_info && t.brand_group_info.due_date) ? t.brand_group_info.due_date : bp.due_date;
-                let brandPhaseTxt = '';
-                if (t.brand_group_name) {
-                    brandPhaseTxt = ` <span class="tm-brand-phase-txt">· ${this.escapeHtml(t.brand_group_name)}</span>`;
-                }
-                projectHtml = `
-                    <div class="tm-task-project-chip chip-brand" title="Clic para abrir Proyecto de Marca: ${this.escapeHtml(bp.title)}" onclick="event.stopPropagation(); window.open('index.php?module=desarrollo_marca&action=view&id=${bp.id}', '_blank')">
-                        <i class="ph-bold ph-paint-brush"></i> <span>${this.escapeHtml(bp.title)}${brandPhaseTxt}</span>
-                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
-                    </div>
-                `;
-                phaseChipHtml = `
-                    <span class="tm-phase-chip phase-brand" title="Estado de Marca: ${bp.status}">
-                        <i class="ph-bold ph-sparkle"></i> ${this.escapeHtml(bp.status)}
-                    </span>
-                `;
-            } else if (t.project_service_info) {
-                const ps = t.project_service_info;
-                entityDueDate = ps.due_date;
-                const iconClass = t.area === 'audiovisual' ? 'ph-video-camera' : 'ph-browser';
-                const srvTargetUrl = ps.project_id ? `index.php?module=projects&action=view&id=${ps.project_id}` : `index.php?module=services`;
-                projectHtml = `
-                    <div class="tm-task-project-chip chip-service" title="Clic para abrir Servicio: ${this.escapeHtml(ps.title)}" onclick="event.stopPropagation(); window.open('${srvTargetUrl}', '_blank')">
-                        <i class="ph-bold ${iconClass}"></i> <span>${this.escapeHtml(ps.project_name)} · ${this.escapeHtml(ps.title)}</span>
-                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
-                    </div>
-                `;
-                phaseChipHtml = `
-                    <span class="tm-phase-chip phase-service" title="Estado del Servicio: ${ps.status}">
-                        <i class="ph-bold ${iconClass}"></i> ${this.escapeHtml(ps.status)}
-                    </span>
-                `;
-            } else if (t.project_name) {
-                const projUrl = `index.php?module=project_board&id=${t.project_id}`;
-                projectHtml = `
-                    <div class="tm-task-project-chip chip-project" title="Clic para abrir Proyecto: ${this.escapeHtml(t.project_name)}" onclick="event.stopPropagation(); window.open('${projUrl}', '_blank')">
-                        <i class="ph-bold ph-folder"></i> <span>${this.escapeHtml(t.project_name)}</span>
-                        <i class="ph-bold ph-arrow-square-out tm-chip-external-icon"></i>
-                    </div>
-                `;
-            }
-
-            const pinBtnHtml = `
-                <button type="button" class="tm-btn-card-pin ${t.is_pinned ? 'is-pinned' : ''}" onclick="TM.togglePin(${t.id}, event)" title="${t.is_pinned ? 'Desfijar tarea' : 'Fijar tarea arriba (repetir diario)'}">
-                    <i class="${t.is_pinned ? 'ph-fill' : 'ph-bold'} ph-push-pin"></i>
-                </button>
-            `;
-
-            let badgesHtml = `
-                <div class="tm-task-header-row">
-                    <div class="tm-task-badges-row">
-                        ${pinnedBadgeHtml}
-                        <span class="tm-badge tm-badge-priority-${t.priority}">${t.priority}</span>
-                        ${areaBadgeHtml}
-                        ${phaseChipHtml}
-                        ${freqBadgeHtml}
-                        ${objBadgeHtml}
-                        ${t.status === 'overdue' ? '<span class="tm-badge tm-badge-overdue"><i class="ph ph-warning-circle"></i> Retrasada</span>' : ''}
-                    </div>
-                    ${pinBtnHtml}
-                </div>
-            `;
-
-            // Tags Badges Row
-            let tagsHtml = '';
-            if (t.tags && Array.isArray(t.tags) && t.tags.length > 0) {
-                tagsHtml = `<div class="tm-task-tags-row">` + 
-                    t.tags.map(tag => `<span class="tm-tag-pill"><i class="ph ph-tag"></i> ${this.escapeHtml(tag)}</span>`).join('') +
-                    `</div>`;
-            }
-
-            // Subtasks Progress
-            let subtasksHtml = '';
-            if (t.subtasks && t.subtasks.total > 0) {
-                const pct = Math.round((t.subtasks.completed / t.subtasks.total) * 100);
-                subtasksHtml = `
-                    <div class="tm-subtasks-progress">
-                        <div class="tm-subtasks-bar"><div class="tm-subtasks-bar-fill" style="width:${pct}%"></div></div>
-                        <span class="tm-subtasks-text"><i class="ph ph-check"></i> ${t.subtasks.completed}/${t.subtasks.total}</span>
-                    </div>
-                `;
-            }
-
-            // Users Avatars
-            let usersHtml = '';
-            if(t.assigned_users && t.assigned_users.length > 0) {
-                usersHtml = `<div class="tm-task-users" title="${t.assigned_users.map(u => u.name).join(', ')}">`;
-                const maxVisible = 4;
-                const visibleUsers = t.assigned_users.slice(0, maxVisible);
-                const extra = t.assigned_users.length - maxVisible;
-
-                visibleUsers.forEach(u => {
-                    const safeName = this.escapeHtml(u.name || 'Usuario');
-                    const initial = u.initial || (u.name ? u.name.charAt(0).toUpperCase() : 'U');
-                    if(u.avatar) {
-                        usersHtml += `<div class="tm-task-user" title="${safeName}"><img src="${u.avatar}" alt="${safeName}"></div>`;
-                    } else {
-                        usersHtml += `<div class="tm-task-user" title="${safeName}">${initial}</div>`;
-                    }
-                });
-
-                if (extra > 0) {
-                    usersHtml += `<div class="tm-task-user tm-task-user-extra" title="+${extra} más">+${extra}</div>`;
-                }
-                usersHtml += `</div>`;
-            }
-
-            // Live Countdown Timer (uses task due_date, or falls back to parent entity due_date)
-            let timerHtml = '';
-            const effectiveDue = t.due_date || entityDueDate;
-            if (effectiveDue) {
-                timerHtml = `
-                    <div class="tm-timer-pill" data-due="${effectiveDue}" data-start="${t.start_date || ''}" data-status="${t.status}" title="Límite: ${effectiveDue}">
-                        <i class="ph-fill ph-hourglass-high"></i>
-                        <span class="timer-text">Calculando...</span>
-                    </div>
-                `;
-            }
-
-            // Process flow navigation (Retroceder y Avanzar)
-            const isDone = (t.status === 'completed' || t.status === 'approved');
-            let prevStatus = null;
-            let prevLabel = '';
-            let nextStatus = null;
-            let nextLabel = '';
-
-            if (t.status === 'new') {
-                nextStatus = 'pending';
-                nextLabel = 'Pendiente / En Curso';
-            } else if (t.status === 'pending' || t.status === 'overdue') {
-                prevStatus = 'new';
-                prevLabel = 'Nuevo';
-                nextStatus = 'completed';
-                nextLabel = 'Terminado';
-            } else if (t.status === 'completed') {
-                prevStatus = 'pending';
-                prevLabel = 'Pendiente / En Curso';
-                if (window.TM_IS_ADMIN) {
-                    nextStatus = 'approved';
-                    nextLabel = 'Aprobado';
-                }
-            } else if (t.status === 'approved') {
-                prevStatus = 'completed';
-                prevLabel = 'Terminado';
-            }
-
-            let flowNavHtml = '';
-            if (prevStatus || nextStatus) {
-                const prevBtn = prevStatus ? `
-                    <button type="button" class="tm-btn-flow tm-btn-flow-prev" onclick="TM.moveTaskStep(${t.id}, '${prevStatus}', event)" title="Retroceder proceso a: ${prevLabel}">
-                        <i class="ph-bold ph-caret-left"></i>
-                    </button>
-                ` : '';
-                const nextBtn = nextStatus ? `
-                    <button type="button" class="tm-btn-flow tm-btn-flow-next" onclick="TM.moveTaskStep(${t.id}, '${nextStatus}', event)" title="Avanzar proceso a: ${nextLabel}">
-                        <i class="ph-bold ph-caret-right"></i>
-                    </button>
-                ` : '';
-                flowNavHtml = `<div class="tm-card-flow-nav">${prevBtn}${nextBtn}</div>`;
-            }
-
-            const checkBtnHtml = `
-                <button type="button" class="tm-btn-card-check ${isDone ? 'is-done' : ''}" onclick="TM.quickToggleTaskDone(${t.id}, '${t.status}', event)" title="${isDone ? 'Completada (Clic para reabrir a Pendiente)' : 'Marcar como Terminada'}">
-                    <i class="${isDone ? 'ph-fill ph-check-circle' : 'ph-bold ph-circle'}"></i>
-                </button>
-            `;
-
-            card.innerHTML = `
-                ${badgesHtml}
-                <div class="tm-task-title-row">
-                    ${checkBtnHtml}
-                    <h4 class="tm-task-title ${isDone ? 'is-title-done' : ''}">${this.escapeHtml(t.title)}</h4>
-                </div>
-                ${tagsHtml}
-                ${projectHtml}
-                ${subtasksHtml}
-                <div class="tm-task-footer">
-                    <div class="tm-task-footer-left">
-                        ${timerHtml}
-                    </div>
-                    <div class="tm-task-footer-right">
-                        ${flowNavHtml}
-                        ${usersHtml}
-                    </div>
-                </div>
-            `;
-            col.appendChild(card);
+            col.appendChild(this.createCardElement(t));
         });
 
         this.updateAllTimers();
@@ -2686,6 +2787,11 @@ const TM = {
         if (this.dpDueDate) {
             this.dpDueDate.clear();
         }
+
+        this.currentAttachments = [];
+        this.renderAttachments();
+        this.setDriveBarState('', '');
+
         document.body.style.overflow = 'hidden';
         document.getElementById('tm-modal-task').style.display = 'flex';
     },
@@ -2814,6 +2920,20 @@ const TM = {
             this.quillDesc.root.innerHTML = task.description || '';
         }
 
+        // Setup current attachments
+        let atts = [];
+        if (Array.isArray(task.attachments)) {
+            atts = [...task.attachments];
+        } else if (typeof task.attachments === 'string' && task.attachments.trim()) {
+            try {
+                const parsed = JSON.parse(task.attachments);
+                if (Array.isArray(parsed)) atts = parsed;
+            } catch(e) {}
+        }
+        this.currentAttachments = atts;
+        this.renderAttachments();
+        this.setDriveBarState(task.drive_folder_id || '', task.drive_folder_url || '');
+
         // Load subtasks list
         const subtasksContainer = document.getElementById('tm-subtasks-list');
         subtasksContainer.innerHTML = '';
@@ -2826,6 +2946,21 @@ const TM = {
         .then(r => r.json())
         .then(data => {
             if (data.success && data.task) {
+                if (data.task.drive_folder_id || data.task.drive_folder_url) {
+                    this.setDriveBarState(data.task.drive_folder_id || '', data.task.drive_folder_url || '');
+                }
+                if (data.task.attachments) {
+                    let fetchedAtts = [];
+                    if (Array.isArray(data.task.attachments)) fetchedAtts = data.task.attachments;
+                    else if (typeof data.task.attachments === 'string') {
+                        try {
+                            const p = JSON.parse(data.task.attachments);
+                            if (Array.isArray(p)) fetchedAtts = p;
+                        } catch(e) {}
+                    }
+                    this.currentAttachments = fetchedAtts;
+                    this.renderAttachments();
+                }
                 if (data.task.assigned_users && Array.isArray(data.task.assigned_users)) {
                     this.currentAssignedUserIds = data.task.assigned_users.map(u => {
                         if (typeof u === 'object' && u !== null) return parseInt(u.id, 10);
@@ -2861,8 +2996,23 @@ const TM = {
     },
 
     openEditModalById: function(taskId) {
-        const t = this.tasks.find(x => x.id === taskId);
-        if (t) this.openEditModal(t);
+        taskId = parseInt(taskId, 10);
+        const t = this.tasks.find(x => parseInt(x.id, 10) === taskId);
+        if (t) {
+            this.openEditModal(t);
+        } else {
+            const fd = new URLSearchParams();
+            fd.append('action_type', 'get_task');
+            fd.append('task_id', taskId);
+            fetch('modules/task_manager/ajax.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.task) {
+                        this.openEditModal(data.task);
+                    }
+                })
+                .catch(e => console.error("Error opening task by id:", e));
+        }
     },
 
     closeModal: function(id) {
@@ -2876,13 +3026,133 @@ const TM = {
         }
     },
 
+    toggleModalSize: function() {
+        const modal = document.querySelector('#tm-modal-task .lumio-modal');
+        const icon = document.querySelector('#btn-toggle-modal-size i');
+        if (modal) {
+            modal.classList.toggle('is-fullscreen');
+            if (icon) {
+                icon.className = modal.classList.contains('is-fullscreen')
+                    ? 'ph ph-arrows-in-simple'
+                    : 'ph ph-arrows-out-simple';
+            }
+        }
+    },
+
+    showToast: function(message, type = 'info', duration = 3500) {
+        let container = document.getElementById('tm-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'tm-toast-container';
+            container.className = 'tm-toast-container';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = `tm-toast-item tm-toast-${type}`;
+        let icon = 'ph-info';
+        if (type === 'success') icon = 'ph-check-circle';
+        if (type === 'error') icon = 'ph-x-circle';
+        if (type === 'loading') icon = 'ph-spinner ph-spin';
+        
+        toast.innerHTML = `
+            <i class="ph-bold ${icon} tm-toast-icon"></i>
+            <span class="tm-toast-msg">${this.escapeHtml(message)}</span>
+        `;
+        container.appendChild(toast);
+        
+        requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+        setTimeout(() => {
+            toast.classList.remove('is-visible');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    },
+
+    syncAttachmentToTask: function(taskId, fileObj) {
+        const formData = new FormData();
+        formData.append('action_type', 'append_task_attachment');
+        formData.append('task_id', taskId);
+        formData.append('file', JSON.stringify(fileObj));
+
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const task = this.tasks.find(t => String(t.id) === String(taskId));
+                if (task) {
+                    task.attachments = data.attachments || [];
+                    if (task.in_flight_count && task.in_flight_count > 0) {
+                        task.in_flight_count--;
+                    }
+                    const cardEl = document.getElementById(`tm-task-${taskId}`);
+                    if (cardEl) {
+                        const newCard = this.createCardElement(task);
+                        cardEl.replaceWith(newCard);
+                    }
+                }
+                this.showToast(`✓ Archivo "${fileObj.name || 'adjunto'}" vinculado a la tarea #${taskId}`, 'success');
+            }
+        })
+        .catch(err => console.error('Error syncing attachment to task:', err));
+    },
+
+    loadTasksSilently: function() {
+        const params = new URLSearchParams();
+        params.append('action_type', 'get_all_tasks');
+        params.append('filter_user', this.filterUser);
+        params.append('filter_area', this.filterArea);
+        params.append('filter_frequency', this.filterFrequency);
+
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params.toString()
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                const inFlightMap = new Map();
+                if (this.activeUploads) {
+                    this.activeUploads.forEach(rec => {
+                        if (!rec.finished && rec.linkedTaskId) {
+                            inFlightMap.set(rec.linkedTaskId, (inFlightMap.get(rec.linkedTaskId) || 0) + 1);
+                        }
+                    });
+                }
+                this.tasks = (data.tasks || []).map(t => {
+                    if (inFlightMap.has(t.id)) {
+                        t.in_flight_count = inFlightMap.get(t.id);
+                    }
+                    return t;
+                });
+                this.updateKPIs(data.stats);
+                if (this.currentView === 'daily') {
+                    this.renderDailyView();
+                }
+            }
+        })
+        .catch(e => console.warn('Silent sync error:', e));
+    },
+
     saveTask: function(e) {
         e.preventDefault();
-        const taskId = document.getElementById('tm-task-id').value;
+        const taskIdInput = document.getElementById('tm-task-id');
+        const taskId = taskIdInput ? taskIdInput.value : '';
         const isEdit = Boolean(taskId);
 
-        const title = document.getElementById('tm-title').value.trim();
-        if (!title) return;
+        const titleInput = document.getElementById('tm-title');
+        const title = titleInput ? titleInput.value.trim() : '';
+        if (!title) {
+            if (titleInput) {
+                titleInput.focus();
+                titleInput.classList.add('is-invalid');
+                setTimeout(() => titleInput.classList.remove('is-invalid'), 2000);
+            }
+            return;
+        }
 
         // Collect any pending tag typed in input
         const tagNewInput = document.getElementById('tm-tag-new-input');
@@ -2900,8 +3170,30 @@ const TM = {
 
         // Subtasks
         const subtasksContainer = document.getElementById('tm-subtasks-list');
-        const subtaskInputs = Array.from(subtasksContainer.querySelectorAll('.lumio-subtask-input:not([readonly])'))
-                                .map(input => input.value.trim()).filter(Boolean);
+        const subtaskInputs = subtasksContainer ? Array.from(subtasksContainer.querySelectorAll('.lumio-subtask-input:not([readonly])'))
+                                .map(input => input.value.trim()).filter(Boolean) : [];
+
+        // Separate completed attachments from in-flight ones
+        const readyAttachments = (this.currentAttachments || []).filter(a => !a.isUploading);
+        const inFlightAttachments = (this.currentAttachments || []).filter(a => a.isUploading);
+
+        const priority = document.getElementById('tm-priority')?.value || 'medium';
+        const status = document.getElementById('tm-status')?.value || 'new';
+        const frequency = document.getElementById('tm-frequency')?.value || 'one_time';
+        const area = document.getElementById('tm-area')?.value || 'general';
+        const projectId = document.getElementById('tm-project-id')?.value || '';
+        const projectMonthId = document.getElementById('tm-project-month-id')?.value || '';
+        const brandProjectId = document.getElementById('tm-brand-project-id')?.value || '';
+        const brandGroupId = document.getElementById('tm-brand-group-id')?.value || '';
+        const projectServiceId = document.getElementById('tm-project-service-id')?.value || '';
+        const whiteboardId = document.getElementById('tm-whiteboard-id')?.value || '';
+        const isPinned = document.getElementById('tm-is-pinned')?.checked ? 1 : 0;
+        const isObj = (document.getElementById('tm-is-daily-objective')?.checked || isPinned) ? 1 : 0;
+        const objDate = document.getElementById('tm-objective-date')?.value || (isObj ? new Date().toISOString().substring(0, 10) : '');
+        const startDate = document.getElementById('tm-start-date')?.value || '';
+        const dueDate = document.getElementById('tm-due-date')?.value || '';
+        const driveFolderId = document.getElementById('tm-drive-folder-id')?.value || '';
+        const driveFolderUrl = document.getElementById('tm-drive-folder-url')?.value || '';
 
         const formData = new URLSearchParams();
         formData.append('action_type', isEdit ? 'update_task_details' : 'create_task');
@@ -2909,32 +3201,26 @@ const TM = {
 
         formData.append('title', title);
         formData.append('description', descriptionHTML);
-        formData.append('priority', document.getElementById('tm-priority').value);
-        formData.append('status', document.getElementById('tm-status').value);
-        formData.append('frequency', document.getElementById('tm-frequency').value);
-        formData.append('area', document.getElementById('tm-area').value);
-        formData.append('project_id', document.getElementById('tm-project-id').value);
-        formData.append('project_month_id', document.getElementById('tm-project-month-id').value);
-        formData.append('brand_project_id', document.getElementById('tm-brand-project-id').value);
-        formData.append('brand_group_id', document.getElementById('tm-brand-group-id') ? document.getElementById('tm-brand-group-id').value : '');
-        formData.append('project_service_id', document.getElementById('tm-project-service-id') ? document.getElementById('tm-project-service-id').value : '');
-        formData.append('whiteboard_id', document.getElementById('tm-whiteboard-id') ? document.getElementById('tm-whiteboard-id').value : '');
-
-        const isPinned = document.getElementById('tm-is-pinned')?.checked ? 1 : 0;
+        formData.append('priority', priority);
+        formData.append('status', status);
+        formData.append('frequency', isPinned ? 'daily' : frequency);
+        formData.append('area', area);
+        formData.append('project_id', projectId);
+        formData.append('project_month_id', projectMonthId);
+        formData.append('brand_project_id', brandProjectId);
+        formData.append('brand_group_id', brandGroupId);
+        formData.append('project_service_id', projectServiceId);
+        formData.append('whiteboard_id', whiteboardId);
         formData.append('is_pinned', isPinned);
-
-        const isObj = (document.getElementById('tm-is-daily-objective')?.checked || isPinned) ? 1 : 0;
         formData.append('is_daily_objective', isObj);
-        formData.append('objective_date', document.getElementById('tm-objective-date').value);
-
-        if (isPinned) {
-            formData.set('frequency', 'daily');
-        }
-
-        formData.append('start_date', document.getElementById('tm-start-date').value);
-        formData.append('due_date', document.getElementById('tm-due-date').value);
+        formData.append('objective_date', objDate);
+        formData.append('start_date', startDate);
+        formData.append('due_date', dueDate);
         formData.append('assigned_users', JSON.stringify(this.currentAssignedUserIds));
         formData.append('tags', JSON.stringify(this.currentTags));
+        formData.append('attachments', JSON.stringify(readyAttachments));
+        formData.append('drive_folder_id', driveFolderId);
+        formData.append('drive_folder_url', driveFolderUrl);
 
         if (isEdit) {
             formData.append('new_subtasks', JSON.stringify(subtaskInputs));
@@ -2942,22 +3228,148 @@ const TM = {
             formData.append('subtasks', JSON.stringify(subtaskInputs));
         }
 
+        // 1. CIERRE INSTANTÁNEO DEL MODAL (0 ms de espera para el usuario)
+        this.closeModal('tm-modal-task');
+
+        // 2. ACTUALIZACIÓN OPTIMISTA EN EL TABLERO
+        const optId = isEdit ? taskId : ('opt_' + Date.now());
+        const assignedUserObjects = this.currentAssignedUserIds.map(uid => this.getUserById(uid)).filter(Boolean);
+        const projectName = (this.projects && projectId) ? (this.projects.find(p => String(p.id) === String(projectId))?.name || null) : null;
+
+        if (!isEdit) {
+            const optTask = {
+                id: optId,
+                title: title,
+                description: descriptionHTML,
+                priority: priority,
+                status: status,
+                frequency: isPinned ? 'daily' : frequency,
+                frequency_label: (isPinned || frequency === 'daily') ? 'Diaria' : (frequency === 'weekly' ? 'Semanal' : 'Puntual'),
+                area: area,
+                area_label: (area.charAt(0).toUpperCase() + area.slice(1)).replace('_', ' '),
+                project_id: projectId ? parseInt(projectId, 10) : null,
+                project_name: projectName,
+                project_month_id: projectMonthId ? parseInt(projectMonthId, 10) : null,
+                brand_project_id: brandProjectId ? parseInt(brandProjectId, 10) : null,
+                brand_group_id: brandGroupId ? parseInt(brandGroupId, 10) : null,
+                project_service_id: projectServiceId ? parseInt(projectServiceId, 10) : null,
+                whiteboard_id: whiteboardId ? parseInt(whiteboardId, 10) : null,
+                is_pinned: isPinned,
+                is_daily_objective: isObj,
+                objective_date: objDate,
+                start_date: startDate,
+                due_date: dueDate,
+                assigned_users: assignedUserObjects,
+                tags: [...this.currentTags],
+                subtasks: { total: subtaskInputs.length, completed: 0 },
+                attachments: readyAttachments,
+                in_flight_count: inFlightAttachments.length,
+                drive_folder_id: driveFolderId,
+                drive_folder_url: driveFolderUrl,
+                is_optimistic: true
+            };
+
+            this.tasks.unshift(optTask);
+
+            if (this.currentView === 'kanban') {
+                let colStatus = status;
+                if (colStatus === 'overdue') colStatus = 'pending';
+                const col = document.getElementById(`col-${colStatus}`);
+                if (col) {
+                    const cardEl = this.createCardElement(optTask);
+                    col.prepend(cardEl);
+                }
+            } else if (this.currentView === 'daily') {
+                this.renderDailyView();
+            }
+
+            this.showToast(inFlightAttachments.length > 0 
+                ? 'Tarea creada · Subiendo archivos en segundo plano...' 
+                : 'Tarea creada con éxito', 'success');
+        } else {
+            const existingTask = this.tasks.find(t => String(t.id) === String(taskId));
+            if (existingTask) {
+                existingTask.title = title;
+                existingTask.priority = priority;
+                existingTask.status = status;
+                existingTask.frequency = isPinned ? 'daily' : frequency;
+                existingTask.area = area;
+                existingTask.project_id = projectId ? parseInt(projectId, 10) : null;
+                existingTask.project_name = projectName;
+                existingTask.is_pinned = isPinned;
+                existingTask.is_daily_objective = isObj;
+                existingTask.objective_date = objDate;
+                existingTask.start_date = startDate;
+                existingTask.due_date = dueDate;
+                existingTask.tags = [...this.currentTags];
+                existingTask.assigned_users = assignedUserObjects;
+                existingTask.attachments = readyAttachments;
+                existingTask.in_flight_count = inFlightAttachments.length;
+                existingTask.drive_folder_id = driveFolderId;
+                existingTask.drive_folder_url = driveFolderUrl;
+
+                const oldCard = document.getElementById(`tm-task-${taskId}`);
+                if (oldCard) {
+                    const newCard = this.createCardElement(existingTask);
+                    oldCard.replaceWith(newCard);
+                }
+            }
+            this.showToast('Cambios guardados', 'success');
+        }
+
+        // 3. ENVÍO ASÍNCRONO AL SERVIDOR
         fetch('modules/task_manager/ajax.php', {
             method: 'POST',
             body: formData
         })
         .then(r => r.json())
         .then(data => {
-            if(data.success) {
-                this.closeModal('tm-modal-task');
-                this.loadContextData();
-                this.loadTasks();
-                if (this.currentView === 'daily') {
-                    this.renderDailyView();
+            if (data.success) {
+                const realTaskId = data.task_id || taskId;
+
+                // Vincular subidas en vuelo con el nuevo task_id
+                if (this.activeUploads && inFlightAttachments.length > 0) {
+                    inFlightAttachments.forEach(att => {
+                        const rec = this.activeUploads.get(att.id);
+                        if (rec) {
+                            rec.linkedTaskId = realTaskId;
+                            if (rec.finished && rec.success && rec.result) {
+                                this.syncAttachmentToTask(realTaskId, rec.result);
+                            }
+                        }
+                    });
                 }
+
+                if (!isEdit) {
+                    const t = this.tasks.find(x => x.id === optId);
+                    if (t) {
+                        t.id = realTaskId;
+                        delete t.is_optimistic;
+                    }
+
+                    const optCard = document.getElementById(`tm-task-${optId}`);
+                    if (optCard) {
+                        optCard.id = `tm-task-${realTaskId}`;
+                        optCard.dataset.id = realTaskId;
+                        optCard.classList.remove('is-optimistic');
+                        const savingBadge = optCard.querySelector('.tm-badge-saving');
+                        if (savingBadge) savingBadge.remove();
+                        optCard.onclick = () => this.openEditModalById(realTaskId);
+                    }
+                }
+
+                this.loadTasksSilently();
             } else {
-                alert("Error: " + data.error);
+                if (!isEdit) {
+                    this.tasks = this.tasks.filter(x => x.id !== optId);
+                    const optCard = document.getElementById(`tm-task-${optId}`);
+                    if (optCard) optCard.remove();
+                }
+                alert("Error al guardar tarea: " + data.error);
             }
+        })
+        .catch(err => {
+            console.error("Save task error:", err);
         });
     },
 
@@ -2996,6 +3408,506 @@ const TM = {
                 this.loadTasks();
             } else alert(data.error);
         });
+    },
+
+    // ══════════════════════════════════════════════════════
+    // Attachments, Drag & Drop, Clipboard Paste & Lightbox
+    // ══════════════════════════════════════════════════════
+    initAttachmentHandlers: function() {
+        const modal = document.getElementById('tm-modal-task');
+        const dragOverlay = document.getElementById('tm-modal-drag-overlay');
+        const dropzone = document.getElementById('tm-app-dropzone');
+
+        // 1. Clipboard paste (Ctrl + V)
+        window.addEventListener('paste', (e) => {
+            if (!modal || modal.style.display === 'none') return;
+            
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (!clipboardData) return;
+
+            const items = clipboardData.items;
+            if (!items) return;
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type && items[i].type.indexOf('image') !== -1) {
+                    const file = items[i].getAsFile();
+                    if (file) {
+                        e.preventDefault();
+                        const timeStamp = new Date().toISOString().replace(/[-:T\.]/g, '').substring(0, 14);
+                        this.uploadFile(file, 'captura_' + timeStamp + '.png');
+                        break;
+                    }
+                }
+            }
+        });
+
+        // 2. Drag & Drop on whole modal window
+        if (modal) {
+            let dragCounter = 0;
+
+            modal.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                dragCounter++;
+                if (dragOverlay && dragCounter === 1) {
+                    dragOverlay.style.display = 'flex';
+                }
+            });
+
+            modal.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            modal.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dragCounter--;
+                if (dragOverlay && dragCounter <= 0) {
+                    dragCounter = 0;
+                    dragOverlay.style.display = 'none';
+                }
+            });
+
+            modal.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dragCounter = 0;
+                if (dragOverlay) dragOverlay.style.display = 'none';
+                if (dropzone) dropzone.classList.remove('drag-over');
+
+                const files = e.dataTransfer ? e.dataTransfer.files : null;
+                if (files && files.length > 0) {
+                    Array.from(files).forEach(f => this.uploadFile(f));
+                }
+            });
+        }
+
+        // 3. Dropzone specific drag hover
+        if (dropzone) {
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('drag-over');
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('drag-over');
+            });
+        }
+
+        // 4. Close header date popover on outside click
+        document.addEventListener('click', (e) => {
+            const popover = document.getElementById('tm-objective-date-panel');
+            const trigger = document.getElementById('tm-header-date-trigger');
+            if (popover && popover.style.display !== 'none') {
+                if (!popover.contains(e.target) && !trigger?.contains(e.target)) {
+                    popover.style.display = 'none';
+                }
+            }
+        });
+    },
+
+    handleFileInputChange: function(event) {
+        const files = event.target.files;
+        if (files && files.length > 0) {
+            Array.from(files).forEach(f => this.uploadFile(f));
+        }
+        event.target.value = '';
+    },
+
+    setDriveBarState: function(folderId, folderUrl) {
+        const idInput = document.getElementById('tm-drive-folder-id');
+        const urlInput = document.getElementById('tm-drive-folder-url');
+        const btnCreate = document.getElementById('tm-btn-create-drive');
+        const groupConnected = document.getElementById('tm-drive-connected-group');
+        const btnOpen = document.getElementById('tm-btn-open-drive');
+        const desc = document.getElementById('tm-drive-desc');
+
+        if (idInput) idInput.value = folderId || '';
+        if (urlInput) urlInput.value = folderUrl || '';
+
+        if (folderId) {
+            if (btnCreate) btnCreate.style.display = 'none';
+            if (groupConnected) groupConnected.style.display = 'flex';
+            if (btnOpen) {
+                btnOpen.href = folderUrl || `https://drive.google.com/drive/folders/${folderId}`;
+                btnOpen.style.display = 'inline-flex';
+            }
+            if (desc) desc.textContent = 'Carpeta conectada. Todos los archivos se suben a Google Drive (0 Bytes en servidor).';
+        } else {
+            if (btnCreate) {
+                btnCreate.style.display = 'inline-flex';
+                btnCreate.disabled = false;
+                btnCreate.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive';
+            }
+            if (groupConnected) groupConnected.style.display = 'none';
+            if (btnOpen) btnOpen.style.display = 'none';
+            if (desc) desc.textContent = 'Almacena archivos pesados y proyectos Adobe sin saturar el servidor';
+        }
+    },
+
+    createTaskDriveFolder: function() {
+        const taskId = document.getElementById('tm-task-id')?.value || '';
+        const titleInput = document.getElementById('tm-title');
+        const taskTitle = (titleInput?.value || '').trim() || 'Nueva Tarea';
+        const btn = document.getElementById('tm-btn-create-drive');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Conectando...';
+        }
+
+        const formData = new FormData();
+        formData.append('action_type', 'create_task_drive_folder');
+        if (taskId) formData.append('task_id', taskId);
+        formData.append('title', taskTitle);
+
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.folder_id) {
+                this.setDriveBarState(data.folder_id, data.folder_url);
+            } else {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive';
+                }
+                alert(data.error || 'No se pudo crear la carpeta en Google Drive.');
+            }
+        })
+        .catch(err => {
+            console.error('Error creando carpeta en Drive:', err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive';
+            }
+            alert('Error de red al conectar con Google Drive.');
+        });
+    },
+
+    uploadFile: function(file, customName = null) {
+        if (!this.activeUploads) this.activeUploads = new Map();
+
+        const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        const fileName = customName || file.name || 'archivo_adjunto';
+        const ext = (fileName.split('.').pop() || '').toLowerCase();
+
+        const adobeMap = {
+            'psd':   { app: 'ps', badge: 'Ps', name: 'Photoshop', color: '#31A8FF' },
+            'psb':   { app: 'ps', badge: 'Ps', name: 'Photoshop Big', color: '#31A8FF' },
+            'ai':    { app: 'ai', badge: 'Ai', name: 'Illustrator', color: '#FF9A00' },
+            'eps':   { app: 'ai', badge: 'Ai', name: 'Illustrator EPS', color: '#FF9A00' },
+            'ait':   { app: 'ai', badge: 'Ai', name: 'Illustrator Template', color: '#FF9A00' },
+            'indd':  { app: 'id', badge: 'Id', name: 'InDesign', color: '#FF3366' },
+            'idml':  { app: 'id', badge: 'Id', name: 'InDesign Markup', color: '#FF3366' },
+            'indt':  { app: 'id', badge: 'Id', name: 'InDesign Template', color: '#FF3366' },
+            'prproj':{ app: 'pr', badge: 'Pr', name: 'Premiere Pro', color: '#9999FF' },
+            'mogrt': { app: 'pr', badge: 'Pr', name: 'Premiere MOGRT', color: '#9999FF' },
+            'aep':   { app: 'ae', badge: 'Ae', name: 'After Effects', color: '#CF96FD' },
+            'aepx':  { app: 'ae', badge: 'Ae', name: 'After Effects XML', color: '#CF96FD' },
+            'xd':    { app: 'xd', badge: 'Xd', name: 'Adobe XD', color: '#FF61F6' },
+            'sesx':  { app: 'au', badge: 'Au', name: 'Audition', color: '#00E4BB' },
+            'dng':   { app: 'lr', badge: 'Lr', name: 'Lightroom Raw', color: '#31A8FF' },
+            'lrcat': { app: 'lr', badge: 'Lr', name: 'Lightroom Catalog', color: '#31A8FF' },
+            'pdf':   { app: 'pdf', badge: 'PDF', name: 'Adobe Acrobat PDF', color: '#FF2D2D' }
+        };
+
+        const isAdobe = Boolean(adobeMap[ext]);
+        const isImg = !isAdobe && (file.type ? file.type.startsWith('image/') : /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName));
+        const driveFolderId = document.getElementById('tm-drive-folder-id')?.value || '';
+        const currentTaskId = document.getElementById('tm-task-id')?.value || '';
+
+        const tempItem = {
+            id: tempId,
+            name: fileName,
+            url: isImg ? URL.createObjectURL(file) : '',
+            type: isAdobe ? 'adobe' : (isImg ? 'image' : 'document'),
+            adobe_app: isAdobe ? adobeMap[ext].app : null,
+            adobe_badge: isAdobe ? adobeMap[ext].badge : null,
+            adobe_name: isAdobe ? adobeMap[ext].name : null,
+            adobe_color: isAdobe ? adobeMap[ext].color : null,
+            ext: ext,
+            size: file.size > 1048576 ? (file.size / 1048576).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB',
+            storage: driveFolderId ? 'drive' : 'local',
+            isUploading: true
+        };
+
+        this.currentAttachments.push(tempItem);
+        this.renderAttachments();
+
+        const uploadRecord = {
+            tempId: tempId,
+            file: file,
+            fileName: fileName,
+            linkedTaskId: currentTaskId || null,
+            finished: false,
+            success: false,
+            result: null
+        };
+        this.activeUploads.set(tempId, uploadRecord);
+
+        const formData = new FormData();
+        formData.append('action_type', 'upload_task_attachment');
+        formData.append('file', file, fileName);
+        if (driveFolderId) {
+            formData.append('drive_folder_id', driveFolderId);
+        }
+        if (currentTaskId) {
+            formData.append('task_id', currentTaskId);
+        }
+
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            uploadRecord.finished = true;
+            const idx = this.currentAttachments.findIndex(a => a.id === tempId);
+
+            if (data.success && data.file) {
+                uploadRecord.success = true;
+                uploadRecord.result = data.file;
+
+                if (idx !== -1) {
+                    this.currentAttachments[idx] = data.file;
+                } else {
+                    this.currentAttachments.push(data.file);
+                }
+                this.renderAttachments();
+
+                // Si el usuario guardó la tarea mientras se subía el archivo
+                if (uploadRecord.linkedTaskId) {
+                    this.syncAttachmentToTask(uploadRecord.linkedTaskId, data.file);
+                }
+            } else {
+                uploadRecord.success = false;
+                if (idx !== -1) this.currentAttachments.splice(idx, 1);
+                this.renderAttachments();
+                this.showToast('Error al subir ' + fileName + ': ' + (data.error || 'Desconocido'), 'error');
+            }
+        })
+        .catch(err => {
+            uploadRecord.finished = true;
+            uploadRecord.success = false;
+            const idx = this.currentAttachments.findIndex(a => a.id === tempId);
+            if (idx !== -1) this.currentAttachments.splice(idx, 1);
+            this.renderAttachments();
+            console.error("Upload error:", err);
+            this.showToast('Error de red al subir ' + fileName, 'error');
+        });
+    },
+
+    removeAttachment: function(id, event) {
+        if (event) event.stopPropagation();
+        this.currentAttachments = this.currentAttachments.filter(a => a.id !== id);
+        this.renderAttachments();
+    },
+
+    renderAttachments: function() {
+        const grid = document.getElementById('tm-attachments-grid');
+        const countBadge = document.getElementById('tm-attachments-count');
+        const jsonInput = document.getElementById('tm-attachments-json');
+
+        if (!grid) return;
+
+        const count = (this.currentAttachments || []).length;
+        if (countBadge) countBadge.textContent = count;
+        if (jsonInput) jsonInput.value = JSON.stringify(this.currentAttachments || []);
+
+        if (count === 0) {
+            grid.innerHTML = '';
+            grid.style.display = 'none';
+            return;
+        }
+
+        const adobeMap = {
+            'psd':   { app: 'ps', badge: 'Ps', name: 'Photoshop', color: '#31A8FF' },
+            'psb':   { app: 'ps', badge: 'Ps', name: 'Photoshop Big', color: '#31A8FF' },
+            'ai':    { app: 'ai', badge: 'Ai', name: 'Illustrator', color: '#FF9A00' },
+            'eps':   { app: 'ai', badge: 'Ai', name: 'Illustrator EPS', color: '#FF9A00' },
+            'ait':   { app: 'ai', badge: 'Ai', name: 'Illustrator Template', color: '#FF9A00' },
+            'indd':  { app: 'id', badge: 'Id', name: 'InDesign', color: '#FF3366' },
+            'idml':  { app: 'id', badge: 'Id', name: 'InDesign Markup', color: '#FF3366' },
+            'indt':  { app: 'id', badge: 'Id', name: 'InDesign Template', color: '#FF3366' },
+            'prproj':{ app: 'pr', badge: 'Pr', name: 'Premiere Pro', color: '#9999FF' },
+            'mogrt': { app: 'pr', badge: 'Pr', name: 'Premiere MOGRT', color: '#9999FF' },
+            'aep':   { app: 'ae', badge: 'Ae', name: 'After Effects', color: '#CF96FD' },
+            'aepx':  { app: 'ae', badge: 'Ae', name: 'After Effects XML', color: '#CF96FD' },
+            'xd':    { app: 'xd', badge: 'Xd', name: 'Adobe XD', color: '#FF61F6' },
+            'sesx':  { app: 'au', badge: 'Au', name: 'Audition', color: '#00E4BB' },
+            'dng':   { app: 'lr', badge: 'Lr', name: 'Lightroom Raw', color: '#31A8FF' },
+            'lrcat': { app: 'lr', badge: 'Lr', name: 'Lightroom Catalog', color: '#31A8FF' },
+            'pdf':   { app: 'pdf', badge: 'PDF', name: 'Adobe Acrobat PDF', color: '#FF2D2D' }
+        };
+
+        grid.style.display = 'grid';
+        grid.innerHTML = (this.currentAttachments || []).map(att => {
+            const ext = (att.ext || (att.name ? att.name.split('.').pop() : '')).toLowerCase();
+            const isAdobe = att.type === 'adobe' || Boolean(adobeMap[ext]);
+            const isImg = !isAdobe && (att.type === 'image' || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext));
+            const safeName = this.escapeHtml(att.name || 'Archivo');
+            const safeSize = this.escapeHtml(att.size || '');
+            const safeUrl = this.escapeHtml(att.url || '#');
+            const downloadUrl = this.escapeHtml(att.download_url || att.url || '#');
+            const isDrive = att.storage === 'drive';
+
+            const storageBadge = isDrive
+                ? `<span class="tm-att-storage-chip drive" title="Almacenado en Google Drive sin ocupar espacio en servidor"><i class="ph-bold ph-cloud-check"></i> Drive</span>`
+                : `<span class="tm-att-storage-chip local" title="Almacenado localmente en servidor"><i class="ph ph-hard-drive"></i> Local</span>`;
+
+            if (isAdobe) {
+                const info = adobeMap[ext] || { app: 'ps', badge: 'Adobe', name: 'Adobe Document', color: '#ff0000' };
+                const badgeClass = `adobe-${info.app}`;
+                return `
+                    <div class="tm-attachment-card ${att.isUploading ? 'is-uploading' : ''}" title="${safeName} (${safeSize}) - Formato Adobe">
+                        <div class="tm-attachment-adobe" onclick="window.open('${safeUrl}', '_blank')">
+                            <div class="tm-adobe-logo-badge ${badgeClass}">${info.badge}</div>
+                            <span class="tm-adobe-app-name">${this.escapeHtml(info.name)}</span>
+                            <div class="tm-attachment-overlay">
+                                ${!att.isUploading ? `
+                                    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="tm-att-btn view" onclick="event.stopPropagation()" title="Abrir en ${isDrive ? 'Google Drive' : 'nueva pestaña'}">
+                                        <i class="ph-bold ph-arrow-square-out"></i>
+                                    </a>
+                                    <a href="${downloadUrl}" download="${safeName}" class="tm-att-btn download" onclick="event.stopPropagation()" title="Descargar proyecto Adobe">
+                                        <i class="ph-bold ph-download-simple"></i>
+                                    </a>
+                                    <button type="button" class="tm-att-btn del" onclick="TM.removeAttachment('${att.id}', event)" title="Eliminar archivo">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span style="color:#ffffff; font-size:0.75rem; font-weight:700;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo a Drive...</span>
+                                `}
+                            </div>
+                        </div>
+                        <div class="tm-attachment-meta">
+                            <span class="tm-attachment-name" title="${safeName}">${safeName}</span>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                ${storageBadge}
+                                <span class="tm-attachment-size">${safeSize}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (isImg) {
+                return `
+                    <div class="tm-attachment-card ${att.isUploading ? 'is-uploading' : ''}" title="${safeName} (${safeSize})">
+                        <div class="tm-attachment-thumb-wrap" onclick="TM.openImageViewer('${safeUrl}', '${safeName}', '${safeSize}')">
+                            <img src="${safeUrl}" alt="${safeName}" class="tm-attachment-thumb-img" loading="lazy">
+                            <div class="tm-attachment-overlay">
+                                ${!att.isUploading ? `
+                                    <button type="button" class="tm-att-btn view" onclick="event.stopPropagation(); TM.openImageViewer('${safeUrl}', '${safeName}', '${safeSize}')" title="Ver imagen completa">
+                                        <i class="ph-bold ph-eye"></i>
+                                    </button>
+                                    <a href="${downloadUrl}" download="${safeName}" class="tm-att-btn download" onclick="event.stopPropagation()" title="Descargar imagen">
+                                        <i class="ph-bold ph-download-simple"></i>
+                                    </a>
+                                    <button type="button" class="tm-att-btn del" onclick="TM.removeAttachment('${att.id}', event)" title="Eliminar archivo">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span style="color:#ffffff; font-size:0.75rem; font-weight:700;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo...</span>
+                                `}
+                            </div>
+                        </div>
+                        <div class="tm-attachment-meta">
+                            <span class="tm-attachment-name" title="${safeName}">${safeName}</span>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                ${storageBadge}
+                                <span class="tm-attachment-size">${safeSize}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let docIcon = 'ph-file-text';
+                if (['doc', 'docx'].includes(ext)) docIcon = 'ph-file-doc';
+                else if (['xls', 'xlsx', 'csv'].includes(ext)) docIcon = 'ph-file-xls';
+                else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) docIcon = 'ph-file-zip';
+                else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) docIcon = 'ph-file-video';
+                else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) docIcon = 'ph-file-audio';
+
+                return `
+                    <div class="tm-attachment-card ${att.isUploading ? 'is-uploading' : ''}" title="${safeName} (${safeSize})">
+                        <div class="tm-attachment-doc" onclick="window.open('${safeUrl}', '_blank')">
+                            <i class="ph-bold ${docIcon} tm-attachment-doc-icon"></i>
+                            <div class="tm-attachment-overlay">
+                                ${!att.isUploading ? `
+                                    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="tm-att-btn view" onclick="event.stopPropagation()" title="Abrir archivo">
+                                        <i class="ph-bold ph-arrow-square-out"></i>
+                                    </a>
+                                    <a href="${downloadUrl}" download="${safeName}" class="tm-att-btn download" onclick="event.stopPropagation()" title="Descargar">
+                                        <i class="ph-bold ph-download-simple"></i>
+                                    </a>
+                                    <button type="button" class="tm-att-btn del" onclick="TM.removeAttachment('${att.id}', event)" title="Eliminar archivo">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span style="color:#ffffff; font-size:0.75rem; font-weight:700;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo...</span>
+                                `}
+                            </div>
+                        </div>
+                        <div class="tm-attachment-meta">
+                            <span class="tm-attachment-name" title="${safeName}">${safeName}</span>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                ${storageBadge}
+                                <span class="tm-attachment-size">${safeSize}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+    },
+
+    // ══════════════════════════════════════════════════════
+    // Lightbox / Image Viewer Methods
+    // ══════════════════════════════════════════════════════
+    openImageViewer: function(url, title = 'Vista previa', size = '') {
+        const viewer = document.getElementById('tm-image-viewer');
+        const img = document.getElementById('tm-iv-img');
+        const titleEl = document.getElementById('tm-iv-title');
+        const sizeEl = document.getElementById('tm-iv-size');
+        const downloadEl = document.getElementById('tm-iv-download');
+
+        if (!viewer || !img) return;
+
+        this.imageViewerZoom = 1;
+        img.style.transform = `scale(${this.imageViewerZoom})`;
+        img.src = url;
+
+        if (titleEl) titleEl.textContent = title;
+        if (sizeEl) sizeEl.textContent = size;
+        if (downloadEl) {
+            downloadEl.href = url;
+            downloadEl.download = title;
+        }
+        const zoomText = document.getElementById('tm-iv-zoom-level');
+        if (zoomText) zoomText.textContent = '100%';
+
+        viewer.style.display = 'flex';
+    },
+
+    closeImageViewer: function() {
+        const viewer = document.getElementById('tm-image-viewer');
+        const img = document.getElementById('tm-iv-img');
+        if (viewer) viewer.style.display = 'none';
+        if (img) img.src = '';
+        this.imageViewerZoom = 1;
+    },
+
+    zoomImageViewer: function(delta) {
+        this.imageViewerZoom = Math.max(0.4, Math.min(3.5, this.imageViewerZoom + delta));
+        const img = document.getElementById('tm-iv-img');
+        const zoomText = document.getElementById('tm-iv-zoom-level');
+        if (img) img.style.transform = `scale(${this.imageViewerZoom.toFixed(2)})`;
+        if (zoomText) zoomText.textContent = Math.round(this.imageViewerZoom * 100) + '%';
+    },
+
+    resetImageViewerZoom: function() {
+        this.imageViewerZoom = 1;
+        const img = document.getElementById('tm-iv-img');
+        const zoomText = document.getElementById('tm-iv-zoom-level');
+        if (img) img.style.transform = 'scale(1)';
+        if (zoomText) zoomText.textContent = '100%';
     },
 
     // ══════════════════════════════════════════════════════

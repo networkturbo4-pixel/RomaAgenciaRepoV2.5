@@ -1,6 +1,0 @@
-﻿<?php
-session_start();
-$_SESSION['user_id'] = 1;
-$_POST = ['id' => 1, 'start_date' => '2026-08-01', 'due_date' => '2026-08-31'];
-require 'c:/xampp/htdocs/CESARMENDOZA/modules/project_board/ajax_update_month.php';
-

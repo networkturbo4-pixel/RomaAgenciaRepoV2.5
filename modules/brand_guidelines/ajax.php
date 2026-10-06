@@ -55,6 +55,100 @@ if ($action === 'verify_password') {
     }
 }
 
+// GOOGLE FONTS: CATALOG & SEARCH (Using Google Fonts API)
+if ($action === 'google_fonts') {
+    $search = trim($_GET['search'] ?? ($_POST['search'] ?? ''));
+    $limit = (int)($_GET['limit'] ?? 100);
+    if ($limit <= 0 || $limit > 500) $limit = 80;
+
+    $cacheDir = __DIR__ . '/cache';
+    $cacheFile = $cacheDir . '/google_fonts.json';
+
+    $fontsList = [];
+
+    // Check if cache exists and is fresh (7 days)
+    if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < 7 * 86400)) {
+        $raw = file_get_contents($cacheFile);
+        $fontsList = json_decode($raw, true) ?: [];
+    }
+
+    // If cache missing or empty, fetch from Google Fonts API
+    if (empty($fontsList)) {
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+        $apiKey = 'AIzaSyBhP4cYhShSd2uWVNAEuL1ntvcquGjLm3g';
+        $apiUrl = "https://www.googleapis.com/webfonts/v1/webfonts?key={$apiKey}&sort=popularity";
+        
+        $ctx = stream_context_create([
+            'http' => ['timeout' => 8, 'ignore_errors' => true],
+            'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
+        ]);
+        $response = @file_get_contents($apiUrl, false, $ctx);
+        
+        if ($response) {
+            $apiData = json_decode($response, true);
+            if (!empty($apiData['items']) && is_array($apiData['items'])) {
+                foreach ($apiData['items'] as $item) {
+                    $fontsList[] = [
+                        'family' => $item['family'],
+                        'category' => $item['category'] ?? 'sans-serif',
+                        'variants' => $item['variants'] ?? ['regular', '700']
+                    ];
+                }
+                @file_put_contents($cacheFile, json_encode($fontsList, JSON_UNESCAPED_UNICODE));
+            }
+        }
+    }
+
+    // Fallback if API couldn't be reached
+    if (empty($fontsList)) {
+        $popular = [
+            ['family' => 'Inter', 'category' => 'sans-serif', 'variants' => ['100','200','300','regular','500','600','700','800','900']],
+            ['family' => 'Roboto', 'category' => 'sans-serif', 'variants' => ['100','300','regular','500','700','900']],
+            ['family' => 'Open Sans', 'category' => 'sans-serif', 'variants' => ['300','regular','500','600','700','800']],
+            ['family' => 'Montserrat', 'category' => 'sans-serif', 'variants' => ['100','200','300','regular','500','600','700','800','900']],
+            ['family' => 'Poppins', 'category' => 'sans-serif', 'variants' => ['100','200','300','regular','500','600','700','800','900']],
+            ['family' => 'Lato', 'category' => 'sans-serif', 'variants' => ['100','300','regular','700','900']],
+            ['family' => 'Outfit', 'category' => 'sans-serif', 'variants' => ['100','200','300','regular','500','600','700','800','900']],
+            ['family' => 'Plus Jakarta Sans', 'category' => 'sans-serif', 'variants' => ['200','300','regular','500','600','700','800']],
+            ['family' => 'Playfair Display', 'category' => 'serif', 'variants' => ['regular','500','600','700','800','900']],
+            ['family' => 'Oswald', 'category' => 'sans-serif', 'variants' => ['200','300','regular','500','600','700']],
+            ['family' => 'Raleway', 'category' => 'sans-serif', 'variants' => ['100','200','300','regular','500','600','700','800','900']],
+            ['family' => 'Nunito', 'category' => 'sans-serif', 'variants' => ['200','300','regular','600','700','800','900']],
+            ['family' => 'Work Sans', 'category' => 'sans-serif', 'variants' => ['100','200','300','regular','500','600','700','800','900']],
+            ['family' => 'DM Sans', 'category' => 'sans-serif', 'variants' => ['regular','500','700']],
+            ['family' => 'Rubik', 'category' => 'sans-serif', 'variants' => ['300','regular','500','600','700','800','900']],
+            ['family' => 'Merriweather', 'category' => 'serif', 'variants' => ['300','regular','700','900']],
+            ['family' => 'Lora', 'category' => 'serif', 'variants' => ['regular','500','600','700']],
+            ['family' => 'Syne', 'category' => 'sans-serif', 'variants' => ['regular','500','600','700','800']],
+            ['family' => 'Space Grotesk', 'category' => 'sans-serif', 'variants' => ['300','regular','500','600','700']],
+            ['family' => 'Fira Code', 'category' => 'monospace', 'variants' => ['300','regular','500','600','700']],
+            ['family' => 'Cinzel', 'category' => 'serif', 'variants' => ['regular','500','600','700','800','900']]
+        ];
+        $fontsList = $popular;
+    }
+
+    if (!empty($search)) {
+        $filtered = [];
+        $searchLower = mb_strtolower($search);
+        foreach ($fontsList as $item) {
+            if (mb_strpos(mb_strtolower($item['family']), $searchLower) !== false) {
+                $filtered[] = $item;
+                if (count($filtered) >= $limit) break;
+            }
+        }
+        $fontsList = $filtered;
+    } else {
+        $fontsList = array_slice($fontsList, 0, $limit);
+    }
+
+    bg_json_response([
+        'success' => true,
+        'fonts' => $fontsList
+    ]);
+}
+
 // For all administrative actions, enforce CRM user login
 if (!isset($_SESSION['user_id'])) {
     bg_json_response(['success' => false, 'message' => 'No autorizado. Debes iniciar sesión en el CRM.'], 401);
@@ -465,10 +559,34 @@ if ($action === 'save') {
     }
     $finalColorsJson = json_encode($finalColors, JSON_UNESCAPED_UNICODE);
 
-    // Clean Fonts JSON
-    $decodedFonts = json_decode($fontsJson, true);
-    if (!is_array($decodedFonts)) $decodedFonts = [];
-    $finalFontsJson = json_encode($decodedFonts, JSON_UNESCAPED_UNICODE);
+    // Clean Fonts JSON + file uploads + Google Drive
+    $postedFonts = !empty($_POST['fonts_data']) ? json_decode($_POST['fonts_data'], true) : (!empty($_POST['fonts_json']) ? json_decode($_POST['fonts_json'], true) : []);
+    if (!is_array($postedFonts)) $postedFonts = [];
+
+    $finalFonts = [];
+    foreach ($postedFonts as $idx => $fntItem) {
+        $fileKey = 'font_file_' . $idx;
+        $fileUrl = $fntItem['file_url'] ?? '';
+
+        if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
+            $up = bg_handle_upload($_FILES[$fileKey], 'fonts');
+            if ($up) $fileUrl = $up;
+        }
+
+        if (!empty($fntItem['name'])) {
+            $source = $fntItem['source'] ?? (!empty($fileUrl) ? 'custom' : 'google');
+            $finalFonts[] = [
+                'source' => in_array($source, ['google', 'custom']) ? $source : 'google',
+                'name' => trim($fntItem['name']),
+                'role' => trim($fntItem['role'] ?? 'Titulares'),
+                'weights' => trim($fntItem['weights'] ?? 'Regular 400, Bold 700'),
+                'usage' => trim($fntItem['usage'] ?? ''),
+                'file_url' => $fileUrl,
+                'category' => trim($fntItem['category'] ?? 'sans-serif')
+            ];
+        }
+    }
+    $finalFontsJson = json_encode($finalFonts, JSON_UNESCAPED_UNICODE);
 
     // Clean Values JSON
     $decodedValues = json_decode($valuesJson, true);

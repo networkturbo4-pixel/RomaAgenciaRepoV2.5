@@ -10,4 +10,5 @@ node_modules/
 scratch/
 backups/
 uploads/
-
+modules/brand_guidelines/cache/
+*.sql

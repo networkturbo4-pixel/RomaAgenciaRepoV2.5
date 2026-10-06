@@ -88,7 +88,7 @@ if (!function_exists('bg_handle_upload')) {
             return null;
         }
 
-        $allowedExts = ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif', 'pdf', 'eps', 'ai'];
+        $allowedExts = ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif', 'pdf', 'eps', 'ai', 'ttf', 'otf', 'woff', 'woff2'];
         $ext = strtolower(pathinfo($fileArray['name'], PATHINFO_EXTENSION));
 
         if (!in_array($ext, $allowedExts)) {
@@ -111,3 +111,169 @@ if (!function_exists('bg_handle_upload')) {
         return null;
     }
 }
+
+if (!function_exists('bg_asset_url')) {
+    function bg_asset_url($path) {
+        if (empty($path)) return '';
+        if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0 || strpos($path, 'data:') === 0) {
+            return $path;
+        }
+        $baseUrl = rtrim(bg_get_base_url(), '/');
+        return $baseUrl . '/' . ltrim($path, '/');
+    }
+}
+
+if (!function_exists('bg_img_to_base64')) {
+    function bg_img_to_base64($relativePath, $maxDim = 1000) {
+        if (empty($relativePath)) return null;
+
+        // If already base64 data uri
+        if (strpos($relativePath, 'data:') === 0) {
+            return $relativePath;
+        }
+
+        $cacheDir = __DIR__ . '/../../uploads/brand_guidelines/cache/';
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+
+        // Helper to optimize raster image to max dimension
+        $optimizeRaster = function($srcPath) use ($maxDim, $cacheDir) {
+            if (!file_exists($srcPath)) return null;
+            $info = @getimagesize($srcPath);
+            if (!$info) return null;
+            $w = $info[0];
+            $h = $info[1];
+            $mime = $info['mime'] ?? 'image/png';
+
+            // If already within reasonable dimensions, return directly
+            if ($w <= $maxDim && $h <= $maxDim) {
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($srcPath));
+            }
+
+            // Check cache
+            $cacheFile = $cacheDir . 'thumb_' . $maxDim . '_' . md5($srcPath . filemtime($srcPath)) . '.png';
+            if (file_exists($cacheFile)) {
+                return 'data:image/png;base64,' . base64_encode(file_get_contents($cacheFile));
+            }
+
+            // Calculate scaled dimensions
+            if ($w > $h) {
+                $nw = $maxDim;
+                $nh = (int)round(($h * $maxDim) / $w);
+            } else {
+                $nh = $maxDim;
+                $nw = (int)round(($w * $maxDim) / $h);
+            }
+
+            $srcImg = null;
+            if ($mime === 'image/png') {
+                $srcImg = @imagecreatefrompng($srcPath);
+            } elseif ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+                $srcImg = @imagecreatefromjpeg($srcPath);
+            } elseif ($mime === 'image/webp') {
+                $srcImg = @imagecreatefromwebp($srcPath);
+            }
+
+            if (!$srcImg) {
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($srcPath));
+            }
+
+            $dstImg = imagecreatetruecolor($nw, $nh);
+            imagealphablending($dstImg, false);
+            imagesavealpha($dstImg, true);
+            $trans = imagecolorallocatealpha($dstImg, 255, 255, 255, 127);
+            imagefilledrectangle($dstImg, 0, 0, $nw, $nh, $trans);
+
+            imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            imagedestroy($srcImg);
+
+            imagepng($dstImg, $cacheFile, 6);
+            imagedestroy($dstImg);
+
+            if (file_exists($cacheFile)) {
+                return 'data:image/png;base64,' . base64_encode(file_get_contents($cacheFile));
+            }
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($srcPath));
+        };
+
+        // 1. Google Drive proxy URL
+        if (strpos($relativePath, 'drive_proxy.php') !== false) {
+            $parts = parse_url($relativePath);
+            if (!empty($parts['query'])) {
+                parse_str($parts['query'], $q);
+                if (!empty($q['id'])) {
+                    require_once __DIR__ . '/../../includes/GoogleDriveHelper.php';
+                    $drive = new GoogleDriveHelper();
+                    if ($drive->isConfigured()) {
+                        $content = $drive->streamFile($q['id']);
+                        if ($content) {
+                            $tempFile = tempnam(sys_get_temp_dir(), 'bg_drv_');
+                            file_put_contents($tempFile, $content);
+                            $finfo = new finfo(FILEINFO_MIME_TYPE);
+                            $mime = $finfo->buffer($content) ?: 'image/png';
+                            if ($mime === 'image/svg+xml') {
+                                @unlink($tempFile);
+                                return 'data:' . $mime . ';base64,' . base64_encode($content);
+                            }
+                            $opt = $optimizeRaster($tempFile);
+                            @unlink($tempFile);
+                            return $opt ?: ('data:' . $mime . ';base64,' . base64_encode($content));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Local File
+        $clean = str_replace(['../', '..\\'], '', $relativePath);
+        $fullPath = realpath(__DIR__ . '/../../' . ltrim($clean, '/'));
+        if ($fullPath && file_exists($fullPath)) {
+            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            if ($ext === 'svg') {
+                return 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($fullPath));
+            }
+            return $optimizeRaster($fullPath);
+        }
+
+        // 3. Remote URL fallback
+        if (strpos($relativePath, 'http://') === 0 || strpos($relativePath, 'https://') === 0) {
+            $ctx = stream_context_create([
+                "ssl" => [
+                    "verify_peer" => false,
+                    "verify_peer_name" => false,
+                ]
+            ]);
+            $data = @file_get_contents($relativePath, false, $ctx);
+            if ($data) {
+                $tempFile = tempnam(sys_get_temp_dir(), 'bg_rem_');
+                file_put_contents($tempFile, $data);
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mime = $finfo->buffer($data) ?: 'image/png';
+                if ($mime === 'image/svg+xml') {
+                    @unlink($tempFile);
+                    return 'data:' . $mime . ';base64,' . base64_encode($data);
+                }
+                $opt = $optimizeRaster($tempFile);
+                @unlink($tempFile);
+                return $opt ?: ('data:' . $mime . ';base64,' . base64_encode($data));
+            }
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('bg_get_system_settings')) {
+    function bg_get_system_settings($db) {
+        $settings = [];
+        try {
+            $stmt = $db->query("SELECT setting_key, setting_value FROM settings");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $settings[$row['setting_key']] = $row['setting_value'];
+            }
+        } catch (Throwable $e) {}
+        return $settings;
+    }
+}
+

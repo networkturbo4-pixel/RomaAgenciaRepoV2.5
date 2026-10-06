@@ -4,7 +4,9 @@
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         
         try {
-            const basePath = window.location.pathname.includes('/CESARMENDOZA/') ? '/CESARMENDOZA/' : '/';
+            const pLower = window.location.pathname.toLowerCase();
+            const idx = pLower.indexOf('/cesarmendoza');
+            const basePath = idx !== -1 ? window.location.pathname.substring(0, idx + 13) + '/' : '/';
             const registration = await navigator.serviceWorker.register(basePath + 'service-worker.js');
             
             // Check if already subscribed

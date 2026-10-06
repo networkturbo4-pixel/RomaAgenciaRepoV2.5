@@ -10,6 +10,11 @@ class GoogleDriveHelper {
 
     public function __construct() {
         global $db;
+        if (!$db) {
+            require_once __DIR__ . '/../config/database.php';
+            $database = new Database();
+            $db = $database->getConnection();
+        }
         $this->client = new \Google_Client();
         
         try {

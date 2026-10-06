@@ -387,402 +387,556 @@ try {
 <!-- ═══════════════════════════════════════════════════ -->
 <!-- MODAL: CREAR / EDITAR TAREA                         -->
 <!-- ═══════════════════════════════════════════════════ -->
-<div class="tm-modal-overlay" id="tm-modal-task" style="display:none;">
-    <div class="lumio-modal lumio-modal-wide">
+<div class="tm-modal-overlay tm-app-modal-overlay" id="tm-modal-task" style="display:none;" onclick="if(event.target===this)TM.closeModal('tm-modal-task')">
+    <!-- Overlay visual cuando se arrastran archivos sobre la ventana -->
+    <div class="tm-modal-drag-overlay" id="tm-modal-drag-overlay" style="display:none;">
+        <div class="tm-modal-drag-content">
+            <div class="tm-mdo-icon-wrap"><i class="ph-bold ph-file-arrow-up"></i></div>
+            <h4>Suelta tus imágenes o documentos aquí</h4>
+            <p>Se subirán y adjuntarán automáticamente a esta tarea</p>
+        </div>
+    </div>
+
+    <div class="lumio-modal lumio-modal-wide tm-app-modal-window">
         <div class="lumio-accent-bar" id="tm-modal-accent"></div>
-        <form id="form-task" onsubmit="TM.saveTask(event)" class="lumio-form">
+        <form id="form-task" onsubmit="TM.saveTask(event)" class="lumio-form tm-app-form">
             <input type="hidden" id="tm-task-id">
             <select id="tm-assigned-roles" multiple style="display:none;"></select>
 
-            <!-- Header -->
-            <div class="lumio-header">
-                <div class="lumio-header-left">
-                    <button type="button" class="lumio-icon-btn lumio-close-btn" onclick="TM.closeModal('tm-modal-task')"><i class="ph ph-x"></i></button>
-                    <h3 id="tm-modal-title" style="margin:0; font-size:1.2rem; font-weight:700;">Nueva Tarea</h3>
+            <!-- Header Superior Estilo App Moderna con Modos Especiales Fijados -->
+            <div class="lumio-header tm-app-modal-header">
+                <div class="lumio-header-left tm-app-header-left">
+                    <button type="button" class="lumio-icon-btn lumio-close-btn tm-app-icon-btn" onclick="TM.closeModal('tm-modal-task')" title="Cerrar modal (Esc)">
+                        <i class="ph ph-x"></i>
+                    </button>
+                    <div class="tm-app-header-titles">
+                        <h3 id="tm-modal-title" class="tm-app-modal-title">Nueva Tarea</h3>
+                        <span class="tm-app-badge-tag"><i class="ph-bold ph-kanban"></i> Gestor de Tareas</span>
+                        <span class="lumio-task-id-badge" id="tm-task-id-badge" style="display:none;"></span>
+                    </div>
                 </div>
-                <div class="lumio-header-right" id="tm-edit-actions" style="display:none;">
-                    <span class="lumio-task-id-badge" id="tm-task-id-badge"></span>
-                    <button type="button" class="lumio-icon-btn lumio-action-btn" onclick="TM.archiveTask()" title="Archivar Tarea"><i class="ph ph-archive"></i></button>
-                    <button type="button" class="lumio-icon-btn lumio-action-btn lumio-danger-btn" onclick="TM.deleteTask()" title="Eliminar Tarea"><i class="ph ph-trash"></i></button>
-                </div>
-            </div>
 
-            <!-- Body -->
-            <div class="lumio-body">
-                <input type="text" id="tm-title" class="lumio-title" placeholder="¿Qué necesitas lograr? Escribe el título aquí..." required>
-                <input type="hidden" id="tm-desc">
-
-                <div class="lumio-meta-grid">
-                    <!-- Frecuencia (Fila 1 - Col 1) -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-repeat"></i> Frecuencia</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-frequency" class="lumio-pill-select" onchange="TM.onFrequencyChange(this.value)">
-                                <option value="one_time">Puntual / Por Entrega</option>
-                                <option value="daily">Diaria (Recurrente)</option>
-                                <option value="weekly">Semanal</option>
-                            </select>
+                <!-- Modos Especiales FIJADOS en la Cabecera (Meta del Día & Fijar en Tablero) - En una sola línea sin card -->
+                <div class="tm-app-header-center">
+                    <!-- Meta del Día -->
+                    <div class="tm-header-inline-toggle tm-objective-card" id="tm-objective-card" onclick="TM.toggleDailyObjectiveFromCard(event)" title="Fijar como meta principal del día">
+                        <i class="ph-bold ph-target tm-header-toggle-icon"></i>
+                        <span class="tm-header-toggle-label">Meta del Día</span>
+                        <span class="tm-objective-badge" id="tm-objective-badge" style="display:none;">Prioritaria</span>
+                        <span class="tm-objective-subtitle" id="tm-objective-text" style="display:none;"></span>
+                        <!-- Botón selector de fecha rápida de la meta -->
+                        <div class="tm-hsp-date-badge" id="tm-header-date-trigger" onclick="event.stopPropagation(); TM.toggleObjectiveDateDropdown();" style="display:none;" title="Seleccionar fecha de la meta">
+                            <i class="ph-bold ph-calendar-blank"></i>
+                            <span id="tm-header-date-display">Hoy</span>
                         </div>
+                        <label class="tm-switch tm-switch-inline tm-switch-objective" onclick="event.stopPropagation()" title="Activar / Desactivar Objetivo Diario">
+                            <input type="checkbox" id="tm-is-daily-objective" onchange="TM.onDailyObjectiveToggle(this.checked)">
+                            <span class="tm-slider"></span>
+                        </label>
                     </div>
 
-                    <!-- Área / Especialidad (Fila 1 - Col 2) -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-briefcase"></i> Área</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-area" class="lumio-pill-select" onchange="TM.onAreaChange(this.value)">
-                                <option value="general">General / Operativa</option>
-                                <option value="desarrollo_marca">Desarrollo de Marca</option>
-                                <option value="desarrollo_web">Desarrollo Web</option>
-                                <option value="audiovisual">Audiovisual</option>
-                                <option value="pizarras">Pizarras</option>
-                            </select>
-                        </div>
+                    <div class="tm-header-inline-divider"></div>
+
+                    <!-- Fijar en Tablero -->
+                    <div class="tm-header-inline-toggle tm-pinned-card" id="tm-pinned-card" onclick="TM.togglePinnedFromCard(event)" title="Anclar arriba y repetir a diario">
+                        <i class="ph-bold ph-push-pin tm-header-toggle-icon"></i>
+                        <span class="tm-header-toggle-label">Fijar en Tablero</span>
+                        <span class="tm-objective-badge tm-pinned-badge-active" id="tm-pinned-badge" style="display:none;">Fijada</span>
+                        <span class="tm-objective-subtitle" id="tm-pinned-text" style="display:none;"></span>
+                        <label class="tm-switch tm-switch-inline tm-switch-pinned" onclick="event.stopPropagation()" title="Fijar en el tablero y repetir a diario">
+                            <input type="checkbox" id="tm-is-pinned" onchange="TM.onPinnedToggle(this.checked)">
+                            <span class="tm-slider"></span>
+                        </label>
                     </div>
 
-                    <!-- Es Objetivo Diario (Fila 2 - Col 1) -->
-                    <div class="lumio-meta-row tm-objective-field-container">
-                        <div class="lumio-meta-label"><i class="ph ph-target"></i> Objetivo Diario</div>
-                        <div class="tm-objective-card" id="tm-objective-card">
-                            <div class="tm-objective-header" onclick="TM.toggleDailyObjectiveFromCard(event)">
-                                <div class="tm-objective-info">
-                                    <div class="tm-objective-icon-badge">
-                                        <i class="ph-bold ph-target"></i>
-                                    </div>
-                                    <div class="tm-objective-texts">
-                                        <div class="tm-objective-title-line">
-                                            <span class="tm-objective-title">Meta del Día</span>
-                                            <span class="tm-objective-badge" id="tm-objective-badge" style="display:none;">Prioritaria</span>
-                                        </div>
-                                        <span class="tm-objective-subtitle" id="tm-objective-text">Fijar como meta principal del día</span>
-                                    </div>
-                                </div>
-                                <label class="tm-switch tm-switch-objective" title="Activar / Desactivar Objetivo Diario" onclick="event.stopPropagation()">
-                                    <input type="checkbox" id="tm-is-daily-objective" onchange="TM.onDailyObjectiveToggle(this.checked)">
-                                    <span class="tm-slider"></span>
-                                </label>
-                            </div>
-
-                            <!-- Panel Interactivo de Fecha de Objetivo -->
-                            <div class="tm-objective-date-panel" id="tm-objective-date-panel" style="display:none;">
-                                <div class="tm-objective-shortcuts">
-                                    <button type="button" class="tm-obj-pill-btn active" id="btn-obj-today" onclick="TM.setObjectiveQuickDate('today')">
-                                        <i class="ph-bold ph-calendar-check"></i> Hoy
-                                    </button>
-                                    <button type="button" class="tm-obj-pill-btn" id="btn-obj-tomorrow" onclick="TM.setObjectiveQuickDate('tomorrow')">
-                                        <i class="ph-bold ph-calendar-plus"></i> Mañana
-                                    </button>
-                                    <button type="button" class="tm-obj-pill-btn" id="btn-obj-custom" onclick="TM.openObjectiveDatePicker()">
-                                        <i class="ph-bold ph-calendar"></i> Otra Fecha
-                                    </button>
-                                </div>
-                                <div class="tm-objective-date-input-wrap" onclick="TM.openObjectiveDatePicker()">
-                                    <i class="ph-bold ph-calendar-blank tm-objective-calendar-icon"></i>
-                                    <input type="text" id="tm-objective-date-display" class="tm-objective-date-input" placeholder="Seleccionar fecha de meta..." readonly>
-                                    <input type="hidden" id="tm-objective-date">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Fijar Tarea (Fila 2 - Col 2) -->
-                    <div class="lumio-meta-row tm-pinned-field-container">
-                        <div class="lumio-meta-label"><i class="ph-bold ph-push-pin"></i> Fijar Tarea</div>
-                        <div class="tm-objective-card tm-pinned-card" id="tm-pinned-card" onclick="TM.togglePinnedFromCard(event)">
-                            <div class="tm-objective-header">
-                                <div class="tm-objective-info">
-                                    <div class="tm-objective-icon-badge tm-pinned-icon-badge">
-                                        <i class="ph-bold ph-push-pin"></i>
-                                    </div>
-                                    <div class="tm-objective-texts">
-                                        <div class="tm-objective-title-line">
-                                            <span class="tm-objective-title">Fijar en Tablero</span>
-                                            <span class="tm-objective-badge tm-pinned-badge-active" id="tm-pinned-badge" style="display:none;">Fijada</span>
-                                        </div>
-                                        <span class="tm-objective-subtitle" id="tm-pinned-text">Anclar arriba y repetir a diario</span>
-                                    </div>
-                                </div>
-                                <label class="tm-switch tm-switch-pinned" title="Fijar en el tablero y repetir diariamente" onclick="event.stopPropagation()">
-                                    <input type="checkbox" id="tm-is-pinned" onchange="TM.onPinnedToggle(this.checked)">
-                                    <span class="tm-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pizarra Vinculada (Módulo Pizarras) -->
-                    <div class="lumio-meta-row" id="row-whiteboard" style="display:none; grid-column: 1 / -1;">
-                        <div class="lumio-meta-label"><i class="ph ph-chalkboard-simple"></i> Pizarra</div>
-                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
-                            <select id="tm-whiteboard-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onWhiteboardChange(this.value)">
-                                <option value="">-- Sin Vincular / Seleccionar Pizarra --</option>
-                            </select>
-                            <button type="button" id="btn-open-whiteboard" class="tm-btn-open-ext" onclick="TM.openLinkedWhiteboard()" title="Abrir Pizarra en nueva pestaña" style="display:none;">
-                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                    <!-- Panel Flotante de Selección de Fecha de Meta -->
+                    <div class="tm-objective-date-panel tm-app-header-date-popover" id="tm-objective-date-panel" style="display:none;">
+                        <div class="tm-objective-shortcuts">
+                            <button type="button" class="tm-obj-pill-btn active" id="btn-obj-today" onclick="TM.setObjectiveQuickDate('today')">
+                                <i class="ph-bold ph-calendar-check"></i> Hoy
+                            </button>
+                            <button type="button" class="tm-obj-pill-btn" id="btn-obj-tomorrow" onclick="TM.setObjectiveQuickDate('tomorrow')">
+                                <i class="ph-bold ph-calendar-plus"></i> Mañana
+                            </button>
+                            <button type="button" class="tm-obj-pill-btn" id="btn-obj-custom" onclick="TM.openObjectiveDatePicker()">
+                                <i class="ph-bold ph-calendar"></i> Otra Fecha
                             </button>
                         </div>
-                    </div>
-
-                    <!-- Proyecto de Marca (Condicional para Desarrollo de Marca) -->
-                    <div class="lumio-meta-row" id="row-brand-project" style="display:none;">
-                        <div class="lumio-meta-label"><i class="ph ph-paint-brush"></i> Proy. Marca</div>
-                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
-                            <select id="tm-brand-project-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onBrandProjectChange(this.value)">
-                                <option value="">-- Seleccionar Identidad / Marca --</option>
-                            </select>
-                            <button type="button" id="btn-open-brand" class="tm-btn-open-ext" onclick="TM.openLinkedBrand()" title="Abrir Proyecto de Marca en nueva pestaña" style="display:none;">
-                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
-                            </button>
+                        <div class="tm-objective-date-input-wrap" onclick="TM.openObjectiveDatePicker()">
+                            <i class="ph-bold ph-calendar-blank tm-objective-calendar-icon"></i>
+                            <input type="text" id="tm-objective-date-display" class="tm-objective-date-input" placeholder="Seleccionar fecha..." readonly>
+                            <input type="hidden" id="tm-objective-date">
                         </div>
-                    </div>
-
-                    <!-- Fase / Grupo de Marca (Condicional para Desarrollo de Marca) -->
-                    <div class="lumio-meta-row" id="row-brand-group" style="display:none;">
-                        <div class="lumio-meta-label"><i class="ph ph-git-branch"></i> Fase / Etapa</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-brand-group-id" class="lumio-pill-select" onchange="TM.onBrandGroupChange(this.value)">
-                                <option value="">-- Seleccionar Fase de Marca --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Proyecto Activo (Para Calendario / General / Web) -->
-                    <div class="lumio-meta-row" id="row-project">
-                        <div class="lumio-meta-label"><i class="ph ph-folder"></i> Proyecto</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-project-id" class="lumio-pill-select" onchange="TM.onProjectChange(this.value)">
-                                <option value="">-- Sin Vincular / General --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Mes de Calendario Activo (Para Calendario / Marketing) -->
-                    <div class="lumio-meta-row" id="row-calendar-month">
-                        <div class="lumio-meta-label"><i class="ph ph-calendar-blank"></i> Mes Activo</div>
-                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
-                            <select id="tm-project-month-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onProjectMonthChange(this.value)">
-                                <option value="">-- Seleccionar Mes de Calendario --</option>
-                            </select>
-                            <button type="button" id="btn-open-month" class="tm-btn-open-ext" onclick="TM.openLinkedMonth()" title="Abrir Mes en Tablero" style="display:none;">
-                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Servicio / Entregable Web y Audiovisual (Condicional) -->
-                    <div class="lumio-meta-row" id="row-project-service" style="display:none;">
-                        <div class="lumio-meta-label"><i class="ph ph-gear"></i> Servicio Web/Audio</div>
-                        <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
-                            <select id="tm-project-service-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onProjectServiceChange(this.value)">
-                                <option value="">-- Seleccionar Servicio / Entregable --</option>
-                            </select>
-                            <button type="button" id="btn-open-service" class="tm-btn-open-ext" onclick="TM.openLinkedService()" title="Abrir Servicio en nueva pestaña" style="display:none;">
-                                <i class="ph-bold ph-arrow-square-out"></i> Abrir
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Panel Interactivo de Sincronización de Procesos y Tiempos -->
-                    <div id="tm-sync-panel" class="tm-sync-card" style="display:none;">
-                        <div class="tm-sync-card-header">
-                            <div class="tm-sync-badge-title">
-                                <i class="ph-bold ph-arrows-clockwise"></i>
-                                <span>Sincronización en Vivo</span>
-                            </div>
-                            <span id="tm-sync-entity-type-badge" class="tm-sync-chip">Mes de Calendario</span>
-                        </div>
-                        
-                        <div class="tm-sync-card-body">
-                            <!-- Fecha Límite y Cronómetro del Proyecto Padre -->
-                            <div class="tm-sync-timing-grid">
-                                <div class="tm-sync-timing-item">
-                                    <span class="tm-sync-small-label"><i class="ph ph-calendar-check"></i> Plazo del Proyecto:</span>
-                                    <span id="tm-sync-parent-deadline" class="tm-sync-deadline-val">--</span>
-                                </div>
-                                <div class="tm-sync-timing-item">
-                                    <span class="tm-sync-small-label"><i class="ph ph-hourglass-high"></i> Cronómetro del Proyecto:</span>
-                                    <div id="tm-sync-parent-timer" class="tm-timer-pill" data-due="" data-start="" data-status="">
-                                        <i class="ph-fill ph-hourglass-high"></i>
-                                        <span class="timer-text">Calculando...</span>
-                                    </div>
-                                </div>
-                                <button type="button" class="tm-btn-sync-action" onclick="TM.syncWithProjectDeadline()" title="Heredar y aplicar esta fecha a la tarea">
-                                    <i class="ph-bold ph-calendar-plus"></i> Sincronizar fecha
-                                </button>
-                            </div>
-
-                            <!-- Alerta de desfase (si la tarea vence después del proyecto) -->
-                            <div id="tm-sync-drift-alert" class="tm-sync-drift-alert" style="display:none;">
-                                <i class="ph-bold ph-warning-circle"></i>
-                                <span><strong>Desfase detectado:</strong> La fecha de esta tarea excede el límite del proyecto vinculado.</span>
-                            </div>
-
-                            <!-- Fase de Proceso del Proyecto Padre con selector en vivo -->
-                            <div class="tm-sync-phase-row">
-                                <div class="tm-sync-phase-label">
-                                    <i class="ph ph-git-branch"></i> <span>Fase de Proceso del Proyecto:</span>
-                                </div>
-                                <div class="tm-sync-phase-controls">
-                                    <select id="tm-sync-phase-select" class="lumio-pill-select" onchange="TM.onSyncPhaseSelectChange(this.value)">
-                                        <!-- Opciones dinámicas según tipo de proyecto -->
-                                    </select>
-                                    <button type="button" class="tm-btn-phase-save" onclick="TM.saveEntityProcessPhase()" title="Actualizar la fase en el módulo vinculado">
-                                        <i class="ph-bold ph-check"></i> Actualizar Fase
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Fecha de Inicio -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-calendar-plus"></i> Fecha de Inicio</div>
-                        <div class="lumio-meta-value">
-                            <div class="lumio-date-trigger" onclick="document.getElementById('tm-start-date').focus()">
-                                <input type="text" id="tm-start-date" placeholder="Seleccionar fecha de inicio..." readonly>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Fecha Límite -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-calendar-blank"></i> Fecha Límite</div>
-                        <div class="lumio-meta-value" style="display: flex; align-items: center; gap: 8px;">
-                            <div class="lumio-date-trigger" style="flex: 1;" onclick="document.getElementById('tm-due-date').focus()">
-                                <input type="text" id="tm-due-date" placeholder="Seleccionar fecha..." readonly onchange="TM.checkDeadlineDrift()">
-                            </div>
-                            <div id="tm-modal-task-timer" class="tm-timer-pill" data-due="" style="display:none;">
-                                <i class="ph-fill ph-hourglass-high"></i>
-                                <span class="timer-text">Calculando...</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Prioridad -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-flag"></i> Prioridad</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-priority" class="lumio-pill-select priority-pill">
-                                <option value="low">Baja</option>
-                                <option value="medium" selected>Media</option>
-                                <option value="high">Alta</option>
-                                <option value="urgent">Urgente</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Estado -->
-                    <div class="lumio-meta-row">
-                        <div class="lumio-meta-label"><i class="ph ph-circle-dashed"></i> Estado</div>
-                        <div class="lumio-meta-value">
-                            <select id="tm-status" class="lumio-pill-select status-pill">
-                                <option value="new" selected>Nuevo</option>
-                                <option value="pending">Pendiente / En Curso</option>
-                                <option value="completed">Terminado</option>
-                                <option value="approved">Aprobado</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Asignados -->
-                    <div class="lumio-meta-row tm-assigned-meta-row">
-                        <div class="lumio-meta-label">
-                            <i class="ph ph-users-three"></i> Asignados
-                            <span class="tm-meta-counter-badge" id="tm-assigned-count">0</span>
-                        </div>
-                        <div class="tm-assigned-card" id="tm-assigned-container">
-                            <!-- Chips de personas asignadas -->
-                            <div class="tm-assigned-chips" id="tm-assigned-chips"></div>
-
-                            <!-- Selector desplegable de personas para asignar -->
-                            <div class="tm-assigned-select-row">
-                                <div class="tm-assigned-select-wrap">
-                                    <i class="ph ph-user-plus tm-assigned-select-icon"></i>
-                                    <select id="tm-user-select-add" class="tm-assigned-select" onchange="TM.onUserSelectChange(this.value)">
-                                        <option value="">+ Asignar a un miembro del equipo...</option>
-                                        <?php foreach ($users as $u): ?>
-                                            <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['name']); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Barra de Asignados al Proyecto vinculado -->
-                            <div class="tm-project-members-bar" id="tm-project-members-bar" style="display:none;">
-                                <div class="tm-pm-header">
-                                    <span class="tm-pm-title"><i class="ph-bold ph-buildings"></i> Asignados al proyecto:</span>
-                                    <button type="button" class="tm-btn-assign-all-pm" onclick="TM.assignAllProjectMembers()" title="Asignar todos los miembros del proyecto a la tarea">
-                                        <i class="ph-bold ph-check-all"></i> Asignar todos
-                                    </button>
-                                </div>
-                                <div class="tm-pm-chips" id="tm-project-members-chips"></div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="tm-assigned-users">
-                    </div>
-
-                    <!-- Etiquetas -->
-                    <div class="lumio-meta-row tm-tags-meta-row">
-                        <div class="lumio-meta-label">
-                            <i class="ph ph-tag"></i> Etiquetas
-                            <span class="tm-meta-counter-badge" id="tm-tags-count">0</span>
-                        </div>
-                        <div class="tm-tags-card" id="tm-tags-container">
-                            <!-- Chips de etiquetas activas (con editar y borrar) -->
-                            <div class="tm-tags-chips-wrap" id="tm-tags-chips-wrap"></div>
-
-                            <!-- Input para crear nueva etiqueta -->
-                            <div class="tm-tags-create-row">
-                                <div class="tm-tags-input-box">
-                                    <i class="ph ph-tag tm-tags-input-icon"></i>
-                                    <input type="text" id="tm-tag-new-input" placeholder="Escribe una etiqueta y presiona Enter..." onkeydown="TM.onTagInputKeydown(event)">
-                                </div>
-                                <button type="button" class="tm-btn-add-tag" onclick="TM.addTagFromInput()" title="Agregar etiqueta">
-                                    <i class="ph-bold ph-plus"></i> Agregar
-                                </button>
-                            </div>
-
-                            <!-- Sugerencias rápidas con 1 clic -->
-                            <div class="tm-tags-suggestions-row">
-                                <span class="tm-tags-sug-label"><i class="ph ph-sparkle"></i> Frecuentes:</span>
-                                <div class="tm-tags-sug-pills" id="tm-tags-sug-pills"></div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="tm-tags">
                     </div>
                 </div>
 
-                <!-- Tabs -->
-                <div class="lumio-tabs-nav" data-modal="task">
-                    <button type="button" class="lumio-tab active" data-tab="0" onclick="TM.switchTab(this)"><i class="ph ph-text-align-left"></i> Detalles</button>
-                    <button type="button" class="lumio-tab" data-tab="1" onclick="TM.switchTab(this)"><i class="ph ph-list-checks"></i> Subtareas</button>
-                </div>
-                
-                <!-- Panel 0: Detalles -->
-                <div class="lumio-tab-panel active" data-panel="0">
-                    <div class="lumio-details-area">
-                        <label class="lumio-section-label"><i class="ph ph-article"></i> Descripción y Criterios de Aceptación</label>
-                        <div id="tm-desc-editor" class="lumio-quill-editor"></div>
-                    </div>
-                </div>
-
-                <!-- Panel 1: Subtareas -->
-                <div class="lumio-tab-panel" data-panel="1" style="display:none;">
-                    <div class="lumio-details-area">
-                        <label class="lumio-section-label"><i class="ph ph-list-checks"></i> Subtareas & Checklist</label>
-                        <div id="tm-subtasks-list" class="lumio-dynamic-subtasks"></div>
-                        <button type="button" class="lumio-add-subtask-btn" onclick="TM.addSubtaskInput()">
-                            <i class="ph ph-plus-circle"></i> Añadir subtarea
+                <div class="lumio-header-right tm-app-header-right">
+                    <div id="tm-edit-actions" class="tm-app-edit-actions" style="display:none;">
+                        <button type="button" class="lumio-icon-btn lumio-action-btn tm-app-btn-archive" onclick="TM.archiveTask()" title="Archivar Tarea">
+                            <i class="ph ph-archive"></i> <span>Archivar</span>
+                        </button>
+                        <button type="button" class="lumio-icon-btn lumio-action-btn lumio-danger-btn tm-app-btn-delete" onclick="TM.deleteTask()" title="Eliminar Tarea">
+                            <i class="ph ph-trash"></i> <span>Eliminar</span>
                         </button>
                     </div>
+                    <button type="button" class="lumio-icon-btn tm-app-icon-btn" id="btn-toggle-modal-size" onclick="TM.toggleModalSize()" title="Alternar tamaño completo">
+                        <i class="ph ph-arrows-out-simple"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Footer -->
-            <div class="lumio-footer">
-                <button type="button" class="lumio-cancel-btn" onclick="TM.closeModal('tm-modal-task')">Cancelar</button>
-                <button type="submit" class="lumio-submit" id="tm-submit-btn"><i class="ph ph-check-circle"></i> Guardar Tarea</button>
+            <!-- Body: Grid Split 2 Columnas Estilo App Profesional -->
+            <div class="lumio-body tm-app-modal-body">
+                <div class="tm-app-modal-grid">
+                    
+                    <!-- COLUMNA PRINCIPAL (Izquierda: Título, Panel de Sincronización, Editor Quill, Adjuntos, Subtareas) -->
+                    <div class="tm-app-modal-main">
+                        
+                        <!-- Input de Título Principal con estilo App Documental -->
+                        <div class="tm-app-title-wrapper">
+                            <input type="text" id="tm-title" class="lumio-title tm-app-title-field" 
+                                placeholder="¿Qué necesitas lograr? Escribe el título aquí..." required autocomplete="off">
+                            <input type="hidden" id="tm-desc">
+                        </div>
+
+                        <!-- Panel de Sincronización en Vivo (Condicional) -->
+                        <div id="tm-sync-panel" class="tm-sync-card tm-app-sync-card" style="display:none;">
+                            <div class="tm-sync-card-header">
+                                <div class="tm-sync-badge-title">
+                                    <i class="ph-bold ph-arrows-clockwise"></i>
+                                    <span>Sincronización en Vivo</span>
+                                </div>
+                                <span id="tm-sync-entity-type-badge" class="tm-sync-chip">Mes de Calendario</span>
+                            </div>
+                            
+                            <div class="tm-sync-card-body">
+                                <div class="tm-sync-timing-grid">
+                                    <div class="tm-sync-timing-item">
+                                        <span class="tm-sync-small-label"><i class="ph ph-calendar-check"></i> Plazo del Proyecto:</span>
+                                        <span id="tm-sync-parent-deadline" class="tm-sync-deadline-val">--</span>
+                                    </div>
+                                    <div class="tm-sync-timing-item">
+                                        <span class="tm-sync-small-label"><i class="ph ph-hourglass-high"></i> Cronómetro del Proyecto:</span>
+                                        <div id="tm-sync-parent-timer" class="tm-timer-pill" data-due="" data-start="" data-status="">
+                                            <i class="ph-fill ph-hourglass-high"></i>
+                                            <span class="timer-text">Calculando...</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="tm-btn-sync-action" onclick="TM.syncWithProjectDeadline()" title="Heredar y aplicar esta fecha a la tarea">
+                                        <i class="ph-bold ph-calendar-plus"></i> Sincronizar fecha
+                                    </button>
+                                </div>
+
+                                <div id="tm-sync-drift-alert" class="tm-sync-drift-alert" style="display:none;">
+                                    <i class="ph-bold ph-warning-circle"></i>
+                                    <span><strong>Desfase detectado:</strong> La fecha de esta tarea excede el límite del proyecto vinculado.</span>
+                                </div>
+
+                                <div class="tm-sync-phase-row">
+                                    <div class="tm-sync-phase-label">
+                                        <i class="ph ph-git-branch"></i> <span>Fase de Proceso del Proyecto:</span>
+                                    </div>
+                                    <div class="tm-sync-phase-controls">
+                                        <select id="tm-sync-phase-select" class="lumio-pill-select" onchange="TM.onSyncPhaseSelectChange(this.value)">
+                                            <!-- Opciones dinámicas -->
+                                        </select>
+                                        <button type="button" class="tm-btn-phase-save" onclick="TM.saveEntityProcessPhase()" title="Actualizar la fase en el módulo vinculado">
+                                            <i class="ph-bold ph-check"></i> Actualizar Fase
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pestañas de Contenido (Tabs) -->
+                        <div class="lumio-tabs-nav tm-app-tabs-nav" data-modal="task">
+                            <button type="button" class="lumio-tab active tm-app-tab-btn" data-tab="0" onclick="TM.switchTab(this)">
+                                <i class="ph-bold ph-text-align-left"></i> <span>Descripción y Criterios</span>
+                            </button>
+                            <button type="button" class="lumio-tab tm-app-tab-btn" data-tab="1" onclick="TM.switchTab(this)">
+                                <i class="ph-bold ph-list-checks"></i> <span>Subtareas & Checklist</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Panel 0: Descripción con Editor Enriquecido Quill -->
+                        <div class="lumio-tab-panel active tm-app-tab-panel" data-panel="0">
+                            <div class="lumio-details-area tm-app-details-area">
+                                <label class="lumio-section-label tm-app-section-title">
+                                    <i class="ph-bold ph-article"></i> Descripción y Criterios de Aceptación
+                                </label>
+                                <div id="tm-desc-editor" class="lumio-quill-editor tm-app-quill-container"></div>
+                            </div>
+                        </div>
+
+                        <!-- Panel 1: Subtareas & Checklist dinámico -->
+                        <div class="lumio-tab-panel tm-app-tab-panel" data-panel="1" style="display:none;">
+                            <div class="lumio-details-area tm-app-details-area">
+                                <div class="tm-app-subtasks-header">
+                                    <label class="lumio-section-label tm-app-section-title" style="margin:0;">
+                                        <i class="ph-bold ph-list-checks"></i> Subtareas & Checklist
+                                    </label>
+                                    <button type="button" class="lumio-add-subtask-btn tm-app-add-subtask-inline" onclick="TM.addSubtaskInput()">
+                                        <i class="ph-bold ph-plus-circle"></i> Añadir subtarea
+                                    </button>
+                                </div>
+                                <div id="tm-subtasks-list" class="lumio-dynamic-subtasks tm-app-dynamic-subtasks"></div>
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN DE ARCHIVOS Y ADJUNTOS (Google Drive + Formatos Adobe + Ctrl+V) -->
+                        <div class="tm-app-attachments-section">
+                            <div class="tm-app-attachments-header">
+                                <label class="lumio-section-label tm-app-section-title" style="margin:0;">
+                                    <i class="ph-bold ph-paperclip"></i> Archivos y Adjuntos 
+                                    <span class="tm-meta-counter-badge" id="tm-attachments-count">0</span>
+                                </label>
+                                <span class="tm-app-attachments-hint">
+                                    <kbd class="tm-kbd">Ctrl + V</kbd> para pegar captura o arrastra aquí
+                                </span>
+                            </div>
+
+                            <!-- Barra de Integración Google Drive (Almacenamiento Cloud sin saturar servidor) -->
+                            <div class="tm-app-drive-bar" id="tm-drive-bar">
+                                <div class="tm-drive-bar-left">
+                                    <div class="tm-drive-logo-icon">
+                                        <svg viewBox="0 0 87.3 78" width="22" height="22">
+                                            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                            <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
+                                            <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                                            <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                            <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                            <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                        </svg>
+                                    </div>
+                                    <div class="tm-drive-info">
+                                        <div class="tm-drive-title-row">
+                                            <span class="tm-drive-title">Google Drive</span>
+                                            <span class="tm-drive-chip">Nube · 0 Bytes Servidor</span>
+                                        </div>
+                                        <span class="tm-drive-desc" id="tm-drive-desc">Almacena archivos pesados y proyectos Adobe sin saturar el servidor</span>
+                                    </div>
+                                </div>
+                                <div class="tm-drive-bar-right">
+                                    <!-- Botón Crear Carpeta (Desconectado) -->
+                                    <button type="button" class="tm-btn-drive-connect" id="tm-btn-create-drive" onclick="TM.createTaskDriveFolder()">
+                                        <i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive
+                                    </button>
+                                    <!-- Grupo Conectado -->
+                                    <div class="tm-drive-connected-group" id="tm-drive-connected-group" style="display:none;">
+                                        <span class="tm-drive-badge-synced">
+                                            <i class="ph-fill ph-check-circle"></i> Carpeta Activa
+                                        </span>
+                                        <a href="#" target="_blank" rel="noopener noreferrer" class="tm-btn-drive-open" id="tm-btn-open-drive" title="Abrir carpeta de la tarea en Google Drive">
+                                            <i class="ph-bold ph-arrow-square-out"></i> Abrir en Drive
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="tm-drive-folder-id" value="">
+                            <input type="hidden" id="tm-drive-folder-url" value="">
+
+                            <!-- Dropzone de arrastrar y soltar -->
+                            <div class="tm-app-dropzone" id="tm-app-dropzone" onclick="document.getElementById('tm-file-input').click()">
+                                <input type="file" id="tm-file-input" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.psd,.psb,.ai,.eps,.ait,.indd,.idml,.indt,.prproj,.mogrt,.aep,.aepx,.xd,.sesx,.dng,.lrcat,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.7z,.mp4,.mov" style="display:none;" onchange="TM.handleFileInputChange(event)">
+                                <div class="tm-dropzone-inner">
+                                    <div class="tm-dropzone-icon-circle">
+                                        <i class="ph-bold ph-cloud-arrow-up"></i>
+                                    </div>
+                                    <div class="tm-dropzone-texts">
+                                        <span class="tm-dropzone-title"><strong>Haz clic para subir</strong> o arrastra archivos aquí</span>
+                                        <span class="tm-dropzone-sub">Compatible con <strong>Formatos Adobe</strong> (PSD, AI, InDesign, Premiere, After Effects, XD, PDF) e imágenes/docs • Soporta <kbd class="tm-kbd">Ctrl+V</kbd></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Grid de Miniaturas y Archivos -->
+                            <div class="tm-app-attachments-grid" id="tm-attachments-grid"></div>
+                            <input type="hidden" id="tm-attachments-json" value="[]">
+                        </div>
+
+                    </div>
+
+                    <!-- COLUMNA LATERAL (Derecha: Inspector de Metadatos y Propiedades) -->
+                    <div class="tm-app-modal-sidebar">
+                        
+                        <!-- Bloque 1: Flujo de Trabajo (Estado & Prioridad) -->
+                        <div class="tm-app-sidebar-card">
+                            <div class="tm-app-sidebar-card-title">
+                                <i class="ph-bold ph-sliders"></i> Estado & Prioridad
+                            </div>
+                            <div class="tm-app-sidebar-grid-2">
+                                <div class="lumio-meta-row">
+                                    <div class="lumio-meta-label"><i class="ph ph-circle-dashed"></i> Estado</div>
+                                    <div class="lumio-meta-value">
+                                        <select id="tm-status" class="lumio-pill-select status-pill">
+                                            <option value="new" selected>Nuevo</option>
+                                            <option value="pending">Pendiente / En Curso</option>
+                                            <option value="completed">Terminado</option>
+                                            <option value="approved">Aprobado</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="lumio-meta-row">
+                                    <div class="lumio-meta-label"><i class="ph ph-flag"></i> Prioridad</div>
+                                    <div class="lumio-meta-value">
+                                        <select id="tm-priority" class="lumio-pill-select priority-pill">
+                                            <option value="low">Baja</option>
+                                            <option value="medium" selected>Media</option>
+                                            <option value="high">Alta</option>
+                                            <option value="urgent">Urgente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloque 2: Fechas & Cronómetro -->
+                        <div class="tm-app-sidebar-card">
+                            <div class="tm-app-sidebar-card-title">
+                                <i class="ph-bold ph-calendar"></i> Fechas & Cronómetro
+                            </div>
+                            <div class="tm-app-sidebar-grid-2">
+                                <div class="lumio-meta-row">
+                                    <div class="lumio-meta-label"><i class="ph ph-calendar-plus"></i> Fecha Inicio</div>
+                                    <div class="lumio-meta-value">
+                                        <div class="lumio-date-trigger" onclick="document.getElementById('tm-start-date').focus()">
+                                            <input type="text" id="tm-start-date" placeholder="Seleccionar..." readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="lumio-meta-row">
+                                    <div class="lumio-meta-label"><i class="ph ph-calendar-blank"></i> Fecha Límite</div>
+                                    <div class="lumio-meta-value" style="display: flex; align-items: center; gap: 6px;">
+                                        <div class="lumio-date-trigger" style="flex: 1;" onclick="document.getElementById('tm-due-date').focus()">
+                                            <input type="text" id="tm-due-date" placeholder="Seleccionar..." readonly onchange="TM.checkDeadlineDrift()">
+                                        </div>
+                                        <div id="tm-modal-task-timer" class="tm-timer-pill" data-due="" style="display:none;" title="Tiempo restante">
+                                            <i class="ph-fill ph-hourglass-high"></i>
+                                            <span class="timer-text">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloque 3: Miembros Asignados -->
+                        <div class="tm-app-sidebar-card tm-assigned-meta-row">
+                            <div class="tm-app-sidebar-card-title">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <i class="ph-bold ph-users-three"></i> Asignados
+                                </div>
+                                <span class="tm-meta-counter-badge" id="tm-assigned-count">0</span>
+                            </div>
+                            <div class="tm-assigned-card" id="tm-assigned-container">
+                                <!-- Chips de personas asignadas -->
+                                <div class="tm-assigned-chips" id="tm-assigned-chips"></div>
+
+                                <!-- Selector desplegable de personas para asignar -->
+                                <div class="tm-assigned-select-row">
+                                    <div class="tm-assigned-select-wrap">
+                                        <i class="ph ph-user-plus tm-assigned-select-icon"></i>
+                                        <select id="tm-user-select-add" class="tm-assigned-select" onchange="TM.onUserSelectChange(this.value)">
+                                            <option value="">+ Asignar a un miembro...</option>
+                                            <?php foreach ($users as $u): ?>
+                                                <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['name']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Barra de Asignados al Proyecto vinculado -->
+                                <div class="tm-project-members-bar" id="tm-project-members-bar" style="display:none;">
+                                    <div class="tm-pm-header">
+                                        <span class="tm-pm-title"><i class="ph-bold ph-buildings"></i> Del proyecto:</span>
+                                        <button type="button" class="tm-btn-assign-all-pm" onclick="TM.assignAllProjectMembers()" title="Asignar todos los miembros del proyecto a la tarea">
+                                            <i class="ph-bold ph-check-all"></i> Todos
+                                        </button>
+                                    </div>
+                                    <div class="tm-pm-chips" id="tm-project-members-chips"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="tm-assigned-users">
+                        </div>
+
+                        <!-- Bloque 4: Clasificación & Vinculación de Proyectos -->
+                        <div class="tm-app-sidebar-card">
+                            <div class="tm-app-sidebar-card-title">
+                                <i class="ph-bold ph-git-fork"></i> Clasificación & Contexto
+                            </div>
+                            <div class="tm-app-sidebar-stack">
+                                <div class="tm-app-sidebar-grid-2">
+                                    <div class="lumio-meta-row">
+                                        <div class="lumio-meta-label"><i class="ph ph-repeat"></i> Frecuencia</div>
+                                        <div class="lumio-meta-value">
+                                            <select id="tm-frequency" class="lumio-pill-select" onchange="TM.onFrequencyChange(this.value)">
+                                                <option value="one_time">Puntual / Por Entrega</option>
+                                                <option value="daily">Diaria (Recurrente)</option>
+                                                <option value="weekly">Semanal</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="lumio-meta-row">
+                                        <div class="lumio-meta-label"><i class="ph ph-briefcase"></i> Área</div>
+                                        <div class="lumio-meta-value">
+                                            <select id="tm-area" class="lumio-pill-select" onchange="TM.onAreaChange(this.value)">
+                                                <option value="general">General / Operativa</option>
+                                                <option value="desarrollo_marca">Desarrollo de Marca</option>
+                                                <option value="desarrollo_web">Desarrollo Web</option>
+                                                <option value="audiovisual">Audiovisual</option>
+                                                <option value="pizarras">Pizarras</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Proyecto Activo -->
+                                <div class="lumio-meta-row" id="row-project">
+                                    <div class="lumio-meta-label"><i class="ph ph-folder"></i> Proyecto Vinculado</div>
+                                    <div class="lumio-meta-value">
+                                        <select id="tm-project-id" class="lumio-pill-select" onchange="TM.onProjectChange(this.value)">
+                                            <option value="">-- Sin Vincular / General --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Mes de Calendario Activo -->
+                                <div class="lumio-meta-row" id="row-calendar-month">
+                                    <div class="lumio-meta-label"><i class="ph ph-calendar-blank"></i> Mes Activo</div>
+                                    <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                                        <select id="tm-project-month-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onProjectMonthChange(this.value)">
+                                            <option value="">-- Seleccionar Mes de Calendario --</option>
+                                        </select>
+                                        <button type="button" id="btn-open-month" class="tm-btn-open-ext" onclick="TM.openLinkedMonth()" title="Abrir Mes en Tablero" style="display:none;">
+                                            <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Proyecto de Marca (Condicional) -->
+                                <div class="lumio-meta-row" id="row-brand-project" style="display:none;">
+                                    <div class="lumio-meta-label"><i class="ph ph-paint-brush"></i> Proy. Marca</div>
+                                    <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                                        <select id="tm-brand-project-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onBrandProjectChange(this.value)">
+                                            <option value="">-- Seleccionar Identidad / Marca --</option>
+                                        </select>
+                                        <button type="button" id="btn-open-brand" class="tm-btn-open-ext" onclick="TM.openLinkedBrand()" title="Abrir Proyecto de Marca en nueva pestaña" style="display:none;">
+                                            <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Fase / Grupo de Marca (Condicional) -->
+                                <div class="lumio-meta-row" id="row-brand-group" style="display:none;">
+                                    <div class="lumio-meta-label"><i class="ph ph-git-branch"></i> Fase / Etapa</div>
+                                    <div class="lumio-meta-value">
+                                        <select id="tm-brand-group-id" class="lumio-pill-select" onchange="TM.onBrandGroupChange(this.value)">
+                                            <option value="">-- Seleccionar Fase de Marca --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Servicio Web/Audiovisual (Condicional) -->
+                                <div class="lumio-meta-row" id="row-project-service" style="display:none;">
+                                    <div class="lumio-meta-label"><i class="ph ph-gear"></i> Servicio Web/Audio</div>
+                                    <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                                        <select id="tm-project-service-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onProjectServiceChange(this.value)">
+                                            <option value="">-- Seleccionar Servicio / Entregable --</option>
+                                        </select>
+                                        <button type="button" id="btn-open-service" class="tm-btn-open-ext" onclick="TM.openLinkedService()" title="Abrir Servicio en nueva pestaña" style="display:none;">
+                                            <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Pizarra Vinculada (Condicional) -->
+                                <div class="lumio-meta-row" id="row-whiteboard" style="display:none;">
+                                    <div class="lumio-meta-label"><i class="ph ph-chalkboard-simple"></i> Pizarra Vinculada</div>
+                                    <div class="lumio-meta-value" style="display:flex; align-items:center; gap:8px;">
+                                        <select id="tm-whiteboard-id" class="lumio-pill-select" style="flex:1;" onchange="TM.onWhiteboardChange(this.value)">
+                                            <option value="">-- Sin Vincular / Seleccionar Pizarra --</option>
+                                        </select>
+                                        <button type="button" id="btn-open-whiteboard" class="tm-btn-open-ext" onclick="TM.openLinkedWhiteboard()" title="Abrir Pizarra en nueva pestaña" style="display:none;">
+                                            <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloque 5: Etiquetas -->
+                        <div class="tm-app-sidebar-card tm-tags-meta-row">
+                            <div class="tm-app-sidebar-card-title">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <i class="ph-bold ph-tag"></i> Etiquetas
+                                </div>
+                                <span class="tm-meta-counter-badge" id="tm-tags-count">0</span>
+                            </div>
+                            <div class="tm-tags-card" id="tm-tags-container">
+                                <div class="tm-tags-chips-wrap" id="tm-tags-chips-wrap"></div>
+
+                                <div class="tm-tags-create-row">
+                                    <div class="tm-tags-input-box">
+                                        <i class="ph ph-tag tm-tags-input-icon"></i>
+                                        <input type="text" id="tm-tag-new-input" placeholder="Etiqueta y presiona Enter..." onkeydown="TM.onTagInputKeydown(event)">
+                                    </div>
+                                    <button type="button" class="tm-btn-add-tag" onclick="TM.addTagFromInput()" title="Agregar etiqueta">
+                                        <i class="ph-bold ph-plus"></i>
+                                    </button>
+                                </div>
+
+                                <div class="tm-tags-suggestions-row">
+                                    <span class="tm-tags-sug-label"><i class="ph ph-sparkle"></i> Sugeridas:</span>
+                                    <div class="tm-tags-sug-pills" id="tm-tags-sug-pills"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="tm-tags">
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer Inferior Estilo App Moderna -->
+            <div class="lumio-footer tm-app-modal-footer">
+                <div class="tm-app-footer-shortcuts">
+                    <span class="tm-app-kbd-hint"><kbd class="tm-kbd">Esc</kbd> Cancelar</span>
+                    <span class="tm-app-kbd-hint"><kbd class="tm-kbd">Ctrl</kbd> + <kbd class="tm-kbd">Enter</kbd> Guardar</span>
+                    <span class="tm-app-kbd-hint"><kbd class="tm-kbd">Ctrl</kbd> + <kbd class="tm-kbd">V</kbd> Pegar imagen</span>
+                </div>
+                <div class="tm-app-footer-buttons">
+                    <button type="button" class="lumio-cancel-btn tm-app-cancel-btn" onclick="TM.closeModal('tm-modal-task')">Cancelar</button>
+                    <button type="submit" class="lumio-submit tm-app-submit-btn" id="tm-submit-btn">
+                        <i class="ph-bold ph-check-circle"></i> <span>Guardar Tarea</span>
+                    </button>
+                </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- VISOR DE IMÁGENES INTEGRADO (LIGHTBOX MODAL)         -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="tm-image-viewer-overlay" id="tm-image-viewer" style="display:none;" onclick="if(event.target===this)TM.closeImageViewer()">
+    <div class="tm-image-viewer-bar">
+        <div class="tm-iv-info">
+            <i class="ph-bold ph-image"></i>
+            <span id="tm-iv-title" class="tm-iv-title-text">Vista previa</span>
+            <span id="tm-iv-size" class="tm-iv-size-badge"></span>
+        </div>
+        <div class="tm-iv-actions">
+            <button type="button" class="tm-iv-btn" onclick="TM.zoomImageViewer(-0.2)" title="Alejar (-)"><i class="ph-bold ph-magnifying-glass-minus"></i></button>
+            <span id="tm-iv-zoom-level" class="tm-iv-zoom-text">100%</span>
+            <button type="button" class="tm-iv-btn" onclick="TM.zoomImageViewer(0.2)" title="Acercar (+)"><i class="ph-bold ph-magnifying-glass-plus"></i></button>
+            <button type="button" class="tm-iv-btn" onclick="TM.resetImageViewerZoom()" title="Restablecer zoom"><i class="ph-bold ph-arrows-counter-clockwise"></i></button>
+            <a id="tm-iv-download" href="#" download class="tm-iv-btn" title="Descargar imagen"><i class="ph-bold ph-download-simple"></i></a>
+            <button type="button" class="tm-iv-btn tm-iv-close" onclick="TM.closeImageViewer()" title="Cerrar visor (Esc)"><i class="ph-bold ph-x"></i></button>
+        </div>
+    </div>
+    <div class="tm-image-viewer-stage" onclick="if(event.target===this)TM.closeImageViewer()">
+        <img id="tm-iv-img" src="" alt="Vista previa de imagen" class="tm-iv-preview-img">
     </div>
 </div>
 
@@ -914,8 +1068,12 @@ window.TM_IS_ADMIN = <?php echo $isAdmin ? 'true' : 'false'; ?>;
 window.TM_USERS = [
 <?php foreach($users as $u): 
     $initial = mb_strtoupper(mb_substr(trim($u['name'] ?? 'U'), 0, 1));
+    $av = $u['avatar'] ?? '';
+    if ($av && !file_exists(__DIR__ . '/../../' . ltrim($av, '/\\'))) {
+        $av = '';
+    }
 ?>
-    { "id": <?php echo (int)$u['id']; ?>, "name": <?php echo json_encode($u['name']); ?>, "value": <?php echo json_encode($u['name']); ?>, "avatar": <?php echo json_encode($u['avatar'] ?? ''); ?>, "initial": <?php echo json_encode($initial); ?> },
+    { "id": <?php echo (int)$u['id']; ?>, "name": <?php echo json_encode($u['name']); ?>, "value": <?php echo json_encode($u['name']); ?>, "avatar": <?php echo json_encode($av); ?>, "initial": <?php echo json_encode($initial); ?> },
 <?php endforeach; ?>
 ];
 </script>
