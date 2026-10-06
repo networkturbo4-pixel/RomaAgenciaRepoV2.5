@@ -21,7 +21,7 @@ $role_id = $stmtRole->fetchColumn();
 // Fetch project with client relation
 if ($role_id == 1) {
     $stmt = $db->prepare("
-        SELECT p.*, c.name as client_rel_name, c.business_name, c.avatar as client_avatar, wo.service_name as work_order_service
+        SELECT p.*, c.name as client_rel_name, wo.correlativo as work_order_correlativo, wo.brand_name as work_order_brand
         FROM audiovisual_projects p
         LEFT JOIN clients c ON p.client_id = c.id
         LEFT JOIN work_orders wo ON p.work_order_id = wo.id
@@ -30,7 +30,7 @@ if ($role_id == 1) {
     $stmt->execute([$id]);
 } else {
     $stmt = $db->prepare("
-        SELECT p.*, c.name as client_rel_name, c.business_name, c.avatar as client_avatar, wo.service_name as work_order_service
+        SELECT p.*, c.name as client_rel_name, wo.correlativo as work_order_correlativo, wo.brand_name as work_order_brand
         FROM audiovisual_projects p
         JOIN audiovisual_project_users pu ON p.id = pu.project_id
         LEFT JOIN clients c ON p.client_id = c.id
@@ -41,7 +41,7 @@ if ($role_id == 1) {
 }
 $project = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($project && empty($project['client_name']) && !empty($project['client_rel_name'])) {
-    $project['client_name'] = !empty($project['business_name']) ? $project['business_name'] : $project['client_rel_name'];
+    $project['client_name'] = $project['client_rel_name'];
 }
 
 if (!$project) {

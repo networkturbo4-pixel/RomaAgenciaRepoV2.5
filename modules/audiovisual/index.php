@@ -1920,14 +1920,14 @@ function searchClients(q) {
             data.clients.forEach(c => {
                 let item = document.createElement('div');
                 item.className = 'client-result-item';
-                let clientDisplay = c.name + (c.business_name ? ` (${c.business_name})` : '');
+                let clientDisplay = c.name + (c.email ? ` (${c.email})` : '');
                 item.innerHTML = `
                     <div style="width:28px; height:28px; border-radius:50%; background:#f59e0b; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.75rem;">
                         ${c.name.charAt(0)}
                     </div>
                     <div>
                         <div style="font-weight:600; font-size:0.85rem;">${c.name}</div>
-                        <div style="font-size:0.75rem; color:var(--av-text-muted);">${c.business_name || c.email || ''}</div>
+                        <div style="font-size:0.75rem; color:var(--av-text-muted);">${c.email || c.whatsapp || ''}</div>
                     </div>
                 `;
                 item.onclick = () => {
@@ -2101,8 +2101,39 @@ function loadProjects() {
     .then(r => r.json())
     .then(data => {
         if(data.success) {
-            allProjects = data.projects;
+            allProjects = data.projects || [];
             renderProjects();
+        } else {
+            console.error('Error al cargar proyectos:', data.message);
+            const container = document.getElementById('projects-grid');
+            if (container) {
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1.5rem; background: var(--av-surface); border-radius: 20px; border: 1px dashed var(--av-border);">
+                        <i class="ph-bold ph-warning-circle" style="font-size: 2.2rem; color: #ef4444; margin-bottom: 0.75rem; display: inline-block;"></i>
+                        <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--av-text-main); font-weight: 700;">No se pudieron cargar los proyectos</h4>
+                        <p style="margin: 0 0 1.25rem 0; font-size: 0.85rem; color: var(--av-text-muted);">${data.message || 'Error de conexión con el servidor.'}</p>
+                        <button onclick="loadProjects()" class="btn-app-submit" style="padding: 0.55rem 1.25rem; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                            <i class="ph-bold ph-arrows-clockwise"></i> Reintentar
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Fetch error:', err);
+        const container = document.getElementById('projects-grid');
+        if (container) {
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1.5rem; background: var(--av-surface); border-radius: 20px; border: 1px dashed var(--av-border);">
+                    <i class="ph-bold ph-wifi-slash" style="font-size: 2.2rem; color: #ef4444; margin-bottom: 0.75rem; display: inline-block;"></i>
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--av-text-main); font-weight: 700;">Error de conexión</h4>
+                    <p style="margin: 0 0 1.25rem 0; font-size: 0.85rem; color: var(--av-text-muted);">${err.message || 'No se pudo comunicar con el backend.'}</p>
+                    <button onclick="loadProjects()" class="btn-app-submit" style="padding: 0.55rem 1.25rem; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <i class="ph-bold ph-arrows-clockwise"></i> Reintentar
+                    </button>
+                </div>
+            `;
         }
     });
 }

@@ -50,8 +50,8 @@ switch ($action) {
             $baseSql = "
                 SELECT p.*, 
                        c.name as client_db_name, 
-                       c.avatar as client_db_avatar, 
-                       c.business_name as client_business_name,
+                       c.email as client_email,
+                       c.whatsapp as client_whatsapp,
                        c.drive_folder_id as client_drive_folder_id,
                        wo.correlativo as work_order_correlativo, 
                        wo.brand_name as work_order_brand
@@ -75,6 +75,9 @@ switch ($action) {
 
             // Fetch tags and assigned users for each project
             foreach ($projects as &$project) {
+                if (empty($project['client_name']) && !empty($project['client_db_name'])) {
+                    $project['client_name'] = $project['client_db_name'];
+                }
                 $stmtTags = $db->prepare("
                     SELECT t.* FROM audiovisual_tags t 
                     JOIN audiovisual_project_tags pt ON t.id = pt.tag_id 
@@ -298,9 +301,9 @@ switch ($action) {
     case 'search_clients':
         $query = $_POST['query'] ?? '';
         try {
-            $stmt = $db->prepare("SELECT id, name, email, phone, business_name, avatar, drive_folder_id FROM clients WHERE name LIKE ? OR business_name LIKE ? OR email LIKE ? ORDER BY name ASC LIMIT 20");
+            $stmt = $db->prepare("SELECT id, name, email, whatsapp, drive_folder_id FROM clients WHERE name LIKE ? OR email LIKE ? ORDER BY name ASC LIMIT 20");
             $like = '%' . $query . '%';
-            $stmt->execute([$like, $like, $like]);
+            $stmt->execute([$like, $like]);
             $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'clients' => $clients]);
         } catch (PDOException $e) {
