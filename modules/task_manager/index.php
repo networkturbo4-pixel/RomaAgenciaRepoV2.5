@@ -475,14 +475,14 @@ try {
 
                 <div class="lumio-header-right tm-app-header-right">
                     <div id="tm-edit-actions" class="tm-app-edit-actions" style="display:none;">
-                        <button type="button" class="lumio-icon-btn lumio-action-btn tm-app-btn-archive" onclick="TM.archiveTask()" title="Archivar Tarea">
-                            <i class="ph ph-archive"></i> <span>Archivar</span>
+                        <button type="button" class="tm-app-btn-archive" onclick="TM.archiveTask()" title="Archivar Tarea">
+                            <i class="ph ph-archive"></i> <span class="tm-btn-text">Archivar</span>
                         </button>
-                        <button type="button" class="lumio-icon-btn lumio-action-btn lumio-danger-btn tm-app-btn-delete" onclick="TM.deleteTask()" title="Eliminar Tarea">
-                            <i class="ph ph-trash"></i> <span>Eliminar</span>
+                        <button type="button" class="tm-app-btn-delete" onclick="TM.deleteTask()" title="Eliminar Tarea">
+                            <i class="ph ph-trash"></i> <span class="tm-btn-text">Eliminar</span>
                         </button>
                     </div>
-                    <button type="button" class="lumio-icon-btn tm-app-icon-btn" id="btn-toggle-modal-size" onclick="TM.toggleModalSize()" title="Alternar tamaño completo">
+                    <button type="button" class="tm-app-icon-btn" id="btn-toggle-modal-size" onclick="TM.toggleModalSize()" title="Alternar tamaño completo">
                         <i class="ph ph-arrows-out-simple"></i>
                     </button>
                 </div>

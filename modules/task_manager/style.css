@@ -5492,64 +5492,130 @@ span.tm-pm-initial {
 }
 
 .tm-app-edit-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.45rem !important;
+    flex-shrink: 0 !important;
 }
 
-.tm-app-btn-archive, .tm-app-btn-delete {
+.tm-app-btn-archive,
+.tm-app-btn-delete {
     height: 32px !important;
-    padding: 0 11px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 10px !important;
     border-radius: 8px !important;
     font-size: 0.78rem !important;
     font-weight: 600 !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 0.4rem !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    color: #94a3b8 !important;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    gap: 0.35rem !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    font-family: inherit !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
 }
 
-.tm-app-btn-archive:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #f8fafc !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
+.tm-app-btn-archive i,
+.tm-app-btn-delete i {
+    font-size: 0.95rem !important;
+    flex-shrink: 0 !important;
 }
 
-.tm-app-btn-delete {
-    color: #f87171 !important;
-    border-color: rgba(239, 68, 68, 0.25) !important;
-    background: rgba(239, 68, 68, 0.08) !important;
+/* Modo Claro: Botón Archivar */
+html[data-theme="light"] .tm-app-btn-archive,
+html:not([data-theme="dark"]) .tm-app-btn-archive {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
 }
 
-.tm-app-btn-delete:hover {
-    background: rgba(239, 68, 68, 0.18) !important;
+html[data-theme="light"] .tm-app-btn-archive:hover,
+html:not([data-theme="dark"]) .tm-app-btn-archive:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
+}
+
+/* Modo Claro: Botón Eliminar */
+html[data-theme="light"] .tm-app-btn-delete,
+html:not([data-theme="dark"]) .tm-app-btn-delete {
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    color: #dc2626 !important;
+}
+
+html[data-theme="light"] .tm-app-btn-delete:hover,
+html:not([data-theme="dark"]) .tm-app-btn-delete:hover {
+    background: #fee2e2 !important;
+    border-color: #f87171 !important;
+    color: #b91c1c !important;
+    transform: translateY(-1px);
+}
+
+/* Modo Oscuro: Botón Archivar */
+[data-theme="dark"] .tm-app-btn-archive {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .tm-app-btn-archive:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
     color: #ffffff !important;
-    border-color: rgba(239, 68, 68, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-1px);
+}
+
+/* Modo Oscuro: Botón Eliminar */
+[data-theme="dark"] .tm-app-btn-delete {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+}
+
+[data-theme="dark"] .tm-app-btn-delete:hover {
+    background: rgba(239, 68, 68, 0.22) !important;
+    color: #fca5a5 !important;
+    border-color: #ef4444 !important;
+    transform: translateY(-1px);
 }
 
 .tm-app-icon-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #94a3b8;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 1.05rem;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    background: rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: #64748b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    font-size: 1.05rem !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
 }
 
 .tm-app-icon-btn:hover {
-    background: rgba(255, 255, 255, 0.09);
-    color: #f8fafc;
-    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.08) !important;
+    color: #0f172a !important;
+}
+
+[data-theme="dark"] .tm-app-icon-btn {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .tm-app-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Formulario & Cuerpo */
@@ -5679,42 +5745,97 @@ span.tm-pm-initial {
     font-weight: 500 !important;
 }
 
-/* Pestañas (Tabs) */
+/* Pestañas (Tabs) Segmentadas Estilo App Moderna */
 .tm-app-tabs-nav {
-    display: flex;
-    gap: 0.4rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    margin-bottom: 0.25rem;
-    padding-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    padding: 3px;
+    gap: 3px;
+    margin-bottom: 0.85rem;
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
 }
 
 .tm-app-tab-btn {
-    background: none;
+    background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
-    padding: 0.65rem 1rem;
-    font-size: 0.88rem;
+    border-radius: 9px;
+    padding: 0.45rem 1.05rem;
+    font-size: 0.84rem;
     font-weight: 600;
-    color: #94a3b8;
+    color: #64748b;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: -1px;
     font-family: inherit;
-    transition: all 0.2s ease;
-    border-radius: 8px 8px 0 0;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    position: relative;
+    user-select: none;
+    box-sizing: border-box;
 }
 
-.tm-app-tab-btn:hover {
-    color: #f8fafc;
-    background: rgba(255, 255, 255, 0.03);
+.tm-app-tab-btn i {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    transition: color 0.18s ease;
+}
+
+.tm-app-tab-btn:hover:not(.active) {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.tm-app-tab-btn:hover:not(.active) i {
+    color: #475569;
 }
 
 .tm-app-tab-btn.active {
-    color: #38bdf8 !important;
-    border-bottom-color: #38bdf8 !important;
-    background: rgba(56, 189, 248, 0.06);
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 1px 1px rgba(0, 0, 0, 0.04) !important;
+}
+
+.tm-app-tab-btn.active i {
+    color: #4f46e5 !important;
+}
+
+[data-theme="dark"] .tm-app-tabs-nav {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .tm-app-tab-btn {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .tm-app-tab-btn i {
+    color: #64748b !important;
+}
+
+[data-theme="dark"] .tm-app-tab-btn:hover:not(.active) {
+    color: #f1f5f9 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="dark"] .tm-app-tab-btn:hover:not(.active) i {
+    color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .tm-app-tab-btn.active {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .tm-app-tab-btn.active i {
+    color: #818cf8 !important;
 }
 
 .tm-app-tab-panel {
@@ -6859,17 +6980,32 @@ html:not([data-theme="dark"]) .tm-app-title-field::placeholder {
 
 html[data-theme="light"] .tm-app-tabs-nav,
 html:not([data-theme="dark"]) .tm-app-tabs-nav {
-    border-bottom-color: #e2e8f0 !important;
+    background: #f1f5f9 !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
 html[data-theme="light"] .tm-app-tab-btn:not(.active),
 html:not([data-theme="dark"]) .tm-app-tab-btn:not(.active) {
     color: #64748b !important;
+    background: transparent !important;
 }
 
 html[data-theme="light"] .tm-app-tab-btn:hover:not(.active),
 html:not([data-theme="dark"]) .tm-app-tab-btn:hover:not(.active) {
     color: #0f172a !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+}
+
+html[data-theme="light"] .tm-app-tab-btn.active,
+html:not([data-theme="dark"]) .tm-app-tab-btn.active {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 1px 1px rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="light"] .tm-app-tab-btn.active i,
+html:not([data-theme="dark"]) .tm-app-tab-btn.active i {
+    color: #4f46e5 !important;
 }
 
 html[data-theme="light"] .tm-app-section-title,
@@ -7102,19 +7238,30 @@ html:not([data-theme="dark"]) .tm-kbd {
         padding: 0.35rem 0.1rem 0.55rem 0.1rem !important;
     }
 
-    /* Pestañas (Tabs) estilo Touch */
+    /* Pestañas (Tabs) estilo Touch Segmentadas */
     .tm-app-tabs-nav {
         display: flex !important;
-        gap: 0.35rem !important;
+        gap: 3px !important;
         width: 100% !important;
+        background: #f1f5f9 !important;
+        padding: 3px !important;
+        border-radius: 10px !important;
+        box-sizing: border-box !important;
+        border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    }
+
+    [data-theme="dark"] .tm-app-tabs-nav {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
     }
 
     .tm-app-tab-btn {
         flex: 1 1 0 !important;
         justify-content: center !important;
         text-align: center !important;
-        padding: 0.65rem 0.4rem !important;
-        font-size: 0.82rem !important;
+        padding: 0.5rem 0.35rem !important;
+        font-size: 0.78rem !important;
+        border-radius: 8px !important;
     }
 
     /* Editor Quill Touch-friendly */
@@ -7258,23 +7405,24 @@ html:not([data-theme="dark"]) .tm-kbd {
     #tm-modal-task .tm-app-header-titles {
         display: flex !important;
         align-items: center !important;
-        gap: 0.45rem !important;
+        gap: 0.35rem !important;
         min-width: 0 !important;
+        overflow: hidden !important;
         flex-direction: row !important;
     }
 
     #tm-modal-task .tm-app-modal-title {
         font-size: 0.98rem !important;
+        font-weight: 700 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        max-width: 170px !important;
+        max-width: 160px !important;
     }
 
+    /* Ocultar badge de módulo en móvil para dar 100% de espacio al título */
     #tm-modal-task .tm-app-badge-tag {
-        white-space: nowrap !important;
-        font-size: 0.65rem !important;
-        padding: 1px 5px !important;
+        display: none !important;
     }
 
     #tm-modal-task .tm-app-header-right {
@@ -7282,10 +7430,36 @@ html:not([data-theme="dark"]) .tm-kbd {
         display: flex !important;
         align-items: center !important;
         gap: 0.35rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* En móvil, los botones de Archivar y Eliminar son compactos de 32x32 tipo icono */
+    #tm-modal-task .tm-app-btn-archive,
+    #tm-modal-task .tm-app-btn-delete {
+        width: 32px !important;
+        height: 32px !important;
+        padding: 0 !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+    }
+
+    #tm-modal-task .tm-app-btn-archive .tm-btn-text,
+    #tm-modal-task .tm-app-btn-delete .tm-btn-text {
+        display: none !important;
+    }
+
+    #tm-modal-task .tm-app-btn-archive i,
+    #tm-modal-task .tm-app-btn-delete i {
+        font-size: 1.05rem !important;
     }
 
     #btn-toggle-modal-size {
         display: none !important; /* En móvil la vista ya es a pantalla completa */
+    }
+
+    /* Ocultar atajo de teclado Ctrl+V en teléfonos */
+    #tm-modal-task .tm-app-attachments-hint {
+        display: none !important;
     }
 
     /* Fila 2: Chips de Modos Especiales (Meta del Día & Fijar en Tablero) */
