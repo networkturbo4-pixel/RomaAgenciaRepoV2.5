@@ -5339,9 +5339,7 @@ span.tm-pm-initial {
 
 /* Header Superior Estilo App */
 .tm-app-modal-header {
-    padding: 0.95rem 1.75rem !important;
-    background: rgba(13, 17, 24, 0.96) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+    padding: 0.55rem 1.6rem !important;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -5865,12 +5863,17 @@ span.tm-pm-initial {
     padding: 0.55rem 1.6rem !important;
     min-height: 48px !important;
     max-height: 52px !important;
-    background: rgba(13, 17, 24, 0.96) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
     flex-shrink: 0 !important;
+}
+
+[data-theme="dark"] #tm-modal-task .tm-app-modal-header {
+    background: rgba(13, 17, 24, 0.96) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
 #tm-modal-task .tm-app-header-left {
@@ -5889,10 +5892,14 @@ span.tm-pm-initial {
 #tm-modal-task .tm-app-modal-title {
     font-size: 1.05rem !important;
     font-weight: 700 !important;
-    color: #f8fafc !important;
+    color: #0f172a;
     margin: 0 !important;
     line-height: 1 !important;
     letter-spacing: -0.01em !important;
+}
+
+[data-theme="dark"] #tm-modal-task .tm-app-modal-title {
+    color: #f8fafc !important;
 }
 
 #tm-modal-task .tm-app-badge-tag {
@@ -6642,35 +6649,42 @@ html:not([data-theme="dark"]) #tm-modal-task .tm-app-modal-sidebar::-webkit-scro
 }
 
 /* Cabecera en Modo Claro */
-html[data-theme="light"] .tm-app-modal-header,
-html:not([data-theme="dark"]) .tm-app-modal-header {
+html[data-theme="light"] #tm-modal-task .tm-app-modal-header,
+html:not([data-theme="dark"]) #tm-modal-task .tm-app-modal-header {
     background: #ffffff !important;
-    border-bottom-color: #f1f5f9 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
-html[data-theme="light"] .tm-app-modal-title,
-html:not([data-theme="dark"]) .tm-app-modal-title {
+html[data-theme="light"] #tm-modal-task .tm-app-modal-title,
+html:not([data-theme="dark"]) #tm-modal-task .tm-app-modal-title {
     color: #0f172a !important;
 }
 
-html[data-theme="light"] .tm-app-icon-btn,
-html:not([data-theme="dark"]) .tm-app-icon-btn {
-    background: #f8fafc !important;
-    border-color: #e2e8f0 !important;
-    color: #64748b !important;
+html[data-theme="light"] #tm-modal-task .tm-app-badge-tag,
+html:not([data-theme="dark"]) #tm-modal-task .tm-app-badge-tag {
+    color: #4f46e5 !important;
+    background: rgba(99, 102, 241, 0.08) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
 }
 
-html[data-theme="light"] .tm-app-icon-btn:hover,
-html:not([data-theme="dark"]) .tm-app-icon-btn:hover {
+html[data-theme="light"] #tm-modal-task .tm-app-icon-btn,
+html:not([data-theme="dark"]) #tm-modal-task .tm-app-icon-btn {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #475569 !important;
+}
+
+html[data-theme="light"] #tm-modal-task .tm-app-icon-btn:hover,
+html:not([data-theme="dark"]) #tm-modal-task .tm-app-icon-btn:hover {
     background: #f1f5f9 !important;
     color: #0f172a !important;
     border-color: #cbd5e1 !important;
 }
 
 /* Toggles Centrales de Cabecera en Modo Claro */
-html[data-theme="light"] .tm-header-toggle-label,
-html:not([data-theme="dark"]) .tm-header-toggle-label {
-    color: #475569 !important;
+html[data-theme="light"] #tm-modal-task .tm-header-toggle-label,
+html:not([data-theme="dark"]) #tm-modal-task .tm-header-toggle-label {
+    color: #334155 !important;
 }
 
 html[data-theme="light"] #tm-modal-task #tm-objective-card.is-active .tm-header-toggle-label,
@@ -6685,26 +6699,43 @@ html:not([data-theme="dark"]) #tm-modal-task #tm-pinned-card.is-active .tm-heade
     color: #4338ca !important;
 }
 
-html[data-theme="light"] .tm-header-toggle-icon,
-html:not([data-theme="dark"]) .tm-header-toggle-icon {
+html[data-theme="light"] #tm-modal-task .tm-header-toggle-icon,
+html:not([data-theme="dark"]) #tm-modal-task .tm-header-toggle-icon {
     color: #64748b !important;
 }
 
-html[data-theme="light"] .tm-switch.tm-switch-inline .tm-slider,
-html:not([data-theme="dark"]) .tm-switch.tm-switch-inline .tm-slider {
+html[data-theme="light"] #tm-modal-task .tm-switch.tm-switch-inline .tm-slider,
+html:not([data-theme="dark"]) #tm-modal-task .tm-switch.tm-switch-inline .tm-slider {
     background-color: #cbd5e1 !important;
 }
 
-html[data-theme="light"] .tm-header-inline-divider,
-html:not([data-theme="dark"]) .tm-header-inline-divider {
+html[data-theme="light"] #tm-modal-task .tm-switch.tm-switch-inline .tm-slider:before,
+html:not([data-theme="dark"]) #tm-modal-task .tm-switch.tm-switch-inline .tm-slider:before {
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+html[data-theme="light"] #tm-modal-task .tm-switch.tm-switch-inline.tm-switch-objective input:checked + .tm-slider,
+html:not([data-theme="dark"]) #tm-modal-task .tm-switch.tm-switch-inline.tm-switch-objective input:checked + .tm-slider {
+    background-color: #f59e0b !important;
+}
+
+html[data-theme="light"] #tm-modal-task .tm-switch.tm-switch-inline.tm-switch-pinned input:checked + .tm-slider,
+html:not([data-theme="dark"]) #tm-modal-task .tm-switch.tm-switch-inline.tm-switch-pinned input:checked + .tm-slider {
+    background-color: #6366f1 !important;
+}
+
+html[data-theme="light"] #tm-modal-task .tm-header-inline-divider,
+html:not([data-theme="dark"]) #tm-modal-task .tm-header-inline-divider {
     background: #e2e8f0 !important;
 }
 
-html[data-theme="light"] .tm-app-header-date-popover,
-html:not([data-theme="dark"]) .tm-app-header-date-popover {
+html[data-theme="light"] #tm-modal-task .tm-app-header-date-popover,
+html:not([data-theme="dark"]) #tm-modal-task .tm-app-header-date-popover {
     background: #ffffff !important;
-    border-color: #e2e8f0 !important;
+    border: 1px solid #e2e8f0 !important;
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15) !important;
+    color: #0f172a !important;
 }
 
 html[data-theme="light"] #tm-modal-task .tm-header-inline-toggle:hover,
