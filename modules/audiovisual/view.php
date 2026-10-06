@@ -18,19 +18,31 @@ $stmtRole = $db->prepare("SELECT role_id FROM users WHERE id = ?");
 $stmtRole->execute([$user_id]);
 $role_id = $stmtRole->fetchColumn();
 
-// Fetch project
+// Fetch project with client relation
 if ($role_id == 1) {
-    $stmt = $db->prepare("SELECT * FROM audiovisual_projects WHERE id = ?");
+    $stmt = $db->prepare("
+        SELECT p.*, c.name as client_rel_name, c.business_name, c.avatar as client_avatar, wo.service_name as work_order_service
+        FROM audiovisual_projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN work_orders wo ON p.work_order_id = wo.id
+        WHERE p.id = ?
+    ");
     $stmt->execute([$id]);
 } else {
     $stmt = $db->prepare("
-        SELECT p.* FROM audiovisual_projects p
+        SELECT p.*, c.name as client_rel_name, c.business_name, c.avatar as client_avatar, wo.service_name as work_order_service
+        FROM audiovisual_projects p
         JOIN audiovisual_project_users pu ON p.id = pu.project_id
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN work_orders wo ON p.work_order_id = wo.id
         WHERE p.id = ? AND pu.user_id = ?
     ");
     $stmt->execute([$id, $user_id]);
 }
 $project = $stmt->fetch(PDO::FETCH_ASSOC);
+if ($project && empty($project['client_name']) && !empty($project['client_rel_name'])) {
+    $project['client_name'] = !empty($project['business_name']) ? $project['business_name'] : $project['client_rel_name'];
+}
 
 if (!$project) {
     echo "<div style='padding:2rem;'>Proyecto no encontrado o no tienes acceso.</div>";
@@ -1224,6 +1236,168 @@ require_once 'includes/header.php';
     color: var(--text-muted, #94a3b8);
 }
 
+/* Romita AI Assistant Card in Task Modal */
+.romita-task-automation-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.06) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 18px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    position: relative;
+    overflow: hidden;
+}
+[data-theme="light"] .romita-task-automation-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(236, 72, 153, 0.05) 100%);
+    border-color: rgba(99, 102, 241, 0.22);
+}
+.btn-romita-action {
+    background: var(--bg-surface, #1e1e1e);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    color: var(--text-main, #ffffff);
+    padding: 0.45rem 0.95rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-romita-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
+}
+.btn-romita-action.subtasks {
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    border-color: rgba(99, 102, 241, 0.3);
+}
+.btn-romita-action.subtasks:hover {
+    background: #6366f1;
+    color: #ffffff;
+}
+.btn-romita-action.script {
+    background: rgba(236, 72, 153, 0.12);
+    color: #f472b6;
+    border-color: rgba(236, 72, 153, 0.3);
+}
+.btn-romita-action.script:hover {
+    background: #ec4899;
+    color: #ffffff;
+}
+.btn-romita-action.specs {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+.btn-romita-action.specs:hover {
+    background: #10b981;
+    color: #ffffff;
+}
+
+/* Drive Subfolders Selector Tabs */
+.task-subfolder-tabs {
+    display: flex;
+    gap: 0.35rem;
+    background: var(--bg-color, #09090b);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    margin-bottom: 0.75rem;
+}
+[data-theme="light"] .task-subfolder-tabs {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+.subfolder-tab-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.subfolder-tab-btn:hover {
+    color: var(--text-main, #ffffff);
+}
+.subfolder-tab-btn.active {
+    background: var(--bg-surface, #1e1e1e);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .subfolder-tab-btn.active {
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.subfolder-tab-btn.active.referencias { color: #3b82f6; }
+.subfolder-tab-btn.active.videos_terminados { color: #10b981; }
+.subfolder-tab-btn.active.empaquetados { color: #8b5cf6; }
+
+/* Subfolder pills in sidebar */
+.drive-subfolder-link-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.85rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-main);
+    transition: all 0.2s ease;
+}
+.drive-subfolder-link-pill:hover {
+    border-color: #3b82f6;
+    transform: translateX(2px);
+}
+
+.drive-sub-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 7px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-decoration: none;
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    transition: all 0.18s ease;
+}
+.drive-sub-chip:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: translateY(-1px);
+}
+.drive-sub-chip.finish {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.25);
+}
+.drive-sub-chip.finish:hover {
+    background: rgba(16, 185, 129, 0.2);
+}
+.drive-sub-chip.pack {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    border-color: rgba(139, 92, 246, 0.25);
+}
+.drive-sub-chip.pack:hover {
+    background: rgba(139, 92, 246, 0.2);
+}
+
 /* Attachment Items List */
 .task-attachments-list {
     display: flex;
@@ -1708,8 +1882,20 @@ require_once 'includes/header.php';
             <a href="index.php?module=audiovisual&action=index" class="btn-app-cancel" style="padding: 0.5rem 0.85rem; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;" title="Volver">
                 <i class="ph-bold ph-arrow-left" style="font-size: 1.1rem;"></i>
             </a>
-            <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-                <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">Tablero de Proyecto</span>
+            <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">Tablero de Proyecto</span>
+                    <?php if (!empty($project['client_name'])): ?>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #3b82f6; background: rgba(59, 130, 246, 0.12); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <i class="ph-bold ph-buildings"></i> <?php echo htmlspecialchars($project['client_name']); ?>
+                        </span>
+                    <?php endif; ?>
+                    <?php if (!empty($project['work_order_id'])): ?>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;" title="<?php echo htmlspecialchars($project['work_order_service'] ?? 'Orden de Servicio'); ?>">
+                            <i class="ph-bold ph-receipt"></i> OS-<?php echo str_pad($project['work_order_id'], 4, '0', STR_PAD_LEFT); ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
                 <h1 style="margin: 0; font-size: 1.45rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.3px;">
                     <?php echo htmlspecialchars($project['title']); ?>
                 </h1>
@@ -1964,6 +2150,9 @@ require_once 'includes/header.php';
                 </div>
 
                 <!-- Google Drive Cloud Hub -->
+                <?php 
+                $project_subfolders = !empty($project['drive_subfolders_json']) ? (json_decode($project['drive_subfolders_json'], true) ?: []) : [];
+                ?>
                 <?php if (!empty($project['drive_folder_url'])): ?>
                     <div class="app-drive-hub-card">
                         <div class="drive-hub-top">
@@ -1976,16 +2165,43 @@ require_once 'includes/header.php';
                                     <span class="subtitle"><span class="status-dot"></span> Carpeta Sincronizada</span>
                                 </div>
                             </div>
+                            <button type="button" onclick="syncProjectDriveFolders()" class="app-btn-icon-sm" title="Re-sincronizar subcarpetas en Google Drive" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-muted); cursor:pointer; border-radius:8px; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;">
+                                <i class="ph-bold ph-arrows-clockwise"></i>
+                            </button>
                         </div>
                         <a href="<?php echo htmlspecialchars($project['drive_folder_url']); ?>" target="_blank" class="drive-hub-btn">
-                            <span><i class="ph-fill ph-folder" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.35rem;"></i> Abrir Carpeta Cloud</span>
+                            <span><i class="ph-fill ph-folder" style="font-size: 1.1rem; vertical-align: middle; margin-right: 0.35rem;"></i> Abrir Carpeta Raíz</span>
                             <i class="ph-bold ph-arrow-square-out"></i>
                         </a>
+
+                        <!-- 3 Subcarpetas automáticas -->
+                        <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.75rem;">
+                            <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Estructura de Producción:</span>
+                            
+                            <a href="<?php echo !empty($project_subfolders['referencias']['url']) ? htmlspecialchars($project_subfolders['referencias']['url']) : htmlspecialchars($project['drive_folder_url']); ?>" target="_blank" class="drive-subfolder-link-pill" title="01. Referencias Audiovisuales">
+                                <span style="display:flex; align-items:center; gap:0.45rem; color:#3b82f6;"><i class="ph-bold ph-folders"></i> 01. Referencias Audiovisuales</span>
+                                <i class="ph-bold ph-arrow-up-right" style="font-size:0.75rem; color:var(--text-muted);"></i>
+                            </a>
+                            
+                            <a href="<?php echo !empty($project_subfolders['videos_terminados']['url']) ? htmlspecialchars($project_subfolders['videos_terminados']['url']) : htmlspecialchars($project['drive_folder_url']); ?>" target="_blank" class="drive-subfolder-link-pill" title="02. Videos Terminados">
+                                <span style="display:flex; align-items:center; gap:0.45rem; color:#10b981;"><i class="ph-bold ph-video-camera"></i> 02. Videos Terminados</span>
+                                <i class="ph-bold ph-arrow-up-right" style="font-size:0.75rem; color:var(--text-muted);"></i>
+                            </a>
+                            
+                            <a href="<?php echo !empty($project_subfolders['empaquetados']['url']) ? htmlspecialchars($project_subfolders['empaquetados']['url']) : htmlspecialchars($project['drive_folder_url']); ?>" target="_blank" class="drive-subfolder-link-pill" title="03. Empaquetados de Videos">
+                                <span style="display:flex; align-items:center; gap:0.45rem; color:#8b5cf6;"><i class="ph-bold ph-package"></i> 03. Empaquetados de Videos</span>
+                                <i class="ph-bold ph-arrow-up-right" style="font-size:0.75rem; color:var(--text-muted);"></i>
+                            </a>
+                        </div>
                     </div>
                 <?php else: ?>
-                    <div style="padding: 1rem; border-radius: 16px; background: var(--bg-color); border: 1px dashed var(--border-color); text-align: center; font-size: 0.8rem; color: var(--text-muted);">
-                        <i class="ph-bold ph-cloud-slash" style="font-size: 1.5rem; display: block; margin-bottom: 0.35rem; opacity: 0.6;"></i>
-                        Sin carpeta de Google Drive asignada.
+                    <div style="padding: 1.25rem 1rem; border-radius: 16px; background: var(--bg-color); border: 1px dashed var(--border-color); text-align: center; font-size: 0.82rem; color: var(--text-muted); display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+                        <i class="ph-bold ph-cloud-arrow-up" style="font-size: 1.75rem; color: #3b82f6;"></i>
+                        <span style="font-weight:700; color:var(--text-main);">Sin carpeta de Google Drive</span>
+                        <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">Sincroniza el proyecto para crear las subcarpetas automáticas.</p>
+                        <button type="button" class="btn-app-submit" onclick="syncProjectDriveFolders()" style="background:#2563eb; font-size:0.78rem; padding:0.45rem 1rem; margin-top:0.25rem; cursor:pointer;">
+                            <i class="ph-bold ph-sparkle"></i> Crear en Drive
+                        </button>
                     </div>
                 <?php endif; ?>
 
@@ -2166,12 +2382,31 @@ require_once 'includes/header.php';
 </style>
 <script>
 const PROJECT_ID = <?php echo $id; ?>;
+const PROJECT_TITLE = <?php echo json_encode($project['title'] ?? ''); ?>;
+const PROJECT_CLIENT_NAME = <?php echo json_encode($project['client_name'] ?? ''); ?>;
+const PROJECT_DRIVE_URL = <?php echo json_encode($project['drive_folder_url'] ?? ''); ?>;
+const PROJECT_DRIVE_ID = <?php echo json_encode($project['drive_folder_id'] ?? ''); ?>;
+let projectDriveSubfolders = <?php echo json_encode(!empty($project['drive_subfolders_json']) ? (json_decode($project['drive_subfolders_json'], true) ?: new stdClass()) : new stdClass()); ?>;
 let allTags = [];
+let systemUsers = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     loadProjectTasks();
     loadTagsForTasks();
+    loadSystemUsers();
 });
+
+function loadSystemUsers() {
+    let fd = new FormData();
+    fd.append('action', 'get_system_users');
+    fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success && data.users) {
+            systemUsers = data.users;
+        }
+    });
+}
 
 function loadTagsForTasks() {
     let fd = new FormData();
@@ -2354,6 +2589,27 @@ function renderTaskGroups(groups) {
                 let safeTags = (t.tags||'[]').replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 let safeSubtasks = JSON.stringify(subtasksList).replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 let safeAttachments = JSON.stringify(t.attachments ? (typeof t.attachments === 'string' ? JSON.parse(t.attachments || '[]') : t.attachments) : []).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                let safeAssignedUsers = JSON.stringify(t.assigned_users ? (typeof t.assigned_users === 'string' ? JSON.parse(t.assigned_users || '[]') : t.assigned_users) : []).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+                let taskUsersArr = [];
+                try {
+                    taskUsersArr = typeof t.assigned_users === 'string' ? JSON.parse(t.assigned_users || '[]') : (t.assigned_users || []);
+                } catch(e) {}
+                let usersBadgesHtml = '';
+                if (taskUsersArr.length > 0) {
+                    usersBadgesHtml = '<div style="display:inline-flex; align-items:center; gap:0.25rem; margin-top:0.5rem; margin-left:0.5rem; vertical-align:middle;">';
+                    taskUsersArr.slice(0, 3).forEach(uItem => {
+                        let uId = (typeof uItem === 'object') ? uItem.id : uItem;
+                        let uObj = systemUsers.find(su => String(su.id) === String(uId)) || {};
+                        let uName = uObj.name || (typeof uItem === 'string' ? uItem : 'Colaborador');
+                        let initial = uName.charAt(0).toUpperCase();
+                        usersBadgesHtml += `<div style="width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #8b5cf6); color:white; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; border:1.5px solid var(--bg-surface);" title="${uName}">${initial}</div>`;
+                    });
+                    if (taskUsersArr.length > 3) {
+                        usersBadgesHtml += `<span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">+${taskUsersArr.length - 3}</span>`;
+                    }
+                    usersBadgesHtml += '</div>';
+                }
 
                 let atts = [];
                 try { atts = typeof t.attachments === 'string' ? JSON.parse(t.attachments || '[]') : (t.attachments || []); } catch(e) {}
@@ -2361,7 +2617,7 @@ function renderTaskGroups(groups) {
 
                 tasksHtml += `
                 <div class="task-card" data-id="${t.id}" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.15rem 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; cursor: grab; transition: all 0.2s ease;">
-                    <div style="flex:1; cursor:pointer;" onclick="openTaskModal(${t.id}, ${g.id}, '${safeTitle}', '${safeDesc}', '${t.status}', '${t.start_date||''}', '${t.due_date||''}', '${safeTags}', '${safeSubtasks}', '${safeAttachments}')">
+                    <div style="flex:1; cursor:pointer;" onclick="openTaskModal(${t.id}, ${g.id}, '${safeTitle}', '${safeDesc}', '${t.status}', '${t.start_date||''}', '${t.due_date||''}', '${safeTags}', '${safeSubtasks}', '${safeAttachments}', '${safeAssignedUsers}')">
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.35rem;">
                             ${tagsHtml || '<div></div>'}
                             <span style="background:${st.bg}; color:${st.color}; font-size:0.72rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:8px; display:inline-flex; align-items:center; gap:0.3rem; flex-shrink: 0;">
@@ -2371,7 +2627,10 @@ function renderTaskGroups(groups) {
                         <div class="task-card-title" style="font-weight:700; color:var(--text-main); font-size:1rem; margin-bottom:0.35rem; line-height:1.4;">${t.title}</div>
                         ${t.description ? `<div class="task-card-desc" style="font-size:0.84rem; color:var(--text-muted); line-height:1.5;">${t.description}</div>` : ''}
                         ${metaHtml}
-                        ${attsHtml}
+                        <div style="display:flex; align-items:center; flex-wrap:wrap;">
+                            ${attsHtml}
+                            ${usersBadgesHtml}
+                        </div>
                         ${subtasksHtml}
                     </div>
                     <div class="task-actions" style="margin-left: 0.75rem; flex-shrink: 0;">
@@ -2555,12 +2814,15 @@ function deleteGroup(id) {
     });
 }
 
-function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', status = 'pending', startDate = '', dueDate = '', tags = '[]', subtasksJson = '[]', attachmentsJson = '[]') {
+function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', status = 'pending', startDate = '', dueDate = '', tags = '[]', subtasksJson = '[]', attachmentsJson = '[]', assignedUsersJson = '[]') {
     let parsedSubtasks = [];
     try { parsedSubtasks = typeof subtasksJson === 'string' ? JSON.parse(subtasksJson) : (subtasksJson || []); } catch(e) { parsedSubtasks = []; }
 
     let taskAttachments = [];
     try { taskAttachments = typeof attachmentsJson === 'string' ? JSON.parse(attachmentsJson) : (attachmentsJson || []); } catch(e) { taskAttachments = []; }
+
+    let parsedAssignedUsers = [];
+    try { parsedAssignedUsers = typeof assignedUsersJson === 'string' ? JSON.parse(assignedUsersJson || '[]') : (assignedUsersJson || []); } catch(e) { parsedAssignedUsers = []; }
 
     let modalHtml = `
         <div class="app-modal-dialog" style="width: 100%; border-radius: 24px; overflow: hidden;">
@@ -2666,6 +2928,11 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                                 </div>
                             </div>
                         </div>
+
+                        <div class="app-form-group">
+                            <label class="app-form-label"><i class="ph-bold ph-users"></i> Colaboradores Asignados</label>
+                            <input id="swal-task-users" class="app-tagify" style="width: 100%;" placeholder="Buscar y asignar colaboradores...">
+                        </div>
                         
                         <div class="app-form-group">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2684,7 +2951,43 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                     </div>
 
                     <!-- Columna Derecha (1fr): Workspace -->
-                    <div class="task-modal-col-right">
+                    <div class="task-modal-col-right" style="display:flex; flex-direction:column; gap:1.1rem;">
+                        <!-- ROMITA AI AUTOMATION CARD -->
+                        <div class="romita-task-automation-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                    <div style="width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);">
+                                        <i class="ph-fill ph-sparkle"></i>
+                                    </div>
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 0.45rem;">
+                                            <span style="font-weight: 800; font-size: 0.95rem; color: var(--text-main); letter-spacing: -0.2px;">Romita AI Assistant</span>
+                                            <span style="font-size: 0.68rem; font-weight: 800; background: linear-gradient(135deg, #6366f1, #ec4899); color: white; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase;">Audiovisual Pro</span>
+                                        </div>
+                                        <div style="font-size: 0.74rem; color: var(--text-muted); font-weight: 500;">
+                                            Automatiza subtareas, guión y especificaciones técnicas
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="romita-status-tag" style="font-size: 0.72rem; color: #10b981; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
+                                    IA Conectada
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button type="button" class="btn-romita-action subtasks" id="btn-romita-subtasks" onclick="romitaGenerateSubtasks(event)" title="Genera un checklist paso a paso adaptado a esta tarea">
+                                    <i class="ph-bold ph-list-checks"></i> Generar Subtareas con IA
+                                </button>
+                                <button type="button" class="btn-romita-action script" id="btn-romita-script" onclick="romitaGenerateScript(event)" title="Redacta propuesta de guión o escaleta audiovisual">
+                                    <i class="ph-bold ph-film-script"></i> Redactar Guión / Escaleta
+                                </button>
+                                <button type="button" class="btn-romita-action specs" id="btn-romita-specs" onclick="romitaGenerateSpecs(event)" title="Inserta especificaciones técnicas (4K, FPS, códec, audio)">
+                                    <i class="ph-bold ph-sliders-horizontal"></i> Especificaciones Técnicas
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- PANEL 1: SUBTAREAS -->
                         <div class="task-section-panel">
                             <div class="task-section-header">
@@ -2710,7 +3013,7 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                             </div>
 
                             <div id="subtasks-list-container" class="app-subtasks-container" style="max-height: 230px; overflow-y: auto;">
-                                ${parsedSubtasks.length === 0 ? '<div id="no-subtasks-msg" style="color:var(--text-muted); font-size:0.84rem; text-align:center; padding:1.4rem 0;"><i class="ph-bold ph-check-square" style="font-size:1.75rem; display:block; margin-bottom:0.4rem; opacity:0.4;"></i>No hay subtareas registradas aún. Haz clic en "+ Añadir Subtarea".</div>' : ''}
+                                ${parsedSubtasks.length === 0 ? '<div id="no-subtasks-msg" style="color:var(--text-muted); font-size:0.84rem; text-align:center; padding:1.4rem 0;"><i class="ph-bold ph-check-square" style="font-size:1.75rem; display:block; margin-bottom:0.4rem; opacity:0.4;"></i>No hay subtareas registradas aún. Haz clic en "+ Añadir Subtarea" o usa Romita IA.</div>' : ''}
                             </div>
                         </div>
 
@@ -2724,17 +3027,37 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                                     <div>
                                         <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">Archivos en Google Drive</span>
                                         <div style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600; margin-top: 1px;">
-                                            Se almacenan directamente en la carpeta del proyecto
+                                            Almacenamiento directo en Google Drive
                                         </div>
                                     </div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <?php if (!empty($project['drive_folder_url'])): ?>
-                                    <a href="<?= htmlspecialchars($project['drive_folder_url']) ?>" target="_blank" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25); text-decoration: none; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
-                                        <i class="ph-bold ph-folder-notch-open"></i> Abrir Carpeta
+                                    <a href="<?= htmlspecialchars($project['drive_folder_url']) ?>" target="_blank" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25); text-decoration: none; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;" title="Abrir carpeta raíz en Drive">
+                                        <i class="ph-bold ph-folder-notch-open"></i> Abrir Carpeta Raíz
                                     </a>
                                     <?php endif; ?>
                                 </div>
+                            </div>
+
+                            <!-- Selector de Subcarpetas Destino -->
+                            <div class="task-subfolder-tabs">
+                                <button type="button" class="subfolder-tab-btn referencias active" data-sub="referencias" onclick="selectUploadSubfolder('referencias')">
+                                    <i class="ph-bold ph-folders"></i> 01. Referencias
+                                </button>
+                                <button type="button" class="subfolder-tab-btn videos_terminados" data-sub="videos_terminados" onclick="selectUploadSubfolder('videos_terminados')">
+                                    <i class="ph-bold ph-video-camera"></i> 02. Videos Terminados
+                                </button>
+                                <button type="button" class="subfolder-tab-btn empaquetados" data-sub="empaquetados" onclick="selectUploadSubfolder('empaquetados')">
+                                    <i class="ph-bold ph-package"></i> 03. Empaquetados
+                                </button>
+                            </div>
+
+                            <!-- Enlaces directos a las subcarpetas del proyecto en Google Drive -->
+                            <div id="modal-subfolder-quick-links" style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.6rem;">
+                                ${projectDriveSubfolders && projectDriveSubfolders.referencias && projectDriveSubfolders.referencias.url ? `<a href="${projectDriveSubfolders.referencias.url}" target="_blank" class="drive-sub-chip" title="01. Referencias Audiovisuales en Google Drive"><i class="ph-bold ph-folders"></i> Drive Referencias <i class="ph-bold ph-arrow-up-right" style="font-size:0.65rem;"></i></a>` : ''}
+                                ${projectDriveSubfolders && projectDriveSubfolders.videos_terminados && projectDriveSubfolders.videos_terminados.url ? `<a href="${projectDriveSubfolders.videos_terminados.url}" target="_blank" class="drive-sub-chip finish" title="02. Videos Terminados en Google Drive"><i class="ph-bold ph-video-camera"></i> Drive Terminados <i class="ph-bold ph-arrow-up-right" style="font-size:0.65rem;"></i></a>` : ''}
+                                ${projectDriveSubfolders && projectDriveSubfolders.empaquetados && projectDriveSubfolders.empaquetados.url ? `<a href="${projectDriveSubfolders.empaquetados.url}" target="_blank" class="drive-sub-chip pack" title="03. Empaquetados en Google Drive"><i class="ph-bold ph-package"></i> Drive Empaquetados <i class="ph-bold ph-arrow-up-right" style="font-size:0.65rem;"></i></a>` : ''}
                             </div>
 
                             <!-- Dropzone de Subida -->
@@ -2807,6 +3130,42 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                     tagData.style = `--tag-bg: color-mix(in srgb, ${color} 16%, transparent); --tag-border: color-mix(in srgb, ${color} 40%, transparent); --tag-color: ${color};`;
                 }
             });
+
+            // Tagify for task assigned users
+            const usersInput = document.getElementById('swal-task-users');
+            let taskUsersTagify = null;
+            if (usersInput && typeof Tagify !== 'undefined') {
+                taskUsersTagify = new Tagify(usersInput, {
+                    whitelist: systemUsers.map(u => ({ value: u.name, id: u.id, avatar: u.avatar })),
+                    enforceWhitelist: true,
+                    dropdown: { enabled: 0, maxItems: 20, closeOnSelect: false }
+                });
+
+                if (parsedAssignedUsers && parsedAssignedUsers.length > 0) {
+                    let toAdd = [];
+                    parsedAssignedUsers.forEach(item => {
+                        let uId = (typeof item === 'object') ? item.id : item;
+                        let found = systemUsers.find(u => String(u.id) === String(uId));
+                        if (found) {
+                            toAdd.push({ value: found.name, id: found.id, avatar: found.avatar });
+                        } else if (typeof item === 'string') {
+                            toAdd.push({ value: item });
+                        }
+                    });
+                    if (toAdd.length > 0) {
+                        taskUsersTagify.addTags(toAdd);
+                    }
+                }
+            }
+
+            // Subfolder upload state & switcher
+            window.currentUploadSubfolder = 'referencias';
+            window.selectUploadSubfolder = function(type) {
+                window.currentUploadSubfolder = type;
+                document.querySelectorAll('.subfolder-tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-sub') === type);
+                });
+            };
             
             // Status Card Click Handler
             document.querySelectorAll('#app-status-group .app-status-card').forEach(card => {
@@ -2868,12 +3227,15 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                     div.remove();
                     updateSubtasksProgress();
                     if (document.querySelectorAll('.app-subtask-item').length === 0) {
-                        document.getElementById('subtasks-list-container').innerHTML = '<div id="no-subtasks-msg" style="color:var(--text-muted); font-size:0.84rem; text-align:center; padding:1.4rem 0;"><i class="ph-bold ph-check-square" style="font-size:1.75rem; display:block; margin-bottom:0.4rem; opacity:0.4;"></i>No hay subtareas registradas aún. Haz clic en "+ Añadir Subtarea".</div>';
+                        document.getElementById('subtasks-list-container').innerHTML = '<div id="no-subtasks-msg" style="color:var(--text-muted); font-size:0.84rem; text-align:center; padding:1.4rem 0;"><i class="ph-bold ph-check-square" style="font-size:1.75rem; display:block; margin-bottom:0.4rem; opacity:0.4;"></i>No hay subtareas registradas aún. Haz clic en "+ Añadir Subtarea" o usa Romita IA.</div>';
                     }
                 });
                 document.getElementById('subtasks-list-container').appendChild(div);
                 updateSubtasksProgress();
             };
+
+            // Expose for Romita AI Assistant
+            window.romitaAddSubtask = renderSubtaskRow;
 
             // Render existing subtasks
             if (parsedSubtasks && parsedSubtasks.length > 0) {
@@ -2923,6 +3285,13 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                     }
 
                     let sizeStr = att.size ? (att.size > 1048576 ? (att.size / 1048576).toFixed(1) + ' MB' : Math.round(att.size / 1024) + ' KB') : '';
+                    let folderBadge = '';
+                    if (att.folder_label || att.folder_type) {
+                        let fType = att.folder_type || 'referencias';
+                        let fLabel = att.folder_label || (fType === 'videos_terminados' ? '02. Videos Terminados' : (fType === 'empaquetados' ? '03. Empaquetados' : '01. Referencias'));
+                        let fClass = fType === 'videos_terminados' ? 'finish' : (fType === 'empaquetados' ? 'pack' : '');
+                        folderBadge = `<span class="drive-sub-chip ${fClass}" style="font-size:0.65rem; padding:1px 6px;"><i class="ph-bold ${fType === 'videos_terminados' ? 'ph-video-camera' : (fType === 'empaquetados' ? 'ph-package' : 'ph-folders')}"></i> ${fLabel}</span>`;
+                    }
 
                     return `
                         <div class="task-attachment-item">
@@ -2932,9 +3301,10 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                                 </div>
                                 <div class="task-attachment-meta">
                                     <span class="task-attachment-name" title="${att.name}">${att.name}</span>
-                                    <span class="task-attachment-size">
+                                    <span class="task-attachment-size" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
                                         ${sizeStr ? sizeStr + ' • ' : ''}
                                         ${att.drive ? '<span style="color:#3b82f6; display:inline-flex; align-items:center; gap:3px;"><i class="ph-fill ph-google-drive-logo"></i> Google Drive</span>' : 'Local'}
+                                        ${folderBadge}
                                     </span>
                                 </div>
                             </div>
@@ -2976,6 +3346,7 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                     fd.append('file', file);
                     fd.append('project_id', '<?php echo $id; ?>');
                     fd.append('task_id', taskId);
+                    fd.append('subfolder_type', window.currentUploadSubfolder || 'referencias');
 
                     return fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: fd })
                         .then(r => r.json())
@@ -3056,6 +3427,11 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                 let groupSelectEl = document.getElementById('swal-task-group');
                 let finalGroupId = groupSelectEl ? (parseInt(groupSelectEl.value) || groupId) : groupId;
 
+                let taskAssignedUsers = [];
+                if (taskUsersTagify) {
+                    taskAssignedUsers = taskUsersTagify.value.map(item => item.id || item.value);
+                }
+
                 let fd = new FormData();
                 fd.append('action', 'save_task');
                 fd.append('id', taskId);
@@ -3066,6 +3442,7 @@ function openTaskModal(taskId = 0, groupId = 0, title = '', description = '', st
                 fd.append('start_date', document.getElementById('swal-task-start').value);
                 fd.append('due_date', document.getElementById('swal-task-due').value);
                 fd.append('tags', document.getElementById('swal-task-tags').value);
+                fd.append('assigned_users', JSON.stringify(taskAssignedUsers));
                 fd.append('subtasks', JSON.stringify(gatheredSubtasks));
                 fd.append('attachments', JSON.stringify(taskAttachments));
                 
@@ -3134,6 +3511,275 @@ function deleteTask(id) {
             });
         }
     });
+}
+
+// ==========================================
+// ROMITA AI ASSISTANT & GOOGLE DRIVE HANDLERS
+// ==========================================
+
+function selectUploadSubfolder(type) {
+    if (typeof window.selectUploadSubfolder === 'function') {
+        window.selectUploadSubfolder(type);
+    }
+}
+
+function romitaGenerateSubtasks(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const btn = document.getElementById('btn-romita-subtasks');
+    const taskTitleInput = document.getElementById('swal-task-title');
+    const taskTitle = taskTitleInput ? taskTitleInput.value.trim() : '';
+    const taskDesc = document.getElementById('swal-task-desc')?.value.trim() || '';
+    const statusTag = document.getElementById('romita-status-tag');
+
+    if (!taskTitle) {
+        Swal.showValidationMessage('Ingresa un título a la tarea para que Romita pueda generar subtareas.');
+        if (taskTitleInput) taskTitleInput.focus();
+        return;
+    }
+
+    const originalBtnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Romita diseñando subtareas...';
+    }
+    if (statusTag) {
+        statusTag.innerHTML = '<span class="ph-bold ph-spinner ph-spin" style="color:#6366f1;"></span> Analizando flujo audiovisual...';
+        statusTag.style.color = '#6366f1';
+    }
+
+    let fd = new FormData();
+    fd.append('action', 'romita_automate_task');
+    fd.append('task_type', 'generate_subtasks');
+    fd.append('task_title', taskTitle);
+    fd.append('description', taskDesc);
+    fd.append('project_title', typeof PROJECT_TITLE !== 'undefined' ? PROJECT_TITLE : '');
+    fd.append('client_name', typeof PROJECT_CLIENT_NAME !== 'undefined' ? PROJECT_CLIENT_NAME : '');
+
+    fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+            if (statusTag) {
+                statusTag.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 8px #10b981;"></span> Subtareas listas';
+                statusTag.style.color = '#10b981';
+            }
+
+            if (res.success && Array.isArray(res.subtasks) && res.subtasks.length > 0) {
+                res.subtasks.forEach(st => {
+                    if (typeof window.romitaAddSubtask === 'function') {
+                        window.romitaAddSubtask({
+                            title: st.title || 'Paso técnico',
+                            description: st.description || '',
+                            completed: 0
+                        });
+                    }
+                });
+
+                const container = document.getElementById('subtasks-list-container');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            } else {
+                Swal.showValidationMessage(res.error || 'Romita no pudo generar subtareas. Intenta de nuevo.');
+            }
+        })
+        .catch(err => {
+            console.error('Error Romita Subtasks:', err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+            if (statusTag) {
+                statusTag.innerHTML = '<span style="color:#ef4444;">Error en IA</span>';
+            }
+            Swal.showValidationMessage('Error al conectar con Romita AI: ' + err.message);
+        });
+}
+
+function romitaGenerateScript(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const btn = document.getElementById('btn-romita-script');
+    const taskTitleInput = document.getElementById('swal-task-title');
+    const taskTitle = taskTitleInput ? taskTitleInput.value.trim() : '';
+    const descArea = document.getElementById('swal-task-desc');
+    const statusTag = document.getElementById('romita-status-tag');
+
+    if (!taskTitle) {
+        Swal.showValidationMessage('Ingresa un título a la tarea para redactar el guión o escaleta.');
+        if (taskTitleInput) taskTitleInput.focus();
+        return;
+    }
+
+    const originalBtnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Romita redactando guión...';
+    }
+    if (statusTag) {
+        statusTag.innerHTML = '<span class="ph-bold ph-spinner ph-spin" style="color:#ec4899;"></span> Creando guión audiovisual...';
+        statusTag.style.color = '#ec4899';
+    }
+
+    let fd = new FormData();
+    fd.append('action', 'romita_automate_task');
+    fd.append('task_type', 'write_script');
+    fd.append('task_title', taskTitle);
+    fd.append('description', descArea ? descArea.value.trim() : '');
+    fd.append('project_title', typeof PROJECT_TITLE !== 'undefined' ? PROJECT_TITLE : '');
+    fd.append('client_name', typeof PROJECT_CLIENT_NAME !== 'undefined' ? PROJECT_CLIENT_NAME : '');
+
+    fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+            if (statusTag) {
+                statusTag.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 8px #10b981;"></span> Guión redactado';
+                statusTag.style.color = '#10b981';
+            }
+
+            if (res.success && res.text) {
+                if (descArea) {
+                    const currentVal = descArea.value.trim();
+                    const scriptBlock = `\n\n=== 🎬 PROPUESTA DE GUIÓN / ESCALETA (ROMITA AI) ===\n${res.text.trim()}\n=================================================`;
+                    descArea.value = currentVal ? currentVal + scriptBlock : scriptBlock;
+                    descArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    descArea.style.borderColor = '#ec4899';
+                    setTimeout(() => { descArea.style.borderColor = ''; }, 2500);
+                }
+            } else {
+                Swal.showValidationMessage(res.error || 'Romita no pudo generar el guión.');
+            }
+        })
+        .catch(err => {
+            console.error('Error Romita Script:', err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+            Swal.showValidationMessage('Error al conectar con Romita AI: ' + err.message);
+        });
+}
+
+function romitaGenerateSpecs(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const btn = document.getElementById('btn-romita-specs');
+    const taskTitleInput = document.getElementById('swal-task-title');
+    const taskTitle = taskTitleInput ? taskTitleInput.value.trim() : '';
+    const descArea = document.getElementById('swal-task-desc');
+    const statusTag = document.getElementById('romita-status-tag');
+
+    if (!taskTitle) {
+        Swal.showValidationMessage('Ingresa un título a la tarea para definir especificaciones técnicas.');
+        if (taskTitleInput) taskTitleInput.focus();
+        return;
+    }
+
+    const originalBtnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Definiendo specs...';
+    }
+    if (statusTag) {
+        statusTag.innerHTML = '<span class="ph-bold ph-spinner ph-spin" style="color:#8b5cf6;"></span> Calculando specs técnicas...';
+        statusTag.style.color = '#8b5cf6';
+    }
+
+    let fd = new FormData();
+    fd.append('action', 'romita_automate_task');
+    fd.append('task_type', 'tech_specs');
+    fd.append('task_title', taskTitle);
+    fd.append('description', descArea ? descArea.value.trim() : '');
+    fd.append('project_title', typeof PROJECT_TITLE !== 'undefined' ? PROJECT_TITLE : '');
+    fd.append('client_name', typeof PROJECT_CLIENT_NAME !== 'undefined' ? PROJECT_CLIENT_NAME : '');
+
+    fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+            if (statusTag) {
+                statusTag.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 8px #10b981;"></span> Specs aplicadas';
+                statusTag.style.color = '#10b981';
+            }
+
+            if (res.success && res.text) {
+                if (descArea) {
+                    const currentVal = descArea.value.trim();
+                    const specsBlock = `\n\n=== ⚙️ ESPECIFICACIONES TÉCNICAS (ROMITA AI) ===\n${res.text.trim()}\n=================================================`;
+                    descArea.value = currentVal ? currentVal + specsBlock : specsBlock;
+                    descArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    descArea.style.borderColor = '#8b5cf6';
+                    setTimeout(() => { descArea.style.borderColor = ''; }, 2500);
+                }
+            } else {
+                Swal.showValidationMessage(res.error || 'Romita no pudo calcular las especificaciones.');
+            }
+        })
+        .catch(err => {
+            console.error('Error Romita Specs:', err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+            Swal.showValidationMessage('Error al conectar con Romita AI: ' + err.message);
+        });
+}
+
+function syncProjectDriveFolders() {
+    Swal.fire({
+        title: 'Sincronizando con Google Drive',
+        text: 'Creando subcarpetas: 01. Referencias Audiovisuales, 02. Videos Terminados y 03. Empaquetados...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    let fd = new FormData();
+    fd.append('action', 'sync_drive_folders');
+    fd.append('project_id', typeof PROJECT_ID !== 'undefined' ? PROJECT_ID : '<?php echo $id; ?>');
+    fd.append('title', typeof PROJECT_TITLE !== 'undefined' ? PROJECT_TITLE : '');
+    fd.append('client_name', typeof PROJECT_CLIENT_NAME !== 'undefined' ? PROJECT_CLIENT_NAME : '');
+    fd.append('client_id', '<?php echo intval($project['client_id'] ?? 0); ?>');
+    fd.append('work_order_id', '<?php echo intval($project['work_order_id'] ?? 0); ?>');
+
+    fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Estructura Creada!',
+                    text: 'Las subcarpetas de Google Drive han sido creadas y sincronizadas con éxito.',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Sincronización',
+                    text: res.error || res.message || 'No se pudo crear la estructura en Google Drive.'
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Error Sync Drive:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Inesperado',
+                text: err.message
+            });
+        });
 }
 
 function triggerSyncStatus(isSyncing = true) {

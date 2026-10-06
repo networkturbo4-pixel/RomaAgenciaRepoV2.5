@@ -47,11 +47,23 @@ switch ($action) {
             $stmtRole->execute([$user_id]);
             $role_id = $stmtRole->fetchColumn();
 
+            $baseSql = "
+                SELECT p.*, 
+                       c.name as client_db_name, 
+                       c.avatar as client_db_avatar, 
+                       c.business_name as client_business_name,
+                       c.drive_folder_id as client_drive_folder_id,
+                       wo.correlativo as work_order_correlativo, 
+                       wo.brand_name as work_order_brand
+                FROM audiovisual_projects p
+                LEFT JOIN clients c ON p.client_id = c.id
+                LEFT JOIN work_orders wo ON p.work_order_id = wo.id
+            ";
+
             if ($role_id == 1) {
-                $stmt = $db->query("SELECT * FROM audiovisual_projects ORDER BY created_at DESC");
+                $stmt = $db->query($baseSql . " ORDER BY p.created_at DESC");
             } else {
-                $stmt = $db->prepare("
-                    SELECT p.* FROM audiovisual_projects p
+                $stmt = $db->prepare($baseSql . "
                     JOIN audiovisual_project_users pu ON p.id = pu.project_id
                     WHERE pu.user_id = ?
                     ORDER BY p.created_at DESC
@@ -143,14 +155,17 @@ switch ($action) {
 
     case 'save_project':
         $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-        $title = $_POST['title'] ?? '';
-        $description = $_POST['description'] ?? '';
-        $client_name = $_POST['client_name'] ?? '';
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $client_name = trim($_POST['client_name'] ?? '');
+        $client_id = !empty($_POST['client_id']) ? intval($_POST['client_id']) : null;
+        $work_order_id = !empty($_POST['work_order_id']) ? intval($_POST['work_order_id']) : null;
         $status = $_POST['status'] ?? 'Active';
         $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
         $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : null;
         $drive_folder_url = $_POST['drive_folder_url'] ?? '';
         $drive_folder_id = $_POST['drive_folder_id'] ?? '';
+        $drive_subfolders_json = !empty($_POST['drive_subfolders_json']) ? $_POST['drive_subfolders_json'] : null;
         $tags = isset($_POST['tags']) ? json_decode($_POST['tags'], true) : [];
         $assigned_users = isset($_POST['assigned_users']) ? json_decode($_POST['assigned_users'], true) : [];
         $form_submission_id = !empty($_POST['form_submission_id']) ? intval($_POST['form_submission_id']) : null;
@@ -185,15 +200,15 @@ switch ($action) {
             if ($id > 0) {
                 // Update
                 $stmt = $db->prepare("UPDATE audiovisual_projects SET 
-                    form_submission_id = ?, title = ?, description = ?, client_name = ?, status = ?, cover_image = ?, start_date = ?, due_date = ?, drive_folder_url = ?, drive_folder_id = ? 
+                    form_submission_id = ?, client_id = ?, work_order_id = ?, title = ?, description = ?, client_name = ?, status = ?, cover_image = ?, start_date = ?, due_date = ?, drive_folder_url = ?, drive_folder_id = ?, drive_subfolders_json = ? 
                     WHERE id = ?");
-                $stmt->execute([$form_submission_id, $title, $description, $client_name, $status, $cover_image, $start_date, $due_date, $drive_folder_url, $drive_folder_id, $id]);
+                $stmt->execute([$form_submission_id, $client_id, $work_order_id, $title, $description, $client_name, $status, $cover_image, $start_date, $due_date, $drive_folder_url, $drive_folder_id, $drive_subfolders_json, $id]);
             } else {
                 // Insert
                 $stmt = $db->prepare("INSERT INTO audiovisual_projects 
-                    (form_submission_id, title, description, client_name, status, cover_image, start_date, due_date, drive_folder_url, drive_folder_id) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$form_submission_id, $title, $description, $client_name, $status, $cover_image, $start_date, $due_date, $drive_folder_url, $drive_folder_id]);
+                    (form_submission_id, client_id, work_order_id, title, description, client_name, status, cover_image, start_date, due_date, drive_folder_url, drive_folder_id, drive_subfolders_json) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$form_submission_id, $client_id, $work_order_id, $title, $description, $client_name, $status, $cover_image, $start_date, $due_date, $drive_folder_url, $drive_folder_id, $drive_subfolders_json]);
                 $id = $db->lastInsertId();
             }
 
@@ -283,11 +298,50 @@ switch ($action) {
     case 'search_clients':
         $query = $_POST['query'] ?? '';
         try {
-            $stmt = $db->prepare("SELECT id, name, email, phone, business_name, avatar FROM clients WHERE name LIKE ? OR business_name LIKE ? OR email LIKE ? ORDER BY name ASC LIMIT 15");
+            $stmt = $db->prepare("SELECT id, name, email, phone, business_name, avatar, drive_folder_id FROM clients WHERE name LIKE ? OR business_name LIKE ? OR email LIKE ? ORDER BY name ASC LIMIT 20");
             $like = '%' . $query . '%';
             $stmt->execute([$like, $like, $like]);
             $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'clients' => $clients]);
+        } catch (PDOException $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'get_work_orders':
+        $client_id = isset($_POST['client_id']) ? intval($_POST['client_id']) : 0;
+        $client_name = trim($_POST['client_name'] ?? '');
+        try {
+            $sql = "SELECT id, correlativo, brand_name, data, created_at FROM work_orders WHERE is_archived = 0";
+            $params = [];
+            if ($client_name !== '') {
+                $sql .= " AND (brand_name LIKE ? OR data LIKE ?)";
+                $params[] = "%$client_name%";
+                $params[] = "%$client_name%";
+            }
+            $sql .= " ORDER BY id DESC LIMIT 50";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $rawOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $orders = [];
+            foreach ($rawOrders as $wo) {
+                $data = json_decode($wo['data'], true) ?: [];
+                $clientVal = $data['cliente'] ?? $wo['brand_name'] ?? 'Cliente';
+                $brandVal = $data['marca'] ?? $wo['brand_name'] ?? '';
+                $serviceVal = $data['servicio'] ?? $data['procesos'] ?? '';
+                
+                $orders[] = [
+                    'id' => (int)$wo['id'],
+                    'correlativo' => $wo['correlativo'],
+                    'brand_name' => $wo['brand_name'],
+                    'client_name' => is_string($clientVal) ? $clientVal : ($clientVal['name'] ?? 'Cliente'),
+                    'brand' => is_string($brandVal) ? $brandVal : '',
+                    'display' => $wo['correlativo'] . ' • ' . ($wo['brand_name'] ?: 'Sin marca') . ($clientVal ? " ({$clientVal})" : '')
+                ];
+            }
+
+            echo json_encode(['success' => true, 'orders' => $orders]);
         } catch (PDOException $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -446,12 +500,19 @@ switch ($action) {
             exit;
         }
 
-        // Get project drive folder ID if exists
-        $stmt = $db->prepare("SELECT drive_folder_id, drive_folder_url FROM audiovisual_projects WHERE id = ?");
+        // Get project drive folder ID and subfolders if exists
+        $subfolder_type = trim($_POST['subfolder_type'] ?? 'referencias');
+        $stmt = $db->prepare("SELECT drive_folder_id, drive_folder_url, drive_subfolders_json FROM audiovisual_projects WHERE id = ?");
         $stmt->execute([$project_id]);
         $project = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $targetFolderId = $project['drive_folder_id'] ?? null;
+        if (!empty($project['drive_subfolders_json'])) {
+            $subs = json_decode($project['drive_subfolders_json'], true);
+            if (is_array($subs) && !empty($subs[$subfolder_type]['id'])) {
+                $targetFolderId = $subs[$subfolder_type]['id'];
+            }
+        }
         $driveUploaded = false;
         $fileUrl = '';
         $fileId = '';
@@ -483,6 +544,12 @@ switch ($action) {
             }
         }
 
+        $folderLabels = [
+            'referencias' => 'Referencias Audiovisuales',
+            'videos_terminados' => 'Videos Terminados',
+            'empaquetados' => 'Empaquetados'
+        ];
+
         $attachmentData = [
             'id' => $fileId ?: uniqid('file_'),
             'name' => $fileName,
@@ -490,6 +557,8 @@ switch ($action) {
             'ext' => $ext,
             'url' => $fileUrl,
             'drive' => $driveUploaded,
+            'folder_type' => $subfolder_type,
+            'folder_label' => $folderLabels[$subfolder_type] ?? 'General',
             'uploaded_at' => date('Y-m-d H:i:s')
         ];
 
@@ -497,6 +566,255 @@ switch ($action) {
             'success' => true,
             'attachment' => $attachmentData
         ]);
+        break;
+
+    case 'sync_drive_folders':
+        $project_id = isset($_POST['project_id']) ? intval($_POST['project_id']) : 0;
+        $project_title = trim($_POST['project_title'] ?? ($_POST['title'] ?? ''));
+        $client_name = trim($_POST['client_name'] ?? '');
+        $parent_folder_id = trim($_POST['parent_folder_id'] ?? '');
+
+        try {
+            require_once __DIR__ . '/../includes/GoogleDriveHelper.php';
+            $driveHelper = new GoogleDriveHelper();
+
+            if (!$driveHelper->isConfigured()) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Google Drive no está conectado o configurado en el sistema.'
+                ]);
+                break;
+            }
+
+            $currentDriveId = '';
+            if ($project_id > 0) {
+                $stmt = $db->prepare("SELECT title, client_name, drive_folder_id, drive_folder_url, drive_subfolders_json FROM audiovisual_projects WHERE id = ?");
+                $stmt->execute([$project_id]);
+                $proj = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($proj) {
+                    $project_title = $project_title ?: $proj['title'];
+                    $client_name = $client_name ?: $proj['client_name'];
+                    $currentDriveId = $proj['drive_folder_id'];
+                }
+            }
+
+            // 1. Obtener o crear carpeta principal del proyecto
+            $mainFolderId = $currentDriveId;
+            if (empty($mainFolderId)) {
+                $folderName = "[AV] " . ($project_title ?: 'Producción Audiovisual') . ($client_name ? " - {$client_name}" : "");
+                $mainFolderId = $driveHelper->createFolder($folderName, $parent_folder_id ?: null);
+                if (!$mainFolderId) {
+                    throw new Exception("No se pudo crear la carpeta principal del proyecto en Drive.");
+                }
+            }
+
+            // 2. Crear las 3 subcarpetas específicas:
+            // 01. Referencias Audiovisuales
+            // 02. Videos Terminados
+            // 03. Empaquetados de Videos
+            $subfolderSpecs = [
+                'referencias' => '01. Referencias Audiovisuales',
+                'videos_terminados' => '02. Videos Terminados',
+                'empaquetados' => '03. Empaquetados de Videos'
+            ];
+
+            $existingFolders = $driveHelper->listFolders($mainFolderId) ?: [];
+            $existingMap = [];
+            foreach ($existingFolders as $ef) {
+                $existingMap[$ef->getName()] = [
+                    'id' => $ef->getId(),
+                    'url' => $ef->getWebViewLink() ?: "https://drive.google.com/drive/folders/{$ef->getId()}"
+                ];
+            }
+
+            $subfoldersData = [];
+            foreach ($subfolderSpecs as $key => $subName) {
+                if (isset($existingMap[$subName])) {
+                    $subfoldersData[$key] = $existingMap[$subName];
+                } else {
+                    $newSubId = $driveHelper->createFolder($subName, $mainFolderId);
+                    if ($newSubId) {
+                        $subfoldersData[$key] = [
+                            'id' => $newSubId,
+                            'url' => "https://drive.google.com/drive/folders/{$newSubId}"
+                        ];
+                    }
+                }
+            }
+
+            $mainFolderUrl = "https://drive.google.com/drive/folders/{$mainFolderId}";
+            $subfoldersJson = json_encode($subfoldersData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+            if ($project_id > 0) {
+                $upd = $db->prepare("UPDATE audiovisual_projects SET drive_folder_id = ?, drive_folder_url = ?, drive_subfolders_json = ? WHERE id = ?");
+                $upd->execute([$mainFolderId, $mainFolderUrl, $subfoldersJson, $project_id]);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'folder_id' => $mainFolderId,
+                'folder_url' => $mainFolderUrl,
+                'subfolders' => $subfoldersData
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        break;
+
+    case 'romita_automate_task':
+        $task_type = trim($_POST['task_type'] ?? 'generate_subtasks');
+        $task_title = trim($_POST['task_title'] ?? '');
+        $phase_name = trim($_POST['phase_name'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $client_name = trim($_POST['client_name'] ?? '');
+        $project_title = trim($_POST['project_title'] ?? '');
+        $custom_prompt = trim($_POST['custom_prompt'] ?? '');
+
+        try {
+            // Obtener llaves API de settings
+            $stmtKeys = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('groq_api_key', 'gemini_api_key')");
+            $apiKeys = $stmtKeys->fetchAll(PDO::FETCH_KEY_PAIR);
+            $groqKey = trim($apiKeys['groq_api_key'] ?? '');
+            $geminiKey = trim($apiKeys['gemini_api_key'] ?? '');
+
+            if (empty($groqKey) && empty($geminiKey)) {
+                echo json_encode(['success' => false, 'error' => 'No hay llaves de IA (Groq o Gemini) configuradas en el sistema.']);
+                break;
+            }
+
+            $systemPrompt = "Eres Romita, la directora creativa y productora audiovisual ejecutiva de Roma Agencia. Eres moderna, sumamente técnica y resolutiva en producción audiovisual comercial (Reels 9:16, spots de alta retención, videos corporativos, cinematografía, iluminación, montaje, postproducción y masterización).";
+            
+            $userPrompt = "Contexto de la Producción:\n";
+            if ($project_title) $userPrompt .= "- Proyecto: {$project_title}\n";
+            if ($client_name) $userPrompt .= "- Cliente: {$client_name}\n";
+            if ($phase_name) $userPrompt .= "- Fase / Etapa: {$phase_name}\n";
+            if ($task_title) $userPrompt .= "- Tarea: {$task_title}\n";
+            if ($description) $userPrompt .= "- Descripción actual: {$description}\n";
+
+            if ($task_type === 'generate_subtasks') {
+                $userPrompt .= "\nObjetivo: Genera entre 4 y 7 subtareas técnicas secuenciales y accionables para ejecutar con éxito esta tarea audiovisual.\n"
+                    . "IMPORTANTE: Responde ÚNICAMENTE un arreglo JSON válido (sin formato markdown ```json, solo el JSON puro) con este esquema exacto:\n"
+                    . "[{\"title\": \"Nombre de la subtarea técnica\", \"description\": \"Detalle conciso de ejecución\"}]";
+            } elseif ($task_type === 'write_script') {
+                $userPrompt .= "\nObjetivo: Redacta una propuesta de guion técnico y literario audiovisual para esta tarea. Incluye:\n"
+                    . "1. ⚡ Gancho de Atención (0-3 segundos para frenar el scroll)\n"
+                    . "2. 💡 Desarrollo & Retención (Storytelling ágil, valor o demostración)\n"
+                    . "3. 🎯 Llamado a la Acción (CTA claro)\n"
+                    . "4. 🎬 Indicaciones visuales y de audio (planos de cámara, B-Roll, SFX y música).\n"
+                    . ($custom_prompt ? "\nInstrucciones adicionales del usuario: {$custom_prompt}" : "");
+            } elseif ($task_type === 'tech_specs') {
+                $userPrompt .= "\nObjetivo: Define las especificaciones técnicas recomendadas para rodaje y postproducción de esta tarea:\n"
+                    . "- Resolución y Aspect Ratio (16:9 4K UHD o 9:16 Vertical 1080x1920)\n"
+                    . "- Cuadros por segundo (24fps / 60fps)\n"
+                    . "- Perfil de Color & Códec (LOG, Rec.709, ProRes 422, H.264)\n"
+                    . "- Setup de Cámaras, Iluminación y Microfonía\n"
+                    . "- Formatos de exportación y entrega final.\n"
+                    . ($custom_prompt ? "\nInstrucciones adicionales: {$custom_prompt}" : "");
+            } else {
+                $userPrompt .= "\nSolicitud personalizada del usuario: " . ($custom_prompt ?: "Dame recomendaciones y optimizaciones audiovisuales para esta tarea.");
+            }
+
+            // Inferencia: Groq prioritario, Gemini como fallback
+            $aiText = '';
+            if (!empty($groqKey)) {
+                $groqModels = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+                foreach ($groqModels as $gModel) {
+                    $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST => true,
+                        CURLOPT_HTTPHEADER => [
+                            'Authorization: Bearer ' . $groqKey,
+                            'Content-Type: application/json'
+                        ],
+                        CURLOPT_POSTFIELDS => json_encode([
+                            'model' => $gModel,
+                            'messages' => [
+                                ['role' => 'system', 'content' => $systemPrompt],
+                                ['role' => 'user', 'content' => $userPrompt]
+                            ],
+                            'temperature' => 0.5,
+                            'max_tokens' => 1000
+                        ]),
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_TIMEOUT => 25
+                    ]);
+                    $res = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+
+                    if ($httpCode === 200 && !empty($res)) {
+                        $data = json_decode($res, true);
+                        $aiText = trim($data['choices'][0]['message']['content'] ?? '');
+                        if (!empty($aiText)) break;
+                    }
+                }
+            }
+
+            // Fallback a Gemini si Groq no respondió
+            if (empty($aiText) && !empty($geminiKey)) {
+                $geminiModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
+                foreach ($geminiModels as $gemModel) {
+                    $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$gemModel}:generateContent?key=" . $geminiKey;
+                    $ch = curl_init($geminiUrl);
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST => true,
+                        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                        CURLOPT_POSTFIELDS => json_encode([
+                            'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+                            'contents' => [['parts' => [['text' => $userPrompt]]]]
+                        ]),
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_TIMEOUT => 25
+                    ]);
+                    $res = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+
+                    if ($httpCode === 200 && !empty($res)) {
+                        $data = json_decode($res, true);
+                        $aiText = trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '');
+                        if (!empty($aiText)) break;
+                    }
+                }
+            }
+
+            if (empty($aiText)) {
+                throw new Exception("No se obtuvo respuesta del motor de Romita AI. Intenta de nuevo.");
+            }
+
+            // Si es generate_subtasks, parsear JSON
+            if ($task_type === 'generate_subtasks') {
+                $cleanJson = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($aiText));
+                $subtasks = json_decode($cleanJson, true);
+                if (!is_array($subtasks)) {
+                    if (preg_match('/\[.*\]/s', $cleanJson, $matches)) {
+                        $subtasks = json_decode($matches[0], true);
+                    }
+                }
+                if (!is_array($subtasks)) {
+                    $subtasks = [
+                        ['title' => 'Revisión y desglose de requerimientos', 'description' => 'Alinear objetivos clave'],
+                        ['title' => 'Grabación / Selección de recursos visuales', 'description' => 'Captura de material'],
+                        ['title' => 'Edición y ensamblaje de tomas', 'description' => 'Montaje rítmico'],
+                        ['title' => 'Exportación y verificación de entrega', 'description' => 'Master final']
+                    ];
+                }
+                echo json_encode([
+                    'success' => true,
+                    'subtasks' => $subtasks,
+                    'raw' => $aiText
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'text' => $aiText
+                ]);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
         break;
 
     case 'toggle_subtask':

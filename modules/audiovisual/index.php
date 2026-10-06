@@ -858,6 +858,46 @@ require_once 'includes/header.php';
     transform: translateX(2px) scale(1.08);
 }
 
+.drive-sub-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 7px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-decoration: none;
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    transition: all 0.18s ease;
+}
+
+.drive-sub-chip:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: translateY(-1px);
+}
+
+.drive-sub-chip.finish {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+.drive-sub-chip.finish:hover {
+    background: rgba(16, 185, 129, 0.2);
+}
+
+.drive-sub-chip.pack {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    border-color: rgba(139, 92, 246, 0.25);
+}
+
+.drive-sub-chip.pack:hover {
+    background: rgba(139, 92, 246, 0.2);
+}
+
 /* Card Footer Link */
 .app-bento-footer {
     display: flex;
@@ -1478,6 +1518,8 @@ require_once 'includes/header.php';
         <div class="drawer-body">
             <input type="hidden" id="p_id" value="0">
             <input type="hidden" id="existing_covers" value="">
+            <input type="hidden" id="p_client_id" value="">
+            <input type="hidden" id="p_drive_subfolders" value="">
 
             <!-- Card 1: Información Básica -->
             <div class="drawer-card-section">
@@ -1497,6 +1539,16 @@ require_once 'includes/header.php';
                         <input type="hidden" id="p_client_name" value="">
                         <div class="client-results-dropdown" id="client-results"></div>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="ph-bold ph-receipt"></i> Orden de Servicio (O.S.)</label>
+                    <select id="p_work_order_id" class="form-control" onchange="onWorkOrderSelected(this.value)">
+                        <option value="">-- Sin orden de servicio vinculada --</option>
+                    </select>
+                    <span class="form-helper-text">
+                        <i class="ph-bold ph-link"></i> Vincula la orden de servicio activa del cliente para trazabilidad y entregables.
+                    </span>
                 </div>
 
                 <div class="form-group">
@@ -1548,15 +1600,24 @@ require_once 'includes/header.php';
                 <div class="form-group">
                     <label><i class="ph-bold ph-users"></i> Colaboradores Asignados</label>
                     <input type="text" id="p_users" placeholder="Escribe para buscar y asignar colaboradores...">
+                    <span class="form-helper-text">
+                        <i class="ph-bold ph-user-check"></i> Usuarios registrados en el sistema asignados a la producción.
+                    </span>
                 </div>
 
                 <div class="form-group">
-                    <label><i class="ph-bold ph-google-drive-logo" style="color: #3b82f6;"></i> Enlace Carpeta Google Drive</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <label style="margin: 0;"><i class="ph-bold ph-google-drive-logo" style="color: #3b82f6;"></i> Enlace Carpeta Google Drive</label>
+                        <button type="button" id="btn-sync-drive-subfolders" onclick="autoCreateDriveStructure()" style="background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.74rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.2s ease;">
+                            <i class="ph-bold ph-sparkle"></i> Crear Estructura en Drive
+                        </button>
+                    </div>
                     <input type="url" id="p_drive_url" class="form-control" placeholder="https://drive.google.com/drive/folders/..." oninput="extractDriveId(this.value)">
                     <input type="hidden" id="p_drive_id" value="">
                     <span class="form-helper-text">
-                        <i class="ph-bold ph-link"></i> Acceso directo a los rushes, assets y entregables finales.
+                        <i class="ph-bold ph-folders"></i> Incluye subcarpetas automáticas: <strong>01. Referencias</strong>, <strong>02. Videos Terminados</strong> y <strong>03. Empaquetados</strong>.
                     </span>
+                    <div id="drive-subfolders-badges" style="display: none; margin-top: 0.55rem; gap: 0.4rem; flex-wrap: wrap;"></div>
                 </div>
 
                 <div class="form-group">
@@ -1626,6 +1687,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProjects();
     loadSystemUsers();
     loadFormSubmissions();
+    loadWorkOrders();
     
     // Close drawer on overlay click
     const drawerOverlay = document.getElementById('brand-drawer');
@@ -1870,8 +1932,14 @@ function searchClients(q) {
                 `;
                 item.onclick = () => {
                     document.getElementById('p_client_search').value = clientDisplay;
-                    document.getElementById('p_client_name').value = clientDisplay;
+                    document.getElementById('p_client_name').value = c.name;
+                    document.getElementById('p_client_id').value = c.id || '';
+                    if (c.drive_folder_id && !document.getElementById('p_drive_url').value) {
+                        document.getElementById('p_drive_id').value = c.drive_folder_id;
+                        document.getElementById('p_drive_url').value = 'https://drive.google.com/drive/folders/' + c.drive_folder_id;
+                    }
                     dropdown.style.display = 'none';
+                    loadWorkOrders(c.name);
                 };
                 dropdown.appendChild(item);
             });
@@ -1880,6 +1948,150 @@ function searchClients(q) {
             dropdown.style.display = 'none';
         }
     });
+}
+
+function loadWorkOrders(clientName = '', selectedId = '') {
+    let formData = new FormData();
+    formData.append('action', 'get_work_orders');
+    if (clientName) {
+        formData.append('client', clientName);
+    }
+    fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        let select = document.getElementById('p_work_order_id');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Sin orden de servicio vinculada --</option>';
+        if (data.success && data.work_orders) {
+            data.work_orders.forEach(wo => {
+                let opt = document.createElement('option');
+                opt.value = wo.id;
+                let brandPart = wo.brand ? ` (${wo.brand})` : '';
+                opt.text = `${wo.correlativo || ('OS #' + wo.id)} - ${wo.client || 'Sin cliente'}${brandPart}`;
+                if (selectedId && String(selectedId) === String(wo.id)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+    })
+    .catch(err => console.error('Error cargando ordenes de servicio:', err));
+}
+
+function onWorkOrderSelected(val) {
+    if (!val) return;
+    const select = document.getElementById('p_work_order_id');
+    const optText = select.options[select.selectedIndex]?.text || '';
+    const titleInput = document.getElementById('p_title');
+    if (titleInput && !titleInput.value.trim() && optText) {
+        const parts = optText.split(' - ');
+        if (parts.length > 0) {
+            titleInput.value = `Producción Audiovisual - ${parts[0]}`;
+        }
+    }
+}
+
+function autoCreateDriveStructure() {
+    let title = document.getElementById('p_title').value.trim();
+    let clientName = document.getElementById('p_client_name').value.trim() || document.getElementById('p_client_search').value.trim();
+    let clientId = document.getElementById('p_client_id').value;
+    let workOrderId = document.getElementById('p_work_order_id').value;
+
+    if (!title) {
+        Swal.fire('Atención', 'Por favor ingresa primero el título de la producción.', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('btn-sync-drive-subfolders');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Creando en Drive...';
+    btn.disabled = true;
+
+    let formData = new FormData();
+    formData.append('action', 'sync_drive_folders');
+    formData.append('title', title);
+    formData.append('client_name', clientName);
+    formData.append('client_id', clientId);
+    formData.append('work_order_id', workOrderId);
+
+    fetch('ajax/ajax_audiovisual.php', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        if (data.success) {
+            if (data.folder_url) {
+                document.getElementById('p_drive_url').value = data.folder_url;
+            }
+            if (data.folder_id) {
+                document.getElementById('p_drive_id').value = data.folder_id;
+            }
+            if (data.subfolders) {
+                document.getElementById('p_drive_subfolders').value = JSON.stringify(data.subfolders);
+                renderSubfolderBadges(data.subfolders);
+            }
+            Swal.fire({
+                icon: 'success',
+                title: 'Estructura en Google Drive Creada',
+                html: `Se han configurado las subcarpetas de almacenamiento:<br>
+                       <ul style="text-align:left; font-size:0.85rem; margin-top:0.75rem; padding-left:1.25rem;">
+                         <li><b>📁 01. Referencias Audiovisuales</b></li>
+                         <li><b>🎬 02. Videos Terminados</b></li>
+                         <li><b>📦 03. Empaquetados de Videos</b></li>
+                       </ul>`,
+                customClass: { popup: 'swal2-modern-popup' }
+            });
+        } else {
+            Swal.fire('Error en Drive', data.message || 'No se pudo sincronizar con Google Drive', 'error');
+        }
+    })
+    .catch(err => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        Swal.fire('Error', 'Error de conexión con el servidor', 'error');
+    });
+}
+
+function renderSubfolderBadges(subfolders) {
+    const container = document.getElementById('drive-subfolders-badges');
+    if (!container) return;
+    if (!subfolders) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    let subs = typeof subfolders === 'string' ? JSON.parse(subfolders || '{}') : subfolders;
+    if (!subs || Object.keys(subs).length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    const items = [
+        { key: 'referencias', label: '01. Referencias', icon: 'ph-folders', color: '#3b82f6' },
+        { key: 'videos_terminados', label: '02. Videos Terminados', icon: 'ph-video-camera', color: '#10b981' },
+        { key: 'empaquetados', label: '03. Empaquetados', icon: 'ph-package', color: '#8b5cf6' }
+    ];
+
+    let html = '';
+    items.forEach(item => {
+        const sub = subs[item.key];
+        if (sub && sub.url) {
+            html += `
+                <a href="${sub.url}" target="_blank" style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.55rem; background:color-mix(in srgb, ${item.color} 12%, transparent); border:1px solid color-mix(in srgb, ${item.color} 30%, transparent); color:${item.color}; border-radius:6px; font-size:0.72rem; font-weight:700; text-decoration:none; transition:transform 0.15s ease;" title="Abrir ${item.label} en Google Drive">
+                    <i class="ph-bold ${item.icon}"></i> ${item.label} <i class="ph-bold ph-arrow-up-right" style="font-size:0.65rem;"></i>
+                </a>
+            `;
+        }
+    });
+
+    if (html) {
+        container.innerHTML = html;
+        container.style.display = 'flex';
+    } else {
+        container.style.display = 'none';
+    }
 }
 
 function loadProjects() {
@@ -2048,6 +2260,23 @@ function renderProjects() {
         let statusMap = { 'Active': 'Activo', 'Pending': 'Pendiente', 'Completed': 'Listo', 'Archived': 'Archivado' };
         let statusLabel = statusMap[p.status] || p.status || 'Activo';
 
+        let subfoldersHtml = '';
+        let subObj = null;
+        if (p.drive_subfolders_json) {
+            try {
+                subObj = typeof p.drive_subfolders_json === 'string' ? JSON.parse(p.drive_subfolders_json) : p.drive_subfolders_json;
+            } catch(e) {}
+        }
+        if (subObj && (subObj.referencias || subObj.videos_terminados || subObj.empaquetados)) {
+            subfoldersHtml = `
+                <div class="app-drive-subfolders-quick" style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-top:0.35rem;" onclick="event.stopPropagation()">
+                    ${subObj.referencias && subObj.referencias.url ? `<a href="${subObj.referencias.url}" target="_blank" class="drive-sub-chip" title="01. Referencias Audiovisuales"><i class="ph-bold ph-folders"></i> Referencias</a>` : ''}
+                    ${subObj.videos_terminados && subObj.videos_terminados.url ? `<a href="${subObj.videos_terminados.url}" target="_blank" class="drive-sub-chip finish" title="02. Videos Terminados"><i class="ph-bold ph-video-camera"></i> Terminados</a>` : ''}
+                    ${subObj.empaquetados && subObj.empaquetados.url ? `<a href="${subObj.empaquetados.url}" target="_blank" class="drive-sub-chip pack" title="03. Empaquetados de Videos"><i class="ph-bold ph-package"></i> Empaquetados</a>` : ''}
+                </div>
+            `;
+        }
+
         let cleanTitle = p.title || 'Producción Audiovisual';
         let avatarLetter = cleanTitle.charAt(0).toUpperCase();
         let gradIdx = idx % 4;
@@ -2076,6 +2305,11 @@ function renderProjects() {
                         <h3 class="app-bento-title">${p.title}</h3>
                         <div class="app-hero-meta">
                             <span class="app-client-chip"><i class="ph-bold ph-buildings"></i> ${clientDisplayName}</span>
+                            ${p.work_order_correlativo ? `
+                                <span class="app-client-chip" style="background:rgba(59,130,246,0.12); color:#2563eb; border:1px solid rgba(59,130,246,0.25); padding:0.12rem 0.45rem; border-radius:6px; font-weight:700;">
+                                    <i class="ph-bold ph-receipt"></i> ${p.work_order_correlativo}
+                                </span>
+                            ` : ''}
                             <span class="app-date-chip"><i class="ph-bold ph-calendar-blank"></i> ${formattedDate}</span>
                         </div>
                     </div>
@@ -2126,16 +2360,19 @@ function renderProjects() {
 
                 <!-- Google Drive Folder CTA -->
                 ${p.drive_folder_url ? `
-                    <a href="${p.drive_folder_url}" target="_blank" class="app-drive-cta" onclick="event.stopPropagation()" title="Abrir carpeta en Google Drive">
-                        <div class="drive-cta-left">
-                            <i class="ph-fill ph-google-drive-logo"></i>
-                            <div class="drive-cta-info">
-                                <span class="drive-cta-title">Material en la Nube</span>
-                                <span class="drive-cta-sub">Abrir en Google Drive</span>
+                    <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                        <a href="${p.drive_folder_url}" target="_blank" class="app-drive-cta" onclick="event.stopPropagation()" title="Abrir carpeta raíz en Google Drive">
+                            <div class="drive-cta-left">
+                                <i class="ph-fill ph-google-drive-logo"></i>
+                                <div class="drive-cta-info">
+                                    <span class="drive-cta-title">Material en la Nube</span>
+                                    <span class="drive-cta-sub">Abrir en Google Drive</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="drive-cta-arrow"><i class="ph-bold ph-arrow-up-right"></i></div>
-                    </a>
+                            <div class="drive-cta-arrow"><i class="ph-bold ph-arrow-up-right"></i></div>
+                        </a>
+                        ${subfoldersHtml}
+                    </div>
                 ` : ''}
 
                 <!-- Direct Access Footer -->
@@ -2246,16 +2483,21 @@ function openCreateDrawer() {
     document.getElementById('drawer-title').innerText = 'Nuevo Proyecto';
     document.getElementById('p_id').value = '0';
     document.getElementById('p_title').value = '';
+    document.getElementById('p_client_id').value = '';
     document.getElementById('p_client_search').value = '';
     document.getElementById('p_client_name').value = '';
+    document.getElementById('p_work_order_id').value = '';
     document.getElementById('p_form_submission').value = '';
     document.getElementById('p_start').value = '';
     document.getElementById('p_due').value = '';
     document.getElementById('p_status').value = 'Active';
     document.getElementById('p_drive_url').value = '';
     document.getElementById('p_drive_id').value = '';
+    document.getElementById('p_drive_subfolders').value = '';
     document.getElementById('p_description').value = '';
     document.getElementById('form-duration-calc').innerHTML = '';
+    renderSubfolderBadges(null);
+    loadWorkOrders('');
     
     // Clear files & previews
     const coverFileInput = document.getElementById('p_cover_files');
@@ -2286,14 +2528,18 @@ function openEditDrawer(p) {
     document.getElementById('drawer-title').innerText = 'Editar Proyecto';
     document.getElementById('p_id').value = p.id;
     document.getElementById('p_title').value = p.title || '';
+    document.getElementById('p_client_id').value = p.client_id || '';
     document.getElementById('p_client_search').value = p.client_name || '';
     document.getElementById('p_client_name').value = p.client_name || '';
+    loadWorkOrders(p.client_name, p.work_order_id);
     document.getElementById('p_form_submission').value = p.form_submission_id || '';
     document.getElementById('p_start').value = p.start_date || '';
     document.getElementById('p_due').value = p.due_date || '';
     document.getElementById('p_status').value = p.status || 'Active';
     document.getElementById('p_drive_url').value = p.drive_folder_url || '';
     document.getElementById('p_drive_id').value = p.drive_folder_id || '';
+    document.getElementById('p_drive_subfolders').value = p.drive_subfolders_json ? (typeof p.drive_subfolders_json === 'string' ? p.drive_subfolders_json : JSON.stringify(p.drive_subfolders_json)) : '';
+    renderSubfolderBadges(p.drive_subfolders_json);
     document.getElementById('p_description').value = p.description || '';
     calcFormDuration();
 
@@ -2352,13 +2598,16 @@ function saveProject() {
         return;
     }
 
+    let clientId = document.getElementById('p_client_id').value;
     let clientName = document.getElementById('p_client_name').value || document.getElementById('p_client_search').value;
+    let workOrderId = document.getElementById('p_work_order_id').value;
     let formSubmissionId = document.getElementById('p_form_submission').value;
     let startDate = document.getElementById('p_start').value;
     let dueDate = document.getElementById('p_due').value;
     let status = document.getElementById('p_status').value;
     let driveUrl = document.getElementById('p_drive_url').value;
     let driveId = document.getElementById('p_drive_id').value;
+    let driveSubfolders = document.getElementById('p_drive_subfolders').value;
     let desc = document.getElementById('p_description').value;
 
     let assignedUsers = [];
@@ -2370,13 +2619,16 @@ function saveProject() {
     formData.append('action', 'save_project');
     formData.append('id', id);
     formData.append('title', title);
+    formData.append('client_id', clientId);
     formData.append('client_name', clientName);
+    formData.append('work_order_id', workOrderId);
     formData.append('form_submission_id', formSubmissionId);
     formData.append('start_date', startDate);
     formData.append('due_date', dueDate);
     formData.append('status', status);
     formData.append('drive_folder_url', driveUrl);
     formData.append('drive_folder_id', driveId);
+    formData.append('drive_subfolders_json', driveSubfolders);
     formData.append('description', desc);
     formData.append('tags', JSON.stringify(currentProjectTags));
     formData.append('assigned_users', JSON.stringify(assignedUsers));
