@@ -4004,29 +4004,28 @@
         padding: 0.5rem !important;
     }
 
-    .lumio-modal,
-    .lumio-modal.lumio-modal-wide,
-    #tm-modal-task .lumio-modal {
+    .lumio-modal:not(.tm-app-modal-window),
+    .lumio-modal.lumio-modal-wide:not(.tm-app-modal-window) {
         width: 100% !important;
         max-width: 100% !important;
         max-height: 96dvh !important;
         border-radius: 14px !important;
     }
 
-    .lumio-header {
+    .lumio-header:not(.tm-app-modal-header) {
         padding: 0.85rem 1.15rem !important;
     }
 
-    .lumio-body {
+    .lumio-body:not(.tm-app-modal-body) {
         padding: 1.15rem 1.15rem !important;
     }
 
-    .lumio-title {
+    .lumio-title:not(.tm-app-title-field) {
         font-size: 1.18rem !important;
         margin-bottom: 1rem !important;
     }
 
-    .lumio-footer {
+    .lumio-footer:not(.tm-app-modal-footer) {
         padding: 0.85rem 1.15rem !important;
     }
 }
@@ -6920,35 +6919,361 @@ html:not([data-theme="dark"]) .tm-kbd {
     color: #475569 !important;
 }
 
-/* Responsividad en Tablets y Móviles (< 992px) */
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVIDAD Y EXPERIENCIA MÓVIL PROFESIONAL (< 992px y < 768px)
+   ══════════════════════════════════════════════════════════ */
 @media (max-width: 991px) {
+    /* Modal: Vista Completa / Bottom Sheet Estilo App Nativa */
+    #tm-modal-task {
+        padding: 0 !important;
+    }
+
     #tm-modal-task .lumio-modal.tm-app-modal-window {
-        width: 95vw !important;
-        max-width: 95vw !important;
-        height: 94vh !important;
-        max-height: 94vh !important;
-        border-radius: 16px !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100% !important;
+        max-height: 100dvh !important;
+        min-width: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
     }
 
-    .tm-app-modal-grid {
-        grid-template-columns: 1fr !important;
+    #tm-modal-task .lumio-form.tm-app-form {
+        height: 100% !important;
+        max-height: 100dvh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    /* Contenedor de Scroll Principal Unificado */
+    #tm-modal-task .lumio-body.tm-app-modal-body {
+        flex: 1 1 auto !important;
         overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        padding: 0 !important;
     }
 
+    /* El grid se convierte en columna vertical contigua y natural */
+    .tm-app-modal-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
+        overflow: visible !important;
+    }
+
+    /* Columna Principal: Se expande según su contenido sin truncar nada */
     .tm-app-modal-main {
-        overflow-y: visible !important;
-        padding: 1.25rem 1.25rem !important;
+        overflow: visible !important;
+        height: auto !important;
+        flex: none !important;
+        padding: 1.15rem 1rem 0.75rem 1rem !important;
+        gap: 1.15rem !important;
+        box-sizing: border-box !important;
     }
 
+    /* Columna Lateral (Propiedades/Inspector): Se ubica con elegancia debajo */
     .tm-app-modal-sidebar {
-        overflow-y: visible !important;
+        overflow: visible !important;
+        height: auto !important;
+        flex: none !important;
         border-left: none !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-        padding: 1.25rem 1.25rem !important;
+        border-top: 1px solid #e2e8f0 !important;
+        padding: 1.25rem 1rem 3rem 1rem !important;
+        gap: 1rem !important;
+        background: #f8fafc !important;
+        box-sizing: border-box !important;
+    }
+
+    [data-theme="dark"] .tm-app-modal-sidebar {
+        border-top-color: rgba(255, 255, 255, 0.08) !important;
+        background: rgba(8, 12, 18, 0.7) !important;
+    }
+
+    /* Título Adaptable */
+    .tm-app-title-field {
+        font-size: 1.22rem !important;
+        padding: 0.35rem 0.1rem 0.55rem 0.1rem !important;
+    }
+
+    /* Pestañas (Tabs) estilo Touch */
+    .tm-app-tabs-nav {
+        display: flex !important;
+        gap: 0.35rem !important;
+        width: 100% !important;
+    }
+
+    .tm-app-tab-btn {
+        flex: 1 1 0 !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 0.65rem 0.4rem !important;
+        font-size: 0.82rem !important;
+    }
+
+    /* Editor Quill Touch-friendly */
+    .tm-app-quill-container {
+        min-height: 200px !important;
+    }
+
+    #tm-modal-task .ql-toolbar.ql-snow {
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        padding: 6px 10px !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #tm-modal-task .ql-toolbar.ql-snow::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #tm-modal-task .ql-editor {
+        min-height: 150px !important;
+        padding: 0.85rem !important;
+        font-size: 0.95rem !important;
+    }
+
+    /* Barra Google Drive en Móvil */
+    .tm-app-drive-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+        padding: 0.85rem !important;
+    }
+
+    .tm-drive-bar-left {
+        width: 100% !important;
+    }
+
+    .tm-drive-bar-right {
+        width: 100% !important;
+    }
+
+    .tm-btn-drive-connect,
+    .tm-btn-drive-open {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    .tm-drive-connected-group {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Dropzone de Archivos en Móvil */
+    .tm-app-dropzone {
+        padding: 0.85rem !important;
+    }
+
+    .tm-dropzone-inner {
+        gap: 0.75rem !important;
+    }
+
+    .tm-dropzone-icon-circle {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.25rem !important;
+    }
+
+    .tm-dropzone-title {
+        font-size: 0.82rem !important;
+    }
+
+    .tm-dropzone-sub {
+        font-size: 0.7rem !important;
+    }
+
+    .tm-app-attachments-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem !important;
+    }
+
+    /* Footer Siempre Fijado en la Base de la Pantalla */
+    .tm-app-modal-footer {
+        padding: 0.75rem 1rem !important;
+        flex-shrink: 0 !important;
+        z-index: 20 !important;
+        box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.07) !important;
     }
 
     .tm-app-footer-shortcuts {
         display: none !important;
+    }
+
+    .tm-app-footer-buttons {
+        width: 100% !important;
+        display: flex !important;
+        gap: 0.65rem !important;
+    }
+
+    .tm-app-cancel-btn {
+        flex: 1 1 0 !important;
+        height: 42px !important;
+        justify-content: center !important;
+        font-size: 0.88rem !important;
+        border-radius: 10px !important;
+    }
+
+    .tm-app-submit-btn {
+        flex: 1.6 1 0 !important;
+        height: 42px !important;
+        justify-content: center !important;
+        font-size: 0.88rem !important;
+        border-radius: 10px !important;
+    }
+}
+
+/* Pantallas Pequeñas (< 768px): Header Multilínea Ordenado y Controles Amigables */
+@media (max-width: 768px) {
+    /* Cabecera Organizada en 2 Filas Limpias */
+    #tm-modal-task .tm-app-modal-header {
+        display: grid !important;
+        grid-template-areas:
+            "left right"
+            "center center" !important;
+        grid-template-columns: 1fr auto !important;
+        gap: 0.5rem 0.5rem !important;
+        padding: 0.65rem 0.85rem !important;
+        min-height: auto !important;
+        max-height: none !important;
+    }
+
+    #tm-modal-task .tm-app-header-left {
+        grid-area: left !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        min-width: 0 !important;
+    }
+
+    #tm-modal-task .tm-app-header-titles {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.45rem !important;
+        min-width: 0 !important;
+        flex-direction: row !important;
+    }
+
+    #tm-modal-task .tm-app-modal-title {
+        font-size: 0.98rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 170px !important;
+    }
+
+    #tm-modal-task .tm-app-badge-tag {
+        white-space: nowrap !important;
+        font-size: 0.65rem !important;
+        padding: 1px 5px !important;
+    }
+
+    #tm-modal-task .tm-app-header-right {
+        grid-area: right !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.35rem !important;
+    }
+
+    #btn-toggle-modal-size {
+        display: none !important; /* En móvil la vista ya es a pantalla completa */
+    }
+
+    /* Fila 2: Chips de Modos Especiales (Meta del Día & Fijar en Tablero) */
+    #tm-modal-task .tm-app-header-center {
+        grid-area: center !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 0.55rem !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        padding-bottom: 2px !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #tm-modal-task .tm-app-header-center::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #tm-modal-task .tm-header-inline-toggle {
+        padding: 0.35rem 0.65rem !important;
+        border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        border-radius: 999px !important;
+        background: rgba(0, 0, 0, 0.02) !important;
+        flex-shrink: 0 !important;
+    }
+
+    [data-theme="dark"] #tm-modal-task .tm-header-inline-toggle {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+
+    /* Panel de Sincronización en Móvil */
+    .tm-sync-timing-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    .tm-btn-sync-action {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    .tm-sync-phase-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.35rem !important;
+    }
+
+    .tm-sync-phase-controls {
+        width: 100% !important;
+        display: flex !important;
+        gap: 0.5rem !important;
+    }
+
+    .tm-sync-phase-controls select {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    .tm-btn-phase-save {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    /* Controles de Formulario e Inputs de Tamaño Táctil (≥ 42px) */
+    #tm-modal-task .lumio-pill-select,
+    #tm-modal-task .lumio-date-trigger input {
+        height: 42px !important;
+        font-size: 15px !important;
+    }
+}
+
+/* Pantallas Muy Pequeñas (< 576px): Fechas en 1 Columna para Evitar Desbordes */
+@media (max-width: 576px) {
+    .tm-app-sidebar-grid-2 {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    .tm-app-sidebar-card .lumio-meta-value:has(#tm-modal-task-timer) {
+        flex-wrap: wrap !important;
+    }
+
+    #tm-modal-task .tm-app-modal-title {
+        max-width: 130px !important;
     }
 }
 
