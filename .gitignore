@@ -12,3 +12,7 @@ backups/
 uploads/
 modules/brand_guidelines/cache/
 *.sql
+!database/migrations/*.sql
+!database/sql/*.sql
+database/.migration_cache
+database/migration_log.txt

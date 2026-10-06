@@ -705,92 +705,21 @@ class SystemUpdater {
     }
 
     /**
-     * Escanea y aplica migraciones SQL de forma no destructiva
+     * Escanea y aplica migraciones de forma 100% no destructiva preservando datos existentes
      */
     public function runMigrations() {
-        $db = $this->getDb();
-        if (!$db) {
-            $this->log("Aviso: Conexión a la base de datos no disponible para migraciones.");
-            return 0;
+        require_once __DIR__ . '/DatabaseMigrationManager.php';
+        $manager = new DatabaseMigrationManager($this->getDb(), $this->basePath);
+        $result = $manager->runPendingMigrations();
+
+        foreach ($manager->getLogs() as $logMsg) {
+            $this->log($logMsg);
+        }
+        foreach ($manager->getErrors() as $err) {
+            $this->log("Error: " . $err);
         }
 
-        // Asegurar que exista la tabla para control de migraciones
-        $db->exec("
-            CREATE TABLE IF NOT EXISTS `system_migrations` (
-                `id` int(11) NOT NULL AUTO_INCREMENT,
-                `migration_name` varchar(255) NOT NULL,
-                `batch` int(11) NOT NULL DEFAULT 1,
-                `applied_at` timestamp NOT NULL DEFAULT current_timestamp(),
-                PRIMARY KEY (`id`),
-                UNIQUE KEY `migration_name` (`migration_name`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        ");
-
-        $stmtApplied = $db->query("SELECT migration_name FROM system_migrations");
-        $applied = $stmtApplied ? $stmtApplied->fetchAll(PDO::FETCH_COLUMN) : [];
-
-        // Buscar archivos SQL de migración en la raíz y en database/migrations/
-        $migrationFiles = [];
-        $rootSqlFiles = glob($this->basePath . '/actualizacion_*.sql');
-        if ($rootSqlFiles) {
-            foreach ($rootSqlFiles as $f) {
-                $migrationFiles[basename($f)] = $f;
-            }
-        }
-
-        $migrationsDir = $this->basePath . '/database/migrations';
-        if (is_dir($migrationsDir)) {
-            $dirSqlFiles = glob($migrationsDir . '/*.sql');
-            if ($dirSqlFiles) {
-                foreach ($dirSqlFiles as $f) {
-                    $migrationFiles[basename($f)] = $f;
-                }
-            }
-        }
-
-        // Determinar siguiente lote (batch)
-        $stmtBatch = $db->query("SELECT COALESCE(MAX(batch), 0) + 1 FROM system_migrations");
-        $nextBatch = $stmtBatch ? intval($stmtBatch->fetchColumn()) : 1;
-
-        $appliedCount = 0;
-        foreach ($migrationFiles as $name => $path) {
-            if (in_array($name, $applied)) {
-                continue; // Ya fue ejecutada previamente
-            }
-
-            $this->log("Ejecutando migración: $name...");
-            $sqlContent = file_get_contents($path);
-
-            if (!empty(trim($sqlContent))) {
-                // Desactivar temporalmente foreign keys para migraciones
-                @$db->exec("SET FOREIGN_KEY_CHECKS=0;");
-                
-                // Ejecutar sentencias individuales tolerando columnas ya existentes
-                $queries = $this->splitSqlQueries($sqlContent);
-                foreach ($queries as $query) {
-                    if (empty(trim($query))) continue;
-                    try {
-                        $db->exec($query);
-                    } catch (PDOException $e) {
-                        // Ignorar errores benignos como "Duplicate column name" o "Table already exists"
-                        $msg = $e->getMessage();
-                        if (strpos($msg, 'Duplicate column') !== false || strpos($msg, 'already exists') !== false) {
-                            // Columna o tabla ya existía, seguro continuar
-                            continue;
-                        }
-                        $this->log("Aviso en query de migración: " . $e->getMessage());
-                    }
-                }
-                @$db->exec("SET FOREIGN_KEY_CHECKS=1;");
-            }
-
-            // Registrar como ejecutada
-            $stmtInsert = $db->prepare("INSERT INTO system_migrations (migration_name, batch) VALUES (?, ?)");
-            $stmtInsert->execute([$name, $nextBatch]);
-            $appliedCount++;
-        }
-
-        return $appliedCount;
+        return $result['applied_count'] ?? 0;
     }
 
     /**

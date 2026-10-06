@@ -33,6 +33,10 @@ if (!$db) {
     </div>");
 }
 
+// Auto-verificación y aplicación de migraciones de base de datos no destructivas al desplegar actualizaciones
+require_once __DIR__ . '/includes/DatabaseMigrationManager.php';
+DatabaseMigrationManager::autoMigrateIfPending($db);
+
 // Fetch Global Settings
 $stmt = $db->query("SELECT * FROM settings");
 $global_settings_raw = $stmt->fetchAll();

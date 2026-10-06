@@ -1038,11 +1038,11 @@ body.system-locked-late header {
 
             const isTardanza = (data && (data.es_tardanza == 1 || data.minutos_tarde > 0));
             const tardanzaBadge = isTardanza
-                ? `<span class="badge-status-pill pill-tardanza" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-warning-circle"></i> Tardanza (${data.minutos_tarde}m)</span>`
-                : (data && data.entrada ? `<span class="badge-status-pill pill-puntual" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;"><i class="ph ph-check-circle"></i> Puntual</span>` : '');
+                ? `<span class="badge-status-pill pill-tardanza"><i class="ph ph-warning-circle"></i> Tardanza (${data.minutos_tarde}m)</span>`
+                : (data && data.entrada ? `<span class="badge-status-pill pill-puntual"><i class="ph ph-check-circle"></i> Puntual</span>` : '');
 
             const horasExtrasBadge = (data && data.realiza_horas_extras == 1)
-                ? `<span class="badge-status-pill pill-he" style="background: rgba(139, 92, 246, 0.18); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px;" title="${data.motivo_horas_extras || 'Horas extras autorizadas'}"><i class="ph ph-clock-countdown"></i> Horas Extras</span>`
+                ? `<span class="badge-status-pill pill-he" title="${data.motivo_horas_extras || 'Horas extras autorizadas'}"><i class="ph ph-clock-countdown"></i> Horas Extras</span>`
                 : '';
 
             if (data && data.tolerancia_minutos) {
@@ -1073,7 +1073,7 @@ body.system-locked-late header {
                     if (conn2 && data.fin_refrigerio) conn2.classList.add('conn-active');
                     if (conn3) conn3.classList.add('conn-active');
 
-                    statusText.innerHTML = `<span class="status-dot status-dot-done" style="background: #94a3b8; box-shadow: 0 0 8px rgba(148,163,184,0.4);"></span> Jornada Terminada ${tardanzaBadge} ${horasExtrasBadge}`;
+                    statusText.innerHTML = `<span class="status-dot status-dot-done"></span> Jornada Terminada ${tardanzaBadge} ${horasExtrasBadge}`;
                     container.appendChild(btnPermiso);
                 } else if (!data.inicio_refrigerio) {
                     statusText.innerHTML = `<span class="status-dot status-dot-live"></span> En Jornada · Inició ${formatTime(data.entrada)} ${tardanzaBadge} ${horasExtrasBadge}`;
@@ -1087,7 +1087,7 @@ body.system-locked-late header {
                     if (conn2) conn2.classList.add('conn-active');
                     if (stepRefFin) stepRefFin.classList.add('step-active');
 
-                    statusText.innerHTML = `<span class="status-dot status-dot-lunch" style="background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4);"></span> En Refrigerio ${tardanzaBadge} ${horasExtrasBadge}`;
+                    statusText.innerHTML = `<span class="status-dot status-dot-lunch"></span> En Refrigerio ${tardanzaBadge} ${horasExtrasBadge}`;
                     createBtn('Finalizar Almuerzo', 'fin_refrigerio', 'ph-play', 'primary');
                     container.appendChild(btnPermiso);
                 } else {

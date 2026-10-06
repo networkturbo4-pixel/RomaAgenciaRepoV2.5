@@ -64,6 +64,39 @@ try {
             ]);
             break;
 
+        case 'get_migrations':
+            require_once __DIR__ . '/../includes/DatabaseMigrationManager.php';
+            $migManager = new DatabaseMigrationManager($db);
+            $applied = $migManager->getAppliedMigrations();
+            $available = $migManager->getAvailableMigrations();
+            $pending = $migManager->getPendingMigrations();
+            $history = $migManager->getMigrationHistory();
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'total_available' => count($available),
+                    'total_applied' => count($applied),
+                    'total_pending' => count($pending),
+                    'pending_list' => array_keys($pending),
+                    'history' => $history
+                ]
+            ]);
+            break;
+
+        case 'run_migrations':
+            @set_time_limit(0);
+            require_once __DIR__ . '/../includes/DatabaseMigrationManager.php';
+            $migManager = new DatabaseMigrationManager($db);
+            $res = $migManager->runPendingMigrations();
+            echo json_encode([
+                'success' => $res['success'],
+                'applied_count' => $res['applied_count'],
+                'logs' => $res['logs'],
+                'errors' => $res['errors']
+            ]);
+            break;
+
         default:
             echo json_encode(['success' => false, 'error' => 'Acción desconocida.']);
             break;

@@ -3,8 +3,13 @@
 // Interfaz de Actualización del Sistema a 1 Clic
 
 require_once __DIR__ . '/../../../includes/SystemUpdater.php';
+require_once __DIR__ . '/../../../includes/DatabaseMigrationManager.php';
 $updater = new SystemUpdater($db ?? null);
 $localInfo = $updater->getLocalInfo();
+$migManager = new DatabaseMigrationManager($db ?? null);
+$appliedMigrations = $migManager->getAppliedMigrations();
+$pendingMigrations = $migManager->getPendingMigrations();
+$migrationHistory = $migManager->getMigrationHistory();
 ?>
 
 <div class="pane-header">
@@ -133,6 +138,130 @@ $localInfo = $updater->getLocalInfo();
             <div id="updater-console" style="background: #0f172a; color: #38bdf8; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.78rem; padding: 1rem; border-radius: var(--radius-sm); max-height: 220px; overflow-y: auto; line-height: 1.6; border: 1px solid #1e293b;">
                 <span style="color: #64748b;">[Sistema listo. Presiona "Comprobar Actualizaciones" para buscar cambios en GitHub.]</span>
             </div>
+        </div>
+    </div>
+
+    <!-- ROW 2.5: BASE DE DATOS Y MIGRACIONES AUTOMÁTICAS -->
+    <div style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="background: color-mix(in srgb, #6366f1 15%, transparent); color: #6366f1; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                    <i class="ph ph-database"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--color-title);">Base de Datos & Migraciones Automáticas</h3>
+                    <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">
+                        Las actualizaciones se aplican de forma no destructiva: nuevas tablas y campos se incorporan protegiendo los datos actuales.
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <?php if (count($pendingMigrations) > 0): ?>
+                    <span class="integration-status-chip" style="background: color-mix(in srgb, #f59e0b 15%, transparent); color: #d97706; border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);">
+                        <i class="ph ph-warning-circle"></i> <?php echo count($pendingMigrations); ?> Migración(es) Pendiente(s)
+                    </span>
+                    <button type="button" id="btn-run-db-migrations" class="btn btn-primary" style="background: #6366f1; border-color: #6366f1; padding: 0.5rem 1rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <i class="ph ph-play"></i> Aplicar Ahora
+                    </button>
+                <?php else: ?>
+                    <span class="integration-status-chip connected" style="font-size: 0.8rem;">
+                        <i class="ph ph-check-circle"></i> Base de Datos al Día (<?php echo count($appliedMigrations); ?> aplicadas)
+                    </span>
+                    <button type="button" id="btn-run-db-migrations" class="btn btn-outline" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;" title="Verificar cambios estructurales pendientes">
+                        <i class="ph ph-arrows-clockwise"></i> Comprobar BD
+                    </button>
+                <?php endif; ?>
+                <button type="button" id="btn-toggle-mig-history" class="btn btn-outline" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="ph ph-clock-counter-clockwise"></i> Historial
+                </button>
+            </div>
+        </div>
+
+        <!-- 3 Bento Metric Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
+                    <i class="ph ph-lightning" style="color: #10b981;"></i> Auto-Actualización
+                </div>
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-title);">
+                    Activa en Despliegue
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    Se ejecuta al actualizar o reiniciar sin intervención.
+                </div>
+            </div>
+
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
+                    <i class="ph ph-shield-check" style="color: #6366f1;"></i> Protección de Datos
+                </div>
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-title);">
+                    100% No Destructivo
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    No borra tablas ni registros preexistentes.
+                </div>
+            </div>
+
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
+                    <i class="ph ph-clock" style="color: #3b82f6;"></i> Rendimiento
+                </div>
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-title);">
+                    Caché de &lt; 0.1ms
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    Cero sobrecarga de consulta en peticiones ordinarias.
+                </div>
+            </div>
+        </div>
+
+        <?php if (count($pendingMigrations) > 0): ?>
+            <!-- Alerta de Migraciones Pendientes -->
+            <div style="background: color-mix(in srgb, #f59e0b 10%, var(--bg-surface)); border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1rem;">
+                <strong style="color: #d97706; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">
+                    <i class="ph ph-warning"></i> Migraciones listas para sincronizar:
+                </strong>
+                <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem; color: var(--color-title);">
+                    <?php foreach ($pendingMigrations as $pName => $pPath): ?>
+                        <li><code><?php echo htmlspecialchars($pName); ?></code> <span style="font-size: 0.72rem; color: var(--text-muted);">(<?php echo htmlspecialchars(basename(dirname($pPath)) . '/' . basename($pPath)); ?>)</span></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
+        <!-- Historial Colapsable de Migraciones -->
+        <div id="mig-history-container" style="display: none; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <strong style="font-size: 0.85rem; color: var(--color-title);">Historial de Migraciones Aplicadas (system_migrations)</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);"><?php echo count($migrationHistory); ?> registros en total</span>
+            </div>
+            <?php if (empty($migrationHistory)): ?>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">No hay historial de migraciones registrado aún.</p>
+            <?php else: ?>
+                <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: left;">
+                        <thead style="background: var(--bg-color); position: sticky; top: 0;">
+                            <tr>
+                                <th style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600;">Lote</th>
+                                <th style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600;">Archivo de Migración</th>
+                                <th style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600;">Fecha de Aplicación</th>
+                                <th style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600;">Tiempo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($migrationHistory as $item): ?>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.45rem 0.75rem;"><span style="background: var(--bg-color); padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 600;">#<?php echo (int)$item['batch']; ?></span></td>
+                                    <td style="padding: 0.45rem 0.75rem; font-family: monospace; color: var(--color-title);"><?php echo htmlspecialchars($item['migration_name']); ?></td>
+                                    <td style="padding: 0.45rem 0.75rem; color: var(--text-muted);"><?php echo htmlspecialchars($item['applied_at']); ?></td>
+                                    <td style="padding: 0.45rem 0.75rem; color: var(--text-muted);"><?php echo (int)($item['execution_time_ms'] ?? 0); ?> ms</td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -392,6 +521,72 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             }
+        });
+    }
+
+    // Gestión de Migraciones de Base de Datos
+    const btnRunDbMigrations = document.getElementById('btn-run-db-migrations');
+    const btnToggleMigHistory = document.getElementById('btn-toggle-mig-history');
+    const migHistoryContainer = document.getElementById('mig-history-container');
+
+    if (btnToggleMigHistory && migHistoryContainer) {
+        btnToggleMigHistory.addEventListener('click', () => {
+            const isHidden = migHistoryContainer.style.display === 'none';
+            migHistoryContainer.style.display = isHidden ? 'block' : 'none';
+            btnToggleMigHistory.innerHTML = isHidden 
+                ? '<i class="ph ph-caret-up"></i> Ocultar Historial' 
+                : '<i class="ph ph-clock-counter-clockwise"></i> Historial';
+        });
+    }
+
+    if (btnRunDbMigrations) {
+        btnRunDbMigrations.addEventListener('click', function() {
+            btnRunDbMigrations.disabled = true;
+            const originalHtml = btnRunDbMigrations.innerHTML;
+            btnRunDbMigrations.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Verificando BD...';
+            logConsole('Verificando migraciones de base de datos pendientes...', '#6366f1');
+
+            fetch('ajax/ajax_system_updater.php?action=run_migrations')
+            .then(r => r.json())
+            .then(res => {
+                btnRunDbMigrations.disabled = false;
+                btnRunDbMigrations.innerHTML = originalHtml;
+
+                if (res.logs && Array.isArray(res.logs)) {
+                    res.logs.forEach(l => {
+                        const isErr = l.includes('ERROR') || l.includes('❌');
+                        const isOk = l.includes('Éxito') || l.includes('exitosamente') || l.includes('correctamente') || l.includes('✅');
+                        logConsole(l, isErr ? '#ef4444' : (isOk ? '#10b981' : '#6366f1'));
+                    });
+                }
+
+                if (res.success) {
+                    if (res.applied_count > 0) {
+                        Swal.fire({
+                            title: '¡Base de Datos Actualizada!',
+                            text: `Se aplicaron ${res.applied_count} migración(es) correctamente sin afectar datos existentes.`,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Base de Datos al Día',
+                            text: 'No hay migraciones pendientes. Todas las tablas y campos están sincronizados.',
+                            icon: 'info'
+                        });
+                    }
+                } else {
+                    const errDetail = (res.errors && res.errors.length) ? res.errors.join('<br>') : (res.error || 'Error al ejecutar migraciones.');
+                    Swal.fire('Error en Migración', errDetail, 'error');
+                }
+            })
+            .catch(err => {
+                btnRunDbMigrations.disabled = false;
+                btnRunDbMigrations.innerHTML = originalHtml;
+                logConsole('❌ Error de conexión al procesar migraciones: ' + err.message, '#ef4444');
+                Swal.fire('Error de Red', err.message, 'error');
+            });
         });
     }
 });
