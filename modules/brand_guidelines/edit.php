@@ -714,9 +714,21 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
    ========================================================================== */
 #colorsContainer.bge-colors-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
     margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+    #colorsContainer.bge-colors-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    #colorsContainer.bge-colors-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 #colorsContainer .bge-studio-color-card {
@@ -726,11 +738,15 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 0;
+    align-items: stretch !important;
+    justify-content: flex-start;
+    padding: 0 !important;
     margin-bottom: 0;
     box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.04);
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 [data-theme="dark"] #colorsContainer .bge-studio-color-card {
@@ -920,26 +936,34 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 
 /* Card Body */
 .bge-card-body {
-    padding: 1.25rem;
+    padding: 1.15rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.85rem;
     flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .bge-card-title-row {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.65rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .bge-field-col {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .bge-micro-label {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -947,25 +971,44 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     display: flex;
     align-items: center;
     gap: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bge-card-body .bge-input,
+.bge-card-body .bge-select {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.86rem;
+    border-radius: 10px;
+    min-width: 0;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* 2x2 Code Chips Grid */
 .bge-code-chips-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
+    gap: 0.6rem;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 .bge-code-chip {
     background: #ffffff;
     border: 1.5px solid #cbd5e1;
     border-radius: 10px;
-    padding: 0.45rem 0.65rem;
+    padding: 0.45rem 0.65rem 0.5rem;
     display: flex;
-    align-items: center;
-    gap: 0.4rem;
+    flex-direction: column;
+    gap: 0.25rem;
     position: relative;
     transition: all 0.15s;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 [data-theme="dark"] .bge-code-chip {
@@ -974,53 +1017,44 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 }
 
 .bge-code-chip:focus-within {
-    border-color: var(--bge-primary, #262ecf);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bge-primary, #262ecf) 25%, transparent);
+    border-color: var(--bge-primary, #262ecf) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bge-primary, #262ecf) 25%, transparent) !important;
+}
+
+.bge-code-chip-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
 }
 
 .bge-code-chip-label {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 800;
-    color: #475569;
+    color: #64748b;
     text-transform: uppercase;
-    flex-shrink: 0;
-    width: 48px;
     letter-spacing: 0.5px;
+    line-height: 1;
 }
 
 [data-theme="dark"] .bge-code-chip-label {
-    color: #cbd5e1 !important;
-}
-
-.bge-code-chip-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    font-family: monospace;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #0f172a;
-    outline: none;
-    min-width: 0;
-    padding: 0;
-}
-
-[data-theme="dark"] .bge-code-chip-input {
-    color: #ffffff !important;
+    color: #94a3b8 !important;
 }
 
 .bge-code-chip-copy {
     background: transparent;
     border: none;
-    color: #64748b;
+    color: #94a3b8;
     cursor: pointer;
-    font-size: 0.9rem;
-    padding: 2px;
-    display: flex;
+    font-size: 0.85rem;
+    padding: 0;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
     border-radius: 4px;
+    line-height: 1;
 }
 
 [data-theme="dark"] .bge-code-chip-copy {
@@ -1029,7 +1063,31 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 
 .bge-code-chip-copy:hover {
     color: var(--bge-primary, #262ecf) !important;
-    transform: scale(1.18);
+    transform: scale(1.15);
+}
+
+.bge-code-chip-input {
+    width: 100% !important;
+    box-sizing: border-box;
+    background: transparent;
+    border: none;
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #0f172a;
+    outline: none;
+    min-width: 0;
+    padding: 0;
+    line-height: 1.3;
+}
+
+.bge-code-chip-input.col-cmyk {
+    font-size: 0.76rem;
+    letter-spacing: -0.3px;
+}
+
+[data-theme="dark"] .bge-code-chip-input {
+    color: #ffffff !important;
 }
 
 /* Dedicated Add Color Studio Card */
@@ -2681,35 +2739,43 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                 <!-- 2x2 Code Chips Grid -->
                                 <div class="bge-code-chips-grid">
                                     <div class="bge-code-chip">
-                                        <span class="bge-code-chip-label">HEX</span>
+                                        <div class="bge-code-chip-top">
+                                            <span class="bge-code-chip-label">HEX</span>
+                                            <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('hex_val_<?php echo $idx; ?>').value, this)" title="Copiar HEX">
+                                                <i class="ph-bold ph-copy"></i>
+                                            </button>
+                                        </div>
                                         <input type="text" class="bge-code-chip-input col-hex" id="hex_val_<?php echo $idx; ?>" value="<?php echo $hex; ?>" oninput="updateColorFromHex(<?php echo $idx; ?>, this.value)">
-                                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('hex_val_<?php echo $idx; ?>').value, this)" title="Copiar HEX">
-                                            <i class="ph-bold ph-copy"></i>
-                                        </button>
                                     </div>
 
                                     <div class="bge-code-chip">
-                                        <span class="bge-code-chip-label">RGB</span>
+                                        <div class="bge-code-chip-top">
+                                            <span class="bge-code-chip-label">RGB</span>
+                                            <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('rgb_val_<?php echo $idx; ?>').value, this)" title="Copiar RGB">
+                                                <i class="ph-bold ph-copy"></i>
+                                            </button>
+                                        </div>
                                         <input type="text" class="bge-code-chip-input col-rgb" id="rgb_val_<?php echo $idx; ?>" value="<?php echo htmlspecialchars($col['rgb'] ?? ''); ?>" placeholder="79, 70, 229">
-                                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('rgb_val_<?php echo $idx; ?>').value, this)" title="Copiar RGB">
-                                            <i class="ph-bold ph-copy"></i>
-                                        </button>
                                     </div>
 
                                     <div class="bge-code-chip">
-                                        <span class="bge-code-chip-label">CMYK</span>
+                                        <div class="bge-code-chip-top">
+                                            <span class="bge-code-chip-label">CMYK</span>
+                                            <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('cmyk_val_<?php echo $idx; ?>').value, this)" title="Copiar CMYK">
+                                                <i class="ph-bold ph-copy"></i>
+                                            </button>
+                                        </div>
                                         <input type="text" class="bge-code-chip-input col-cmyk" id="cmyk_val_<?php echo $idx; ?>" value="<?php echo htmlspecialchars($col['cmyk'] ?? ''); ?>" placeholder="C:66 M:69 Y:0 K:10">
-                                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('cmyk_val_<?php echo $idx; ?>').value, this)" title="Copiar CMYK">
-                                            <i class="ph-bold ph-copy"></i>
-                                        </button>
                                     </div>
 
                                     <div class="bge-code-chip">
-                                        <span class="bge-code-chip-label">PANTONE</span>
-                                        <input type="text" class="bge-code-chip-input col-pantone" value="<?php echo htmlspecialchars($col['pantone'] ?? ''); ?>" placeholder="PMS 286 C">
-                                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(this.previousElementSibling.value, this)" title="Copiar Pantone">
-                                            <i class="ph-bold ph-copy"></i>
-                                        </button>
+                                        <div class="bge-code-chip-top">
+                                            <span class="bge-code-chip-label">PANTONE</span>
+                                            <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('pantone_val_<?php echo $idx; ?>').value, this)" title="Copiar Pantone">
+                                                <i class="ph-bold ph-copy"></i>
+                                            </button>
+                                        </div>
+                                        <input type="text" class="bge-code-chip-input col-pantone" id="pantone_val_<?php echo $idx; ?>" value="<?php echo htmlspecialchars($col['pantone'] ?? ''); ?>" placeholder="PMS 286 C">
                                     </div>
                                 </div>
                             </div>
@@ -3914,32 +3980,40 @@ function addColorRow() {
 
             <div class="bge-code-chips-grid">
                 <div class="bge-code-chip">
-                    <span class="bge-code-chip-label">HEX</span>
+                    <div class="bge-code-chip-top">
+                        <span class="bge-code-chip-label">HEX</span>
+                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('hex_val_${newIdx}').value, this)" title="Copiar HEX">
+                            <i class="ph-bold ph-copy"></i>
+                        </button>
+                    </div>
                     <input type="text" class="bge-code-chip-input col-hex" id="hex_val_${newIdx}" value="${defaultHex}" oninput="updateColorFromHex(${newIdx}, this.value)">
-                    <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('hex_val_${newIdx}').value, this)" title="Copiar HEX">
-                        <i class="ph-bold ph-copy"></i>
-                    </button>
                 </div>
                 <div class="bge-code-chip">
-                    <span class="bge-code-chip-label">RGB</span>
+                    <div class="bge-code-chip-top">
+                        <span class="bge-code-chip-label">RGB</span>
+                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('rgb_val_${newIdx}').value, this)" title="Copiar RGB">
+                            <i class="ph-bold ph-copy"></i>
+                        </button>
+                    </div>
                     <input type="text" class="bge-code-chip-input col-rgb" id="rgb_val_${newIdx}" value="38, 46, 207" placeholder="38, 46, 207">
-                    <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('rgb_val_${newIdx}').value, this)" title="Copiar RGB">
-                        <i class="ph-bold ph-copy"></i>
-                    </button>
                 </div>
                 <div class="bge-code-chip">
-                    <span class="bge-code-chip-label">CMYK</span>
+                    <div class="bge-code-chip-top">
+                        <span class="bge-code-chip-label">CMYK</span>
+                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('cmyk_val_${newIdx}').value, this)" title="Copiar CMYK">
+                            <i class="ph-bold ph-copy"></i>
+                        </button>
+                    </div>
                     <input type="text" class="bge-code-chip-input col-cmyk" id="cmyk_val_${newIdx}" value="C:82 M:78 Y:0 K:19" placeholder="C:82 M:78 Y:0 K:19">
-                    <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('cmyk_val_${newIdx}').value, this)" title="Copiar CMYK">
-                        <i class="ph-bold ph-copy"></i>
-                    </button>
                 </div>
                 <div class="bge-code-chip">
-                    <span class="bge-code-chip-label">PANTONE</span>
-                    <input type="text" class="bge-code-chip-input col-pantone" placeholder="PMS 286 C">
-                    <button type="button" class="bge-code-chip-copy" onclick="copyColorText(this.previousElementSibling.value, this)" title="Copiar Pantone">
-                        <i class="ph-bold ph-copy"></i>
-                    </button>
+                    <div class="bge-code-chip-top">
+                        <span class="bge-code-chip-label">PANTONE</span>
+                        <button type="button" class="bge-code-chip-copy" onclick="copyColorText(document.getElementById('pantone_val_${newIdx}').value, this)" title="Copiar Pantone">
+                            <i class="ph-bold ph-copy"></i>
+                        </button>
+                    </div>
+                    <input type="text" class="bge-code-chip-input col-pantone" id="pantone_val_${newIdx}" placeholder="PMS 286 C">
                 </div>
             </div>
         </div>
