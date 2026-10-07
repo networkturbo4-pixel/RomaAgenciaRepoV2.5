@@ -732,10 +732,6 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         .wm-agency-logo-light { display: none !important; }
         .wm-agency-logo-dark { display: block !important; }
         [data-theme="light"] .wm-agency-logo-light { display: block !important; }
-        /* Agency and Brand Logo switching */
-        .wm-agency-logo-light { display: none !important; }
-        .wm-agency-logo-dark { display: block !important; }
-        [data-theme="light"] .wm-agency-logo-light { display: block !important; }
         [data-theme="light"] .wm-agency-logo-dark { display: none !important; }
 
         .dh-logo-light { display: none; }
@@ -874,6 +870,367 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         [data-theme="light"] .font-tester-field:focus {
             border-color: var(--sys-primary);
             box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-primary) 15%, transparent);
+        }
+
+        /* ================= BASE TYPOGRAPHY SPECIMEN ================= */
+        .font-specimen-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+        }
+        .fsc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .fsc-role {
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--sys-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .fsc-source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+        }
+        .fsc-source-badge.google {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+        .fsc-source-badge.custom {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+        .font-specimen-title {
+            font-size: 2.35rem;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+        .font-weights-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .font-weight-pill {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.75rem;
+            border-radius: 8px;
+            letter-spacing: 0.3px;
+        }
+        .font-alphabet-stage {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            letter-spacing: 1.5px;
+            color: #e2e8f0;
+            font-feature-settings: "kern" 1;
+            word-break: break-all;
+        }
+        .font-usage-text {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #94a3b8;
+            font-style: italic;
+        }
+        .font-tester-field {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .font-tester-field:focus {
+            border-color: var(--sys-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+        }
+
+        /* ================= COLOR CARDS GRID (3 COLS PC IN SCROLL, 1 COL MOBILE) ================= */
+        .color-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            width: 100%;
+        }
+        @media (min-width: 992px) {
+            .color-cards-grid {
+                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            }
+        }
+        /* Strict user requirement: In Scroll mode on PC = 3 columns, on mobile = 1 column */
+        .scroll-section .color-cards-grid,
+        .scroll-mode-container .color-cards-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 1.5rem !important;
+            width: 100% !important;
+        }
+        @media (max-width: 992px) {
+            .scroll-section .color-cards-grid,
+            .scroll-mode-container .color-cards-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+        @media (max-width: 640px) {
+            .color-cards-grid,
+            .scroll-section .color-cards-grid,
+            .scroll-mode-container .color-cards-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* ================= ADAPTIVE SQUARE & PANORAMIC MOCKUPS ================= */
+        .prop-mockup-preview-box {
+            position: relative;
+            background: radial-gradient(circle, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 180px;
+            max-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+        [data-theme="light"] .prop-mockup-preview-box {
+            background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%);
+            border-color: #cbd5e1;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.05);
+        }
+        .prop-mockup-preview-box:hover {
+            border-color: var(--sys-primary);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+        .mockup-blur-backdrop {
+            position: absolute;
+            inset: -20px;
+            background-size: cover;
+            background-position: center;
+            filter: blur(25px) opacity(0.35);
+            transform: scale(1.15);
+            pointer-events: none;
+            z-index: 1;
+        }
+        [data-theme="light"] .mockup-blur-backdrop {
+            filter: blur(25px) opacity(0.2);
+        }
+        .mockup-main-img {
+            position: relative;
+            z-index: 2;
+            max-width: 92%;
+            max-height: 215px;
+            width: auto;
+            height: auto;
+            object-fit: contain !important;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .prop-mockup-preview-box:hover .mockup-main-img {
+            transform: scale(1.03);
+        }
+        .mockup-zoom-overlay {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 3;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(6px);
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        .prop-mockup-preview-box:hover .mockup-zoom-overlay {
+            opacity: 1;
+        }
+
+        /* Mockup Zoom Lightbox */
+        .mockup-lightbox-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(10, 15, 29, 0.9);
+            backdrop-filter: blur(16px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .mockup-lightbox-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        .mlm-content {
+            position: relative;
+            max-width: 92vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .mlm-content img {
+            max-width: 100%;
+            max-height: 82vh;
+            object-fit: contain;
+            border-radius: 14px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .mlm-close-btn {
+            position: absolute;
+            top: -16px;
+            right: -16px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s, background 0.2s;
+            z-index: 10;
+        }
+        .mlm-close-btn:hover {
+            transform: scale(1.1);
+            background: #dc2626;
+        }
+        .mlm-caption {
+            margin-top: 1rem;
+            color: #f8fafc;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Applications Deck Grid & Cards */
+        .applications-deck-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
+            width: 100%;
+        }
+        .app-mockup-deck-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .app-mockup-deck-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--sys-primary);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+        [data-theme="light"] .app-mockup-deck-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.06);
+        }
+        .app-mockup-img-wrap {
+            height: 180px;
+            position: relative;
+            background: radial-gradient(circle, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.9) 100%);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        [data-theme="light"] .app-mockup-img-wrap {
+            background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%);
+        }
+        .app-deck-main-img {
+            position: relative;
+            z-index: 2;
+            max-width: 90%;
+            max-height: 160px;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .app-mockup-deck-card:hover .app-deck-main-img {
+            transform: scale(1.04);
+        }
+        .app-mockup-deck-info {
+            padding: 1.1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .app-deck-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0;
+        }
+        [data-theme="light"] .app-deck-title {
+            color: #0f172a;
+        }
+        .app-deck-desc {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin: 0;
+            line-height: 1.5;
+        }
+        [data-theme="light"] .app-deck-desc {
+            color: #64748b;
         }
 
         /* ================= 16:9 PRESENTATION STAGE ================= */
@@ -2684,18 +3041,22 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                             <div class="cover-tagline">"<?php echo htmlspecialchars($bg['tagline']); ?>"</div>
                         <?php endif; ?>
 
-                        <!-- Showing the dark-version logo specifically for dark background -->
+                        <!-- Logo Stage with Dark / Light automatic switching -->
                         <div class="cover-logo-stage-dark">
                             <?php if (!empty($logoDarkUrl)): ?>
-                                <img src="<?php echo htmlspecialchars($logoDarkUrl); ?>" alt="<?php echo htmlspecialchars($bg['brand_name']); ?>">
-                            <?php else: ?>
-                                <h2 style="font-size:2.5rem; font-weight:900; color:#ffffff; margin:0;"><?php echo htmlspecialchars($bg['brand_name']); ?></h2>
+                                <img src="<?php echo htmlspecialchars($logoDarkUrl); ?>" alt="<?php echo htmlspecialchars($bg['brand_name']); ?>" class="cover-logo-dark">
+                            <?php endif; ?>
+                            <?php if (!empty($logoPrimaryUrl)): ?>
+                                <img src="<?php echo htmlspecialchars($logoPrimaryUrl); ?>" alt="<?php echo htmlspecialchars($bg['brand_name']); ?>" class="cover-logo-light">
+                            <?php endif; ?>
+                            <?php if (empty($logoDarkUrl) && empty($logoPrimaryUrl)): ?>
+                                <h2 class="cover-fallback-title" style="font-size:2.5rem; font-weight:900; margin:0;"><?php echo htmlspecialchars($bg['brand_name']); ?></h2>
                             <?php endif; ?>
                         </div>
 
                         <?php if (!empty($bg['client_name'])): ?>
-                            <div style="margin-top:1.75rem; font-size:0.9rem; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase;">
-                                Cliente Oficial: <strong style="color:white;"><?php echo htmlspecialchars($bg['client_name']); ?></strong>
+                            <div class="cover-client-box" style="margin-top:1.75rem; font-size:0.9rem; letter-spacing:1.5px; text-transform:uppercase;">
+                                <span class="cover-client-label" style="color:#94a3b8;">Cliente Oficial:</span> <strong class="cover-client-name" style="color:white;"><?php echo htmlspecialchars($bg['client_name']); ?></strong>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -2791,12 +3152,15 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                             </div>
 
                             <?php if (!empty($pMockupUrl)): ?>
-                            <div style="margin-top: 0.5rem;">
-                                <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-                                    <i class="ph-bold ph-device-mobile"></i> Mockup en Contexto Real
+                            <div style="margin-top: 0.75rem;">
+                                <div style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="ph-bold ph-device-mobile"></i> Mockup en Contexto Real</span>
+                                    <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600;"><i class="ph-bold ph-arrows-out-simple"></i> Clic para ampliar</span>
                                 </div>
-                                <div class="prop-mockup-preview-box">
-                                    <img src="<?php echo htmlspecialchars($pMockupUrl); ?>" alt="Mockup <?php echo htmlspecialchars($pTitle); ?>" loading="lazy">
+                                <div class="prop-mockup-preview-box" onclick="openMockupZoom('<?php echo htmlspecialchars($pMockupUrl); ?>', 'Mockup • <?php echo htmlspecialchars(addslashes($pTitle)); ?>')">
+                                    <div class="mockup-blur-backdrop" style="background-image: url('<?php echo htmlspecialchars($pMockupUrl); ?>');"></div>
+                                    <img src="<?php echo htmlspecialchars($pMockupUrl); ?>" alt="Mockup <?php echo htmlspecialchars($pTitle); ?>" class="mockup-main-img" loading="lazy">
+                                    <span class="mockup-zoom-overlay"><i class="ph-bold ph-magnifying-glass-plus"></i> Ampliar</span>
                                 </div>
                             </div>
                             <?php endif; ?>
@@ -3108,7 +3472,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                         <span class="sh-brand-badge"><?php echo htmlspecialchars($bg['brand_name']); ?></span>
                     </div>
 
-                    <div class="grid-<?php echo min(max(count($colors), 1), 5); ?>">
+                    <div class="color-cards-grid">
                         <?php foreach (array_slice($colors, 0, 5) as $col): 
                             $hex = strtoupper($col['hex'] ?? '#000000');
                             $rgb = !empty($col['rgb']) ? $col['rgb'] : bg_hex_to_rgb($hex)['str'];
@@ -3626,7 +3990,47 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                             </div>
                         </div>
                     </div>
+                <?php if (!empty($applications)): ?>
+                <!-- ================= SLIDE 11: APLICACIONES DE MARCA REALES ================= -->
+                <div class="slide-frame" data-slide="applications">
+                    <div class="sh-top">
+                        <div>
+                            <div class="sh-kicker">10 / Identidad en Contexto</div>
+                            <h2 class="sh-title">Aplicaciones de Marca & Mockups</h2>
+                        </div>
+                        <span class="sh-brand-badge"><?php echo htmlspecialchars($bg['brand_name']); ?></span>
+                    </div>
+
+                    <div class="applications-deck-grid">
+                        <?php foreach (array_slice($applications, 0, 6) as $app): 
+                            $appImg = !empty($app['image_url']) ? bg_asset_url($app['image_url']) : '';
+                            $appTitle = !empty($app['title']) ? $app['title'] : 'Aplicación de Marca';
+                            $appDesc = !empty($app['desc']) ? $app['desc'] : '';
+                        ?>
+                        <div class="app-mockup-deck-card" <?php if (!empty($appImg)): ?>onclick="openMockupZoom('<?php echo htmlspecialchars($appImg); ?>', '<?php echo htmlspecialchars(addslashes($appTitle)); ?>')"<?php endif; ?>>
+                            <div class="app-mockup-img-wrap">
+                                <?php if (!empty($appImg)): ?>
+                                    <div class="mockup-blur-backdrop" style="background-image: url('<?php echo htmlspecialchars($appImg); ?>');"></div>
+                                    <img src="<?php echo htmlspecialchars($appImg); ?>" alt="<?php echo htmlspecialchars($appTitle); ?>" class="app-deck-main-img" loading="lazy">
+                                    <span class="mockup-zoom-overlay"><i class="ph-bold ph-magnifying-glass-plus"></i> Ampliar</span>
+                                <?php else: ?>
+                                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-muted); opacity:0.6;">
+                                        <i class="ph-bold ph-image-square" style="font-size:3rem; margin-bottom:0.5rem;"></i>
+                                        <span style="font-size:0.8rem; font-weight:700;">Sin archivo adjunto</span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="app-mockup-deck-info">
+                                <h4 class="app-deck-title"><?php echo htmlspecialchars($appTitle); ?></h4>
+                                <?php if (!empty($appDesc)): ?>
+                                    <p class="app-deck-desc"><?php echo htmlspecialchars($appDesc); ?></p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
+                <?php endif; ?>
 
             </div>
 
@@ -3936,7 +4340,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             if (scrollContainer.children.length === 0) {
                 slides.forEach((s) => {
                     const sec = document.createElement('div');
-                    sec.className = 'scroll-section';
+                    sec.className = 'scroll-section' + (s.classList.contains('slide-cover') ? ' scroll-cover' : '');
                     sec.innerHTML = s.innerHTML;
                     scrollContainer.appendChild(sec);
                 });
@@ -4003,7 +4407,43 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         }
     }
 
+    // Mockup Lightbox Modal Controls
+    function openMockupZoom(imgUrl, caption) {
+        if (!imgUrl) return;
+        const modal = document.getElementById('mockupLightboxModal');
+        const img = document.getElementById('mlmImage');
+        const cap = document.getElementById('mlmCaption');
+        if (!modal || !img) return;
+        img.src = imgUrl;
+        if (cap) cap.textContent = caption || '';
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMockupZoom() {
+        const modal = document.getElementById('mockupLightboxModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeMockupZoom();
+        }
+    });
+
     updateDeckUI();
     </script>
+
+    <!-- Mockup Zoom Lightbox Modal -->
+    <div id="mockupLightboxModal" class="mockup-lightbox-modal" onclick="closeMockupZoom()">
+        <div class="mlm-content" onclick="event.stopPropagation()">
+            <button type="button" class="mlm-close-btn" onclick="closeMockupZoom()" title="Cerrar (Esc)"><i class="ph-bold ph-x"></i></button>
+            <img id="mlmImage" src="" alt="Mockup Ampliado">
+            <div id="mlmCaption" class="mlm-caption"></div>
+        </div>
+    </div>
 </body>
 </html>

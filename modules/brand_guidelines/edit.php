@@ -1231,6 +1231,111 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     transform: translateY(-1px);
     box-shadow: 0 4px 10px rgba(26, 115, 232, 0.5);
 }
+/* Modern Row Action Group for Tables/Lists */
+.bge-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f1f5f9;
+    padding: 3px 5px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+[data-theme="dark"] .bge-row-actions {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.bge-tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    line-height: 1.2;
+    user-select: none;
+    margin: 0;
+}
+.bge-tool-drive {
+    background: #ffffff;
+    color: #1a73e8;
+    border-color: #dbeafe;
+    box-shadow: 0 1px 2px rgba(26, 115, 232, 0.08);
+}
+.bge-tool-drive:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1557b0;
+    transform: translateY(-1px);
+}
+[data-theme="dark"] .bge-tool-drive {
+    background: rgba(26, 115, 232, 0.15);
+    color: #60a5fa;
+    border-color: rgba(96, 165, 250, 0.25);
+}
+[data-theme="dark"] .bge-tool-drive:hover {
+    background: rgba(26, 115, 232, 0.25);
+    color: #93c5fd;
+}
+
+.bge-tool-upload {
+    background: #ffffff;
+    color: #475569;
+    border-color: #cbd5e1;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.bge-tool-upload:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+}
+[data-theme="dark"] .bge-tool-upload {
+    background: rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+[data-theme="dark"] .bge-tool-upload:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+.bge-tool-upload.has-file {
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+    border-color: #a7f3d0 !important;
+    font-weight: 800;
+}
+[data-theme="dark"] .bge-tool-upload.has-file {
+    background: rgba(16, 185, 129, 0.18) !important;
+    color: #34d399 !important;
+    border-color: rgba(52, 211, 153, 0.35) !important;
+}
+.bge-hidden-file-input {
+    display: none !important;
+}
+
+.bge-tool-delete {
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    padding: 0.45rem 0.55rem;
+    font-size: 0.95rem;
+}
+.bge-tool-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    transform: translateY(-1px);
+}
+
 .bge-drive-btn-row {
     background: rgba(26, 115, 232, 0.12);
     color: #1a73e8;
@@ -1254,9 +1359,297 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     color: #60a5fa;
     border-color: rgba(96, 165, 250, 0.3);
 }
-[data-theme="dark"] .bge-drive-btn-row:hover {
-    background: #1a73e8;
-    color: white;
+
+/* Tab 8 Action Bar */
+.bge-apps-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+[data-theme="dark"] .bge-apps-toolbar {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.bge-btn-preset-catalog {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(168, 85, 247, 0.12));
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    color: #ec4899;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bge-btn-preset-catalog:hover {
+    background: linear-gradient(135deg, #ec4899, #a855f7);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
+    transform: translateY(-1px);
+}
+.bge-btn-live-preview {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.12));
+    border: 1px solid rgba(37, 99, 235, 0.35);
+    color: #2563eb;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bge-btn-live-preview:hover {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
+}
+
+/* App Presets Modal */
+.app-presets-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+.app-presets-overlay.active {
+    display: flex;
+}
+.app-presets-dialog {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 920px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+.app-presets-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.app-presets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+.app-preset-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: var(--bg-body, #f8fafc);
+    transition: all 0.2s ease;
+}
+[data-theme="dark"] .app-preset-card {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: #0f172a;
+}
+.app-preset-card:hover {
+    border-color: #ec4899;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(236, 72, 153, 0.12);
+}
+.app-preset-top {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+.app-preset-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(236, 72, 153, 0.12);
+    color: #ec4899;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+.app-preset-cat {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted, #64748b);
+    letter-spacing: 0.5px;
+}
+.app-preset-title {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--text-main, #0f172a);
+    line-height: 1.25;
+}
+.app-preset-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted, #64748b);
+    line-height: 1.45;
+    margin: 0;
+}
+.app-preset-btn {
+    align-self: flex-start;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.15s;
+}
+[data-theme="dark"] .app-preset-btn {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+.app-preset-btn:hover {
+    background: #ec4899;
+    border-color: #ec4899;
+    color: #ffffff;
+}
+.app-preset-btn.added {
+    background: #ecfdf5 !important;
+    border-color: #a7f3d0 !important;
+    color: #059669 !important;
+    cursor: default;
+}
+
+/* Live Preview Modal */
+.app-preview-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(10, 15, 29, 0.88);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+.app-preview-modal-overlay.active {
+    display: flex;
+}
+.app-preview-modal-dialog {
+    background: #0b0f19;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 1100px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    transition: background 0.3s;
+}
+.app-preview-modal-dialog[data-preview-theme="light"] {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+.app-preview-header {
+    padding: 1.2rem 1.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.app-preview-modal-dialog[data-preview-theme="light"] .app-preview-header {
+    border-bottom-color: #e2e8f0;
+}
+.app-preview-body {
+    padding: 1.75rem;
+    overflow-y: auto;
+}
+.app-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+.app-preview-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.app-preview-modal-dialog[data-preview-theme="light"] .app-preview-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+.app-preview-img-box {
+    height: 180px;
+    position: relative;
+    background: radial-gradient(circle, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.95) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.app-preview-modal-dialog[data-preview-theme="light"] .app-preview-img-box {
+    background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%);
+}
+.app-preview-img-box img {
+    max-width: 90%;
+    max-height: 160px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.app-preview-card-info {
+    padding: 1rem 1.25rem;
+}
+.app-preview-card-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin: 0 0 0.3rem 0;
+    color: #ffffff;
+}
+.app-preview-modal-dialog[data-preview-theme="light"] .app-preview-card-title {
+    color: #0f172a;
+}
+.app-preview-card-desc {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.45;
+}
+.app-preview-modal-dialog[data-preview-theme="light"] .app-preview-card-desc {
+    color: #64748b;
 }
 
 /* Modal Overlay & Dialog */
@@ -2113,15 +2506,19 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                 <input type="text" class="bge-input var-desc" placeholder="Uso recomendado" value="<?php echo htmlspecialchars($v['desc'] ?? ''); ?>">
                                 <input type="hidden" class="var-url" value="<?php echo htmlspecialchars($v['url'] ?? ''); ?>">
                             </div>
-                            <div style="display:flex; align-items:center; gap:0.4rem;">
-                                <button type="button" class="bge-drive-btn-row" onclick="openDriveModalForRow(this, '.var-url', 'img')" title="Elegir o subir a Google Drive">
-                                    <i class="ph-bold ph-google-drive-logo"></i> Drive
+                            <div class="bge-row-actions">
+                                <button type="button" class="bge-tool-btn bge-tool-drive" onclick="openDriveModalForRow(this, '.var-url', 'img')" title="Elegir o subir a Google Drive">
+                                    <i class="ph-bold ph-google-drive-logo"></i> <span>Drive</span>
                                 </button>
-                                <input type="file" name="variation_file_<?php echo $idx; ?>" accept="image/*,.svg" style="max-width: 120px; font-size: 0.75rem;">
+                                <label class="bge-tool-btn bge-tool-upload" title="Subir archivo desde tu dispositivo">
+                                    <i class="ph-bold ph-upload-simple"></i>
+                                    <span class="bge-upload-text">Subir</span>
+                                    <input type="file" name="variation_file_<?php echo $idx; ?>" accept="image/*,.svg" class="bge-hidden-file-input" onchange="handleRowFileSelect(this)">
+                                </label>
+                                <button type="button" class="bge-tool-btn bge-tool-delete" onclick="removeVariation(<?php echo $idx; ?>)" title="Eliminar variación">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
                             </div>
-                            <button type="button" class="btn-icon danger" onclick="removeVariation(<?php echo $idx; ?>)" title="Eliminar variación" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
-                                <i class="ph-bold ph-trash"></i>
-                            </button>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -2150,15 +2547,19 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                 <input type="text" class="bge-input ico-desc" placeholder="Especificación (ej. 32x32px / 64x64px)" value="Icono para pestañas del navegador">
                                 <input type="hidden" class="ico-url" value="">
                             </div>
-                            <div style="display:flex; align-items:center; gap:0.4rem;">
-                                <button type="button" class="bge-drive-btn-row" onclick="openDriveModalForRow(this, '.ico-url', 'img')" title="Elegir o subir a Google Drive">
-                                    <i class="ph-bold ph-google-drive-logo"></i> Drive
+                            <div class="bge-row-actions">
+                                <button type="button" class="bge-tool-btn bge-tool-drive" onclick="openDriveModalForRow(this, '.ico-url', 'img')" title="Elegir o subir a Google Drive">
+                                    <i class="ph-bold ph-google-drive-logo"></i> <span>Drive</span>
                                 </button>
-                                <input type="file" name="icon_file_0" accept="image/*,.svg,.ico" style="max-width: 120px; font-size: 0.75rem;">
+                                <label class="bge-tool-btn bge-tool-upload" title="Subir archivo desde tu dispositivo">
+                                    <i class="ph-bold ph-upload-simple"></i>
+                                    <span class="bge-upload-text">Subir</span>
+                                    <input type="file" name="icon_file_0" accept="image/*,.svg,.ico" class="bge-hidden-file-input" onchange="handleRowFileSelect(this)">
+                                </label>
+                                <button type="button" class="bge-tool-btn bge-tool-delete" onclick="removeIcon(0)" title="Eliminar fila">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
                             </div>
-                            <button type="button" class="btn-icon danger" onclick="removeIcon(0)" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
-                                <i class="ph-bold ph-trash"></i>
-                            </button>
                         </div>
                     <?php else: ?>
                         <?php foreach ($icons as $idx => $ico): ?>
@@ -2175,15 +2576,19 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                     <input type="text" class="bge-input ico-desc" placeholder="Descripción de uso" value="<?php echo htmlspecialchars($ico['desc'] ?? ''); ?>">
                                     <input type="hidden" class="ico-url" value="<?php echo htmlspecialchars($ico['url'] ?? ''); ?>">
                                 </div>
-                                <div style="display:flex; align-items:center; gap:0.4rem;">
-                                    <button type="button" class="bge-drive-btn-row" onclick="openDriveModalForRow(this, '.ico-url', 'img')" title="Elegir o subir a Google Drive">
-                                        <i class="ph-bold ph-google-drive-logo"></i> Drive
+                                <div class="bge-row-actions">
+                                    <button type="button" class="bge-tool-btn bge-tool-drive" onclick="openDriveModalForRow(this, '.ico-url', 'img')" title="Elegir o subir a Google Drive">
+                                        <i class="ph-bold ph-google-drive-logo"></i> <span>Drive</span>
                                     </button>
-                                    <input type="file" name="icon_file_<?php echo $idx; ?>" accept="image/*,.svg,.ico" style="max-width: 120px; font-size: 0.75rem;">
+                                    <label class="bge-tool-btn bge-tool-upload" title="Subir archivo desde tu dispositivo">
+                                        <i class="ph-bold ph-upload-simple"></i>
+                                        <span class="bge-upload-text">Subir</span>
+                                        <input type="file" name="icon_file_<?php echo $idx; ?>" accept="image/*,.svg,.ico" class="bge-hidden-file-input" onchange="handleRowFileSelect(this)">
+                                    </label>
+                                    <button type="button" class="bge-tool-btn bge-tool-delete" onclick="removeIcon(<?php echo $idx; ?>)" title="Eliminar fila">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
                                 </div>
-                                <button type="button" class="btn-icon danger" onclick="removeIcon(<?php echo $idx; ?>)" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
-                                    <i class="ph-bold ph-trash"></i>
-                                </button>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -2514,7 +2919,22 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         <div class="bge-section-panel" id="tab-mockups">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-image-square" style="color: #ec4899;"></i> Aplicaciones de Marca y Mockups</h2>
-                <p class="bge-panel-desc">Sube imágenes reales o mockups de cómo se aplica la marca en papelería, redes sociales, packaging o tarjetas.</p>
+                <p class="bge-panel-desc">Sube imágenes reales o mockups de cómo se aplica la marca en papelería, redes sociales, packaging o tarjetas. Puedes elegir entre 10 aplicaciones predefinidas o cargar las tuyas.</p>
+
+                <!-- Mockups Toolbar: Presets & Live Preview -->
+                <div class="bge-apps-toolbar">
+                    <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap;">
+                        <button type="button" class="bge-btn-preset-catalog" onclick="openAppPresetsModal()">
+                            <i class="ph-bold ph-sparkle"></i> Catálogo de 10 Mockups Sugeridos
+                        </button>
+                        <button type="button" class="bge-btn-live-preview" onclick="previewAllApplicationsModal()">
+                            <i class="ph-bold ph-eye"></i> Previsualizar Mockups en Vivo
+                        </button>
+                    </div>
+                    <button type="button" class="bge-btn-add-item" onclick="addAppRow()" style="margin:0;">
+                        <i class="ph-bold ph-plus-circle"></i> Agregar Mockup Personalizado
+                    </button>
+                </div>
 
                 <div id="applicationsContainer">
                     <?php foreach ($applications as $idx => $app): ?>
@@ -2531,22 +2951,22 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                 <input type="text" class="bge-input app-desc" value="<?php echo htmlspecialchars($app['desc'] ?? ''); ?>" placeholder="Descripción de la aplicación">
                                 <input type="hidden" class="app-url" value="<?php echo htmlspecialchars($app['image_url'] ?? ''); ?>">
                             </div>
-                            <div style="display:flex; align-items:center; gap:0.4rem;">
-                                <button type="button" class="bge-drive-btn-row" onclick="openDriveModalForRow(this, '.app-url', 'img')" title="Elegir o subir a Google Drive">
-                                    <i class="ph-bold ph-google-drive-logo"></i> Drive
+                            <div class="bge-row-actions">
+                                <button type="button" class="bge-tool-btn bge-tool-drive" onclick="openDriveModalForRow(this, '.app-url', 'img')" title="Elegir o subir a Google Drive">
+                                    <i class="ph-bold ph-google-drive-logo"></i> <span>Drive</span>
                                 </button>
-                                <input type="file" name="application_file_<?php echo $idx; ?>" accept="image/*" style="max-width: 120px; font-size: 0.75rem;">
+                                <label class="bge-tool-btn bge-tool-upload" title="Subir imagen desde tu dispositivo">
+                                    <i class="ph-bold ph-upload-simple"></i>
+                                    <span class="bge-upload-text">Subir</span>
+                                    <input type="file" name="application_file_<?php echo $idx; ?>" accept="image/*" class="bge-hidden-file-input" onchange="handleRowFileSelect(this)">
+                                </label>
+                                <button type="button" class="bge-tool-btn bge-tool-delete" onclick="removeApp(<?php echo $idx; ?>)" title="Eliminar mockup">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
                             </div>
-                            <button type="button" class="btn-icon danger" onclick="removeApp(<?php echo $idx; ?>)" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
-                                <i class="ph-bold ph-trash"></i>
-                            </button>
                         </div>
                     <?php endforeach; ?>
                 </div>
-
-                <button type="button" class="bge-btn-add-item" onclick="addAppRow()">
-                    <i class="ph-bold ph-plus-circle"></i> Agregar Aplicación / Mockup
-                </button>
             </div>
         </div>
 
@@ -3560,15 +3980,19 @@ function addVariationRow() {
             <input type="text" class="bge-input var-desc" placeholder="Uso recomendado">
             <input type="hidden" class="var-url" value="">
         </div>
-        <div style="display:flex; align-items:center; gap:0.4rem;">
-            <button type="button" class="bge-drive-btn-row" onclick="openDriveModalForRow(this, '.var-url', 'img')" title="Elegir o subir a Google Drive">
-                <i class="ph-bold ph-google-drive-logo"></i> Drive
+        <div class="bge-row-actions">
+            <button type="button" class="bge-tool-btn bge-tool-drive" onclick="openDriveModalForRow(this, '.var-url', 'img')" title="Elegir o subir a Google Drive">
+                <i class="ph-bold ph-google-drive-logo"></i> <span>Drive</span>
             </button>
-            <input type="file" name="variation_file_${idx}" accept="image/*,.svg" style="max-width: 120px; font-size: 0.75rem;">
+            <label class="bge-tool-btn bge-tool-upload" title="Subir archivo desde tu dispositivo">
+                <i class="ph-bold ph-upload-simple"></i>
+                <span class="bge-upload-text">Subir</span>
+                <input type="file" name="variation_file_${idx}" accept="image/*,.svg" class="bge-hidden-file-input" onchange="handleRowFileSelect(this)">
+            </label>
+            <button type="button" class="bge-tool-btn bge-tool-delete" onclick="removeVariation(${idx})" title="Eliminar fila">
+                <i class="ph-bold ph-trash"></i>
+            </button>
         </div>
-        <button type="button" class="btn-icon danger" onclick="removeVariation(${idx})" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
-            <i class="ph-bold ph-trash"></i>
-        </button>
     `;
     container.appendChild(row);
 }
@@ -3598,15 +4022,19 @@ function addIconRow() {
             <input type="text" class="bge-input ico-desc" placeholder="Descripción de uso">
             <input type="hidden" class="ico-url" value="">
         </div>
-        <div style="display:flex; align-items:center; gap:0.4rem;">
-            <button type="button" class="bge-drive-btn-row" onclick="openDriveModalForRow(this, '.ico-url', 'img')" title="Elegir o subir a Google Drive">
-                <i class="ph-bold ph-google-drive-logo"></i> Drive
+        <div class="bge-row-actions">
+            <button type="button" class="bge-tool-btn bge-tool-drive" onclick="openDriveModalForRow(this, '.ico-url', 'img')" title="Elegir o subir a Google Drive">
+                <i class="ph-bold ph-google-drive-logo"></i> <span>Drive</span>
             </button>
-            <input type="file" name="icon_file_${idx}" accept="image/*,.svg,.ico" style="max-width: 120px; font-size: 0.75rem;">
+            <label class="bge-tool-btn bge-tool-upload" title="Subir archivo desde tu dispositivo">
+                <i class="ph-bold ph-upload-simple"></i>
+                <span class="bge-upload-text">Subir</span>
+                <input type="file" name="icon_file_${idx}" accept="image/*,.svg,.ico" class="bge-hidden-file-input" onchange="handleRowFileSelect(this)">
+            </label>
+            <button type="button" class="bge-tool-btn bge-tool-delete" onclick="removeIcon(${idx})" title="Eliminar fila">
+                <i class="ph-bold ph-trash"></i>
+            </button>
         </div>
-        <button type="button" class="btn-icon danger" onclick="removeIcon(${idx})" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
-            <i class="ph-bold ph-trash"></i>
-        </button>
     `;
     container.appendChild(row);
 }
@@ -4016,10 +4444,123 @@ function removeIncorrect(idx) {
     if (row) row.remove();
 }
 
-// ---------------- APPLICATIONS BUILDER ----------------
+// ---------------- HELPER & ROW FILE SELECTOR ----------------
+function escapeHtmlAttr(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function handleRowFileSelect(input) {
+    if (!input || !input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const label = input.closest('.bge-tool-upload');
+    if (label) {
+        label.classList.add('has-file');
+        const textSpan = label.querySelector('.bge-upload-text');
+        const icon = label.querySelector('i');
+        if (icon) icon.className = 'ph-bold ph-check';
+        if (textSpan) {
+            const shortName = file.name.length > 10 ? file.name.substring(0, 8) + '…' : file.name;
+            textSpan.textContent = shortName;
+        }
+    }
+    // Update row thumbnail if present
+    const row = input.closest('.bge-color-item');
+    if (row && file.type.startsWith('image/')) {
+        const thumbBox = row.querySelector('div:first-child');
+        if (thumbBox) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                thumbBox.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;">`;
+                row.setAttribute('data-local-preview', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+}
+
+// ---------------- APPLICATIONS BUILDER & 10 PRESETS ----------------
 let appCounter = <?php echo count($applications) + 10; ?>;
 
-function addAppRow() {
+const BRAND_APPLICATION_PRESETS = [
+    {
+        id: 'cards',
+        icon: 'ph-identification-card',
+        title: 'Tarjetas de Presentación (Business Cards)',
+        desc: 'Papelería corporativa premium 85x55mm, acabado soft touch y barniz UV sectorizado.',
+        category: 'Papelería'
+    },
+    {
+        id: 'stationery',
+        icon: 'ph-file-text',
+        title: 'Papelería & Hojas Membretadas',
+        desc: 'Hojas A4 membretadas, carpetas corporativas con solapa y sobres institucionales C5/DL.',
+        category: 'Papelería'
+    },
+    {
+        id: 'packaging',
+        icon: 'ph-package',
+        title: 'Packaging & Cajas de Envío',
+        desc: 'Cajas de cartón corrugado kraft/blanco con faja perimetral y cinta adhesiva corporativa.',
+        category: 'Packaging'
+    },
+    {
+        id: 'bags',
+        icon: 'ph-tote',
+        title: 'Tote Bags & Bolsas Ecológicas',
+        desc: 'Bolsas de lona de algodón 100% ecológicas con serigrafía a 1 o 2 tintas corporativas.',
+        category: 'Merchandising'
+    },
+    {
+        id: 'social',
+        icon: 'ph-instagram-logo',
+        title: 'Redes Sociales & Templates Digitales',
+        desc: 'Grilla de publicaciones Instagram (1080x1080px) y stories institucionales (1080x1920px).',
+        category: 'Digital'
+    },
+    {
+        id: 'merchandising',
+        icon: 'ph-coffee',
+        title: 'Merchandising Corporativo (Termos / Tazas)',
+        desc: 'Mugs de cerámica mate, termos de acero inoxidable, libretas de notas y bolígrafos corporativos.',
+        category: 'Merchandising'
+    },
+    {
+        id: 'app',
+        icon: 'ph-device-mobile',
+        title: 'Aplicación Móvil (Splash & UI)',
+        desc: 'Visualización del icono en pantalla de inicio de smartphone y Splash screen corporativo.',
+        category: 'Digital'
+    },
+    {
+        id: 'vehicle',
+        icon: 'ph-car',
+        title: 'Rotulación Vehicular (Car Wrapping)',
+        desc: 'Gráfica vehicular lateral y trasera aplicada sobre furgoneta o camioneta comercial.',
+        category: 'Exteriores'
+    },
+    {
+        id: 'facade',
+        icon: 'ph-buildings',
+        title: 'Fachada & Señalética Arquitectónica 3D',
+        desc: 'Letrero volumétrico corpóreo retroiluminado LED cálido sobre muro en recepción o fachada.',
+        category: 'Arquitectura'
+    },
+    {
+        id: 'billboard',
+        icon: 'ph-monitor',
+        title: 'Cartelería Urbana & Vallas (Billboards)',
+        desc: 'Mupis urbanos iluminados y cartelera publicitaria de gran formato en vía pública.',
+        category: 'Publicidad'
+    }
+];
+
+function addAppRow(initialTitle = '', initialDesc = '', initialUrl = '') {
     appCounter++;
     const container = document.getElementById('applicationsContainer');
     const idx = appCounter;
@@ -4027,31 +4568,192 @@ function addAppRow() {
     const row = document.createElement('div');
     row.className = 'bge-color-item';
     row.id = 'app_row_' + idx;
+    const thumbHtml = initialUrl ? `<img src="${escapeHtmlAttr(initialUrl)}" style="max-width:100%; max-height:100%; object-fit:cover;">` : `<i class="ph-bold ph-image" style="color: var(--text-muted); font-size: 1.8rem;"></i>`;
+
     row.innerHTML = `
         <div style="width: 70px; height: 70px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; display:flex; align-items:center; justify-content:center; padding: 4px; flex-shrink: 0; overflow:hidden;">
-            <i class="ph-bold ph-image" style="color: var(--text-muted); font-size: 1.8rem;"></i>
+            ${thumbHtml}
         </div>
         <div style="flex:1; display:grid; grid-template-columns: 1fr 1.5fr; gap: 0.75rem;">
-            <input type="text" class="bge-input app-title" placeholder="Título (ej. Packaging)">
-            <input type="text" class="bge-input app-desc" placeholder="Descripción de la aplicación">
-            <input type="hidden" class="app-url" value="">
+            <input type="text" class="bge-input app-title" placeholder="Título (ej. Packaging)" value="${escapeHtmlAttr(initialTitle)}">
+            <input type="text" class="bge-input app-desc" placeholder="Descripción de la aplicación" value="${escapeHtmlAttr(initialDesc)}">
+            <input type="hidden" class="app-url" value="${escapeHtmlAttr(initialUrl)}">
         </div>
-        <div style="display:flex; align-items:center; gap:0.4rem;">
-            <button type="button" class="bge-drive-btn-row" onclick="openDriveModalForRow(this, '.app-url', 'img')" title="Elegir o subir a Google Drive">
-                <i class="ph-bold ph-google-drive-logo"></i> Drive
+        <div class="bge-row-actions">
+            <button type="button" class="bge-tool-btn bge-tool-drive" onclick="openDriveModalForRow(this, '.app-url', 'img')" title="Elegir o subir a Google Drive">
+                <i class="ph-bold ph-google-drive-logo"></i> <span>Drive</span>
             </button>
-            <input type="file" name="application_file_${idx}" accept="image/*" style="max-width: 120px; font-size: 0.75rem;">
+            <label class="bge-tool-btn bge-tool-upload" title="Subir imagen desde tu dispositivo">
+                <i class="ph-bold ph-upload-simple"></i>
+                <span class="bge-upload-text">Subir</span>
+                <input type="file" name="application_file_${idx}" accept="image/*" class="bge-hidden-file-input" onchange="handleRowFileSelect(this)">
+            </label>
+            <button type="button" class="bge-tool-btn bge-tool-delete" onclick="removeApp(${idx})" title="Eliminar mockup">
+                <i class="ph-bold ph-trash"></i>
+            </button>
         </div>
-        <button type="button" class="btn-icon danger" onclick="removeApp(${idx})" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
-            <i class="ph-bold ph-trash"></i>
-        </button>
     `;
     container.appendChild(row);
+    return row;
 }
 
 function removeApp(idx) {
     const row = document.getElementById('app_row_' + idx);
     if (row) row.remove();
+}
+
+// ---------------- PRESETS CATALOG MODAL ----------------
+function openAppPresetsModal() {
+    renderPresetsGrid();
+    const modal = document.getElementById('appPresetsModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeAppPresetsModal() {
+    const modal = document.getElementById('appPresetsModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function renderPresetsGrid() {
+    const grid = document.getElementById('appPresetsGrid');
+    if (!grid) return;
+
+    const currentTitles = Array.from(document.querySelectorAll('#applicationsContainer .app-title'))
+        .map(input => input.value.trim().toLowerCase());
+
+    let html = '';
+    BRAND_APPLICATION_PRESETS.forEach((preset, pIdx) => {
+        const isAdded = currentTitles.includes(preset.title.toLowerCase());
+        html += `
+            <div class="app-preset-card">
+                <div class="app-preset-top">
+                    <div class="app-preset-icon-box">
+                        <i class="ph-bold ${preset.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="app-preset-cat">${preset.category}</div>
+                        <div class="app-preset-title">${preset.title}</div>
+                    </div>
+                </div>
+                <p class="app-preset-desc">${preset.desc}</p>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto;">
+                    <button type="button" class="app-preset-btn ${isAdded ? 'added' : ''}" id="preset_btn_${pIdx}" onclick="addPresetToGuideline(${pIdx})">
+                        <i class="ph-bold ${isAdded ? 'ph-check' : 'ph-plus'}"></i>
+                        <span>${isAdded ? 'Agregado' : 'Agregar'}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    grid.innerHTML = html;
+}
+
+function addPresetToGuideline(pIdx) {
+    const preset = BRAND_APPLICATION_PRESETS[pIdx];
+    if (!preset) return;
+
+    const row = addAppRow(preset.title, preset.desc, '');
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    const btn = document.getElementById('preset_btn_' + pIdx);
+    if (btn) {
+        btn.classList.add('added');
+        btn.innerHTML = '<i class="ph-bold ph-check"></i> <span>Agregado</span>';
+    }
+
+    if (typeof showSaveFeedback === 'function') {
+        showSaveFeedback(`"${preset.title}" agregado a tus aplicaciones`, 'success');
+    }
+}
+
+function addAllPresetsToGuideline() {
+    const currentTitles = Array.from(document.querySelectorAll('#applicationsContainer .app-title'))
+        .map(input => input.value.trim().toLowerCase());
+
+    BRAND_APPLICATION_PRESETS.forEach((preset, pIdx) => {
+        if (!currentTitles.includes(preset.title.toLowerCase())) {
+            addAppRow(preset.title, preset.desc, '');
+        }
+    });
+    renderPresetsGrid();
+    closeAppPresetsModal();
+    if (typeof showSaveFeedback === 'function') {
+        showSaveFeedback('¡Se agregaron los 10 mockups sugeridos al manual!', 'success');
+    }
+}
+
+// ---------------- LIVE PREVIEW MODAL ----------------
+let previewModalTheme = 'dark';
+
+function previewAllApplicationsModal() {
+    const modal = document.getElementById('appLivePreviewModal');
+    const container = document.getElementById('appPreviewGrid');
+    if (!modal || !container) return;
+
+    const rows = document.querySelectorAll('#applicationsContainer .bge-color-item');
+    if (rows.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i class="ph-bold ph-folder-dashed" style="font-size: 3rem; opacity: 0.5; margin-bottom: 0.75rem;"></i>
+                <h4 style="font-size: 1.1rem; font-weight: 700;">No hay aplicaciones de marca agregadas</h4>
+                <p style="font-size: 0.85rem; max-width: 420px; margin: 0 auto 1.25rem;">Haz clic en "Catálogo de 10 Mockups Sugeridos" para cargar plantillas de papelería, packaging o redes sociales.</p>
+                <button type="button" class="bge-btn-preset-catalog" onclick="closeAppPreviewModal(); openAppPresetsModal();">
+                    <i class="ph-bold ph-sparkle"></i> Ver 10 Mockups Sugeridos
+                </button>
+            </div>
+        `;
+        modal.classList.add('active');
+        return;
+    }
+
+    let cardsHtml = '';
+    rows.forEach((row, i) => {
+        const title = row.querySelector('.app-title')?.value.trim() || `Aplicación ${i + 1}`;
+        const desc = row.querySelector('.app-desc')?.value.trim() || '';
+        const url = row.querySelector('.app-url')?.value.trim() || '';
+        const localPreview = row.getAttribute('data-local-preview');
+        const imgSrc = localPreview || (url ? (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:') ? url : 'uploads/brand_guidelines/' + url) : '');
+
+        cardsHtml += `
+            <div class="app-preview-card">
+                <div class="app-preview-img-box">
+                    ${imgSrc ? `
+                        <div class="mockup-blur-backdrop" style="background-image: url('${imgSrc}');"></div>
+                        <img src="${imgSrc}" alt="${escapeHtmlAttr(title)}">
+                    ` : `
+                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); opacity:0.5;">
+                            <i class="ph-bold ph-image" style="font-size:2.5rem; margin-bottom:0.35rem;"></i>
+                            <span style="font-size:0.75rem; font-weight:700;">Sin archivo adjunto</span>
+                        </div>
+                    `}
+                </div>
+                <div class="app-preview-card-info">
+                    <h4 class="app-preview-card-title">${escapeHtmlAttr(title)}</h4>
+                    ${desc ? `<p class="app-preview-card-desc">${escapeHtmlAttr(desc)}</p>` : ''}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = cardsHtml;
+    modal.classList.add('active');
+}
+
+function closeAppPreviewModal() {
+    const modal = document.getElementById('appLivePreviewModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function togglePreviewModalTheme() {
+    const dialog = document.getElementById('appPreviewDialog');
+    const icon = document.getElementById('previewThemeIcon');
+    if (!dialog) return;
+
+    previewModalTheme = previewModalTheme === 'dark' ? 'light' : 'dark';
+    dialog.setAttribute('data-preview-theme', previewModalTheme);
+    if (icon) {
+        icon.className = previewModalTheme === 'light' ? 'ph-bold ph-sun' : 'ph-bold ph-moon';
+    }
 }
 
 // ---------------- FORM SUBMISSION VIA AJAX ----------------
@@ -4161,11 +4863,16 @@ document.getElementById('brandGuidelineForm').addEventListener('submit', functio
 
     // 6. Applications
     const appItems = [];
-    document.querySelectorAll('#applicationsContainer .bge-color-item').forEach(el => {
+    const appFiles = [];
+    document.querySelectorAll('#applicationsContainer .bge-color-item').forEach((el, idx) => {
         const title = el.querySelector('.app-title')?.value.trim();
         const desc = el.querySelector('.app-desc')?.value.trim();
         const url = el.querySelector('.app-url')?.value.trim();
-        if (title || url) {
+        const fileInput = el.querySelector('input[type="file"]');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            appFiles.push({ key: `application_file_${idx}`, file: fileInput.files[0] });
+        }
+        if (title || url || (fileInput && fileInput.files && fileInput.files[0])) {
             appItems.push({ title, desc, image_url: url });
         }
     });
@@ -4238,6 +4945,9 @@ document.getElementById('brandGuidelineForm').addEventListener('submit', functio
     });
     formData.append('incorrect_uses_json', JSON.stringify(incItems));
     formData.append('applications_data', JSON.stringify(appItems));
+    appFiles.forEach(af => {
+        formData.append(af.key, af.file);
+    });
 
     fetch('modules/brand_guidelines/ajax.php?action=save', {
         method: 'POST',
@@ -4668,6 +5378,56 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+<!-- App Presets Catalog Modal (10 Applications) -->
+<div class="app-presets-overlay" id="appPresetsModal" onclick="if(event.target === this) closeAppPresetsModal()">
+    <div class="app-presets-dialog">
+        <div class="app-presets-header">
+            <div>
+                <h3 style="margin:0; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
+                    <i class="ph-bold ph-sparkle" style="color:#ec4899;"></i> Catálogo de 10 Mockups Sugeridos
+                </h3>
+                <p style="margin:0.25rem 0 0; font-size:0.78rem; color:var(--text-muted);">
+                    Selecciona las aplicaciones de marca recomendadas para enriquecer el manual corporativo.
+                </p>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.65rem;">
+                <button type="button" class="bge-btn-save" style="font-size:0.78rem; padding:0.45rem 0.85rem;" onclick="addAllPresetsToGuideline()">
+                    <i class="ph-bold ph-check-square-offset"></i> Cargar Todos los 10
+                </button>
+                <button type="button" onclick="closeAppPresetsModal()" style="background:transparent; border:none; font-size:1.35rem; color:var(--text-muted); cursor:pointer;">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+        </div>
+        <div class="app-presets-grid" id="appPresetsGrid"></div>
+    </div>
+</div>
+
+<!-- App Live Preview Modal -->
+<div class="app-preview-modal-overlay" id="appLivePreviewModal" onclick="if(event.target === this) closeAppPreviewModal()">
+    <div class="app-preview-modal-dialog" id="appPreviewDialog" data-preview-theme="dark">
+        <div class="app-preview-header">
+            <div>
+                <h3 style="margin:0; font-size:1.2rem; font-weight:800; display:flex; align-items:center; gap:0.5rem;">
+                    <i class="ph-bold ph-eye" style="color:var(--bge-primary, #262ecf);"></i> Previsualización de Mockups en Vivo
+                </h3>
+                <p style="margin:0.25rem 0 0; font-size:0.78rem; opacity:0.75;">
+                    Así se mostrarán tus aplicaciones de marca en la vista pública del cliente.
+                </p>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.65rem;">
+                <button type="button" class="bge-tool-btn" onclick="togglePreviewModalTheme()" title="Cambiar tema de la previsualización" style="background:rgba(255,255,255,0.1); color:inherit; border:1px solid rgba(255,255,255,0.15);">
+                    <i class="ph-bold ph-moon" id="previewThemeIcon"></i> <span>Tema</span>
+                </button>
+                <button type="button" onclick="closeAppPreviewModal()" style="background:transparent; border:none; font-size:1.35rem; color:inherit; cursor:pointer;">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+        </div>
+        <div class="app-preview-body">
+            <div class="app-preview-grid" id="appPreviewGrid"></div>
         </div>
     </div>
 </div>
