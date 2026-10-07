@@ -1157,6 +1157,11 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         }
 
         /* Applications Deck Grid & Cards */
+        .slide-frame[data-slide="applications"] {
+            justify-content: flex-start !important;
+            gap: 1.5rem !important;
+            overflow-y: auto !important;
+        }
         .applications-deck-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -2447,6 +2452,13 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             width: 28px;
             background: var(--sys-primary);
             box-shadow: 0 0 10px rgba(38, 46, 207, 0.7);
+        }
+        [data-theme="light"] .deck-dot {
+            background: rgba(15, 23, 42, 0.2);
+        }
+        [data-theme="light"] .deck-dot.active {
+            background: var(--sys-primary);
+            box-shadow: 0 0 10px rgba(38, 46, 207, 0.4);
         }
 
         /* TOAST COPIED */
@@ -3990,6 +4002,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                             </div>
                         </div>
                     </div>
+                </div>
                 <?php if (!empty($applications)): ?>
                 <!-- ================= SLIDE 11: APLICACIONES DE MARCA REALES ================= -->
                 <div class="slide-frame" data-slide="applications">
@@ -4002,7 +4015,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                     </div>
 
                     <div class="applications-deck-grid">
-                        <?php foreach (array_slice($applications, 0, 6) as $app): 
+                        <?php foreach ($applications as $app): 
                             $appImg = !empty($app['image_url']) ? bg_asset_url($app['image_url']) : '';
                             $appTitle = !empty($app['title']) ? $app['title'] : 'Aplicación de Marca';
                             $appDesc = !empty($app['desc']) ? $app['desc'] : '';

@@ -1681,7 +1681,22 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 .app-preview-modal-dialog[data-preview-theme="light"] .app-preview-img-box {
     background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%);
 }
+.mockup-blur-backdrop {
+    position: absolute;
+    inset: -20px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(25px) opacity(0.35);
+    transform: scale(1.15);
+    pointer-events: none;
+    z-index: 1;
+}
+.app-preview-modal-dialog[data-preview-theme="light"] .mockup-blur-backdrop {
+    filter: blur(25px) opacity(0.2);
+}
 .app-preview-img-box img {
+    position: relative;
+    z-index: 2;
     max-width: 90%;
     max-height: 160px;
     object-fit: contain;
@@ -4529,6 +4544,21 @@ function escapeHtmlAttr(str) {
         .replace(/>/g, '&gt;');
 }
 
+const BG_BASE_URL = '<?php echo rtrim(bg_get_base_url(), "/"); ?>';
+
+function resolveAppImgUrl(url) {
+    if (!url) return '';
+    url = String(url).trim();
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+        return url;
+    }
+    if (url.startsWith(BG_BASE_URL)) {
+        return url;
+    }
+    const cleanPath = url.replace(/^\/+/, '');
+    return BG_BASE_URL + '/' + cleanPath;
+}
+
 function handleRowFileSelect(input) {
     if (!input || !input.files || !input.files[0]) return;
     const file = input.files[0];
@@ -4642,7 +4672,8 @@ function addAppRow(initialTitle = '', initialDesc = '', initialUrl = '') {
     const row = document.createElement('div');
     row.className = 'bge-color-item';
     row.id = 'app_row_' + idx;
-    const thumbHtml = initialUrl ? `<img src="${escapeHtmlAttr(initialUrl)}" style="max-width:100%; max-height:100%; object-fit:cover;">` : `<i class="ph-bold ph-image" style="color: var(--text-muted); font-size: 1.8rem;"></i>`;
+    const resolvedThumb = initialUrl ? resolveAppImgUrl(initialUrl) : '';
+    const thumbHtml = resolvedThumb ? `<img src="${escapeHtmlAttr(resolvedThumb)}" style="max-width:100%; max-height:100%; object-fit:cover;">` : `<i class="ph-bold ph-image" style="color: var(--text-muted); font-size: 1.8rem;"></i>`;
 
     row.innerHTML = `
         <div style="width: 70px; height: 70px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; display:flex; align-items:center; justify-content:center; padding: 4px; flex-shrink: 0; overflow:hidden;">
@@ -4794,7 +4825,7 @@ function previewAllApplicationsModal() {
         const desc = row.querySelector('.app-desc')?.value.trim() || '';
         const url = row.querySelector('.app-url')?.value.trim() || '';
         const localPreview = row.getAttribute('data-local-preview');
-        const imgSrc = localPreview || (url ? (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:') ? url : 'uploads/brand_guidelines/' + url) : '');
+        const imgSrc = localPreview || resolveAppImgUrl(url);
 
         cardsHtml += `
             <div class="app-preview-card">
@@ -5288,6 +5319,15 @@ function selectDriveFile(file) {
             if (container) {
                 const icon = container.querySelector('i');
                 if (icon) icon.style.display = 'none';
+            }
+        }
+
+        const parentColorRow = currentDriveTargetInput.closest('.bge-color-item');
+        if (parentColorRow) {
+            parentColorRow.setAttribute('data-local-preview', proxyUrl);
+            const thumbBox = parentColorRow.querySelector('div:first-child');
+            if (thumbBox && !currentDriveTargetInput.classList.contains('fnt-file-url')) {
+                thumbBox.innerHTML = `<img src="${proxyUrl}" style="max-width:100%; max-height:100%; object-fit:cover; border-radius:8px;">`;
             }
         }
 
