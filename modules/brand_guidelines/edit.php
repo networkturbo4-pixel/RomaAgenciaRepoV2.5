@@ -603,10 +603,41 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
-@media (max-width: 768px) {
+.prop-media-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-top: 0.5rem;
+}
+@media (max-width: 1200px) {
+    .prop-media-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+@media (max-width: 640px) {
     .prop-media-grid {
         grid-template-columns: 1fr !important;
     }
+}
+
+.bge-upload-dropzone.zone-dark {
+    background: #090e17 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f8fafc;
+}
+.bge-upload-dropzone.zone-grid {
+    background-color: #f1f5f9;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+    background-size: 16px 16px;
+    border-color: #94a3b8;
+}
+[data-theme="dark"] .bge-upload-dropzone.zone-grid {
+    background-color: #0b1324;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 16px 16px;
+    border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* General List Item (Used for Variations, Icons, etc.) */
@@ -1870,11 +1901,15 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                 <textarea class="bge-textarea prop-concept" rows="3" placeholder="Explica la inspiración, metáfora visual, significado de las formas y por qué esta propuesta conecta con la visión de la marca..."><?php echo htmlspecialchars($pConcept); ?></textarea>
                             </div>
 
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem; margin-top: 0.5rem;" class="prop-media-grid">
-                                <!-- Logo de la propuesta -->
+                            <?php 
+                                $pLogoDarkUrl = $prop['logo_dark_url'] ?? '';
+                                $pLogoGridUrl = $prop['logo_grid_url'] ?? '';
+                            ?>
+                            <div class="prop-media-grid">
+                                <!-- 1. Logotipo Modo Claro (Principal) -->
                                 <div class="bge-field-group">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-                                        <label class="bge-label" style="margin-bottom:0;">Logotipo de la Propuesta *</label>
+                                        <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-sun" style="color:#f59e0b;"></i> Modo Claro *</label>
                                         <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-url', '.prop-logo-preview')">
                                             <i class="ph-bold ph-google-drive-logo"></i> Drive
                                         </button>
@@ -1885,17 +1920,59 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                         <img src="<?php echo $hasLogo ? htmlspecialchars(bg_asset_url($pLogoUrl)) : ''; ?>" class="bge-preview-box prop-logo-preview" style="<?php echo $hasLogo ? '' : 'display:none;'; ?> max-height:85px;">
                                         <div class="prop-dropzone-info" style="<?php echo $hasLogo ? 'display:none;' : ''; ?>">
                                             <i class="ph-bold ph-paint-brush bge-dropzone-icon"></i>
-                                            <div style="font-size:0.85rem; font-weight:700;">Subir logo propuesto</div>
-                                            <div style="font-size:0.72rem; color:var(--text-muted);">PNG transparente o SVG</div>
+                                            <div style="font-size:0.85rem; font-weight:700;">Logo Modo Claro</div>
+                                            <div style="font-size:0.72rem; color:var(--text-muted);">PNG o SVG para fondo claro</div>
                                         </div>
                                         <input type="file" name="proposal_logo_file_<?php echo $pIdx; ?>" class="prop-logo-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo')">
                                     </div>
                                 </div>
 
-                                <!-- Mockup de contexto -->
+                                <!-- 2. Logotipo Modo Oscuro -->
                                 <div class="bge-field-group">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-                                        <label class="bge-label" style="margin-bottom:0;">Mockup de Contexto (Opcional)</label>
+                                        <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-moon" style="color:#818cf8;"></i> Modo Oscuro</label>
+                                        <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-dark-url', '.prop-logo-dark-preview')">
+                                            <i class="ph-bold ph-google-drive-logo"></i> Drive
+                                        </button>
+                                    </div>
+                                    <input type="hidden" class="prop-logo-dark-url" value="<?php echo htmlspecialchars($pLogoDarkUrl); ?>">
+                                    <div class="bge-upload-dropzone zone-dark" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                                        <?php $hasLogoDark = !empty($pLogoDarkUrl); ?>
+                                        <img src="<?php echo $hasLogoDark ? htmlspecialchars(bg_asset_url($pLogoDarkUrl)) : ''; ?>" class="bge-preview-box prop-logo-dark-preview" style="<?php echo $hasLogoDark ? '' : 'display:none;'; ?> max-height:85px;">
+                                        <div class="prop-dark-info" style="<?php echo $hasLogoDark ? 'display:none;' : ''; ?> text-align:center;">
+                                            <i class="ph-bold ph-moon-stars bge-dropzone-icon" style="color:#818cf8;"></i>
+                                            <div style="font-size:0.85rem; font-weight:700; color:#f8fafc;">Logo Modo Oscuro</div>
+                                            <div style="font-size:0.72rem; color:#94a3b8;">PNG blanco / negativo</div>
+                                        </div>
+                                        <input type="file" name="proposal_logo_dark_file_<?php echo $pIdx; ?>" class="prop-logo-dark-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo_dark')">
+                                    </div>
+                                </div>
+
+                                <!-- 3. Versión con Retícula / Construcción -->
+                                <div class="bge-field-group">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                                        <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-grid-four" style="color:#0ea5e9;"></i> Retícula / Blueprint</label>
+                                        <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-grid-url', '.prop-logo-grid-preview')">
+                                            <i class="ph-bold ph-google-drive-logo"></i> Drive
+                                        </button>
+                                    </div>
+                                    <input type="hidden" class="prop-logo-grid-url" value="<?php echo htmlspecialchars($pLogoGridUrl); ?>">
+                                    <div class="bge-upload-dropzone zone-grid" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                                        <?php $hasLogoGrid = !empty($pLogoGridUrl); ?>
+                                        <img src="<?php echo $hasLogoGrid ? htmlspecialchars(bg_asset_url($pLogoGridUrl)) : ''; ?>" class="bge-preview-box prop-logo-grid-preview" style="<?php echo $hasLogoGrid ? '' : 'display:none;'; ?> max-height:85px;">
+                                        <div class="prop-grid-info" style="<?php echo $hasLogoGrid ? 'display:none;' : ''; ?> text-align:center;">
+                                            <i class="ph-bold ph-compass-tool bge-dropzone-icon" style="color:#0ea5e9;"></i>
+                                            <div style="font-size:0.85rem; font-weight:700;">Con Retícula</div>
+                                            <div style="font-size:0.72rem; color:var(--text-muted);">Construcción geométrica</div>
+                                        </div>
+                                        <input type="file" name="proposal_logo_grid_file_<?php echo $pIdx; ?>" class="prop-logo-grid-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo_grid')">
+                                    </div>
+                                </div>
+
+                                <!-- 4. Mockup de contexto -->
+                                <div class="bge-field-group">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                                        <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-device-mobile" style="color:#ec4899;"></i> Mockup (Opcional)</label>
                                         <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-mockup-url', '.prop-mockup-preview')">
                                             <i class="ph-bold ph-google-drive-logo"></i> Drive
                                         </button>
@@ -1905,9 +1982,9 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                         <?php $hasMockup = !empty($pMockupUrl); ?>
                                         <img src="<?php echo $hasMockup ? htmlspecialchars(bg_asset_url($pMockupUrl)) : ''; ?>" class="bge-preview-box prop-mockup-preview" style="<?php echo $hasMockup ? '' : 'display:none;'; ?> max-height:85px;">
                                         <div class="prop-mockup-info" style="<?php echo $hasMockup ? 'display:none;' : ''; ?>">
-                                            <i class="ph-bold ph-image-square bge-dropzone-icon"></i>
-                                            <div style="font-size:0.85rem; font-weight:700;">Subir mockup de aplicación</div>
-                                            <div style="font-size:0.72rem; color:var(--text-muted);">Foto de producto, papelería o avatar</div>
+                                            <i class="ph-bold ph-image-square bge-dropzone-icon" style="color:#ec4899;"></i>
+                                            <div style="font-size:0.85rem; font-weight:700;">Mockup Real</div>
+                                            <div style="font-size:0.72rem; color:var(--text-muted);">Foto, empaque o app</div>
                                         </div>
                                         <input type="file" name="proposal_mockup_file_<?php echo $pIdx; ?>" class="prop-mockup-input" accept="image/*" style="display:none;" onchange="previewProposalUpload(this, 'mockup')">
                                     </div>
@@ -2810,10 +2887,11 @@ function addProposalRow() {
             <textarea class="bge-textarea prop-concept" rows="3" placeholder="Explica la inspiración, metáfora visual, significado de las formas y por qué esta propuesta conecta con la visión de la marca..."></textarea>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem; margin-top: 0.5rem;" class="prop-media-grid">
+        <div class="prop-media-grid">
+            <!-- 1. Logotipo Modo Claro -->
             <div class="bge-field-group">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-                    <label class="bge-label" style="margin-bottom:0;">Logotipo de la Propuesta *</label>
+                    <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-sun" style="color:#f59e0b;"></i> Modo Claro *</label>
                     <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-url', '.prop-logo-preview')">
                         <i class="ph-bold ph-google-drive-logo"></i> Drive
                     </button>
@@ -2823,16 +2901,57 @@ function addProposalRow() {
                     <img src="" class="bge-preview-box prop-logo-preview" style="display:none; max-height:85px;">
                     <div class="prop-dropzone-info">
                         <i class="ph-bold ph-paint-brush bge-dropzone-icon"></i>
-                        <div style="font-size:0.85rem; font-weight:700;">Subir logo propuesto</div>
-                        <div style="font-size:0.72rem; color:var(--text-muted);">PNG transparente o SVG</div>
+                        <div style="font-size:0.85rem; font-weight:700;">Logo Modo Claro</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">PNG o SVG para fondo claro</div>
                     </div>
                     <input type="file" name="proposal_logo_file_${pIdx}" class="prop-logo-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo')">
                 </div>
             </div>
 
+            <!-- 2. Logotipo Modo Oscuro -->
             <div class="bge-field-group">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-                    <label class="bge-label" style="margin-bottom:0;">Mockup de Contexto (Opcional)</label>
+                    <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-moon" style="color:#818cf8;"></i> Modo Oscuro</label>
+                    <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-dark-url', '.prop-logo-dark-preview')">
+                        <i class="ph-bold ph-google-drive-logo"></i> Drive
+                    </button>
+                </div>
+                <input type="hidden" class="prop-logo-dark-url" value="">
+                <div class="bge-upload-dropzone zone-dark" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                    <img src="" class="bge-preview-box prop-logo-dark-preview" style="display:none; max-height:85px;">
+                    <div class="prop-dark-info" style="text-align:center;">
+                        <i class="ph-bold ph-moon-stars bge-dropzone-icon" style="color:#818cf8;"></i>
+                        <div style="font-size:0.85rem; font-weight:700; color:#f8fafc;">Logo Modo Oscuro</div>
+                        <div style="font-size:0.72rem; color:#94a3b8;">PNG blanco / negativo</div>
+                    </div>
+                    <input type="file" name="proposal_logo_dark_file_${pIdx}" class="prop-logo-dark-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo_dark')">
+                </div>
+            </div>
+
+            <!-- 3. Versión con Retícula / Construcción -->
+            <div class="bge-field-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                    <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-grid-four" style="color:#0ea5e9;"></i> Retícula / Blueprint</label>
+                    <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-grid-url', '.prop-logo-grid-preview')">
+                        <i class="ph-bold ph-google-drive-logo"></i> Drive
+                    </button>
+                </div>
+                <input type="hidden" class="prop-logo-grid-url" value="">
+                <div class="bge-upload-dropzone zone-grid" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                    <img src="" class="bge-preview-box prop-logo-grid-preview" style="display:none; max-height:85px;">
+                    <div class="prop-grid-info" style="text-align:center;">
+                        <i class="ph-bold ph-compass-tool bge-dropzone-icon" style="color:#0ea5e9;"></i>
+                        <div style="font-size:0.85rem; font-weight:700;">Con Retícula</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Construcción geométrica</div>
+                    </div>
+                    <input type="file" name="proposal_logo_grid_file_${pIdx}" class="prop-logo-grid-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo_grid')">
+                </div>
+            </div>
+
+            <!-- 4. Mockup de contexto -->
+            <div class="bge-field-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                    <label class="bge-label" style="margin-bottom:0;"><i class="ph-bold ph-device-mobile" style="color:#ec4899;"></i> Mockup (Opcional)</label>
                     <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-mockup-url', '.prop-mockup-preview')">
                         <i class="ph-bold ph-google-drive-logo"></i> Drive
                     </button>
@@ -2841,9 +2960,9 @@ function addProposalRow() {
                 <div class="bge-upload-dropzone" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
                     <img src="" class="bge-preview-box prop-mockup-preview" style="display:none; max-height:85px;">
                     <div class="prop-mockup-info">
-                        <i class="ph-bold ph-image-square bge-dropzone-icon"></i>
-                        <div style="font-size:0.85rem; font-weight:700;">Subir mockup de aplicación</div>
-                        <div style="font-size:0.72rem; color:var(--text-muted);">Foto de producto, papelería o avatar</div>
+                        <i class="ph-bold ph-image-square bge-dropzone-icon" style="color:#ec4899;"></i>
+                        <div style="font-size:0.85rem; font-weight:700;">Mockup Real</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Foto, empaque o app</div>
                     </div>
                     <input type="file" name="proposal_mockup_file_${pIdx}" class="prop-mockup-input" accept="image/*" style="display:none;" onchange="previewProposalUpload(this, 'mockup')">
                 </div>
@@ -2887,8 +3006,21 @@ function previewProposalUpload(input, type) {
     if (!parent) return;
 
     reader.onload = function(e) {
-        const img = parent.querySelector(type === 'logo' ? '.prop-logo-preview' : '.prop-mockup-preview');
-        const info = parent.querySelector(type === 'logo' ? '.prop-dropzone-info' : '.prop-mockup-info');
+        let imgSelector = '.prop-logo-preview';
+        let infoSelector = '.prop-dropzone-info';
+        if (type === 'logo_dark') {
+            imgSelector = '.prop-logo-dark-preview';
+            infoSelector = '.prop-dark-info';
+        } else if (type === 'logo_grid') {
+            imgSelector = '.prop-logo-grid-preview';
+            infoSelector = '.prop-grid-info';
+        } else if (type === 'mockup') {
+            imgSelector = '.prop-mockup-preview';
+            infoSelector = '.prop-mockup-info';
+        }
+
+        const img = parent.querySelector(imgSelector);
+        const info = parent.querySelector(infoSelector);
         if (img) {
             img.src = e.target.result;
             img.style.display = 'block';
@@ -2928,10 +3060,14 @@ function setProposalAsWinner(btn) {
         const logoImg = currentCard.querySelector('.prop-logo-preview');
         const logoSrc = (logoUrl && logoUrl.trim() !== '') ? logoUrl : (logoImg && logoImg.style.display !== 'none' ? logoImg.src : null);
 
-        if (logoSrc) {
+        const logoDarkUrl = currentCard.querySelector('.prop-logo-dark-url')?.value;
+        const logoDarkImg = currentCard.querySelector('.prop-logo-dark-preview');
+        const logoDarkSrc = (logoDarkUrl && logoDarkUrl.trim() !== '') ? logoDarkUrl : (logoDarkImg && logoDarkImg.style.display !== 'none' ? logoDarkImg.src : null);
+
+        if (logoSrc || logoDarkSrc) {
             Swal.fire({
                 title: '¿Copiar a Logos Oficiales?',
-                text: '¿Deseas asignar automáticamente el logo de esta propuesta como el Logotipo Principal en la pestaña de Logos Oficiales?',
+                text: '¿Deseas asignar automáticamente el logo (y su versión modo oscuro) de esta propuesta a la pestaña de Logos Oficiales?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, copiar a Logos Oficiales',
@@ -2939,22 +3075,36 @@ function setProposalAsWinner(btn) {
                 confirmButtonColor: '#262ecf'
             }).then(res => {
                 if (res.isConfirmed) {
-                    const primaryInput = document.getElementById('bgeLogoPrimaryUrl');
-                    const primaryImg = document.getElementById('primaryLogoImg');
-                    const primaryInfo = document.getElementById('dropzone_info_primary');
-                    if (primaryInput) primaryInput.value = logoUrl || '';
-                    if (primaryImg && logoSrc) {
-                        primaryImg.src = logoSrc;
-                        primaryImg.style.display = 'block';
+                    if (logoSrc) {
+                        const primaryInput = document.getElementById('bgeLogoPrimaryUrl');
+                        const primaryImg = document.getElementById('primaryLogoImg');
+                        const primaryInfo = document.getElementById('dropzone_info_primary');
+                        if (primaryInput) primaryInput.value = logoUrl || '';
+                        if (primaryImg && logoSrc) {
+                            primaryImg.src = logoSrc;
+                            primaryImg.style.display = 'block';
+                        }
+                        if (primaryInfo) primaryInfo.style.display = 'none';
                     }
-                    if (primaryInfo) primaryInfo.style.display = 'none';
+
+                    if (logoDarkSrc) {
+                        const darkInput = document.getElementById('bgeLogoPrimaryDarkUrl');
+                        const darkImg = document.getElementById('primaryDarkLogoImg');
+                        const darkInfo = document.getElementById('dropzone_info_primary_dark');
+                        if (darkInput) darkInput.value = logoDarkUrl || '';
+                        if (darkImg && logoDarkSrc) {
+                            darkImg.src = logoDarkSrc;
+                            darkImg.style.display = 'block';
+                        }
+                        if (darkInfo) darkInfo.style.display = 'none';
+                    }
 
                     Swal.fire({
                         toast: true,
                         position: 'top-end',
                         icon: 'success',
-                        title: 'Logotipo Oficial actualizado con la propuesta ganadora',
-                        timer: 2000,
+                        title: 'Logotipos Oficiales actualizados con la propuesta ganadora',
+                        timer: 2500,
                         showConfirmButton: false
                     });
                 }
@@ -4028,15 +4178,31 @@ document.getElementById('brandGuidelineForm').addEventListener('submit', functio
         const title = card.querySelector('.prop-title')?.value.trim() || `Opción ${String(idx + 1).padStart(2, '0')}`;
         const concept = card.querySelector('.prop-concept')?.value.trim() || '';
         const logoUrl = card.querySelector('.prop-logo-url')?.value.trim() || '';
+        const logoDarkUrl = card.querySelector('.prop-logo-dark-url')?.value.trim() || '';
+        const logoGridUrl = card.querySelector('.prop-logo-grid-url')?.value.trim() || '';
         const mockupUrl = card.querySelector('.prop-mockup-url')?.value.trim() || '';
         const isSelected = card.querySelector('.prop-selected-flag')?.value === '1';
         const cardId = card.getAttribute('data-id') || `prop_${idx + 1}`;
 
+        // 1. Logo Principal / Modo Claro
         const logoInput = card.querySelector('.prop-logo-input');
         if (logoInput && logoInput.files && logoInput.files[0]) {
             propFiles.push({ key: `proposal_logo_file_${idx}`, file: logoInput.files[0] });
         }
 
+        // 2. Logo Modo Oscuro
+        const logoDarkInput = card.querySelector('.prop-logo-dark-input');
+        if (logoDarkInput && logoDarkInput.files && logoDarkInput.files[0]) {
+            propFiles.push({ key: `proposal_logo_dark_file_${idx}`, file: logoDarkInput.files[0] });
+        }
+
+        // 3. Logo Retícula / Construcción
+        const logoGridInput = card.querySelector('.prop-logo-grid-input');
+        if (logoGridInput && logoGridInput.files && logoGridInput.files[0]) {
+            propFiles.push({ key: `proposal_logo_grid_file_${idx}`, file: logoGridInput.files[0] });
+        }
+
+        // 4. Mockup
         const mockupInput = card.querySelector('.prop-mockup-input');
         if (mockupInput && mockupInput.files && mockupInput.files[0]) {
             propFiles.push({ key: `proposal_mockup_file_${idx}`, file: mockupInput.files[0] });
@@ -4047,6 +4213,8 @@ document.getElementById('brandGuidelineForm').addEventListener('submit', functio
             title: title,
             concept: concept,
             logo_url: logoUrl,
+            logo_dark_url: logoDarkUrl,
+            logo_grid_url: logoGridUrl,
             mockup_url: mockupUrl,
             is_selected: isSelected,
             status: isSelected ? 'winner' : 'active'

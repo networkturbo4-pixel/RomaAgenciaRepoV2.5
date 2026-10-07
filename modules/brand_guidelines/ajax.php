@@ -605,16 +605,34 @@ if ($action === 'save') {
     $finalProposals = [];
     foreach ($postedProposals as $idx => $propItem) {
         $logoKey = 'proposal_logo_file_' . $idx;
+        $logoDarkKey = 'proposal_logo_dark_file_' . $idx;
+        $logoGridKey = 'proposal_logo_grid_file_' . $idx;
         $mockupKey = 'proposal_mockup_file_' . $idx;
         
         $logoUrl = $propItem['logo_url'] ?? '';
+        $logoDarkUrl = $propItem['logo_dark_url'] ?? '';
+        $logoGridUrl = $propItem['logo_grid_url'] ?? '';
         $mockupUrl = $propItem['mockup_url'] ?? '';
 
+        // 1. Logo Principal / Claro
         if (isset($_FILES[$logoKey]) && $_FILES[$logoKey]['error'] === UPLOAD_ERR_OK) {
             $up = bg_handle_upload($_FILES[$logoKey], 'proposals');
             if ($up) $logoUrl = $up;
         }
 
+        // 2. Logo Modo Oscuro
+        if (isset($_FILES[$logoDarkKey]) && $_FILES[$logoDarkKey]['error'] === UPLOAD_ERR_OK) {
+            $up = bg_handle_upload($_FILES[$logoDarkKey], 'proposals');
+            if ($up) $logoDarkUrl = $up;
+        }
+
+        // 3. Logo Retícula / Construcción
+        if (isset($_FILES[$logoGridKey]) && $_FILES[$logoGridKey]['error'] === UPLOAD_ERR_OK) {
+            $up = bg_handle_upload($_FILES[$logoGridKey], 'proposals');
+            if ($up) $logoGridUrl = $up;
+        }
+
+        // 4. Mockup
         if (isset($_FILES[$mockupKey]) && $_FILES[$mockupKey]['error'] === UPLOAD_ERR_OK) {
             $up = bg_handle_upload($_FILES[$mockupKey], 'proposals');
             if ($up) $mockupUrl = $up;
@@ -626,6 +644,8 @@ if ($action === 'save') {
                 'title' => trim($propItem['title'] ?? ('Propuesta ' . str_pad($idx + 1, 2, '0', STR_PAD_LEFT))),
                 'concept' => trim($propItem['concept'] ?? ''),
                 'logo_url' => $logoUrl,
+                'logo_dark_url' => $logoDarkUrl,
+                'logo_grid_url' => $logoGridUrl,
                 'mockup_url' => $mockupUrl,
                 'is_selected' => !empty($propItem['is_selected']),
                 'status' => $propItem['status'] ?? 'active'

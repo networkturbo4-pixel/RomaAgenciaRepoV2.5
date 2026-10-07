@@ -1732,13 +1732,27 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         }
 
         /* ================= PROPOSALS SLIDE (PITCH MODE) ================= */
+        .slide-frame[data-slide="proposals"] {
+            justify-content: flex-start !important;
+            gap: 1rem !important;
+        }
+        .slide-frame[data-slide="proposals"] .sh-top {
+            margin-bottom: 0.25rem !important;
+            flex-shrink: 0 !important;
+        }
         .prop-nav-bar {
             display: flex;
+            align-items: center;
             gap: 0.75rem;
-            margin-bottom: 1.5rem;
+            margin-top: 0.25rem;
+            margin-bottom: 1.25rem;
             overflow-x: auto;
-            padding-bottom: 0.5rem;
+            padding: 0.35rem 0.25rem 0.65rem;
             scrollbar-width: thin;
+            flex-shrink: 0 !important;
+            min-height: 52px;
+            position: relative;
+            z-index: 20;
         }
         .prop-tab-pill {
             display: inline-flex;
@@ -1755,6 +1769,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             white-space: nowrap;
             user-select: none;
+            flex-shrink: 0;
         }
         [data-theme="light"] .prop-tab-pill {
             background: #ffffff;
@@ -1797,6 +1812,8 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             grid-template-columns: 1.15fr 0.85fr;
             gap: 2rem;
             align-items: stretch;
+            flex-shrink: 0;
+            width: 100%;
         }
         @media (max-width: 992px) {
             .prop-view-grid {
@@ -2652,8 +2669,14 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                         $pTitle = !empty($prop['title']) ? $prop['title'] : ('Opción ' . str_pad($idx + 1, 2, '0', STR_PAD_LEFT));
                         $pConcept = $prop['concept'] ?? '';
                         $pLogoUrl = !empty($prop['logo_url']) ? bg_asset_url($prop['logo_url']) : '';
+                        $pLogoDarkUrl = !empty($prop['logo_dark_url']) ? bg_asset_url($prop['logo_dark_url']) : '';
+                        $pLogoGridUrl = !empty($prop['logo_grid_url']) ? bg_asset_url($prop['logo_grid_url']) : '';
                         $pMockupUrl = !empty($prop['mockup_url']) ? bg_asset_url($prop['mockup_url']) : '';
                         $isWin = !empty($prop['is_selected']);
+
+                        $imgLight = $pLogoUrl;
+                        $imgDark = !empty($pLogoDarkUrl) ? $pLogoDarkUrl : $pLogoUrl;
+                        $imgGrid = !empty($pLogoGridUrl) ? $pLogoGridUrl : $pLogoUrl;
                     ?>
                     <div class="prop-view-grid proposal-content-panel" id="proposalPanel_<?php echo $idx; ?>" style="<?php echo $idx === 0 ? '' : 'display:none;'; ?>">
                         
@@ -2664,21 +2687,30 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                                     <span style="font-size:0.78rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Entorno de visualización:</span>
                                 </div>
                                 <div style="display:flex; gap:0.4rem;">
-                                    <button type="button" class="prop-stage-toggle-btn active" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'light', this)">
+                                    <button type="button" class="prop-stage-toggle-btn active" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'light', this)" title="Ver versión sobre fondo claro">
                                         <i class="ph-bold ph-sun"></i> Claro
                                     </button>
-                                    <button type="button" class="prop-stage-toggle-btn" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'dark', this)">
+                                    <button type="button" class="prop-stage-toggle-btn" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'dark', this)" title="Ver versión sobre fondo oscuro">
                                         <i class="ph-bold ph-moon"></i> Oscuro
+                                        <?php if (!empty($pLogoDarkUrl)): ?>
+                                            <span style="font-size:0.62rem; background:#818cf8; color:#0f172a; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:2px;">HQ</span>
+                                        <?php endif; ?>
                                     </button>
-                                    <button type="button" class="prop-stage-toggle-btn" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'blueprint', this)">
+                                    <button type="button" class="prop-stage-toggle-btn" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'blueprint', this)" title="Ver construcción con retícula / blueprint">
                                         <i class="ph-bold ph-grid-four"></i> Retícula
+                                        <?php if (!empty($pLogoGridUrl)): ?>
+                                            <span style="font-size:0.62rem; background:#0ea5e9; color:#0f172a; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:2px;">HQ</span>
+                                        <?php endif; ?>
                                     </button>
                                 </div>
                             </div>
 
                             <div class="prop-stage-canvas bg-light" id="propCanvas_<?php echo $idx; ?>">
-                                <?php if (!empty($pLogoUrl)): ?>
-                                    <img src="<?php echo htmlspecialchars($pLogoUrl); ?>" alt="<?php echo htmlspecialchars($pTitle); ?>" class="prop-stage-img" id="propStageImg_<?php echo $idx; ?>">
+                                <?php if (!empty($imgLight)): ?>
+                                    <img src="<?php echo htmlspecialchars($imgLight); ?>" alt="<?php echo htmlspecialchars($pTitle); ?>" class="prop-stage-img" id="propStageImg_<?php echo $idx; ?>"
+                                         data-img-light="<?php echo htmlspecialchars($imgLight); ?>"
+                                         data-img-dark="<?php echo htmlspecialchars($imgDark); ?>"
+                                         data-img-grid="<?php echo htmlspecialchars($imgGrid); ?>">
                                 <?php else: ?>
                                     <div style="text-align:center; color:var(--text-muted); padding:2rem;">
                                         <i class="ph-bold ph-paint-brush" style="font-size:3rem; opacity:0.4; margin-bottom:0.5rem;"></i>
@@ -2738,8 +2770,8 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                                 <div style="font-size:0.78rem; color:var(--text-muted);">
                                     ¿Deseas elegir esta opción? Comunícate con nuestro equipo creativo.
                                 </div>
-                                <?php if (!empty($pLogoUrl)): ?>
-                                <a href="<?php echo htmlspecialchars($pLogoUrl); ?>" download class="prop-stage-toggle-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
+                                <?php if (!empty($imgLight)): ?>
+                                <a href="<?php echo htmlspecialchars($imgLight); ?>" download id="propDownloadBtn_<?php echo $idx; ?>" class="prop-stage-toggle-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
                                     <i class="ph-bold ph-download-simple"></i> Descargar Asset
                                 </a>
                                 <?php endif; ?>
@@ -3599,6 +3631,23 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             dot.onclick = () => goToSlide(idx);
             dotsBar.appendChild(dot);
         });
+    // Check URL query param or hash for initial slide
+    const urlParams = new URLSearchParams(window.location.search);
+    const slideParam = urlParams.get('slide');
+    if (slideParam) {
+        if (!isNaN(parseInt(slideParam))) {
+            const requested = parseInt(slideParam) - 1;
+            if (requested >= 0 && requested < totalSlides) {
+                currentSlide = requested;
+            }
+        } else {
+            const foundIdx = slides.findIndex(s => s.getAttribute('data-slide') === slideParam);
+            if (foundIdx !== -1) currentSlide = foundIdx;
+        }
+    } else if (window.location.hash) {
+        const hashName = window.location.hash.replace('#', '');
+        const foundIdx = slides.findIndex(s => s.getAttribute('data-slide') === hashName);
+        if (foundIdx !== -1) currentSlide = foundIdx;
     }
 
     function updateDeckUI() {
@@ -3622,6 +3671,9 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         if (dockIndicator) dockIndicator.textContent = countText;
         if (dockPrevBtn) dockPrevBtn.disabled = currentSlide === 0;
         if (dockNextBtn) dockNextBtn.disabled = currentSlide === totalSlides - 1;
+    }
+    if (currentSlide !== 0) {
+        updateDeckUI();
     }
 
     function goToSlide(idx) {
@@ -3715,9 +3767,29 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
 
     function setProposalCanvasBg(idx, mode, btn) {
         const canvas = document.getElementById('propCanvas_' + idx);
+        const img = document.getElementById('propStageImg_' + idx);
+        const downloadBtn = document.getElementById('propDownloadBtn_' + idx);
         if (!canvas) return;
+
         canvas.classList.remove('bg-light', 'bg-dark', 'bg-blueprint');
         canvas.classList.add('bg-' + mode);
+
+        if (img) {
+            let newSrc = '';
+            if (mode === 'light') {
+                newSrc = img.getAttribute('data-img-light');
+            } else if (mode === 'dark') {
+                newSrc = img.getAttribute('data-img-dark');
+            } else if (mode === 'blueprint') {
+                newSrc = img.getAttribute('data-img-grid');
+            }
+            if (newSrc && newSrc !== '') {
+                img.src = newSrc;
+                if (downloadBtn) {
+                    downloadBtn.href = newSrc;
+                }
+            }
+        }
 
         const parent = btn.parentElement;
         if (parent) {
