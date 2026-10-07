@@ -1419,8 +1419,8 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 .app-presets-overlay {
     position: fixed;
     inset: 0;
-    z-index: 9999;
-    background: rgba(15, 23, 42, 0.8);
+    z-index: 999999 !important;
+    background: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(8px);
     display: none;
     align-items: center;
@@ -1428,7 +1428,7 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     padding: 1.5rem;
 }
 .app-presets-overlay.active {
-    display: flex;
+    display: flex !important;
 }
 .app-presets-dialog {
     background: var(--bg-card, #ffffff);
@@ -1548,7 +1548,7 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 .app-preview-modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 99999;
+    z-index: 999999 !important;
     background: rgba(10, 15, 29, 0.88);
     backdrop-filter: blur(10px);
     display: none;
@@ -1557,7 +1557,7 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     padding: 1.5rem;
 }
 .app-preview-modal-overlay.active {
-    display: flex;
+    display: flex !important;
 }
 .app-preview-modal-dialog {
     background: #0b0f19;
@@ -4606,12 +4606,20 @@ function removeApp(idx) {
 function openAppPresetsModal() {
     renderPresetsGrid();
     const modal = document.getElementById('appPresetsModal');
-    if (modal) modal.classList.add('active');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 function closeAppPresetsModal() {
     const modal = document.getElementById('appPresetsModal');
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 }
 
 function renderPresetsGrid() {
@@ -4737,11 +4745,17 @@ function previewAllApplicationsModal() {
 
     container.innerHTML = cardsHtml;
     modal.classList.add('active');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 }
 
 function closeAppPreviewModal() {
     const modal = document.getElementById('appLivePreviewModal');
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 }
 
 function togglePreviewModalTheme() {
@@ -4755,6 +4769,13 @@ function togglePreviewModalTheme() {
         icon.className = previewModalTheme === 'light' ? 'ph-bold ph-sun' : 'ph-bold ph-moon';
     }
 }
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAppPresetsModal();
+        closeAppPreviewModal();
+    }
+});
 
 // ---------------- FORM SUBMISSION VIA AJAX ----------------
 document.getElementById('brandGuidelineForm').addEventListener('submit', function(e) {
@@ -5380,6 +5401,8 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
     </div>
+</div>
+
 <!-- App Presets Catalog Modal (10 Applications) -->
 <div class="app-presets-overlay" id="appPresetsModal" onclick="if(event.target === this) closeAppPresetsModal()">
     <div class="app-presets-dialog">
