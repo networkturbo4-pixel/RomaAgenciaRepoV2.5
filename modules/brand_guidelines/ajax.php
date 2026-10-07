@@ -407,6 +407,7 @@ if ($action === 'save') {
     $isPublic = isset($_POST['is_public']) ? (int)$_POST['is_public'] : 1;
     $accessPassword = trim($_POST['access_password'] ?? '');
     $allowAssetDownload = isset($_POST['allow_asset_download']) ? (int)$_POST['allow_asset_download'] : 1;
+    $showProposals = isset($_POST['show_proposals']) ? (int)$_POST['show_proposals'] : 0;
 
     if (empty($brandName)) {
         bg_json_response(['success' => false, 'message' => 'El nombre de la marca es obligatorio.'], 400);
@@ -598,6 +599,44 @@ if ($action === 'save') {
     if (!is_array($decodedIncorrect)) $decodedIncorrect = [];
     $finalIncorrectJson = json_encode($decodedIncorrect, JSON_UNESCAPED_UNICODE);
 
+    // Clean Logo Proposals JSON + file uploads
+    $postedProposals = !empty($_POST['logo_proposals_data']) ? json_decode($_POST['logo_proposals_data'], true) : [];
+    if (!is_array($postedProposals)) $postedProposals = [];
+    $finalProposals = [];
+    foreach ($postedProposals as $idx => $propItem) {
+        $logoKey = 'proposal_logo_file_' . $idx;
+        $mockupKey = 'proposal_mockup_file_' . $idx;
+        
+        $logoUrl = $propItem['logo_url'] ?? '';
+        $mockupUrl = $propItem['mockup_url'] ?? '';
+
+        if (isset($_FILES[$logoKey]) && $_FILES[$logoKey]['error'] === UPLOAD_ERR_OK) {
+            $up = bg_handle_upload($_FILES[$logoKey], 'proposals');
+            if ($up) $logoUrl = $up;
+        }
+
+        if (isset($_FILES[$mockupKey]) && $_FILES[$mockupKey]['error'] === UPLOAD_ERR_OK) {
+            $up = bg_handle_upload($_FILES[$mockupKey], 'proposals');
+            if ($up) $mockupUrl = $up;
+        }
+
+        if (!empty($propItem['title']) || !empty($logoUrl) || !empty($propItem['concept'])) {
+            $finalProposals[] = [
+                'id' => $propItem['id'] ?? ('prop_' . ($idx + 1)),
+                'title' => trim($propItem['title'] ?? ('Propuesta ' . str_pad($idx + 1, 2, '0', STR_PAD_LEFT))),
+                'concept' => trim($propItem['concept'] ?? ''),
+                'logo_url' => $logoUrl,
+                'mockup_url' => $mockupUrl,
+                'is_selected' => !empty($propItem['is_selected']),
+                'status' => $propItem['status'] ?? 'active'
+            ];
+        }
+    }
+    $finalProposalsJson = json_encode($finalProposals, JSON_UNESCAPED_UNICODE);
+
+    // Ensure columns exist non-destructively
+    bg_ensure_proposals_columns($db);
+
     if ($id > 0) {
         // UPDATE
         $sql = "
@@ -622,6 +661,8 @@ if ($action === 'save') {
                 colors_json = ?,
                 fonts_json = ?,
                 applications_json = ?,
+                show_proposals = ?,
+                logo_proposals_json = ?,
                 allow_asset_download = ?,
                 is_public = ?,
                 access_password = ?
@@ -650,6 +691,8 @@ if ($action === 'save') {
             $finalColorsJson,
             $finalFontsJson,
             $finalAppsJson,
+            $showProposals,
+            $finalProposalsJson,
             $allowAssetDownload,
             $isPublic,
             $accessPassword,
@@ -669,12 +712,12 @@ if ($action === 'save') {
                 client_id, brand_name, slug, tagline, description, mission, vision, values_json, tone_of_voice,
                 logo_primary, logo_primary_dark, logo_symbol, logo_variations_json, icons_json,
                 safe_zone_rules, min_size_rules, incorrect_uses_json, colors_json, fonts_json,
-                applications_json, allow_asset_download, is_public, access_password, created_by
+                applications_json, show_proposals, logo_proposals_json, allow_asset_download, is_public, access_password, created_by
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?
             )
         ";
 
@@ -700,10 +743,12 @@ if ($action === 'save') {
             $finalColorsJson,
             $finalFontsJson,
             $finalAppsJson,
+            $showProposals,
+            $finalProposalsJson,
             $allowAssetDownload,
             $isPublic,
             $accessPassword,
-            $userId
+            $userId ?? ($_SESSION['user_id'] ?? null)
         ]);
 
         $newId = $db->lastInsertId();
@@ -717,5 +762,26 @@ if ($action === 'save') {
     }
 }
 
+// 7. FAST TOGGLE PROPOSALS VISIBILITY (SWITCH ON/OFF)
+if ($action === 'toggle_proposals') {
+    $id = (int)($_POST['id'] ?? 0);
+    $show = !empty($_POST['show']) ? 1 : 0;
+    
+    if (!$id) {
+        bg_json_response(['success' => false, 'message' => 'Manual no especificado.'], 400);
+    }
+    
+    bg_ensure_proposals_columns($db);
+    $stmt = $db->prepare("UPDATE brand_guidelines SET show_proposals = ? WHERE id = ?");
+    $stmt->execute([$show, $id]);
+    
+    bg_json_response([
+        'success' => true,
+        'show_proposals' => $show,
+        'message' => $show ? 'Modo de Propuestas activado (Visible al cliente)' : 'Propuestas ocultadas (Solo manual oficial visible)'
+    ]);
+}
+
 // Action not found
 bg_json_response(['success' => false, 'message' => 'Acción no válida o no soportada.'], 400);
+

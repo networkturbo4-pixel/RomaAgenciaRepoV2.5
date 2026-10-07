@@ -60,6 +60,12 @@ if (!is_array($applications)) $applications = [];
 $values = !empty($guideline['values_json']) ? json_decode($guideline['values_json'], true) : [];
 if (!is_array($values)) $values = [];
 
+// Logo Proposals for Client Pitch
+bg_ensure_proposals_columns($db);
+$proposals = !empty($guideline['logo_proposals_json']) ? json_decode($guideline['logo_proposals_json'], true) : [];
+if (!is_array($proposals)) $proposals = [];
+$showProposals = !empty($guideline['show_proposals']) ? 1 : 0;
+
 $baseUrl = bg_get_base_url();
 $isEdit = $id > 0;
 
@@ -418,13 +424,17 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 .bge-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.25rem;
+    gap: 1.5rem;
+    align-items: start;
 }
 
 .bge-field-group {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.5rem;
+    width: 100%;
+    position: relative;
+    box-sizing: border-box;
 }
 
 .bge-field-group.full {
@@ -432,14 +442,19 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 }
 
 .bge-label {
+    display: block;
     font-size: 0.82rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted, #64748b);
+    margin-bottom: 0.15rem;
 }
 
-.bge-input, .bge-select, .bge-textarea {
+.bge-input, .bge-select {
+    display: block;
+    width: 100% !important;
+    box-sizing: border-box !important;
     background: var(--bg-body, #f8fafc);
     border: 1px solid var(--border-color, #cbd5e1);
     border-radius: 12px;
@@ -449,6 +464,25 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     outline: none;
     transition: all 0.2s;
     font-family: inherit;
+}
+
+.bge-textarea {
+    display: block;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 12px;
+    padding: 0.85rem 1.1rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text-main, #0f172a);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 95px;
+    max-width: 100%;
 }
 
 [data-theme="dark"] .bge-input,
@@ -503,6 +537,76 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     max-width: 100%;
     object-fit: contain;
     margin-bottom: 0.5rem;
+}
+
+/* PROPOSALS BUILDER STYLES */
+.proposal-item-card {
+    background: var(--bg-body, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 18px -4px rgba(0, 0, 0, 0.05);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+[data-theme="dark"] .proposal-item-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.4);
+}
+.proposal-item-card.is-winner {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.03);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+.proposal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    padding-bottom: 0.85rem;
+}
+[data-theme="dark"] .proposal-card-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.prop-badge {
+    background: rgba(38, 46, 207, 0.12);
+    color: var(--bge-primary, #262ecf);
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+.btn-prop-winner {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.45rem 0.95rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+.btn-prop-winner:hover {
+    background: #10b981;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+@media (max-width: 768px) {
+    .prop-media-grid {
+        grid-template-columns: 1fr !important;
+    }
 }
 
 /* General List Item (Used for Variations, Icons, etc.) */
@@ -1573,38 +1677,44 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                     <i class="ph-bold ph-identification-card"></i>
                     <span>Datos Generales</span>
                 </button>
-                <button type="button" class="bge-tab-btn" data-step="2" data-name="Logos & Variaciones" onclick="switchBgeTab('logos', this)">
-                    <span class="bge-tab-step-badge">02</span>
-                    <i class="ph-bold ph-paint-brush-broad"></i>
-                    <span>Logos & Variaciones</span>
+                <button type="button" class="bge-tab-btn" data-step="2" data-name="Propuestas de Logo" onclick="switchBgeTab('proposals', this)">
+                    <span class="bge-tab-step-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">02</span>
+                    <i class="ph-bold ph-lightbulb"></i>
+                    <span>Propuestas</span>
+                    <span id="proposalBadgeIndicator" style="display: <?php echo $showProposals ? 'inline-block' : 'none'; ?>; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-left: 3px;" title="Propuestas activas para el cliente"></span>
                 </button>
-                <button type="button" class="bge-tab-btn" data-step="3" data-name="Iconografía" onclick="switchBgeTab('icons', this)">
+                <button type="button" class="bge-tab-btn" data-step="3" data-name="Logos Oficiales" onclick="switchBgeTab('logos', this)">
                     <span class="bge-tab-step-badge">03</span>
+                    <i class="ph-bold ph-paint-brush-broad"></i>
+                    <span>Logos Oficiales</span>
+                </button>
+                <button type="button" class="bge-tab-btn" data-step="4" data-name="Iconografía" onclick="switchBgeTab('icons', this)">
+                    <span class="bge-tab-step-badge">04</span>
                     <i class="ph-bold ph-app-window"></i>
                     <span>Iconografía</span>
                 </button>
-                <button type="button" class="bge-tab-btn" data-step="4" data-name="Paleta Cromática" onclick="switchBgeTab('colors', this)">
-                    <span class="bge-tab-step-badge">04</span>
+                <button type="button" class="bge-tab-btn" data-step="5" data-name="Paleta Cromática" onclick="switchBgeTab('colors', this)">
+                    <span class="bge-tab-step-badge">05</span>
                     <i class="ph-bold ph-palette"></i>
                     <span>Paleta Cromática</span>
                 </button>
-                <button type="button" class="bge-tab-btn" data-step="5" data-name="Tipografías" onclick="switchBgeTab('typography', this)">
-                    <span class="bge-tab-step-badge">05</span>
+                <button type="button" class="bge-tab-btn" data-step="6" data-name="Tipografías" onclick="switchBgeTab('typography', this)">
+                    <span class="bge-tab-step-badge">06</span>
                     <i class="ph-bold ph-text-t"></i>
                     <span>Tipografías</span>
                 </button>
-                <button type="button" class="bge-tab-btn" data-step="6" data-name="Normas de Uso" onclick="switchBgeTab('rules', this)">
-                    <span class="bge-tab-step-badge">06</span>
+                <button type="button" class="bge-tab-btn" data-step="7" data-name="Normas de Uso" onclick="switchBgeTab('rules', this)">
+                    <span class="bge-tab-step-badge">07</span>
                     <i class="ph-bold ph-shield-check"></i>
                     <span>Normas de Uso</span>
                 </button>
-                <button type="button" class="bge-tab-btn" data-step="7" data-name="Aplicaciones" onclick="switchBgeTab('mockups', this)">
-                    <span class="bge-tab-step-badge">07</span>
+                <button type="button" class="bge-tab-btn" data-step="8" data-name="Aplicaciones" onclick="switchBgeTab('mockups', this)">
+                    <span class="bge-tab-step-badge">08</span>
                     <i class="ph-bold ph-image-square"></i>
                     <span>Aplicaciones</span>
                 </button>
-                <button type="button" class="bge-tab-btn" data-step="8" data-name="Enlace & Privacidad" onclick="switchBgeTab('privacy', this)">
-                    <span class="bge-tab-step-badge">08</span>
+                <button type="button" class="bge-tab-btn" data-step="9" data-name="Enlace & Privacidad" onclick="switchBgeTab('privacy', this)">
+                    <span class="bge-tab-step-badge">09</span>
                     <i class="ph-bold ph-share-network"></i>
                     <span>Enlace & Privacidad</span>
                 </button>
@@ -1673,7 +1783,150 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
             </div>
         </div>
 
-        <!-- ================= TAB 2: LOGOS & VARIACIONES ================= -->
+        <!-- ================= TAB 2: PROPUESTAS DE LOGOTIPO ================= -->
+        <div class="bge-section-panel" id="tab-proposals">
+            <div class="bge-card-panel">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1.25rem; flex-wrap:wrap;">
+                    <div>
+                        <h2 class="bge-panel-title"><i class="ph-bold ph-lightbulb" style="color: #f59e0b;"></i> Propuestas de Diseño de Logotipo (Pitch & Aprobación)</h2>
+                        <p class="bge-panel-desc">Presenta 2, 3 o más opciones conceptuales a tu cliente con su justificación de diseño y aplicaciones referenciales.</p>
+                    </div>
+                </div>
+
+                <!-- Banner Interruptor de Modo Pitch / Visibilidad al Cliente -->
+                <div style="background: rgba(38, 46, 207, 0.06); border: 1.5px solid rgba(38, 46, 207, 0.22); border-radius: 20px; padding: 1.35rem 1.65rem; margin: 1.5rem 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 280px;">
+                        <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(38, 46, 207, 0.15); color: var(--bge-primary, #262ecf); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0;">
+                            <i class="ph-bold ph-presentation"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">Mostrar Propuestas en la Presentación Pública</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;" id="proposalStatusDesc">
+                                <?php if ($showProposals): ?>
+                                    <span style="color: #10b981; font-weight: 800;"><i class="ph-bold ph-check-circle"></i> MODO PITCH ACTIVO:</span> El cliente verá la diapositiva interactiva para evaluar y comparar las propuestas de logo.
+                                <?php else: ?>
+                                    <span style="color: #64748b; font-weight: 800;"><i class="ph-bold ph-shield-check"></i> MODO MANUAL OFICIAL:</span> Las propuestas están ocultas para el cliente. Solo se muestra el manual final definitivo.
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <label style="position: relative; display: inline-flex; align-items: center; cursor: pointer; gap: 0.65rem; font-weight: 800; font-size: 0.95rem; user-select: none;">
+                            <input type="checkbox" id="show_proposals_toggle" name="show_proposals" value="1" <?php echo $showProposals ? 'checked' : ''; ?> onchange="onProposalToggleChange(this.checked)" style="width: 22px; height: 22px; accent-color: var(--bge-primary, #262ecf); cursor: pointer;">
+                            <span id="proposalToggleLabel"><?php echo $showProposals ? 'Propuestas Visibles' : 'Propuestas Ocultas'; ?></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Lista de Propuestas de Logotipo -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                    <div style="font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">
+                        Opciones Creativas (<span id="propCountBadge"><?php echo count($proposals); ?></span>)
+                    </div>
+                    <button type="button" class="bge-btn-save" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="addProposalRow()">
+                        <i class="ph-bold ph-plus-circle"></i> Agregar Propuesta
+                    </button>
+                </div>
+
+                <div id="proposalsContainer">
+                    <?php if (empty($proposals)): ?>
+                        <div id="emptyProposalsMsg" style="text-align: center; padding: 3rem 1.5rem; background: rgba(0,0,0,0.02); border: 2px dashed rgba(226, 232, 240, 0.9); border-radius: 20px; color: var(--text-muted);">
+                            <i class="ph-bold ph-lightbulb" style="font-size: 2.5rem; color: #f59e0b; opacity: 0.8; margin-bottom: 0.75rem;"></i>
+                            <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-main); margin-bottom: 0.35rem;">Aún no has agregado propuestas de diseño</div>
+                            <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto 1.25rem;">Puedes agregar 2 o 3 opciones para presentarlas a tu cliente con su justificación conceptual y mockups.</p>
+                            <button type="button" class="bge-btn-save" onclick="addProposalRow()">
+                                <i class="ph-bold ph-plus-circle"></i> Crear Primera Propuesta
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($proposals as $pIdx => $prop): 
+                            $pId = $prop['id'] ?? ('prop_' . ($pIdx + 1));
+                            $pTitle = $prop['title'] ?? ('Propuesta ' . str_pad($pIdx + 1, 2, '0', STR_PAD_LEFT));
+                            $pConcept = $prop['concept'] ?? '';
+                            $pLogoUrl = $prop['logo_url'] ?? '';
+                            $pMockupUrl = $prop['mockup_url'] ?? '';
+                            $pIsSelected = !empty($prop['is_selected']);
+                        ?>
+                        <div class="proposal-item-card <?php echo $pIsSelected ? 'is-winner' : ''; ?>" id="proposal_card_<?php echo $pIdx; ?>" data-id="<?php echo htmlspecialchars($pId); ?>">
+                            <div class="proposal-card-header">
+                                <div style="display:flex; align-items:center; gap:0.65rem; flex: 1; max-width: 500px;">
+                                    <span class="prop-badge">Opción <?php echo str_pad($pIdx + 1, 2, '0', STR_PAD_LEFT); ?></span>
+                                    <input type="text" class="bge-input prop-title" placeholder="Título (ej. Opción 01: Isotipo Monograma)" value="<?php echo htmlspecialchars($pTitle); ?>" style="font-weight:800; font-size:1.02rem;">
+                                </div>
+                                <div style="display:flex; align-items:center; gap:0.5rem;">
+                                    <button type="button" class="btn-prop-winner" onclick="setProposalAsWinner(this)" title="Establecer este diseño como el oficial del manual">
+                                        <i class="ph-bold ph-trophy"></i>
+                                        <span><?php echo $pIsSelected ? '¡Propuesta Ganadora Oficial!' : 'Elegir como Ganadora'; ?></span>
+                                    </button>
+                                    <button type="button" class="btn-icon danger" onclick="removeProposalRow(<?php echo $pIdx; ?>)" title="Eliminar propuesta" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="hidden" class="prop-selected-flag" value="<?php echo $pIsSelected ? '1' : '0'; ?>">
+
+                            <div class="bge-field-group full" style="margin-top: 1.25rem; margin-bottom: 1.5rem;">
+                                <label class="bge-label">Racional & Concepto Creativo</label>
+                                <textarea class="bge-textarea prop-concept" rows="3" placeholder="Explica la inspiración, metáfora visual, significado de las formas y por qué esta propuesta conecta con la visión de la marca..."><?php echo htmlspecialchars($pConcept); ?></textarea>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem; margin-top: 0.5rem;" class="prop-media-grid">
+                                <!-- Logo de la propuesta -->
+                                <div class="bge-field-group">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                                        <label class="bge-label" style="margin-bottom:0;">Logotipo de la Propuesta *</label>
+                                        <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-url', '.prop-logo-preview')">
+                                            <i class="ph-bold ph-google-drive-logo"></i> Drive
+                                        </button>
+                                    </div>
+                                    <input type="hidden" class="prop-logo-url" value="<?php echo htmlspecialchars($pLogoUrl); ?>">
+                                    <div class="bge-upload-dropzone" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                                        <?php $hasLogo = !empty($pLogoUrl); ?>
+                                        <img src="<?php echo $hasLogo ? htmlspecialchars(bg_asset_url($pLogoUrl)) : ''; ?>" class="bge-preview-box prop-logo-preview" style="<?php echo $hasLogo ? '' : 'display:none;'; ?> max-height:85px;">
+                                        <div class="prop-dropzone-info" style="<?php echo $hasLogo ? 'display:none;' : ''; ?>">
+                                            <i class="ph-bold ph-paint-brush bge-dropzone-icon"></i>
+                                            <div style="font-size:0.85rem; font-weight:700;">Subir logo propuesto</div>
+                                            <div style="font-size:0.72rem; color:var(--text-muted);">PNG transparente o SVG</div>
+                                        </div>
+                                        <input type="file" name="proposal_logo_file_<?php echo $pIdx; ?>" class="prop-logo-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo')">
+                                    </div>
+                                </div>
+
+                                <!-- Mockup de contexto -->
+                                <div class="bge-field-group">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                                        <label class="bge-label" style="margin-bottom:0;">Mockup de Contexto (Opcional)</label>
+                                        <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-mockup-url', '.prop-mockup-preview')">
+                                            <i class="ph-bold ph-google-drive-logo"></i> Drive
+                                        </button>
+                                    </div>
+                                    <input type="hidden" class="prop-mockup-url" value="<?php echo htmlspecialchars($pMockupUrl); ?>">
+                                    <div class="bge-upload-dropzone" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                                        <?php $hasMockup = !empty($pMockupUrl); ?>
+                                        <img src="<?php echo $hasMockup ? htmlspecialchars(bg_asset_url($pMockupUrl)) : ''; ?>" class="bge-preview-box prop-mockup-preview" style="<?php echo $hasMockup ? '' : 'display:none;'; ?> max-height:85px;">
+                                        <div class="prop-mockup-info" style="<?php echo $hasMockup ? 'display:none;' : ''; ?>">
+                                            <i class="ph-bold ph-image-square bge-dropzone-icon"></i>
+                                            <div style="font-size:0.85rem; font-weight:700;">Subir mockup de aplicación</div>
+                                            <div style="font-size:0.72rem; color:var(--text-muted);">Foto de producto, papelería o avatar</div>
+                                        </div>
+                                        <input type="file" name="proposal_mockup_file_<?php echo $pIdx; ?>" class="prop-mockup-input" accept="image/*" style="display:none;" onchange="previewProposalUpload(this, 'mockup')">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <button type="button" class="bge-btn-save" style="background: rgba(38,46,207,0.08); color: var(--bge-primary, #262ecf); border: 1.5px dashed var(--bge-primary, #262ecf); width: 100%; justify-content: center; padding: 0.85rem;" onclick="addProposalRow()">
+                        <i class="ph-bold ph-plus-circle"></i> Agregar Nueva Propuesta de Logotipo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: LOGOS & VARIACIONES ================= -->
         <div class="bge-section-panel" id="tab-logos">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-paint-brush-broad" style="color: #ec4899;"></i> Logotipo Principal e Isotipo</h2>
@@ -2320,13 +2573,14 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
 // ---------------- STUDIO STEP NAVIGATION ----------------
 const BGE_STEPS = [
     { id: 'general', num: 1, title: 'Datos Generales' },
-    { id: 'logos', num: 2, title: 'Logos & Variaciones' },
-    { id: 'icons', num: 3, title: 'Iconografía' },
-    { id: 'colors', num: 4, title: 'Paleta Cromática' },
-    { id: 'typography', num: 5, title: 'Tipografías' },
-    { id: 'rules', num: 6, title: 'Normas de Uso' },
-    { id: 'mockups', num: 7, title: 'Aplicaciones & Mockups' },
-    { id: 'privacy', num: 8, title: 'Enlace & Privacidad' }
+    { id: 'proposals', num: 2, title: 'Propuestas de Logo' },
+    { id: 'logos', num: 3, title: 'Logos Oficiales' },
+    { id: 'icons', num: 4, title: 'Iconografía' },
+    { id: 'colors', num: 5, title: 'Paleta Cromática' },
+    { id: 'typography', num: 6, title: 'Tipografías' },
+    { id: 'rules', num: 7, title: 'Normas de Uso' },
+    { id: 'mockups', num: 8, title: 'Aplicaciones & Mockups' },
+    { id: 'privacy', num: 9, title: 'Enlace & Privacidad' }
 ];
 
 let currentStepIndex = 0;
@@ -2471,6 +2725,241 @@ function previewUpload(input, previewId) {
             }
         }
         reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// ---------------- LOGO PROPOSALS MANAGEMENT (PITCH MODE) ----------------
+function onProposalToggleChange(checked) {
+    const statusDesc = document.getElementById('proposalStatusDesc');
+    const toggleLabel = document.getElementById('proposalToggleLabel');
+    const badge = document.getElementById('proposalBadgeIndicator');
+
+    if (toggleLabel) {
+        toggleLabel.textContent = checked ? 'Propuestas Visibles' : 'Propuestas Ocultas';
+    }
+    if (badge) {
+        badge.style.display = checked ? 'inline-block' : 'none';
+    }
+    if (statusDesc) {
+        if (checked) {
+            statusDesc.innerHTML = '<span style="color: #10b981; font-weight: 800;"><i class="ph-bold ph-check-circle"></i> MODO PITCH ACTIVO:</span> El cliente verá la diapositiva interactiva para evaluar y comparar las propuestas de logo.';
+        } else {
+            statusDesc.innerHTML = '<span style="color: #64748b; font-weight: 800;"><i class="ph-bold ph-shield-check"></i> MODO MANUAL OFICIAL:</span> Las propuestas están ocultas para el cliente. Solo se muestra el manual final definitivo.';
+        }
+    }
+
+    <?php if ($isEdit): ?>
+    fetch('modules/brand_guidelines/ajax.php?action=toggle_proposals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ id: '<?php echo $id; ?>', show_proposals: checked ? 1 : 0 })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success && typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: checked ? 'success' : 'info',
+                title: checked ? 'Modo Pitch activado: Visibles en la presentación' : 'Modo Manual Oficial: Propuestas ocultas al cliente',
+                showConfirmButton: false,
+                timer: 2200
+            });
+        }
+    }).catch(()=>{});
+    <?php endif; ?>
+}
+
+let proposalIndexCounter = <?php echo count($proposals) + 5; ?>;
+
+function addProposalRow() {
+    const container = document.getElementById('proposalsContainer');
+    const emptyMsg = document.getElementById('emptyProposalsMsg');
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    const pIdx = proposalIndexCounter++;
+    const propNum = document.querySelectorAll('#proposalsContainer .proposal-item-card').length + 1;
+    const propNumPadded = String(propNum).padStart(2, '0');
+    const propId = 'prop_' + Date.now();
+
+    const card = document.createElement('div');
+    card.className = 'proposal-item-card';
+    card.id = `proposal_card_${pIdx}`;
+    card.setAttribute('data-id', propId);
+
+    card.innerHTML = `
+        <div class="proposal-card-header">
+            <div style="display:flex; align-items:center; gap:0.65rem; flex: 1; max-width: 500px;">
+                <span class="prop-badge">Opción ${propNumPadded}</span>
+                <input type="text" class="bge-input prop-title" placeholder="Título (ej. Opción ${propNumPadded}: Logotipo Tipográfico)" value="Opción ${propNumPadded}" style="font-weight:800; font-size:1.02rem;">
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <button type="button" class="btn-prop-winner" onclick="setProposalAsWinner(this)" title="Establecer este diseño como el oficial del manual">
+                    <i class="ph-bold ph-trophy"></i>
+                    <span>Elegir como Ganadora</span>
+                </button>
+                <button type="button" class="btn-icon danger" onclick="removeProposalRow(${pIdx})" title="Eliminar propuesta" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem;">
+                    <i class="ph-bold ph-trash"></i>
+                </button>
+            </div>
+        </div>
+        <input type="hidden" class="prop-selected-flag" value="0">
+
+        <div class="bge-field-group full" style="margin-top: 1.25rem; margin-bottom: 1.5rem;">
+            <label class="bge-label">Racional & Concepto Creativo</label>
+            <textarea class="bge-textarea prop-concept" rows="3" placeholder="Explica la inspiración, metáfora visual, significado de las formas y por qué esta propuesta conecta con la visión de la marca..."></textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem; margin-top: 0.5rem;" class="prop-media-grid">
+            <div class="bge-field-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                    <label class="bge-label" style="margin-bottom:0;">Logotipo de la Propuesta *</label>
+                    <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-logo-url', '.prop-logo-preview')">
+                        <i class="ph-bold ph-google-drive-logo"></i> Drive
+                    </button>
+                </div>
+                <input type="hidden" class="prop-logo-url" value="">
+                <div class="bge-upload-dropzone" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                    <img src="" class="bge-preview-box prop-logo-preview" style="display:none; max-height:85px;">
+                    <div class="prop-dropzone-info">
+                        <i class="ph-bold ph-paint-brush bge-dropzone-icon"></i>
+                        <div style="font-size:0.85rem; font-weight:700;">Subir logo propuesto</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">PNG transparente o SVG</div>
+                    </div>
+                    <input type="file" name="proposal_logo_file_${pIdx}" class="prop-logo-input" accept=".png,.svg,.webp,.jpg,.jpeg" style="display:none;" onchange="previewProposalUpload(this, 'logo')">
+                </div>
+            </div>
+
+            <div class="bge-field-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                    <label class="bge-label" style="margin-bottom:0;">Mockup de Contexto (Opcional)</label>
+                    <button type="button" class="bge-drive-btn" onclick="openDriveModalForRow(this, '.prop-mockup-url', '.prop-mockup-preview')">
+                        <i class="ph-bold ph-google-drive-logo"></i> Drive
+                    </button>
+                </div>
+                <input type="hidden" class="prop-mockup-url" value="">
+                <div class="bge-upload-dropzone" onclick="this.querySelector('input[type=file]').click()" style="min-height:130px;">
+                    <img src="" class="bge-preview-box prop-mockup-preview" style="display:none; max-height:85px;">
+                    <div class="prop-mockup-info">
+                        <i class="ph-bold ph-image-square bge-dropzone-icon"></i>
+                        <div style="font-size:0.85rem; font-weight:700;">Subir mockup de aplicación</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Foto de producto, papelería o avatar</div>
+                    </div>
+                    <input type="file" name="proposal_mockup_file_${pIdx}" class="prop-mockup-input" accept="image/*" style="display:none;" onchange="previewProposalUpload(this, 'mockup')">
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(card);
+    updateProposalCounters();
+}
+
+function removeProposalRow(pIdx) {
+    const card = document.getElementById(`proposal_card_${pIdx}`);
+    if (card) {
+        card.remove();
+        updateProposalCounters();
+    }
+}
+
+function updateProposalCounters() {
+    const cards = document.querySelectorAll('#proposalsContainer .proposal-item-card');
+    const badge = document.getElementById('propCountBadge');
+    if (badge) badge.textContent = cards.length;
+
+    const emptyMsg = document.getElementById('emptyProposalsMsg');
+    if (cards.length === 0 && emptyMsg) {
+        emptyMsg.style.display = 'block';
+    }
+
+    cards.forEach((card, i) => {
+        const badgeEl = card.querySelector('.prop-badge');
+        if (badgeEl) badgeEl.textContent = `Opción ${String(i + 1).padStart(2, '0')}`;
+    });
+}
+
+function previewProposalUpload(input, type) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    const parent = input.closest('.bge-field-group');
+    if (!parent) return;
+
+    reader.onload = function(e) {
+        const img = parent.querySelector(type === 'logo' ? '.prop-logo-preview' : '.prop-mockup-preview');
+        const info = parent.querySelector(type === 'logo' ? '.prop-dropzone-info' : '.prop-mockup-info');
+        if (img) {
+            img.src = e.target.result;
+            img.style.display = 'block';
+        }
+        if (info) {
+            info.style.display = 'none';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function setProposalAsWinner(btn) {
+    const currentCard = btn.closest('.proposal-item-card');
+    if (!currentCard) return;
+
+    const isAlreadyWinner = currentCard.classList.contains('is-winner');
+
+    // Deselect all cards
+    document.querySelectorAll('#proposalsContainer .proposal-item-card').forEach(c => {
+        c.classList.remove('is-winner');
+        const flag = c.querySelector('.prop-selected-flag');
+        if (flag) flag.value = '0';
+        const wBtn = c.querySelector('.btn-prop-winner');
+        if (wBtn) {
+            wBtn.innerHTML = '<i class="ph-bold ph-trophy"></i> <span>Elegir como Ganadora</span>';
+        }
+    });
+
+    if (!isAlreadyWinner) {
+        currentCard.classList.add('is-winner');
+        const flag = currentCard.querySelector('.prop-selected-flag');
+        if (flag) flag.value = '1';
+        btn.innerHTML = '<i class="ph-bold ph-trophy"></i> <span>¡Propuesta Ganadora Oficial!</span>';
+
+        // Check if there is a logo in this proposal
+        const logoUrl = currentCard.querySelector('.prop-logo-url')?.value;
+        const logoImg = currentCard.querySelector('.prop-logo-preview');
+        const logoSrc = (logoUrl && logoUrl.trim() !== '') ? logoUrl : (logoImg && logoImg.style.display !== 'none' ? logoImg.src : null);
+
+        if (logoSrc) {
+            Swal.fire({
+                title: '¿Copiar a Logos Oficiales?',
+                text: '¿Deseas asignar automáticamente el logo de esta propuesta como el Logotipo Principal en la pestaña de Logos Oficiales?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, copiar a Logos Oficiales',
+                cancelButtonText: 'Mantener actual',
+                confirmButtonColor: '#262ecf'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    const primaryInput = document.getElementById('bgeLogoPrimaryUrl');
+                    const primaryImg = document.getElementById('primaryLogoImg');
+                    const primaryInfo = document.getElementById('dropzone_info_primary');
+                    if (primaryInput) primaryInput.value = logoUrl || '';
+                    if (primaryImg && logoSrc) {
+                        primaryImg.src = logoSrc;
+                        primaryImg.style.display = 'block';
+                    }
+                    if (primaryInfo) primaryInfo.style.display = 'none';
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Logotipo Oficial actualizado con la propuesta ganadora',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
     }
 }
 
@@ -3531,8 +4020,46 @@ document.getElementById('brandGuidelineForm').addEventListener('submit', functio
         }
     });
 
+    // 7. Logo Proposals (Pitch Mode)
+    const propCards = document.querySelectorAll('#proposalsContainer .proposal-item-card');
+    const propItems = [];
+    const propFiles = [];
+    propCards.forEach((card, idx) => {
+        const title = card.querySelector('.prop-title')?.value.trim() || `Opción ${String(idx + 1).padStart(2, '0')}`;
+        const concept = card.querySelector('.prop-concept')?.value.trim() || '';
+        const logoUrl = card.querySelector('.prop-logo-url')?.value.trim() || '';
+        const mockupUrl = card.querySelector('.prop-mockup-url')?.value.trim() || '';
+        const isSelected = card.querySelector('.prop-selected-flag')?.value === '1';
+        const cardId = card.getAttribute('data-id') || `prop_${idx + 1}`;
+
+        const logoInput = card.querySelector('.prop-logo-input');
+        if (logoInput && logoInput.files && logoInput.files[0]) {
+            propFiles.push({ key: `proposal_logo_file_${idx}`, file: logoInput.files[0] });
+        }
+
+        const mockupInput = card.querySelector('.prop-mockup-input');
+        if (mockupInput && mockupInput.files && mockupInput.files[0]) {
+            propFiles.push({ key: `proposal_mockup_file_${idx}`, file: mockupInput.files[0] });
+        }
+
+        propItems.push({
+            id: cardId,
+            title: title,
+            concept: concept,
+            logo_url: logoUrl,
+            mockup_url: mockupUrl,
+            is_selected: isSelected,
+            status: isSelected ? 'winner' : 'active'
+        });
+    });
+
     const formData = new FormData(this);
     formData.append('action', 'save');
+    formData.append('show_proposals', document.getElementById('show_proposals_toggle')?.checked ? '1' : '0');
+    formData.append('logo_proposals_data', JSON.stringify(propItems));
+    propFiles.forEach(pf => {
+        formData.append(pf.key, pf.file);
+    });
     formData.append('logo_variations_data', JSON.stringify(varItems));
     formData.append('icons_data', JSON.stringify(icoItems));
     formData.append('colors_json', JSON.stringify(colItems));

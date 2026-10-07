@@ -277,3 +277,20 @@ if (!function_exists('bg_get_system_settings')) {
     }
 }
 
+if (!function_exists('bg_ensure_proposals_columns')) {
+    function bg_ensure_proposals_columns($db) {
+        if (!$db) return;
+        try {
+            $col = $db->query("SHOW COLUMNS FROM brand_guidelines LIKE 'show_proposals'")->fetch();
+            if (!$col) {
+                @$db->exec("ALTER TABLE brand_guidelines ADD COLUMN show_proposals TINYINT(1) NOT NULL DEFAULT 0 AFTER applications_json");
+            }
+            $colJson = $db->query("SHOW COLUMNS FROM brand_guidelines LIKE 'logo_proposals_json'")->fetch();
+            if (!$colJson) {
+                @$db->exec("ALTER TABLE brand_guidelines ADD COLUMN logo_proposals_json LONGTEXT DEFAULT NULL AFTER show_proposals");
+            }
+        } catch (Throwable $e) {}
+    }
+}
+
+

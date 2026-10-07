@@ -11,6 +11,7 @@ require_once __DIR__ . '/helpers.php';
 
 $database = new Database();
 $db = $database->getConnection();
+bg_ensure_proposals_columns($db);
 
 $slug = trim($_GET['slug'] ?? '');
 $id = (int)($_GET['id'] ?? 0);
@@ -289,6 +290,11 @@ if (!is_array($applications)) $applications = [];
 $values = !empty($bg['values_json']) ? json_decode($bg['values_json'], true) : [];
 if (!is_array($values)) $values = [];
 
+$proposals = !empty($bg['logo_proposals_json']) ? json_decode($bg['logo_proposals_json'], true) : [];
+if (!is_array($proposals)) $proposals = [];
+$showProposals = !empty($bg['show_proposals']);
+$hasActiveProposals = $showProposals && !empty($proposals);
+
 // Primary & Secondary Brand Colors
 $primaryHex = !empty($colors[0]['hex']) ? $colors[0]['hex'] : '#2563EB';
 $secondaryHex = !empty($colors[1]['hex']) ? $colors[1]['hex'] : '#EC4899';
@@ -305,10 +311,23 @@ if (empty($logoDarkUrl)) {
 }
 $logoSymbolUrl = !empty($bg['logo_symbol']) ? bg_asset_url($bg['logo_symbol']) : $logoPrimaryUrl;
 
-// Roma Agency Watermark Logo
-$romaLogoUrl = file_exists(__DIR__ . '/../../uploads/logo_light_1790398960.png')
-    ? bg_asset_url('uploads/logo_light_1790398960.png')
-    : bg_asset_url('assets/img/default-logo.png');
+// Roma Agency Watermark Logos (Light and Dark)
+$romaLogoLightUrl = !empty($sysSettings['logo_light']) ? bg_asset_url($sysSettings['logo_light']) : '';
+if (empty($romaLogoLightUrl) && file_exists(__DIR__ . '/../../uploads/logo_light_1790398960.png')) {
+    $romaLogoLightUrl = bg_asset_url('uploads/logo_light_1790398960.png');
+}
+if (empty($romaLogoLightUrl)) {
+    $romaLogoLightUrl = bg_asset_url('assets/img/default-logo.png');
+}
+
+$romaLogoDarkUrl = !empty($sysSettings['logo_dark']) ? bg_asset_url($sysSettings['logo_dark']) : '';
+if (empty($romaLogoDarkUrl) && file_exists(__DIR__ . '/../../uploads/logo_dark_1790398960.png')) {
+    $romaLogoDarkUrl = bg_asset_url('uploads/logo_dark_1790398960.png');
+}
+if (empty($romaLogoDarkUrl)) {
+    $romaLogoDarkUrl = $romaLogoLightUrl;
+}
+$romaLogoUrl = $romaLogoDarkUrl;
 
 $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlencode($bg['slug']) . "&download=1";
 ?>
@@ -507,6 +526,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             display: flex;
             align-items: center;
             gap: 0.65rem;
+            position: relative;
         }
         .btn-action {
             display: inline-flex;
@@ -552,11 +572,69 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             color: #fbbf24;
         }
 
+        /* Mobile More Actions Button & Dropdown */
+        .mobile-only-btn {
+            display: none !important;
+        }
+        .desktop-action-btn {
+            display: inline-flex;
+        }
+        .mobile-actions-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background: rgba(13, 16, 26, 0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 18px;
+            padding: 0.65rem;
+            min-width: 250px;
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+            z-index: 10000;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .mobile-actions-dropdown.show {
+            display: flex;
+            animation: madFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes madFadeIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .mad-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0.95rem;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: all 0.15s;
+        }
+        .mad-item:hover, .mad-item:active {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .mad-item i {
+            font-size: 1.15rem;
+            color: var(--sys-primary);
+        }
+
         /* LIGHT MODE THEME FOR PUBLIC PRESENTATION */
         [data-theme="light"] {
-            --bg-dark: #f1f5f9;
+            --bg-dark: #f8fafc;
             --surface-dark: #ffffff;
-            --surface-card: #f8fafc;
+            --surface-card: #ffffff;
             --surface-border: #e2e8f0;
             --text-main: #0f172a;
             --text-muted: #64748b;
@@ -568,6 +646,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         [data-theme="light"] .deck-header {
             background: rgba(255, 255, 255, 0.95);
             border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
         }
         [data-theme="light"] .dh-brand-name {
             color: #0f172a;
@@ -581,15 +660,18 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             background: #ffffff;
             color: #0f172a;
             border-color: #cbd5e1;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
         }
         [data-theme="light"] .nav-btn:hover:not(:disabled) {
             background: var(--sys-primary);
+            border-color: var(--sys-primary);
             color: #ffffff;
         }
         [data-theme="light"] .btn-action:not(.btn-pdf) {
             background: #ffffff;
             color: #0f172a;
             border-color: #cbd5e1;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
         }
         [data-theme="light"] .btn-action:not(.btn-pdf):hover {
             background: #f1f5f9;
@@ -597,25 +679,30 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         [data-theme="light"] .btn-theme-toggle {
             color: #d97706;
             background: #ffffff;
+            border-color: #cbd5e1;
         }
         [data-theme="light"] .deck-canvas-16-9 {
             background: #ffffff;
             border-color: #e2e8f0;
-            box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 16px 45px -10px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
         }
         [data-theme="light"] .sh-title {
             color: #0f172a;
         }
         [data-theme="light"] .sh-top {
-            border-bottom-color: #f1f5f9;
+            border-bottom-color: #e2e8f0;
+        }
+        [data-theme="light"] .sh-brand-badge {
+            color: #64748b;
         }
         [data-theme="light"] .glass-card {
             background: #f8fafc;
             border-color: #e2e8f0;
             color: #0f172a;
+            box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);
         }
         [data-theme="light"] .card-body {
-            color: #475569;
+            color: #334155;
         }
         [data-theme="light"] .slide-watermark-footer {
             background: #ffffff;
@@ -625,6 +712,96 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             color: #64748b;
         }
         [data-theme="light"] .wm-social-item {
+            color: #0f172a;
+        }
+
+        /* Light mode dropdown */
+        [data-theme="light"] .mobile-actions-dropdown {
+            background: rgba(255, 255, 255, 0.98);
+            border-color: #cbd5e1;
+            box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04);
+        }
+        [data-theme="light"] .mad-item {
+            color: #0f172a;
+        }
+        [data-theme="light"] .mad-item:hover, [data-theme="light"] .mad-item:active {
+            background: #f1f5f9;
+        }
+
+        /* Agency and Brand Logo switching */
+        .wm-agency-logo-light { display: none !important; }
+        .wm-agency-logo-dark { display: block !important; }
+        [data-theme="light"] .wm-agency-logo-light { display: block !important; }
+        [data-theme="light"] .wm-agency-logo-dark { display: none !important; }
+
+        .dh-logo-light { display: none; }
+        .dh-logo-dark { display: block; }
+        [data-theme="light"] .dh-logo-light { display: block; }
+        [data-theme="light"] .dh-logo-dark { display: none; }
+
+        /* Light mode for color cards */
+        [data-theme="light"] .color-card-pro {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+            color: #0f172a;
+        }
+        [data-theme="light"] .color-title-h3 {
+            color: #0f172a;
+        }
+        [data-theme="light"] .color-copy-row {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        [data-theme="light"] .color-copy-row:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        [data-theme="light"] .ccr-val {
+            color: #0f172a;
+        }
+
+        /* Light mode for mockups */
+        [data-theme="light"] .live-mockup-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+            color: #0f172a;
+        }
+        [data-theme="light"] .lmc-number-title {
+            color: #0f172a;
+        }
+        [data-theme="light"] .lmc-footer-note {
+            color: #64748b;
+            border-top-color: #f1f5f9;
+        }
+
+        /* Light mode typography specimen card */
+        [data-theme="light"] .font-specimen-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.06);
+            color: #0f172a;
+        }
+        [data-theme="light"] .font-specimen-title {
+            color: #0f172a;
+        }
+        [data-theme="light"] .font-weight-pill {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        [data-theme="light"] .font-alphabet-stage {
+            background: #f8fafc;
+            color: #0f172a;
+            border-color: #e2e8f0;
+        }
+        [data-theme="light"] .font-usage-text {
+            color: #475569;
+        }
+        [data-theme="light"] .font-tester-field {
+            background: #ffffff;
+            border-color: #cbd5e1;
             color: #0f172a;
         }
 
@@ -929,19 +1106,19 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
 
         /* ================= COLOR CARDS WITH TINTS & COPIES ================= */
         .color-card-pro {
-            background: #ffffff;
-            border-radius: 22px;
+            background: #0d1220;
+            border-radius: 20px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            color: #0f172a;
-            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: transform 0.2s, box-shadow 0.2s;
+            color: #f8fafc;
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .color-card-pro:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 45px -5px rgba(0, 0, 0, 0.6);
+            transform: translateY(-3px);
+            box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.6);
         }
         .color-swatch-main {
             height: 140px;
@@ -976,33 +1153,33 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             padding: 1.25rem 1.4rem;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.55rem;
         }
         .color-title-h3 {
             font-size: 1.15rem;
-            font-weight: 900;
-            color: #0f172a;
+            font-weight: 800;
+            color: #ffffff;
             margin-bottom: 0.25rem;
         }
         .color-copy-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.35rem 0.5rem;
-            border-radius: 8px;
+            padding: 0.45rem 0.65rem;
+            border-radius: 9px;
             font-size: 0.85rem;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             cursor: pointer;
             transition: all 0.15s;
         }
         .color-copy-row:hover {
-            background: #e2e8f0;
-            border-color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.16);
         }
-        .ccr-label { font-weight: 800; color: #64748b; font-size: 0.75rem; }
-        .ccr-val { font-family: monospace; font-weight: 800; color: #0f172a; }
-        .ccr-icon { color: #94a3b8; font-size: 0.9rem; }
+        .ccr-label { font-weight: 800; color: #94a3b8; font-size: 0.75rem; }
+        .ccr-val { font-family: monospace; font-weight: 800; color: #f8fafc; }
+        .ccr-icon { color: #64748b; font-size: 0.9rem; }
         .color-copy-row:hover .ccr-icon { color: var(--sys-primary); }
 
         /* ================= USOS INCORRECTOS VISUALES ================= */
@@ -1111,17 +1288,22 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
 
         /* ================= MOCKUPS EN VIVO (IMAGES 2, 3, 4, 5) ================= */
         .live-mockup-card {
-            background: #ffffff;
-            border-radius: 24px;
+            background: #0f1422;
+            border-radius: 20px;
             padding: 1.75rem;
-            color: #0f172a;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
             position: relative;
             overflow: hidden;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .live-mockup-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.6);
         }
         .lmc-header {
             display: flex;
@@ -1132,7 +1314,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         .lmc-number-title {
             font-size: 1.05rem;
             font-weight: 800;
-            color: #0f172a;
+            color: #ffffff;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -1146,10 +1328,10 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             justify-content: space-between;
             align-items: center;
             font-size: 0.78rem;
-            color: #64748b;
+            color: #94a3b8;
             margin-top: 1.25rem;
             padding-top: 0.75rem;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
         .lmc-tag {
             color: var(--sys-primary);
@@ -1549,6 +1731,211 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             object-fit: contain;
         }
 
+        /* ================= PROPOSALS SLIDE (PITCH MODE) ================= */
+        .prop-nav-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            scrollbar-width: thin;
+        }
+        .prop-tab-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 0.6rem 1.15rem;
+            border-radius: 9999px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            white-space: nowrap;
+            user-select: none;
+        }
+        [data-theme="light"] .prop-tab-pill {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            color: #64748b;
+        }
+        .prop-tab-pill:hover {
+            border-color: #f59e0b;
+            color: #f8fafc;
+            transform: translateY(-1px);
+        }
+        [data-theme="light"] .prop-tab-pill:hover {
+            color: #0f172a;
+        }
+        .prop-tab-pill.active {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.25) 100%);
+            border-color: #f59e0b;
+            color: #fbbf24;
+            box-shadow: 0 4px 14px -2px rgba(245, 158, 11, 0.3);
+        }
+        [data-theme="light"] .prop-tab-pill.active {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.2) 100%);
+            border-color: #d97706;
+            color: #b45309;
+        }
+        .prop-pill-num {
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            font-weight: 800;
+        }
+        .prop-tab-pill.active .prop-pill-num {
+            background: #f59e0b;
+            color: #0f172a;
+        }
+
+        .prop-view-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 2rem;
+            align-items: stretch;
+        }
+        @media (max-width: 992px) {
+            .prop-view-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+
+        .prop-showcase-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            position: relative;
+        }
+        [data-theme="light"] .prop-showcase-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05);
+        }
+
+        .prop-stage-canvas {
+            min-height: 280px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+        .prop-stage-canvas.bg-light {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        .prop-stage-canvas.bg-dark {
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .prop-stage-canvas.bg-blueprint {
+            background: #0b1e38;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.12) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.12) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+        .prop-stage-img {
+            max-height: 190px;
+            max-width: 90%;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.12));
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .prop-stage-img:hover {
+            transform: scale(1.04);
+        }
+
+        .prop-stage-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .prop-stage-toggle-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            padding: 0.35rem 0.75rem;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        [data-theme="light"] .prop-stage-toggle-btn {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+        .prop-stage-toggle-btn.active, .prop-stage-toggle-btn:hover {
+            background: var(--sys-primary);
+            border-color: var(--sys-primary);
+            color: #ffffff;
+        }
+
+        .prop-info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        [data-theme="light"] .prop-info-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05);
+        }
+
+        .prop-winner-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.25));
+            border: 1px solid #10b981;
+            color: #10b981;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .prop-mockup-preview-box {
+            background: #000000;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 1.25rem;
+            max-height: 180px;
+        }
+        .prop-mockup-preview-box img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            transition: transform 0.4s;
+        }
+        .prop-mockup-preview-box img:hover {
+            transform: scale(1.05);
+        }
+
         /* 12. Letterhead */
         .letterhead-mockup {
             background: #ffffff;
@@ -1646,7 +2033,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             max-width: 1400px;
             margin: 0 auto;
             padding: 3rem 2rem 6rem;
-            gap: 4rem;
+            gap: 3.5rem;
             flex-direction: column;
         }
         .scroll-section {
@@ -1657,6 +2044,86 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             position: relative;
             box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5);
         }
+        [data-theme="light"] .scroll-section {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* FLOATING NAVIGATION DOCK (MOBILE & TABLET CONVENIENCE) */
+        .floating-deck-dock {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.45rem 0.85rem;
+            background: rgba(13, 16, 26, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 9999px;
+            box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06);
+            z-index: 1000;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
+        }
+        [data-theme="light"] .floating-deck-dock {
+            background: rgba(255, 255, 255, 0.94);
+            border-color: rgba(203, 213, 225, 0.9);
+            box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04);
+        }
+        .dock-nav-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        [data-theme="light"] .dock-nav-btn {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+        .dock-nav-btn:hover:not(:disabled) {
+            background: var(--sys-primary);
+            border-color: var(--sys-primary);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+        .dock-nav-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        .dock-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .dock-counter-badge {
+            font-family: 'Plus Jakarta Sans', monospace;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #ffffff;
+            padding: 0.35rem 0.85rem;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        [data-theme="light"] .dock-counter-badge {
+            color: #0f172a;
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
 
         /* ================= FULL RESPONSIVE MEDIA QUERIES ================= */
         @media (max-width: 1200px) {
@@ -1665,70 +2132,366 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                 min-height: calc(100vh - 120px);
                 max-height: none;
             }
+            /* FIX FOR GHOST SLIDES VOID ON TABLET & MOBILE */
             .slide-frame {
                 position: relative;
                 height: auto;
                 min-height: calc(100vh - 180px);
-                padding: 2.5rem 2.5rem 6rem;
+                padding: 2.5rem 2.25rem 6.5rem;
             }
-            .grid-4 { grid-template-columns: repeat(2, 1fr); }
-            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .slide-frame:not(.active) {
+                display: none !important;
+            }
+            .slide-frame.active {
+                display: flex !important;
+                animation: slideFadeInMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+            @keyframes slideFadeInMobile {
+                from { opacity: 0; transform: translateY(8px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
         }
 
         @media (max-width: 900px) {
             .deck-header {
-                padding: 0.75rem 1rem;
-                flex-wrap: wrap;
-                gap: 0.75rem;
+                padding: 0.65rem 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+                position: sticky;
+                top: 0;
+            }
+            .dh-brand {
+                gap: 0.55rem;
+                flex-shrink: 1;
+                min-width: 0;
             }
             .dh-brand-badge { display: none; }
+            .dh-brand-name {
+                font-size: 0.95rem;
+                max-width: 140px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .dh-logo-preview {
+                max-height: 24px;
+                max-width: 50px;
+            }
+            
+            /* Center Navigation Controls in header */
+            .dh-nav-controls {
+                display: flex !important;
+                gap: 0.4rem;
+                align-items: center;
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 10;
+            }
+            .nav-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.05rem;
+                border-radius: 9px;
+            }
+            .slide-counter-badge {
+                font-size: 0.85rem;
+                padding: 0.35rem 0.75rem;
+                border-radius: 9px;
+                min-width: 68px;
+                text-align: center;
+            }
+
+            /* Right actions on mobile: only Theme toggle + More options dropdown */
+            .dh-actions {
+                gap: 0.35rem;
+                flex-shrink: 0;
+                position: relative;
+            }
+            .desktop-action-btn {
+                display: none !important;
+            }
+            .mobile-only-btn {
+                display: inline-flex !important;
+                padding: 0.55rem 0.75rem;
+                font-size: 1.15rem;
+            }
+            .btn-theme-toggle {
+                padding: 0.55rem 0.75rem;
+                font-size: 1.15rem;
+            }
+
+            /* Hide bottom floating dock because navigation is centered in top header */
+            .floating-deck-dock {
+                display: none !important;
+            }
+
             .deck-stage-wrapper {
                 padding: 0.5rem;
             }
+            .deck-canvas-16-9 {
+                border-radius: 18px;
+            }
             .slide-frame {
-                padding: 1.75rem 1.25rem 6.5rem;
+                padding: 1.5rem 1.15rem 4.5rem;
+            }
+            
+            /* Optimal Badges & Typography on mobile */
+            .cover-kicker {
+                font-size: 0.75rem;
+                padding: 0.35rem 0.85rem;
+                margin-bottom: 1.25rem;
+                letter-spacing: 1.2px;
             }
             .cover-title {
-                font-size: 2.8rem;
+                font-size: clamp(2rem, 6.5vw, 3.2rem);
+                letter-spacing: -1px;
+                line-height: 1.12;
             }
             .cover-tagline {
-                font-size: 1.1rem;
+                font-size: 1rem;
+                margin-bottom: 1.75rem;
+                line-height: 1.45;
+                padding: 0 0.5rem;
+            }
+            .cover-logo-stage-dark {
+                padding: 1.5rem 2.25rem;
+                border-radius: 22px;
+                max-width: 90%;
+            }
+            .cover-logo-stage-dark img {
+                max-height: 80px;
+                max-width: 100%;
+            }
+
+            .sh-kicker {
+                font-size: 0.75rem;
+                letter-spacing: 1.6px;
             }
             .sh-title {
-                font-size: 1.6rem;
+                font-size: clamp(1.4rem, 4.5vw, 1.85rem);
+                line-height: 1.25;
             }
+            .sh-top {
+                margin-bottom: 1.35rem;
+                padding-bottom: 0.75rem;
+            }
+            .sh-brand-badge {
+                font-size: 0.75rem;
+            }
+
+            /* Grids */
             .grid-4, .grid-3, .grid-2 {
                 grid-template-columns: 1fr;
+                gap: 1.75rem;
             }
+
+            /* Color cards spacing and layout */
+            .color-card-pro {
+                margin-bottom: 0.75rem;
+            }
+            .color-swatch-main {
+                height: 125px;
+            }
+            .color-info-pane {
+                padding: 1.25rem;
+                gap: 0.6rem;
+            }
+            .color-copy-row {
+                padding: 0.5rem 0.75rem;
+            }
+
+            /* Watermark footer on mobile */
             .slide-watermark-footer {
                 padding: 0 1rem;
                 font-size: 0.75rem;
+                height: 50px;
+            }
+            .wm-left-col {
+                gap: 0.5rem;
+            }
+            .wm-agency-logo {
+                max-height: 20px;
+                max-width: 80px;
+            }
+            .wm-agency-name {
+                font-size: 0.75rem;
+                letter-spacing: 1px;
             }
             .wm-social-item span {
                 display: none;
             }
-            .btn-action span {
-                display: none;
-            }
-            .btn-action {
-                padding: 0.6rem;
+            .wm-right-col {
+                gap: 0.75rem;
             }
             .deck-dots-bar {
                 display: none;
             }
+
+            /* Mockups responsive styles */
+            .live-mockup-card {
+                padding: 1.35rem;
+                border-radius: 18px;
+            }
+            .desktop-nav-mockup .nav-mockup-bar {
+                padding: 0.55rem 0.75rem;
+                gap: 0.45rem;
+            }
+            .desktop-nav-mockup .nav-mockup-logo img {
+                max-height: 18px;
+            }
+            .desktop-nav-mockup .nav-mockup-links {
+                gap: 0.5rem;
+                font-size: 0.7rem;
+            }
+            .desktop-nav-mockup .nav-mockup-links span:nth-child(2) {
+                display: none; /* Hide middle link so navigation stays clean without colliding */
+            }
+            .desktop-nav-mockup .nav-mockup-cta {
+                font-size: 0.68rem;
+                padding: 0.28rem 0.6rem;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            .desktop-nav-mockup .nav-mockup-hero {
+                padding: 0.95rem;
+                gap: 0.65rem;
+            }
+            .desktop-nav-mockup .nav-mockup-hero > div:first-child {
+                flex: 1;
+                min-width: 0;
+            }
+            .desktop-nav-mockup .nav-mockup-hero > div:last-child {
+                width: 42px !important;
+                height: 42px !important;
+                flex-shrink: 0;
+            }
+
+            .cards-stage-iso {
+                perspective: 500px;
+                height: 150px;
+            }
+            .card-iso-front, .card-iso-back {
+                width: 175px;
+                height: 110px;
+                padding: 0.65rem;
+            }
+            .card-iso-front {
+                transform: rotateX(12deg) rotateY(-18deg) rotateZ(2deg) translate(-15px, -5px);
+            }
+            .card-iso-back {
+                transform: rotateX(12deg) rotateY(-18deg) rotateZ(2deg) translate(15px, 10px);
+            }
+
+            .dock-shelf-mockup {
+                padding: 1.25rem 0.85rem;
+            }
+            .glass-dock {
+                gap: 0.5rem;
+                padding: 0.5rem 0.75rem;
+            }
+            .dock-app-icon {
+                width: 40px;
+                height: 40px;
+            }
+            .dock-app-icon img {
+                width: 22px;
+                height: 22px;
+            }
+
+            .blueprint-card {
+                padding: 1.5rem 1rem;
+                min-height: 260px;
+            }
+            .blueprint-logo-box {
+                padding: 24px 16px;
+            }
+            .blueprint-logo-box img {
+                max-height: 70px;
+                max-width: 100%;
+            }
+
+            /* Scroll mode on tablet */
+            .scroll-mode-container {
+                padding: 1.5rem 1rem 6rem;
+                gap: 2rem;
+            }
+            .scroll-section {
+                padding: 2rem 1.5rem;
+                border-radius: 20px;
+            }
         }
 
         @media (max-width: 600px) {
+            .deck-header {
+                padding: 0.55rem 0.75rem;
+            }
+            .dh-brand-name {
+                display: none; /* Hide brand name text on ultra-narrow screens to give maximum room to centered navigation */
+            }
+            .dh-logo-preview {
+                max-height: 22px;
+                max-width: 40px;
+            }
+            .cover-kicker {
+                font-size: 0.72rem;
+                padding: 0.3rem 0.75rem;
+                margin-bottom: 1rem;
+            }
             .cover-logo-stage-dark {
-                padding: 1.5rem 2rem;
+                padding: 1.25rem 1.5rem;
+                border-radius: 20px;
             }
             .cover-logo-stage-dark img {
-                max-height: 80px;
+                max-height: 65px;
             }
             .sh-top {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 0.4rem;
+                gap: 0.35rem;
+            }
+            .sh-brand-badge {
+                font-size: 0.75rem;
+            }
+            .color-swatch-main {
+                height: 110px;
+            }
+            .live-mockup-card {
+                padding: 1.15rem;
+                border-radius: 16px;
+            }
+            .cards-stage-iso {
+                transform: scale(0.9);
+                height: 140px;
+            }
+            .dock-shelf-mockup {
+                padding: 1.15rem 0.75rem;
+            }
+            .glass-dock {
+                gap: 0.45rem;
+                padding: 0.45rem 0.65rem;
+            }
+            .dock-app-icon {
+                width: 38px;
+                height: 38px;
+            }
+            .dock-app-icon img {
+                width: 20px;
+                height: 20px;
+            }
+            .glass-card input[type="text"] {
+                font-size: 16px !important; /* Prevents auto-zoom on iOS */
+            }
+            .font-specimen-card {
+                padding: 1.25rem;
+            }
+            .font-alphabet-stage {
+                font-size: 0.95rem;
+                padding: 1rem;
             }
         }
     </style>
@@ -1760,8 +2523,11 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
     <!-- Deck Header & Navigation Bar -->
     <header class="deck-header">
         <div class="dh-brand">
+            <?php if (!empty($logoDarkUrl)): ?>
+                <img src="<?php echo htmlspecialchars($logoDarkUrl); ?>" alt="Logo Dark" class="dh-logo-preview dh-logo-dark">
+            <?php endif; ?>
             <?php if (!empty($logoPrimaryUrl)): ?>
-                <img src="<?php echo htmlspecialchars($logoPrimaryUrl); ?>" alt="Logo" class="dh-logo-preview">
+                <img src="<?php echo htmlspecialchars($logoPrimaryUrl); ?>" alt="Logo Light" class="dh-logo-preview dh-logo-light">
             <?php endif; ?>
             <span class="dh-brand-name"><?php echo htmlspecialchars($bg['brand_name']); ?></span>
             <span class="dh-brand-badge">Brand Guidelines 16:9</span>
@@ -1777,18 +2543,41 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             <button class="btn-action btn-theme-toggle" id="themeToggleBtn" onclick="toggleDeckTheme()" title="Modo Claro / Modo Oscuro">
                 <i class="ph-bold ph-sun" id="themeIcon"></i>
             </button>
-            <button class="btn-action btn-share" onclick="copyShareLink()" title="Copiar enlace amigable">
+            
+            <!-- Desktop Action Buttons -->
+            <button class="btn-action btn-share desktop-action-btn" onclick="copyShareLink()" title="Copiar enlace amigable">
                 <i class="ph-bold ph-share-network"></i> <span>Compartir</span>
             </button>
-            <button class="btn-action btn-toggle-view" id="viewModeBtn" onclick="toggleViewMode()" title="Cambiar a Vista Scroll">
+            <button class="btn-action btn-toggle-view desktop-action-btn" id="viewModeBtn" onclick="toggleViewMode()" title="Cambiar a Vista Scroll">
                 <i class="ph-bold ph-rows"></i> <span>Scroll</span>
             </button>
-            <a href="<?php echo htmlspecialchars($pdfDownloadUrl); ?>" class="btn-action btn-pdf" title="Descargar Manual en PDF 1980x1080">
-                <i class="ph-bold ph-file-pdf"></i> <span>Descargar PDF (1980x1080)</span>
+            <a href="<?php echo htmlspecialchars($pdfDownloadUrl); ?>" class="btn-action btn-pdf desktop-action-btn" title="Descargar Manual en PDF 1980x1080">
+                <i class="ph-bold ph-file-pdf"></i> <span>Descargar PDF</span>
             </a>
-            <button class="btn-action btn-fullscreen" onclick="toggleFullscreen()" title="Pantalla Completa (F)">
+            <button class="btn-action btn-fullscreen desktop-action-btn" onclick="toggleFullscreen()" title="Pantalla Completa (F)">
                 <i class="ph-bold ph-arrows-out"></i>
             </button>
+
+            <!-- Mobile More Actions Toggle Button -->
+            <button class="btn-action btn-more-actions mobile-only-btn" id="mobileMoreBtn" onclick="toggleMobileActionsMenu(event)" title="Más Opciones">
+                <i class="ph-bold ph-dots-three-vertical"></i>
+            </button>
+
+            <!-- Mobile Actions Dropdown Popover -->
+            <div class="mobile-actions-dropdown" id="mobileActionsDropdown">
+                <a href="<?php echo htmlspecialchars($pdfDownloadUrl); ?>" class="mad-item" onclick="closeMobileActionsMenu()">
+                    <i class="ph-bold ph-file-pdf"></i> <span>Descargar PDF (1980x1080)</span>
+                </a>
+                <button type="button" class="mad-item" onclick="copyShareLink(); closeMobileActionsMenu();">
+                    <i class="ph-bold ph-share-network"></i> <span>Compartir Manual</span>
+                </button>
+                <button type="button" class="mad-item" onclick="toggleViewMode(); closeMobileActionsMenu();">
+                    <i class="ph-bold ph-rows"></i> <span id="madViewText">Modo Scroll Continuo</span>
+                </button>
+                <button type="button" class="mad-item" onclick="toggleFullscreen(); closeMobileActionsMenu();">
+                    <i class="ph-bold ph-arrows-out"></i> <span>Pantalla Completa</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -1823,6 +2612,144 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <?php if ($hasActiveProposals): ?>
+                <!-- ================= SLIDE PITCH: PROPUESTAS DE LOGOTIPO ================= -->
+                <div class="slide-frame" data-slide="proposals">
+                    <div class="sh-top">
+                        <div>
+                            <div class="sh-kicker" style="color: #f59e0b; display: inline-flex; align-items: center; gap: 0.4rem;">
+                                <i class="ph-bold ph-lightbulb"></i> Pitch Creativo • Propuestas de Diseño
+                            </div>
+                            <h2 class="sh-title">Exploración Conceptual de Logotipo</h2>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.65rem;">
+                            <span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; font-size: 0.78rem; font-weight: 800; padding: 0.35rem 0.85rem; border-radius: 9999px;">
+                                Modo Pitch Activo
+                            </span>
+                            <span class="sh-brand-badge"><?php echo htmlspecialchars($bg['brand_name']); ?></span>
+                        </div>
+                    </div>
+
+                    <!-- Proposal Selector Navigation Pills -->
+                    <div class="prop-nav-bar" id="proposalNavBar">
+                        <?php foreach ($proposals as $idx => $prop): 
+                            $pTitle = !empty($prop['title']) ? $prop['title'] : ('Opción ' . str_pad($idx + 1, 2, '0', STR_PAD_LEFT));
+                            $isWin = !empty($prop['is_selected']);
+                        ?>
+                        <button type="button" class="prop-tab-pill <?php echo $idx === 0 ? 'active' : ''; ?>" onclick="selectProposalView(<?php echo $idx; ?>)" id="propTabBtn_<?php echo $idx; ?>">
+                            <span class="prop-pill-num"><?php echo str_pad($idx + 1, 2, '0', STR_PAD_LEFT); ?></span>
+                            <span><?php echo htmlspecialchars($pTitle); ?></span>
+                            <?php if ($isWin): ?>
+                                <i class="ph-bold ph-trophy" style="color: #10b981;" title="Propuesta Seleccionada"></i>
+                            <?php endif; ?>
+                        </button>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Proposal Content Cards (One shown at a time) -->
+                    <?php foreach ($proposals as $idx => $prop): 
+                        $pTitle = !empty($prop['title']) ? $prop['title'] : ('Opción ' . str_pad($idx + 1, 2, '0', STR_PAD_LEFT));
+                        $pConcept = $prop['concept'] ?? '';
+                        $pLogoUrl = !empty($prop['logo_url']) ? bg_asset_url($prop['logo_url']) : '';
+                        $pMockupUrl = !empty($prop['mockup_url']) ? bg_asset_url($prop['mockup_url']) : '';
+                        $isWin = !empty($prop['is_selected']);
+                    ?>
+                    <div class="prop-view-grid proposal-content-panel" id="proposalPanel_<?php echo $idx; ?>" style="<?php echo $idx === 0 ? '' : 'display:none;'; ?>">
+                        
+                        <!-- Left Column: Visual Showcase Stage -->
+                        <div class="prop-showcase-card">
+                            <div class="prop-stage-controls">
+                                <div style="display:flex; align-items:center; gap:0.4rem;">
+                                    <span style="font-size:0.78rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Entorno de visualización:</span>
+                                </div>
+                                <div style="display:flex; gap:0.4rem;">
+                                    <button type="button" class="prop-stage-toggle-btn active" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'light', this)">
+                                        <i class="ph-bold ph-sun"></i> Claro
+                                    </button>
+                                    <button type="button" class="prop-stage-toggle-btn" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'dark', this)">
+                                        <i class="ph-bold ph-moon"></i> Oscuro
+                                    </button>
+                                    <button type="button" class="prop-stage-toggle-btn" onclick="setProposalCanvasBg(<?php echo $idx; ?>, 'blueprint', this)">
+                                        <i class="ph-bold ph-grid-four"></i> Retícula
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="prop-stage-canvas bg-light" id="propCanvas_<?php echo $idx; ?>">
+                                <?php if (!empty($pLogoUrl)): ?>
+                                    <img src="<?php echo htmlspecialchars($pLogoUrl); ?>" alt="<?php echo htmlspecialchars($pTitle); ?>" class="prop-stage-img" id="propStageImg_<?php echo $idx; ?>">
+                                <?php else: ?>
+                                    <div style="text-align:center; color:var(--text-muted); padding:2rem;">
+                                        <i class="ph-bold ph-paint-brush" style="font-size:3rem; opacity:0.4; margin-bottom:0.5rem;"></i>
+                                        <div style="font-weight:700;">Sin archivo de logotipo adjunto</div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if (!empty($pMockupUrl)): ?>
+                            <div style="margin-top: 0.5rem;">
+                                <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ph-bold ph-device-mobile"></i> Mockup en Contexto Real
+                                </div>
+                                <div class="prop-mockup-preview-box">
+                                    <img src="<?php echo htmlspecialchars($pMockupUrl); ?>" alt="Mockup <?php echo htmlspecialchars($pTitle); ?>" loading="lazy">
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Right Column: Creative Rationale & Concept -->
+                        <div class="prop-info-card">
+                            <div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:0.75rem; flex-wrap:wrap;">
+                                    <span style="font-size:0.8rem; font-weight:800; color:#f59e0b; letter-spacing:1px; text-transform:uppercase;">
+                                        Propuesta <?php echo str_pad($idx + 1, 2, '0', STR_PAD_LEFT); ?>
+                                    </span>
+                                    <?php if ($isWin): ?>
+                                    <span class="prop-winner-badge">
+                                        <i class="ph-bold ph-check-circle"></i> Opción Ganadora Oficial
+                                    </span>
+                                    <?php endif; ?>
+                                </div>
+
+                                <h3 style="font-size: 1.6rem; font-weight: 900; margin-bottom: 1rem; color: var(--text-main);">
+                                    <?php echo htmlspecialchars($pTitle); ?>
+                                </h3>
+
+                                <div class="glass-card" style="border-left: 4px solid #f59e0b; margin-bottom: 1.25rem;">
+                                    <div class="card-label" style="color: #f59e0b;"><i class="ph-bold ph-lightbulb-filament"></i> Racional Creativo & Fundamento Visual</div>
+                                    <div class="card-body" style="font-size: 0.95rem; line-height: 1.7; color: var(--text-main);">
+                                        <?php echo !empty($pConcept) ? nl2br(htmlspecialchars($pConcept)) : '<em>Esta propuesta representa la identidad visual sintetizada en base a los valores y objetivos estratégicos de la marca.</em>'; ?>
+                                    </div>
+                                </div>
+
+                                <div style="background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 1rem 1.25rem;">
+                                    <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase;">Criterios de Evaluación:</div>
+                                    <ul style="font-size: 0.84rem; color: var(--text-muted); margin: 0; padding-left: 1.2rem; line-height: 1.6;">
+                                        <li>Legibilidad y reproducción en diversos tamaños (digital e impreso).</li>
+                                        <li>Conexión con el público objetivo y propuesta de valor de la marca.</li>
+                                        <li>Distinción frente a la competencia del sector.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                                <div style="font-size:0.78rem; color:var(--text-muted);">
+                                    ¿Deseas elegir esta opción? Comunícate con nuestro equipo creativo.
+                                </div>
+                                <?php if (!empty($pLogoUrl)): ?>
+                                <a href="<?php echo htmlspecialchars($pLogoUrl); ?>" download class="prop-stage-toggle-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
+                                    <i class="ph-bold ph-download-simple"></i> Descargar Asset
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
 
                 <!-- ================= SLIDE 2: FILOSOFÍA & ADN ================= -->
                 <div class="slide-frame" data-slide="2">
@@ -2154,45 +3081,45 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                             $fontFamily = !empty($f['name']) ? "'" . addslashes(trim($f['name'])) . "', sans-serif" : 'sans-serif';
                             $weightsList = !empty($f['weights']) ? array_map('trim', explode(',', $f['weights'])) : ['Regular 400', 'Bold 700'];
                         ?>
-                        <div class="glass-card" style="font-family: <?php echo $fontFamily; ?>; padding: 2.25rem;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-                                <div style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; color:var(--brand-primary);">
+                        <div class="glass-card font-specimen-card" style="font-family: <?php echo $fontFamily; ?>;">
+                            <div class="fsc-header">
+                                <div class="fsc-role">
                                     <?php echo htmlspecialchars($f['role'] ?? ($idx == 0 ? 'Tipografía Primaria' : 'Tipografía Secundaria')); ?>
                                 </div>
                                 <?php if ($isCustom): ?>
-                                    <span style="padding:0.25rem 0.65rem; border-radius:6px; background:rgba(38,46,207,0.15); color:var(--sys-primary); border:1px solid rgba(38,46,207,0.3); font-size:0.75rem; font-weight:800;">
+                                    <span class="fsc-source-badge custom">
                                         <i class="ph-bold ph-upload-simple"></i> Archivo Tipográfico
                                     </span>
                                 <?php else: ?>
-                                    <span style="padding:0.25rem 0.65rem; border-radius:6px; background:rgba(66,133,244,0.12); color:#60a5fa; border:1px solid rgba(66,133,244,0.3); font-size:0.75rem; font-weight:800;">
+                                    <span class="fsc-source-badge google">
                                         <i class="ph-bold ph-google-logo"></i> Google Fonts
                                     </span>
                                 <?php endif; ?>
                             </div>
 
-                            <div style="font-size:2.8rem; font-weight:900; margin-bottom:0.4rem; color:#ffffff;">
+                            <div class="font-specimen-title">
                                 <?php echo htmlspecialchars($f['name']); ?>
                             </div>
 
-                            <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+                            <div class="font-weights-wrap">
                                 <?php foreach ($weightsList as $w): ?>
-                                    <span style="padding:0.25rem 0.75rem; border-radius:8px; background:rgba(255,255,255,0.06); font-size:0.8rem; font-weight:700; color:#cbd5e1;">
+                                    <span class="font-weight-pill">
                                         <?php echo htmlspecialchars($w); ?>
                                     </span>
                                 <?php endforeach; ?>
                             </div>
 
-                            <div style="font-size:1.35rem; letter-spacing:1px; line-height:1.5; color:#94a3b8; margin:1rem 0; padding:1.25rem; background:rgba(0,0,0,0.3); border-radius:14px;">
+                            <div class="font-alphabet-stage">
                                 Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Ññ Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz<br>
                                 0 1 2 3 4 5 6 7 8 9 & @ € $ ! ? ( ) [ ]
                             </div>
 
-                            <div style="font-size:0.88rem; color:#94a3b8; line-height:1.5; margin-bottom:1rem;">
+                            <div class="font-usage-text">
                                 <?php echo !empty($f['usage']) ? htmlspecialchars($f['usage']) : 'Tipografía corporativa seleccionada para transmitir la identidad, jerarquía y legibilidad visual de la marca.'; ?>
                             </div>
 
                             <!-- Interactive Real-time Text Tester -->
-                            <input type="text" value="<?php echo htmlspecialchars($bg['brand_name']); ?> — Diseñando identidades que conectan y perduran." placeholder="Escribe aquí para probar la fuente..." style="width:100%; background:rgba(255,255,255,0.05); border:1px dashed rgba(255,255,255,0.18); border-radius:10px; padding:0.6rem 0.85rem; color:#ffffff; font-size:0.95rem; font-family:inherit; outline:none;" title="Prueba escribir cualquier texto">
+                            <input type="text" class="font-tester-field" value="<?php echo htmlspecialchars($bg['brand_name']); ?> — Diseñando identidades que conectan y perduran." placeholder="Escribe aquí para probar la fuente..." title="Prueba escribir cualquier texto">
                         </div>
                         <?php endforeach; ?>
                     </div>
@@ -2347,7 +3274,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                                         <div class="nav-mockup-cta">Comenzar →</div>
                                     </div>
                                     <div class="nav-mockup-hero">
-                                        <div>
+                                        <div style="flex:1; min-width:0;">
                                             <div style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--sys-primary); margin-bottom:0.2rem;">
                                                 IDEAS / PRODUCTOS / SERVICIOS
                                             </div>
@@ -2356,7 +3283,7 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                                             </div>
                                             <div style="font-size:0.75rem; color:#64748b;">Trabajo reflexivo para marcas que exigen más.</div>
                                         </div>
-                                        <div style="width:50px; height:50px; border-radius:50%; background:var(--brand-primary); opacity:0.85;"></div>
+                                        <div style="width:48px; height:48px; border-radius:50%; background:var(--brand-primary); opacity:0.85; flex-shrink:0;"></div>
                                     </div>
                                 </div>
                             </div>
@@ -2606,7 +3533,8 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             <!-- Pinned Watermark Footer at the bottom of the 16:9 Canvas -->
             <footer class="slide-watermark-footer">
                 <div class="wm-left-col">
-                    <img src="<?php echo htmlspecialchars($romaLogoUrl); ?>" alt="Roma Agencia" class="wm-agency-logo">
+                    <img src="<?php echo htmlspecialchars($romaLogoDarkUrl); ?>" alt="Roma Agencia" class="wm-agency-logo wm-agency-logo-dark">
+                    <img src="<?php echo htmlspecialchars($romaLogoLightUrl); ?>" alt="Roma Agencia" class="wm-agency-logo wm-agency-logo-light">
                     <span class="wm-agency-name"><?php echo htmlspecialchars(strtoupper($sysSiteName)); ?></span>
                 </div>
                 <div class="wm-right-col">
@@ -2627,6 +3555,17 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
 
         </div>
     </main>
+    
+    <!-- Floating Bottom Navigation Dock (Optimized for Mobile & Tablet Thumb Reach) -->
+    <div class="floating-deck-dock" id="floatingDock" role="navigation" aria-label="Navegación de diapositivas">
+        <button class="dock-nav-btn" onclick="prevSlide()" id="dockPrevBtn" title="Diapositiva Anterior" aria-label="Anterior">
+            <i class="ph-bold ph-caret-left"></i>
+        </button>
+        <div class="dock-counter-badge" id="dockSlideIndicator">01 / 10</div>
+        <button class="dock-nav-btn" onclick="nextSlide()" id="dockNextBtn" title="Siguiente Diapositiva" aria-label="Siguiente">
+            <i class="ph-bold ph-caret-right"></i>
+        </button>
+    </div>
 
     <!-- Alternative Continuous Scroll Mode Container -->
     <div class="scroll-mode-container" id="scrollContainer"></div>
@@ -2646,35 +3585,65 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
     const indicator = document.getElementById('slideIndicator');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
+    const dockIndicator = document.getElementById('dockSlideIndicator');
+    const dockPrevBtn = document.getElementById('dockPrevBtn');
+    const dockNextBtn = document.getElementById('dockNextBtn');
+    const floatingDock = document.getElementById('floatingDock');
 
     // Build Dots
-    slides.forEach((_, idx) => {
-        const dot = document.createElement('div');
-        dot.className = 'deck-dot' + (idx === 0 ? ' active' : '');
-        dot.title = `Ir a diapositiva ${idx + 1}`;
-        dot.onclick = () => goToSlide(idx);
-        dotsBar.appendChild(dot);
-    });
+    if (dotsBar) {
+        slides.forEach((_, idx) => {
+            const dot = document.createElement('div');
+            dot.className = 'deck-dot' + (idx === 0 ? ' active' : '');
+            dot.title = `Ir a diapositiva ${idx + 1}`;
+            dot.onclick = () => goToSlide(idx);
+            dotsBar.appendChild(dot);
+        });
+    }
 
     function updateDeckUI() {
         slides.forEach((s, idx) => {
             s.classList.toggle('active', idx === currentSlide);
         });
-        const dots = dotsBar.querySelectorAll('.deck-dot');
-        dots.forEach((d, idx) => {
-            d.classList.toggle('active', idx === currentSlide);
-        });
+        if (dotsBar) {
+            const dots = dotsBar.querySelectorAll('.deck-dot');
+            dots.forEach((d, idx) => {
+                d.classList.toggle('active', idx === currentSlide);
+            });
+        }
         const numStr = (currentSlide + 1).toString().padStart(2, '0');
         const totStr = totalSlides.toString().padStart(2, '0');
-        indicator.textContent = `${numStr} / ${totStr}`;
-        prevBtn.disabled = currentSlide === 0;
-        nextBtn.disabled = currentSlide === totalSlides - 1;
+        const countText = `${numStr} / ${totStr}`;
+        
+        if (indicator) indicator.textContent = countText;
+        if (prevBtn) prevBtn.disabled = currentSlide === 0;
+        if (nextBtn) nextBtn.disabled = currentSlide === totalSlides - 1;
+
+        if (dockIndicator) dockIndicator.textContent = countText;
+        if (dockPrevBtn) dockPrevBtn.disabled = currentSlide === 0;
+        if (dockNextBtn) dockNextBtn.disabled = currentSlide === totalSlides - 1;
     }
 
     function goToSlide(idx) {
         if (idx >= 0 && idx < totalSlides) {
             currentSlide = idx;
             updateDeckUI();
+
+            // Reset scroll position of the newly active slide
+            if (slides[currentSlide]) {
+                slides[currentSlide].scrollTop = 0;
+            }
+            
+            // On smaller screens, scroll stage smoothly into view
+            if (window.innerWidth <= 900) {
+                const stage = document.getElementById('canvas169');
+                if (stage) {
+                    const rect = stage.getBoundingClientRect();
+                    if (rect.top < 0 || rect.top > 200) {
+                        stage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            }
         }
     }
 
@@ -2700,27 +3669,60 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         }
     });
 
-    // Touch Swipe Navigation for Mobile
+    // Touch Swipe Navigation for Mobile (With Vertical Scroll Discrimination)
     let touchStartX = 0;
+    let touchStartY = 0;
     let touchEndX = 0;
+    let touchEndY = 0;
     const stageElement = document.getElementById('canvas169');
     
-    stageElement.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
+    if (stageElement) {
+        stageElement.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
 
-    stageElement.addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-    }, { passive: true });
+        stageElement.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, { passive: true });
+    }
 
     function handleSwipe() {
-        const threshold = 50;
-        if (touchEndX < touchStartX - threshold) {
-            nextSlide();
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+        // Only trigger if horizontal swipe is clearly more pronounced than vertical scrolling
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 45) {
+            if (diffX < 0) {
+                nextSlide();
+            } else {
+                prevSlide();
+            }
         }
-        if (touchEndX > touchStartX + threshold) {
-            prevSlide();
+    }
+
+    // ---------------- PROPOSALS SLIDE INTERACTIVITY ----------------
+    function selectProposalView(idx) {
+        document.querySelectorAll('.proposal-content-panel').forEach(p => p.style.display = 'none');
+        document.querySelectorAll('.prop-tab-pill').forEach(b => b.classList.remove('active'));
+
+        const activePanel = document.getElementById('proposalPanel_' + idx);
+        const activeBtn = document.getElementById('propTabBtn_' + idx);
+        if (activePanel) activePanel.style.display = 'grid';
+        if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    function setProposalCanvasBg(idx, mode, btn) {
+        const canvas = document.getElementById('propCanvas_' + idx);
+        if (!canvas) return;
+        canvas.classList.remove('bg-light', 'bg-dark', 'bg-blueprint');
+        canvas.classList.add('bg-' + mode);
+
+        const parent = btn.parentElement;
+        if (parent) {
+            parent.querySelectorAll('.prop-stage-toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
         }
     }
 
@@ -2776,9 +3778,14 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
 
         if (isScrollMode) {
             deckStage.style.display = 'none';
-            deckControls.style.opacity = '0.3';
-            deckControls.style.pointerEvents = 'none';
-            viewBtn.innerHTML = '<i class="ph-bold ph-presentation"></i> <span>Diapositivas 16:9</span>';
+            if (deckControls) {
+                deckControls.style.opacity = '0.3';
+                deckControls.style.pointerEvents = 'none';
+            }
+            if (floatingDock) floatingDock.style.display = 'none';
+            viewBtn.innerHTML = '<i class="ph-bold ph-presentation"></i> <span>Diapositivas</span>';
+            const madText = document.getElementById('madViewText');
+            if (madText) madText.textContent = 'Modo Diapositivas (16:9)';
 
             // Clone slides into vertical sections if empty
             if (scrollContainer.children.length === 0) {
@@ -2790,14 +3797,46 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
                 });
             }
             scrollContainer.style.display = 'flex';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
             scrollContainer.style.display = 'none';
             deckStage.style.display = 'flex';
-            deckControls.style.opacity = '1';
-            deckControls.style.pointerEvents = 'auto';
+            if (deckControls) {
+                deckControls.style.opacity = '1';
+                deckControls.style.pointerEvents = 'auto';
+            }
             viewBtn.innerHTML = '<i class="ph-bold ph-rows"></i> <span>Scroll</span>';
+            const madText = document.getElementById('madViewText');
+            if (madText) madText.textContent = 'Modo Scroll Continuo';
+            goToSlide(currentSlide);
         }
     }
+
+    // Mobile Actions Menu Popover
+    function toggleMobileActionsMenu(e) {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById('mobileActionsDropdown');
+        if (menu) {
+            menu.classList.toggle('show');
+        }
+    }
+
+    function closeMobileActionsMenu() {
+        const menu = document.getElementById('mobileActionsDropdown');
+        if (menu) {
+            menu.classList.remove('show');
+        }
+    }
+
+    window.addEventListener('click', (e) => {
+        const menu = document.getElementById('mobileActionsDropdown');
+        const btn = document.getElementById('mobileMoreBtn');
+        if (menu && menu.classList.contains('show')) {
+            if ((!btn || !btn.contains(e.target)) && !menu.contains(e.target)) {
+                closeMobileActionsMenu();
+            }
+        }
+    });
 
     // Theme Toggle (Dark / Light Mode)
     function toggleDeckTheme() {

@@ -54,10 +54,8 @@ $sysSecondary = !empty($sysSettings['secondary_color']) ? $sysSettings['secondar
 $sysSiteName = !empty($sysSettings['site_name']) ? trim($sysSettings['site_name']) : 'Roma Agencia Creativa';
 
 // Roma watermark logo in base64 (Light Mode)
-$b64RomaLogo = bg_img_to_base64('uploads/logo_light_1790398960.png');
-if (!$b64RomaLogo) {
-    $b64RomaLogo = bg_img_to_base64('assets/img/default-logo.png');
-}
+$romaLogoLight = !empty($sysSettings['logo_light']) ? $sysSettings['logo_light'] : 'uploads/logo_light_1790398960.png';
+$b64RomaLogo = bg_img_to_base64($romaLogoLight) ?: bg_img_to_base64('assets/img/default-logo.png');
 
 // Decode Data
 $variations = !empty($bg['logo_variations_json']) ? json_decode($bg['logo_variations_json'], true) : [];
