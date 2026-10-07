@@ -732,12 +732,66 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         .wm-agency-logo-light { display: none !important; }
         .wm-agency-logo-dark { display: block !important; }
         [data-theme="light"] .wm-agency-logo-light { display: block !important; }
+        /* Agency and Brand Logo switching */
+        .wm-agency-logo-light { display: none !important; }
+        .wm-agency-logo-dark { display: block !important; }
+        [data-theme="light"] .wm-agency-logo-light { display: block !important; }
         [data-theme="light"] .wm-agency-logo-dark { display: none !important; }
 
         .dh-logo-light { display: none; }
         .dh-logo-dark { display: block; }
         [data-theme="light"] .dh-logo-light { display: block; }
         [data-theme="light"] .dh-logo-dark { display: none; }
+
+        /* Cover logo switching */
+        .cover-logo-light { display: none; }
+        .cover-logo-dark { display: block; }
+        [data-theme="light"] .cover-logo-light { display: block !important; }
+        [data-theme="light"] .cover-logo-dark { display: none !important; }
+
+        /* Light mode for Cover Slide (High Contrast & Clean Branding) */
+        [data-theme="light"] .slide-cover,
+        [data-theme="light"] .scroll-section.scroll-cover,
+        [data-theme="light"] .scroll-mode-container > .scroll-section:first-child {
+            background: 
+                radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--sys-primary, #262ecf) 14%, transparent) 0%, transparent 60%),
+                radial-gradient(circle at 15% 85%, color-mix(in srgb, var(--sys-primary, #262ecf) 8%, transparent) 0%, transparent 55%),
+                linear-gradient(135deg, #f8fafc 0%, #ffffff 45%, #f1f5f9 100%) !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-theme="light"] .cover-kicker {
+            background: rgba(38, 46, 207, 0.08);
+            border-color: rgba(38, 46, 207, 0.25);
+            color: var(--sys-primary, #262ecf);
+            box-shadow: 0 2px 8px rgba(38, 46, 207, 0.08);
+        }
+        [data-theme="light"] .cover-title {
+            background: linear-gradient(135deg, #0f172a 0%, var(--sys-primary, #262ecf) 65%, #1e293b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: #0f172a;
+        }
+        [data-theme="light"] .cover-tagline {
+            color: #334155;
+            font-weight: 600;
+        }
+        [data-theme="light"] .cover-logo-stage-dark {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme="light"] .cover-logo-stage-dark img {
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
+        }
+        [data-theme="light"] .cover-client-label {
+            color: #64748b !important;
+        }
+        [data-theme="light"] .cover-client-name {
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .cover-fallback-title {
+            color: #0f172a !important;
+        }
 
         /* Light mode for color cards */
         [data-theme="light"] .color-card-pro {
@@ -780,21 +834,34 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
         [data-theme="light"] .font-specimen-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06);
             color: #0f172a;
+        }
+        [data-theme="light"] .fsc-header {
+            border-bottom-color: #f1f5f9;
+        }
+        [data-theme="light"] .fsc-source-badge.google {
+            background: #eff6ff;
+            color: #2563eb;
+            border-color: #bfdbfe;
+        }
+        [data-theme="light"] .fsc-source-badge.custom {
+            background: #fef3c7;
+            color: #b45309;
+            border-color: #fde68a;
         }
         [data-theme="light"] .font-specimen-title {
             color: #0f172a;
         }
         [data-theme="light"] .font-weight-pill {
-            background: #f1f5f9;
+            background: #f8fafc;
             border-color: #cbd5e1;
-            color: #1e293b;
+            color: #334155;
         }
         [data-theme="light"] .font-alphabet-stage {
             background: #f8fafc;
             color: #0f172a;
-            border-color: #e2e8f0;
+            border: 1px solid #e2e8f0;
         }
         [data-theme="light"] .font-usage-text {
             color: #475569;
@@ -803,6 +870,10 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             background: #ffffff;
             border-color: #cbd5e1;
             color: #0f172a;
+        }
+        [data-theme="light"] .font-tester-field:focus {
+            border-color: var(--sys-primary);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-primary) 15%, transparent);
         }
 
         /* ================= 16:9 PRESENTATION STAGE ================= */
@@ -3631,6 +3702,8 @@ $pdfDownloadUrl = "index.php?module=brand_guidelines&action=pdf&slug=" . urlenco
             dot.onclick = () => goToSlide(idx);
             dotsBar.appendChild(dot);
         });
+    }
+
     // Check URL query param or hash for initial slide
     const urlParams = new URLSearchParams(window.location.search);
     const slideParam = urlParams.get('slide');

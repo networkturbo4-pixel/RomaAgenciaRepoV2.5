@@ -5,14 +5,12 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 1. Agregar columnas a audiovisual_projects
-ALTER TABLE `audiovisual_projects` 
-  ADD COLUMN IF NOT EXISTS `client_id` INT(11) NULL AFTER `form_submission_id`,
-  ADD COLUMN IF NOT EXISTS `work_order_id` INT(11) NULL AFTER `client_id`,
-  ADD COLUMN IF NOT EXISTS `drive_subfolders_json` TEXT NULL AFTER `drive_folder_id`;
+ALTER TABLE `audiovisual_projects` ADD COLUMN `client_id` INT(11) NULL AFTER `form_submission_id`;
+ALTER TABLE `audiovisual_projects` ADD COLUMN `work_order_id` INT(11) NULL AFTER `client_id`;
+ALTER TABLE `audiovisual_projects` ADD COLUMN `drive_subfolders_json` TEXT NULL AFTER `drive_folder_id`;
 
 -- 2. Asegurar índices para búsquedas ágiles
-ALTER TABLE `audiovisual_projects`
-  ADD INDEX IF NOT EXISTS `idx_av_client` (`client_id`),
-  ADD INDEX IF NOT EXISTS `idx_av_wo` (`work_order_id`);
+ALTER TABLE `audiovisual_projects` ADD INDEX `idx_av_client` (`client_id`);
+ALTER TABLE `audiovisual_projects` ADD INDEX `idx_av_wo` (`work_order_id`);
 
 SET FOREIGN_KEY_CHECKS = 1;

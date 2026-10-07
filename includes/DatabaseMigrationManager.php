@@ -274,8 +274,8 @@ class DatabaseMigrationManager {
                 continue;
             }
 
-            // Normalizar CREATE TABLE para asegurar IF NOT EXISTS
-            $safeQuery = $this->makeCreateTableSafe($trimmed);
+            // Normalizar consulta para compatibilidad universal (MySQL 5.7, 8.0 y MariaDB)
+            $safeQuery = $this->normalizeQueryForCompatibility($trimmed);
 
             try {
                 $this->db->exec($safeQuery);
@@ -334,6 +334,21 @@ class DatabaseMigrationManager {
             $this->log("❌ Error en PHP: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Normaliza consultas SQL para garantizar compatibilidad entre MariaDB y todas las versiones de MySQL
+     */
+    private function normalizeQueryForCompatibility($query) {
+        // 1. Asegurar CREATE TABLE IF NOT EXISTS
+        $query = $this->makeCreateTableSafe($query);
+
+        // 2. MySQL < 8.0.29 no soporta 'IF NOT EXISTS' en sentencias ALTER TABLE (ADD COLUMN / ADD INDEX)
+        // Convertir 'ADD COLUMN IF NOT EXISTS' -> 'ADD COLUMN', 'ADD INDEX IF NOT EXISTS' -> 'ADD INDEX'
+        // Si la columna/índice ya existe, MySQL arroja 1060 o 1061, que el bloque catch ya maneja como benigno
+        $query = preg_replace('/\bADD\s+(COLUMN|INDEX|KEY)\s+IF\s+NOT\s+EXISTS\b/i', 'ADD $1', $query);
+
+        return $query;
     }
 
     /**
