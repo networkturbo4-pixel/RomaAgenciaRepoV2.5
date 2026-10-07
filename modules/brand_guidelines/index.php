@@ -200,126 +200,349 @@ $baseUrl = bg_get_base_url();
     letter-spacing: 0.5px;
 }
 
-/* Filters & Search Toolbar */
-.bg-toolbar {
+/* Filters Button Trigger & Badge */
+.bg-btn-filter-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
     background: var(--bg-surface, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 18px;
-    padding: 0.85rem 1.25rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.75rem;
-    flex-wrap: wrap;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-}
-
-[data-theme="dark"] .bg-toolbar {
-    background: #14161f;
-    border-color: rgba(255, 255, 255, 0.08);
-}
-
-.bg-search-box {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    background: var(--bg-body, #f8fafc);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 12px;
-    padding: 0.55rem 1rem;
-    min-width: 280px;
-    flex: 1;
-    max-width: 420px;
-}
-
-[data-theme="dark"] .bg-search-box {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
-}
-
-.bg-search-box input {
-    border: none;
-    background: transparent;
-    outline: none;
-    font-size: 0.9rem;
     color: var(--text-main, #0f172a);
-    width: 100%;
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 0.72rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+[data-theme="dark"] .bg-btn-filter-trigger {
+    background: #1e2230;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+}
+.bg-btn-filter-trigger:hover {
+    background: var(--bg-body, #f8fafc);
+    border-color: var(--primary-color, #262ecf);
+    color: var(--primary-color, #262ecf);
+    transform: translateY(-1px);
+}
+.bg-filter-badge {
+    background: var(--primary-color, #262ecf);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    line-height: 1;
 }
 
-[data-theme="dark"] .bg-search-box input {
+/* Off-canvas Filter Drawer */
+.bg-drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 99999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.bg-drawer-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+.bg-drawer-content {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 440px;
+    height: 100vh;
+    background: var(--bg-surface, #ffffff);
+    box-shadow: -15px 0 45px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    z-index: 100000;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="dark"] .bg-drawer-content {
+    background: #141622;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bg-drawer-overlay.active .bg-drawer-content {
+    transform: translateX(0);
+}
+.bg-drawer-header {
+    padding: 1.35rem 1.5rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+[data-theme="dark"] .bg-drawer-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.bg-drawer-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.bg-drawer-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary-color, #262ecf) 12%, transparent);
+    color: var(--primary-color, #262ecf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.bg-drawer-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-main, #0f172a);
+}
+[data-theme="dark"] .bg-drawer-title {
     color: #ffffff;
 }
-
-.bg-filter-select {
-    border: 1px solid var(--border-color, #e2e8f0);
+.bg-drawer-subtitle {
+    font-size: 0.76rem;
+    color: var(--text-muted, #64748b);
+}
+.bg-drawer-body {
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+}
+.bg-drawer-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.bg-drawer-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #64748b);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.bg-drawer-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.bg-drawer-input-wrap input {
+    width: 100%;
     background: var(--bg-body, #f8fafc);
-    color: var(--text-main, #0f172a);
+    border: 1px solid var(--border-color, #cbd5e1);
     border-radius: 12px;
-    padding: 0.55rem 1rem;
-    font-size: 0.88rem;
+    padding: 0.75rem 2.25rem 0.75rem 1rem;
+    font-size: 0.92rem;
+    color: var(--text-main, #0f172a);
+    outline: none;
+    transition: border-color 0.2s;
+}
+[data-theme="dark"] .bg-drawer-input-wrap input {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+.bg-drawer-input-wrap input:focus {
+    border-color: var(--primary-color, #262ecf);
+}
+.bg-input-clear-btn {
+    position: absolute;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.bg-drawer-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.bg-chip {
+    padding: 0.5rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    background: var(--bg-body, #f8fafc);
+    color: var(--text-muted, #64748b);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+[data-theme="dark"] .bg-chip {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+}
+.bg-chip.active {
+    background: var(--primary-color, #262ecf);
+    border-color: var(--primary-color, #262ecf);
+    color: #ffffff !important;
+}
+.bg-drawer-select {
+    width: 100%;
+    background-color: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 12px;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    font-size: 0.92rem;
     font-weight: 600;
+    color: var(--text-main, #0f172a);
     outline: none;
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 256 256'%3E%3Cpath fill='%2364748b' d='M213.66,101.66l-80,80a8,8 0,0,1-11.32,0l-80-80A8,8 0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8 0,0,1,11.32,11.32Z'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 16px 16px;
 }
-
-[data-theme="dark"] .bg-filter-select {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
+.bg-drawer-select option {
+    background-color: #ffffff;
+    color: #0f172a;
+    padding: 0.5rem;
+}
+[data-theme="dark"] .bg-drawer-select {
+    background-color: #1a1e2d;
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #f8fafc;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 256 256'%3E%3Cpath fill='%2394a3b8' d='M213.66,101.66l-80,80a8,8 0,0,1-11.32,0l-80-80A8,8 0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8 0,0,1,11.32,11.32Z'%3E%3C/path%3E%3C/svg%3E");
+}
+[data-theme="dark"] .bg-drawer-select option {
+    background-color: #1a1e2d;
+    color: #f8fafc;
+}
+.bg-drawer-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    display: flex;
+    gap: 0.75rem;
+    background: var(--bg-surface, #ffffff);
+}
+[data-theme="dark"] .bg-drawer-footer {
+    border-top-color: rgba(255, 255, 255, 0.08);
+    background: #141622;
+}
+.bg-btn-drawer-reset {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+[data-theme="dark"] .bg-btn-drawer-reset {
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
+}
+.bg-btn-drawer-reset:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+.bg-btn-drawer-apply {
+    flex: 1.4;
+    background: var(--primary-color, #262ecf);
     color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color, #262ecf) 35%, transparent);
+    transition: all 0.2s;
+}
+.bg-btn-drawer-apply:hover {
+    background: var(--primary-hover, #1f25a6);
+    transform: translateY(-1px);
 }
 
 /* Grid of Brand Guidelines Cards */
 .bg-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
 }
 
+/* Redesigned Brand Card */
 .bg-card {
     background: var(--bg-surface, #ffffff);
     border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 22px;
-    padding: 1.5rem;
+    border-radius: 20px;
+    padding: 1.35rem 1.4rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 1.25rem;
-    box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.04);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    gap: 1.15rem;
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+    transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
 }
-
 [data-theme="dark"] .bg-card {
-    background: #14161f;
+    background: #141724;
     border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
-
 .bg-card:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, #ec4899 40%, transparent);
-    box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--primary-color, #262ecf) 40%, transparent);
+    box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.1);
 }
-
 [data-theme="dark"] .bg-card:hover {
-    border-color: rgba(236, 72, 153, 0.5);
-    box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.6);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.65);
 }
-
-/* Card Top Row */
 .bg-card-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.75rem;
 }
-
 .bg-logo-preview {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
     background: var(--bg-body, #f8fafc);
     border: 1px solid var(--border-color, #e2e8f0);
     display: flex;
@@ -328,117 +551,120 @@ $baseUrl = bg_get_base_url();
     overflow: hidden;
     flex-shrink: 0;
     padding: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
-
 [data-theme="dark"] .bg-logo-preview {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
 }
-
 .bg-logo-preview img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
 }
-
 .bg-logo-initial {
-    font-size: 1.75rem;
+    font-size: 1.6rem;
     font-weight: 900;
     background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-
+.bg-card-top-right {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.bg-views-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    background: var(--bg-body, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 0.25rem 0.55rem;
+    border-radius: 8px;
+}
+[data-theme="dark"] .bg-views-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
 .bg-badge-privacy {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     font-size: 0.72rem;
-    font-weight: 700;
-    padding: 0.28rem 0.65rem;
+    font-weight: 800;
+    padding: 0.3rem 0.7rem;
     border-radius: 9999px;
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
 }
-
 .bg-badge-privacy.public {
     background: rgba(16, 185, 129, 0.12);
     color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.25);
+    border: 1px solid rgba(16, 185, 129, 0.28);
 }
-
 .bg-badge-privacy.public:hover {
     background: rgba(16, 185, 129, 0.22);
 }
-
 .bg-badge-privacy.private {
     background: rgba(245, 158, 11, 0.12);
     color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    border: 1px solid rgba(245, 158, 11, 0.28);
 }
-
 .bg-badge-privacy.private:hover {
     background: rgba(245, 158, 11, 0.22);
 }
-
-/* Card Content */
 .bg-card-content {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.4rem;
 }
-
-.bg-card-title-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem;
-}
-
 .bg-card-title {
-    font-size: 1.25rem;
+    font-size: 1.18rem;
     font-weight: 800;
     margin: 0;
     color: var(--text-main, #0f172a);
-    letter-spacing: -0.4px;
+    letter-spacing: -0.3px;
+    line-height: 1.25;
 }
-
 [data-theme="dark"] .bg-card-title {
     color: #ffffff;
 }
-
 .bg-card-client {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-muted, #64748b);
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
 }
-
-.bg-card-desc {
-    font-size: 0.85rem;
-    color: var(--text-muted, #64748b);
-    line-height: 1.45;
+.bg-card-tagline {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #ec4899;
     margin: 0;
+    line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-
-/* Color Swatches Row */
+[data-theme="dark"] .bg-card-tagline {
+    color: #f472b6;
+}
 .bg-card-swatches {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
-    margin-top: 0.25rem;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
 }
-
 .bg-swatch-dot {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     border: 2px solid var(--bg-surface, #ffffff);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
@@ -446,13 +672,10 @@ $baseUrl = bg_get_base_url();
     transition: transform 0.2s;
     cursor: pointer;
 }
-
 .bg-swatch-dot:hover {
-    transform: scale(1.2);
+    transform: scale(1.25);
     z-index: 2;
 }
-
-/* Short Link Pill */
 .bg-shortlink-pill {
     display: flex;
     align-items: center;
@@ -460,25 +683,22 @@ $baseUrl = bg_get_base_url();
     background: var(--bg-body, #f8fafc);
     border: 1px dashed var(--border-color, #cbd5e1);
     border-radius: 10px;
-    padding: 0.45rem 0.75rem;
-    font-size: 0.78rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.76rem;
     color: var(--text-muted, #64748b);
-    margin-top: 0.35rem;
+    margin-top: 0.4rem;
     cursor: pointer;
     transition: all 0.2s;
 }
-
 [data-theme="dark"] .bg-shortlink-pill {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.12);
 }
-
 .bg-shortlink-pill:hover {
     background: color-mix(in srgb, var(--primary-color, #262ecf) 10%, transparent);
     border-color: var(--primary-color, #262ecf);
     color: var(--text-main, #0f172a);
 }
-
 .bg-shortlink-pill span {
     font-family: monospace;
     font-weight: 600;
@@ -486,53 +706,46 @@ $baseUrl = bg_get_base_url();
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-/* Card Actions */
 .bg-card-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 1rem;
+    padding-top: 0.85rem;
     border-top: 1px solid var(--border-color, #e2e8f0);
     gap: 0.5rem;
 }
-
 [data-theme="dark"] .bg-card-actions {
-    border-top-color: rgba(255, 255, 255, 0.06);
+    border-top-color: rgba(255, 255, 255, 0.08);
 }
-
 .bg-btn-view {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.4rem;
     background: color-mix(in srgb, var(--primary-color, #262ecf) 12%, transparent);
     color: var(--primary-color, #262ecf) !important;
     border: 1px solid color-mix(in srgb, var(--primary-color, #262ecf) 25%, transparent);
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     font-weight: 700;
     padding: 0.45rem 0.95rem;
     border-radius: 10px;
     text-decoration: none;
     transition: all 0.2s;
 }
-
 .bg-btn-view:hover {
     background: var(--primary-color, #262ecf);
     border-color: var(--primary-color, #262ecf);
     color: #ffffff !important;
     transform: translateY(-1px);
 }
-
 .bg-action-group {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.3rem;
 }
-
 .bg-icon-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
     border: 1px solid var(--border-color, #e2e8f0);
     background: transparent;
     color: var(--text-muted, #64748b);
@@ -540,30 +753,70 @@ $baseUrl = bg_get_base_url();
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 1.05rem;
+    font-size: 1rem;
     transition: all 0.2s;
     text-decoration: none;
 }
-
 [data-theme="dark"] .bg-icon-btn {
     border-color: rgba(255, 255, 255, 0.08);
 }
-
 .bg-icon-btn:hover {
     background: var(--bg-body, #f8fafc);
     color: var(--text-main, #0f172a);
     transform: translateY(-1px);
 }
-
 [data-theme="dark"] .bg-icon-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: #ffffff;
 }
-
 .bg-icon-btn.danger:hover {
     background: rgba(239, 68, 68, 0.12);
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Responsive Rules Mobile */
+@media (max-width: 768px) {
+    .bg-container {
+        padding: 0.85rem 0.75rem 2rem !important;
+    }
+    .bg-header-wrap {
+        margin-bottom: 1.15rem !important;
+        gap: 0.85rem !important;
+    }
+    .bg-header-title {
+        font-size: 1.65rem !important;
+    }
+    .bg-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem !important;
+        margin-bottom: 1.25rem !important;
+    }
+    .bg-stat-card {
+        padding: 0.85rem !important;
+        border-radius: 14px !important;
+        gap: 0.65rem !important;
+    }
+    .bg-stat-icon {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 20px !important;
+        border-radius: 10px !important;
+    }
+    .bg-stat-value {
+        font-size: 1.3rem !important;
+    }
+    .bg-stat-label {
+        font-size: 0.65rem !important;
+        letter-spacing: 0.2px !important;
+    }
+    .bg-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    .bg-drawer-content {
+        max-width: 100% !important;
+    }
 }
 
 /* Empty State */
@@ -774,9 +1027,13 @@ $baseUrl = bg_get_base_url();
             <div class="bg-title-row">
                 <h1 class="bg-header-title">Brand Guidelines</h1>
             </div>
-            <p class="bg-header-subtitle">Creador y visor interactivo de manuales de marca, paletas cromáticas, logos y normas de identidad.</p>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="bg-btn-filter-trigger" onclick="openFiltersDrawer()">
+                <i class="ph-bold ph-funnel"></i>
+                <span>Filtros</span>
+                <span id="activeFiltersBadge" class="bg-filter-badge" style="display:none;">0</span>
+            </button>
             <a href="index.php?module=brand_guidelines&action=edit" class="bg-btn-primary">
                 <i class="ph-bold ph-plus-circle" style="font-size: 1.15rem;"></i>
                 <span>Crear Manual de Marca</span>
@@ -827,21 +1084,6 @@ $baseUrl = bg_get_base_url();
         </div>
     </div>
 
-    <!-- Toolbar: Search & Filter -->
-    <div class="bg-toolbar">
-        <div class="bg-search-box">
-            <i class="ph-bold ph-magnifying-glass" style="color: var(--text-muted); font-size: 1.1rem;"></i>
-            <input type="text" id="bgSearchInput" placeholder="Buscar manual por marca o cliente..." oninput="filterBrandCards()">
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <select id="bgPrivacyFilter" class="bg-filter-select" onchange="filterBrandCards()">
-                <option value="all">Todos los estados</option>
-                <option value="public">Solo Públicos</option>
-                <option value="private">Solo Protegidos (PIN)</option>
-            </select>
-        </div>
-    </div>
-
     <!-- Grid of Guidelines -->
     <?php if (empty($guidelines)): ?>
         <div class="bg-empty-state">
@@ -867,9 +1109,11 @@ $baseUrl = bg_get_base_url();
                 $initial = mb_substr($g['brand_name'], 0, 1, 'UTF-8');
             ?>
             <div class="bg-card" 
+                 data-id="<?php echo $g['id']; ?>"
                  data-title="<?php echo htmlspecialchars(mb_strtolower($g['brand_name'], 'UTF-8')); ?>" 
                  data-client="<?php echo htmlspecialchars(mb_strtolower($g['client_name'] ?? '', 'UTF-8')); ?>"
                  data-privacy="<?php echo $g['is_public'] == 1 ? 'public' : 'private'; ?>"
+                 data-views="<?php echo (int)($g['views_count'] ?? 0); ?>"
                  id="bg-card-<?php echo $g['id']; ?>">
                 
                 <div>
@@ -883,22 +1127,23 @@ $baseUrl = bg_get_base_url();
                             <?php endif; ?>
                         </div>
 
-                        <span class="bg-badge-privacy <?php echo $g['is_public'] == 1 ? 'public' : 'private'; ?>" 
-                              onclick="togglePrivacy(<?php echo $g['id']; ?>)" 
-                              title="Haz clic para cambiar visibilidad">
-                            <i class="ph-bold <?php echo $g['is_public'] == 1 ? 'ph-globe' : 'ph-lock-key'; ?>"></i>
-                            <span id="badge-text-<?php echo $g['id']; ?>"><?php echo $g['is_public'] == 1 ? 'Público' : 'Protegido'; ?></span>
-                        </span>
+                        <div class="bg-card-top-right">
+                            <span class="bg-views-pill" title="Visualizaciones acumuladas">
+                                <i class="ph-bold ph-eye"></i> <?php echo number_format((int)$g['views_count']); ?>
+                            </span>
+
+                            <span class="bg-badge-privacy <?php echo $g['is_public'] == 1 ? 'public' : 'private'; ?>" 
+                                  onclick="togglePrivacy(<?php echo $g['id']; ?>)" 
+                                  title="Haz clic para cambiar visibilidad">
+                                <i class="ph-bold <?php echo $g['is_public'] == 1 ? 'ph-globe' : 'ph-lock-key'; ?>"></i>
+                                <span id="badge-text-<?php echo $g['id']; ?>"><?php echo $g['is_public'] == 1 ? 'Público' : 'Protegido'; ?></span>
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Card Body -->
                     <div class="bg-card-content" style="margin-top: 1rem;">
-                        <div class="bg-card-title-row">
-                            <h3 class="bg-card-title"><?php echo htmlspecialchars($g['brand_name']); ?></h3>
-                            <span style="font-size: 0.76rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.25rem;">
-                                <i class="ph-bold ph-eye"></i> <?php echo number_format((int)$g['views_count']); ?>
-                            </span>
-                        </div>
+                        <h3 class="bg-card-title"><?php echo htmlspecialchars($g['brand_name']); ?></h3>
 
                         <?php if (!empty($g['client_name'])): ?>
                             <span class="bg-card-client">
@@ -907,11 +1152,9 @@ $baseUrl = bg_get_base_url();
                         <?php endif; ?>
 
                         <?php if (!empty($g['tagline'])): ?>
-                            <p class="bg-card-desc" style="font-style: italic; color: #ec4899;"><?php echo htmlspecialchars($g['tagline']); ?></p>
+                            <p class="bg-card-tagline"><?php echo htmlspecialchars($g['tagline']); ?></p>
                         <?php elseif (!empty($g['description'])): ?>
                             <p class="bg-card-desc"><?php echo htmlspecialchars($g['description']); ?></p>
-                        <?php else: ?>
-                            <p class="bg-card-desc" style="color: var(--text-muted); opacity: 0.7;">Sin descripción añadida.</p>
                         <?php endif; ?>
 
                         <!-- Color Swatches preview -->
@@ -929,17 +1172,17 @@ $baseUrl = bg_get_base_url();
                                          onclick="copyToClipboard('<?php echo $hex; ?>', 'Código <?php echo $hex; ?> copiado')"></div>
                                 <?php endforeach; ?>
                                 <?php if (count($colors) > 5): ?>
-                                    <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">+<?php echo count($colors) - 5; ?></span>
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-left: 0.2rem;">+<?php echo count($colors) - 5; ?></span>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
                         <!-- Short Link Copy Pill -->
                         <div class="bg-shortlink-pill" 
-                             onclick="copyToClipboard('<?php echo htmlspecialchars($shortUrl); ?>', 'Enlace amigable copiado al portapapeles')"
-                             title="Haz clic para copiar el enlace corto">
+                             onclick="copyToClipboard('<?php echo htmlspecialchars($shortUrl); ?>', 'Enlace copiado al portapapeles')"
+                             title="Copiar enlace corto">
                             <span>/b/<?php echo htmlspecialchars($g['slug']); ?></span>
-                            <i class="ph-bold ph-copy" style="color: #ec4899;"></i>
+                            <i class="ph-bold ph-copy" style="color: var(--primary-color, #262ecf);"></i>
                         </div>
                     </div>
                 </div>
@@ -1002,6 +1245,94 @@ $baseUrl = bg_get_base_url();
     <?php endif; ?>
 </div>
 
+<!-- Off-canvas Filter Drawer -->
+<div class="bg-drawer-overlay" id="filterDrawerOverlay" onclick="if(event.target === this) closeFiltersDrawer()">
+    <div class="bg-drawer-content" id="filterDrawer">
+        <div class="bg-drawer-header">
+            <div class="bg-drawer-title-wrap">
+                <div class="bg-drawer-icon"><i class="ph-bold ph-funnel"></i></div>
+                <div>
+                    <h3 class="bg-drawer-title">Filtros de Búsqueda</h3>
+                    <span class="bg-drawer-subtitle">Filtra y ordena tus manuales</span>
+                </div>
+            </div>
+            <button type="button" class="bg-close-btn" onclick="closeFiltersDrawer()" title="Cerrar filtros">
+                <i class="ph-bold ph-x"></i>
+            </button>
+        </div>
+
+        <div class="bg-drawer-body">
+            <!-- Buscar por texto -->
+            <div class="bg-drawer-field">
+                <label class="bg-drawer-label"><i class="ph-bold ph-magnifying-glass"></i> Buscar por Marca o Cliente</label>
+                <div class="bg-drawer-input-wrap">
+                    <input type="text" id="bgSearchInput" placeholder="Escribe el nombre de la marca o cliente..." oninput="applyFilters()">
+                    <button type="button" class="bg-input-clear-btn" id="clearSearchBtn" onclick="clearSearchInput()" style="display:none;" title="Limpiar búsqueda">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Estado / Privacidad -->
+            <div class="bg-drawer-field">
+                <label class="bg-drawer-label"><i class="ph-bold ph-shield-check"></i> Estado de Acceso</label>
+                <div class="bg-drawer-chips">
+                    <button type="button" class="bg-chip active" data-filter="all" onclick="selectPrivacyFilter('all')">Todos</button>
+                    <button type="button" class="bg-chip" data-filter="public" onclick="selectPrivacyFilter('public')">
+                        <i class="ph-bold ph-globe"></i> Públicos
+                    </button>
+                    <button type="button" class="bg-chip" data-filter="private" onclick="selectPrivacyFilter('private')">
+                        <i class="ph-bold ph-lock-key"></i> Protegidos (PIN)
+                    </button>
+                </div>
+                <input type="hidden" id="bgPrivacyFilter" value="all">
+            </div>
+
+            <!-- Cliente Asociado -->
+            <div class="bg-drawer-field">
+                <label class="bg-drawer-label"><i class="ph-bold ph-buildings"></i> Cliente Asociado</label>
+                <select id="bgClientFilter" class="bg-drawer-select" onchange="applyFilters()">
+                    <option value="all">Todos los clientes</option>
+                    <?php 
+                    $clientsList = [];
+                    foreach ($guidelines as $item) {
+                        if (!empty($item['client_name']) && !in_array($item['client_name'], $clientsList)) {
+                            $clientsList[] = $item['client_name'];
+                        }
+                    }
+                    sort($clientsList);
+                    foreach ($clientsList as $clName): ?>
+                        <option value="<?php echo htmlspecialchars(mb_strtolower($clName, 'UTF-8')); ?>">
+                            <?php echo htmlspecialchars($clName); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Ordenar por -->
+            <div class="bg-drawer-field">
+                <label class="bg-drawer-label"><i class="ph-bold ph-sort-ascending"></i> Ordenar por</label>
+                <select id="bgSortOrder" class="bg-drawer-select" onchange="applyFilters()">
+                    <option value="recent">Más recientes primero</option>
+                    <option value="oldest">Más antiguos primero</option>
+                    <option value="name_asc">Nombre de marca (A - Z)</option>
+                    <option value="name_desc">Nombre de marca (Z - A)</option>
+                    <option value="views">Más visualizaciones</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="bg-drawer-footer">
+            <button type="button" class="bg-btn-drawer-reset" onclick="resetAllFilters()">
+                <i class="ph-bold ph-arrow-counter-clockwise"></i> Limpiar Filtros
+            </button>
+            <button type="button" class="bg-btn-drawer-apply" onclick="closeFiltersDrawer()">
+                <span>Ver Resultados (<span id="resultsCount"><?php echo count($guidelines); ?></span>)</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Compartir Enlace y QR -->
 <div class="bg-modal-overlay" id="shareModalOverlay" onclick="if(event.target === this) closeShareModal()">
     <div class="bg-modal-content">
@@ -1056,27 +1387,127 @@ $baseUrl = bg_get_base_url();
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-// Filter Brand Cards by Search and Privacy
-function filterBrandCards() {
-    const query = document.getElementById('bgSearchInput').value.trim().toLowerCase();
-    const filter = document.getElementById('bgPrivacyFilter').value;
-    const cards = document.querySelectorAll('.bg-card');
+// Filter Drawer controls
+function openFiltersDrawer() {
+    const overlay = document.getElementById('filterDrawerOverlay');
+    if (overlay) {
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeFiltersDrawer() {
+    const overlay = document.getElementById('filterDrawerOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeFiltersDrawer();
+    }
+});
+
+function selectPrivacyFilter(val) {
+    const hidden = document.getElementById('bgPrivacyFilter');
+    if (hidden) hidden.value = val;
+    document.querySelectorAll('.bg-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.getAttribute('data-filter') === val);
+    });
+    applyFilters();
+}
+
+function clearSearchInput() {
+    const input = document.getElementById('bgSearchInput');
+    if (input) {
+        input.value = '';
+        input.focus();
+        applyFilters();
+    }
+}
+
+function resetAllFilters() {
+    const searchInput = document.getElementById('bgSearchInput');
+    if (searchInput) searchInput.value = '';
+    selectPrivacyFilter('all');
+    const clientSelect = document.getElementById('bgClientFilter');
+    if (clientSelect) clientSelect.value = 'all';
+    const sortSelect = document.getElementById('bgSortOrder');
+    if (sortSelect) sortSelect.value = 'recent';
+    applyFilters();
+}
+
+function applyFilters() {
+    const searchInput = document.getElementById('bgSearchInput');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) clearBtn.style.display = query ? 'flex' : 'none';
+
+    const privacyEl = document.getElementById('bgPrivacyFilter');
+    const privacy = privacyEl ? privacyEl.value : 'all';
+    const clientEl = document.getElementById('bgClientFilter');
+    const clientFilter = clientEl ? clientEl.value : 'all';
+    const sortEl = document.getElementById('bgSortOrder');
+    const sortOrder = sortEl ? sortEl.value : 'recent';
+
+    // Calculate active filter count
+    let activeCount = 0;
+    if (query) activeCount++;
+    if (privacy !== 'all') activeCount++;
+    if (clientFilter !== 'all') activeCount++;
+    if (sortOrder !== 'recent') activeCount++;
+
+    const badge = document.getElementById('activeFiltersBadge');
+    if (badge) {
+        badge.textContent = activeCount;
+        badge.style.display = activeCount > 0 ? 'inline-block' : 'none';
+    }
+
+    const cardsContainer = document.getElementById('bgGrid');
+    const cards = Array.from(document.querySelectorAll('.bg-card'));
+    let visibleCount = 0;
 
     cards.forEach(card => {
         const title = card.getAttribute('data-title') || '';
         const client = card.getAttribute('data-client') || '';
-        const privacy = card.getAttribute('data-privacy') || '';
+        const cardPrivacy = card.getAttribute('data-privacy') || '';
 
         const matchesQuery = !query || title.includes(query) || client.includes(query);
-        const matchesFilter = filter === 'all' || privacy === filter;
+        const matchesPrivacy = (privacy === 'all') || (cardPrivacy === privacy);
+        const matchesClient = (clientFilter === 'all') || (client === clientFilter);
 
-        if (matchesQuery && matchesFilter) {
+        if (matchesQuery && matchesPrivacy && matchesClient) {
             card.style.display = 'flex';
+            visibleCount++;
         } else {
             card.style.display = 'none';
         }
     });
+
+    // Handle sorting
+    if (cardsContainer && cards.length > 1) {
+        cards.sort((a, b) => {
+            if (sortOrder === 'name_asc') {
+                return (a.getAttribute('data-title') || '').localeCompare(b.getAttribute('data-title') || '');
+            } else if (sortOrder === 'name_desc') {
+                return (b.getAttribute('data-title') || '').localeCompare(a.getAttribute('data-title') || '');
+            } else if (sortOrder === 'views') {
+                return parseInt(b.getAttribute('data-views') || '0', 10) - parseInt(a.getAttribute('data-views') || '0', 10);
+            } else if (sortOrder === 'oldest') {
+                return parseInt(a.getAttribute('data-id') || '0', 10) - parseInt(b.getAttribute('data-id') || '0', 10);
+            } else { // recent
+                return parseInt(b.getAttribute('data-id') || '0', 10) - parseInt(a.getAttribute('data-id') || '0', 10);
+            }
+        });
+        cards.forEach(card => cardsContainer.appendChild(card));
+    }
+
+    const resultsCountEl = document.getElementById('resultsCount');
+    if (resultsCountEl) resultsCountEl.textContent = visibleCount;
 }
+window.filterBrandCards = applyFilters;
 
 // Copy to Clipboard with Toast
 function copyToClipboard(text, message) {

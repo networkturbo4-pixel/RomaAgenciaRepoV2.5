@@ -84,8 +84,19 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     --bge-secondary: <?php echo $sysSecondary; ?>;
 }
 
+/* Ocultar Romita flotante en edición y creación de manual */
+#romita-fab-container,
+.romita-fab-container,
+#romita-fab-btn,
+.romita-fab-btn {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 .bge-container {
-    padding: 1.5rem 2rem 5rem;
+    padding: 1.5rem 2rem 160px;
     max-width: 1400px;
     margin: 0 auto;
     font-family: var(--font-family, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
@@ -451,12 +462,12 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     margin-bottom: 0.15rem;
 }
 
-.bge-input, .bge-select {
+.bge-input {
     display: block;
     width: 100% !important;
     box-sizing: border-box !important;
     background: var(--bg-body, #f8fafc);
-    border: 1px solid var(--border-color, #cbd5e1);
+    border: 1.5px solid var(--border-color, #cbd5e1);
     border-radius: 12px;
     padding: 0.75rem 1rem;
     font-size: 0.92rem;
@@ -466,12 +477,43 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     font-family: inherit;
 }
 
+.bge-select {
+    display: block;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background-color: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #0f172a !important;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 16px 16px;
+    cursor: pointer;
+}
+
+.bge-select option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0.6rem 0.75rem;
+    font-weight: 500;
+}
+
 .bge-textarea {
     display: block;
     width: 100% !important;
     box-sizing: border-box !important;
     background: var(--bg-body, #f8fafc);
-    border: 1px solid var(--border-color, #cbd5e1);
+    border: 1.5px solid var(--border-color, #cbd5e1);
     border-radius: 12px;
     padding: 0.85rem 1.1rem;
     font-size: 0.92rem;
@@ -486,16 +528,27 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 }
 
 [data-theme="dark"] .bge-input,
-[data-theme="dark"] .bge-select,
 [data-theme="dark"] .bge-textarea {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.16);
     color: #ffffff;
 }
 
+[data-theme="dark"] .bge-select {
+    background-color: #141a29 !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: #f8fafc !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] .bge-select option {
+    background-color: #141a29 !important;
+    color: #f8fafc !important;
+}
+
 .bge-input:focus, .bge-select:focus, .bge-textarea:focus {
-    border-color: var(--bge-primary, #262ecf);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bge-primary, #262ecf) 18%, transparent);
+    border-color: var(--bge-primary, #262ecf) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bge-primary, #262ecf) 22%, transparent);
 }
 
 /* Upload Dropzones */
@@ -1155,63 +1208,90 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
     line-height: 1.4;
 }
 
-/* Floating Bottom Studio Dock */
-.bge-bottom-dock {
-    position: sticky;
-    bottom: 1.5rem;
-    z-index: 100;
-    margin-top: 2.5rem;
-    background: rgba(255, 255, 255, 0.9);
+/* Floating Fixed Studio Bottom Dock (App-Like Ergonomic Bar) */
+.bge-bottom-dock,
+.bge-fixed-bottom-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    margin: 0 !important;
+    background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    border-radius: 20px;
-    padding: 0.85rem 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.12);
-    flex-wrap: wrap;
+    border-top: 1px solid rgba(226, 232, 240, 0.9);
+    padding: 0.75rem 1.5rem max(0.85rem, env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08);
+    animation: bgeDockSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-[data-theme="dark"] .bge-bottom-dock {
-    background: rgba(18, 22, 34, 0.92);
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.55);
+@keyframes bgeDockSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+[data-theme="dark"] .bge-bottom-dock,
+[data-theme="dark"] .bge-fixed-bottom-dock {
+    background: rgba(14, 18, 30, 0.94);
+    border-top-color: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.55);
+}
+
+.bge-dock-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 100%;
+}
+
+.bge-dock-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
 }
 
 .bge-dock-step-info {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-width: 0;
 }
 
 .bge-dock-step-circle {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     background: color-mix(in srgb, var(--bge-primary, #262ecf) 12%, transparent);
     color: var(--bge-primary, #262ecf);
     font-weight: 800;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .bge-dock-step-sub {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.68rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted, #64748b);
+    line-height: 1.1;
 }
 
 .bge-dock-step-title {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 800;
     color: var(--text-main, #0f172a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 [data-theme="dark"] .bge-dock-step-title {
@@ -1221,20 +1301,21 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 .bge-dock-nav-group {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .bge-dock-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.65rem 1.15rem;
-    border-radius: 12px;
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
     border: 1px solid var(--border-color, #e2e8f0);
     background: var(--bg-surface, #ffffff);
     color: var(--text-main, #0f172a);
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1254,18 +1335,42 @@ $sysSecondary = !empty($global_settings['secondary_color']) ? $global_settings['
 .bge-dock-btn:not(:disabled):hover {
     border-color: var(--bge-primary, #262ecf);
     color: var(--bge-primary, #262ecf);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }
 
 .bge-dock-btn-next {
     background: var(--bge-primary, #262ecf);
     color: #ffffff !important;
     border-color: var(--bge-primary, #262ecf);
-    box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--bge-primary, #262ecf) 40%, transparent);
+    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--bge-primary, #262ecf) 40%, transparent);
 }
 
 .bge-dock-btn-next:hover {
     background: var(--bge-primary-hover, #1f25a6);
+}
+
+.bge-dock-save-btn-fixed {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    background: var(--bge-primary, #262ecf);
+    color: #ffffff !important;
+    font-weight: 800;
+    font-size: 0.94rem;
+    padding: 0.72rem 1.5rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 16px -2px color-mix(in srgb, var(--bge-primary, #262ecf) 45%, transparent);
+    transition: all 0.2s ease;
+}
+
+.bge-dock-save-btn-fixed:hover {
+    background: var(--bge-primary-hover, #1f25a6);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px -3px color-mix(in srgb, var(--bge-primary, #262ecf) 65%, transparent);
 }
 
 /* Google Drive Buttons & Modal Styles */
@@ -2070,20 +2175,22 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
     color: #cbd5e1;
 }
 
-/* Responsive Media Queries */
+/* Responsive Media Queries & Mobile Field Optimization */
 @media (max-width: 900px) {
     .bge-container {
-        padding: 1rem 1rem 3rem !important;
+        padding: 0.85rem 0.85rem 165px !important;
     }
     .bge-header {
         flex-direction: column;
         align-items: stretch;
-        gap: 1rem;
-        padding: 1rem 1.25rem;
+        gap: 0.85rem;
+        padding: 1rem 1.15rem;
+        border-radius: 18px;
     }
     .bge-header-actions {
         width: 100%;
-        justify-content: flex-end;
+        display: flex;
+        gap: 0.6rem;
     }
     .bge-tabs-bar {
         padding: 0.4rem;
@@ -2100,27 +2207,95 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         grid-template-columns: 1fr !important;
     }
 }
-@media (max-width: 600px) {
+
+@media (max-width: 768px) {
     .bge-container {
-        padding: 0.75rem 0.5rem 2.5rem !important;
+        padding: 0.65rem 0.65rem 170px !important;
     }
-    .bge-card-panel {
-        padding: 1.25rem 1rem !important;
-        border-radius: 14px !important;
+    .bge-header {
+        padding: 0.85rem 1rem !important;
+        margin-bottom: 1.15rem !important;
+        border-radius: 16px !important;
+    }
+    .bge-header-left {
+        gap: 0.75rem;
     }
     .bge-title {
-        font-size: 1.35rem;
-    }
-    .bge-btn-save {
-        width: 100%;
-        justify-content: center;
+        font-size: 1.25rem !important;
     }
     .bge-header-actions {
         flex-direction: column;
+        width: 100% !important;
     }
     .bge-header-actions a, .bge-header-actions button {
-        width: 100%;
+        width: 100% !important;
+        justify-content: center !important;
+    }
+    /* Ocultar botón duplicado de guardar en header móvil porque está fijo en dock inferior */
+    .bge-header-actions .bge-header-save-btn {
+        display: none !important;
+    }
+
+    /* Arreglar compresión de campos en móvil (Iconografía, Variaciones, Mockups) */
+    .bge-color-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.85rem !important;
+        padding: 0.95rem !important;
+    }
+    .bge-color-item > div:first-child {
+        align-self: flex-start !important;
+    }
+    .bge-color-item > div:nth-child(2),
+    .bge-color-item .bge-item-fields-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 0.55rem !important;
+        min-width: 0 !important;
+    }
+    .bge-color-item .bge-row-actions {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: stretch !important;
+        box-sizing: border-box !important;
+        gap: 0.4rem !important;
+        padding: 4px !important;
+    }
+    .bge-color-item .bge-row-actions .bge-tool-btn {
+        flex: 1 !important;
+        justify-content: center !important;
+        padding: 0.6rem 0.5rem !important;
+        font-size: 0.82rem !important;
+    }
+
+    /* Proposals Pitch Header en móvil */
+    .proposal-card-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+    .proposal-card-header > div:first-child {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    .proposal-card-header > div:last-child {
+        width: 100% !important;
+        justify-content: space-between !important;
+    }
+    .btn-prop-winner {
+        flex: 1;
         justify-content: center;
+    }
+
+    /* Card Panels más compactos en móvil */
+    .bge-card-panel {
+        padding: 1.15rem 1rem !important;
+        border-radius: 16px !important;
+        margin-bottom: 1.15rem !important;
+    }
+    .bge-panel-title {
+        font-size: 1.12rem !important;
     }
 }
 </style>
@@ -2143,7 +2318,6 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                             <span>Studio Editor Pro</span>
                         </span>
                     </div>
-                    <p class="bge-subtitle">Configura los elementos de identidad, logos, variaciones, paleta cromática y reglas de uso.</p>
                 </div>
             </div>
 
@@ -2158,7 +2332,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                     <span class="bge-aspect-pill">16:9</span>
                 </a>
                 <?php endif; ?>
-                <button type="submit" class="bge-btn-save" id="saveSubmitBtn">
+                <button type="submit" class="bge-btn-save bge-header-save-btn" id="saveSubmitBtn">
                     <i class="ph-bold ph-floppy-disk"></i>
                     <span><?php echo $isEdit ? 'Guardar Cambios' : 'Crear Manual'; ?></span>
                     <kbd class="bge-kbd-shortcut">Ctrl+S</kbd>
@@ -2222,7 +2396,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         <div class="bge-section-panel active" id="tab-general">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-identification-card" style="color: #ec4899;"></i> Identidad de la Marca</h2>
-                <p class="bge-panel-desc">Define el nombre oficial de la marca, cliente vinculado, slogan y esencia filosófica.</p>
+                <p class="bge-panel-desc">Identidad principal, cliente vinculado y personalidad de marca.</p>
 
                 <div class="bge-form-grid">
                     <div class="bge-field-group">
@@ -2286,7 +2460,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1.25rem; flex-wrap:wrap;">
                     <div>
                         <h2 class="bge-panel-title"><i class="ph-bold ph-lightbulb" style="color: #f59e0b;"></i> Propuestas de Diseño de Logotipo (Pitch & Aprobación)</h2>
-                        <p class="bge-panel-desc">Presenta 2, 3 o más opciones conceptuales a tu cliente con su justificación de diseño y aplicaciones referenciales.</p>
+                        <p class="bge-panel-desc">Propuestas de identidad para presentación y aprobación del cliente.</p>
                     </div>
                 </div>
 
@@ -2473,7 +2647,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         <div class="bge-section-panel" id="tab-logos">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-paint-brush-broad" style="color: #ec4899;"></i> Logotipo Principal e Isotipo</h2>
-                <p class="bge-panel-desc">Sube los archivos principales del logotipo en alta resolución (SVG, PNG transparente, WebP).</p>
+                <p class="bge-panel-desc">Versión principal del logo en formatos vectoriales y transparente.</p>
 
                 <div class="bge-form-grid">
                     <!-- Logo Principal -->
@@ -2562,7 +2736,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
             <!-- Variaciones Dinámicas -->
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-squares-four" style="color: #ec4899;"></i> Variaciones del Logotipo</h2>
-                <p class="bge-panel-desc">Agrega versiones secundarias: horizontal, vertical, sello, monocromático en negro o escala de grises.</p>
+                <p class="bge-panel-desc">Versiones alternativas (vertical, horizontal, blanco y negro).</p>
 
                 <div id="variationsContainer">
                     <?php foreach ($variations as $idx => $v): ?>
@@ -2574,7 +2748,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                     <i class="ph-bold ph-image" style="color: var(--text-muted); font-size: 1.5rem;"></i>
                                 <?php endif; ?>
                             </div>
-                            <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                                 <input type="text" class="bge-input var-name" placeholder="Nombre (ej. Versión Vertical)" value="<?php echo htmlspecialchars($v['name'] ?? ''); ?>">
                                 <input type="text" class="bge-input var-desc" placeholder="Uso recomendado" value="<?php echo htmlspecialchars($v['desc'] ?? ''); ?>">
                                 <input type="hidden" class="var-url" value="<?php echo htmlspecialchars($v['url'] ?? ''); ?>">
@@ -2606,7 +2780,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         <div class="bge-section-panel" id="tab-icons">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-app-window" style="color: #ec4899;"></i> Iconografía & Elementos Digitales</h2>
-                <p class="bge-panel-desc">Sube los favicons, iconos para aplicaciones móviles, avatares o sets de pictogramas de la marca.</p>
+                <p class="bge-panel-desc">Favicons, avatares y elementos gráficos para medios digitales.</p>
 
                 <div id="iconsContainer">
                     <?php if (empty($icons)): ?>
@@ -2615,7 +2789,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                             <div style="width: 50px; height: 50px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; display:flex; align-items:center; justify-content:center; padding: 4px; flex-shrink: 0; overflow:hidden;">
                                 <i class="ph-bold ph-app-window" style="color: var(--text-muted); font-size: 1.35rem;"></i>
                             </div>
-                            <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                                 <input type="text" class="bge-input ico-name" placeholder="Nombre (ej. Favicon Web)" value="Favicon Oficial">
                                 <input type="text" class="bge-input ico-desc" placeholder="Especificación (ej. 32x32px / 64x64px)" value="Icono para pestañas del navegador">
                                 <input type="hidden" class="ico-url" value="">
@@ -2644,7 +2818,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                         <i class="ph-bold ph-app-window" style="color: var(--text-muted); font-size: 1.35rem;"></i>
                                     <?php endif; ?>
                                 </div>
-                                <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                                     <input type="text" class="bge-input ico-name" placeholder="Nombre del Icono" value="<?php echo htmlspecialchars($ico['name'] ?? ''); ?>">
                                     <input type="text" class="bge-input ico-desc" placeholder="Descripción de uso" value="<?php echo htmlspecialchars($ico['desc'] ?? ''); ?>">
                                     <input type="hidden" class="ico-url" value="<?php echo htmlspecialchars($ico['url'] ?? ''); ?>">
@@ -2679,7 +2853,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom: 1.5rem;">
                     <div>
                         <h2 class="bge-panel-title"><i class="ph-bold ph-palette" style="color: #ec4899;"></i> Paleta Cromática Corporativa</h2>
-                        <p class="bge-panel-desc" style="margin-bottom:0;">Selecciona el color visualmente y el sistema calculará automáticamente los códigos RGB, CMYK y tonalidades monocromáticas.</p>
+                        <p class="bge-panel-desc" style="margin-bottom:0;">Paleta corporativa oficial con códigos HEX, RGB y CMYK automáticos.</p>
                     </div>
                     <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
                         <button type="button" class="bge-btn-preview" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="extractColorsFromCurrentLogo()">
@@ -2815,7 +2989,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
                     <div>
                         <h2 class="bge-panel-title"><i class="ph-bold ph-text-t" style="color: #ec4899;"></i> Tipografías Corporativas</h2>
-                        <p class="bge-panel-desc">Define las fuentes principales y secundarias de la marca. Puedes elegir directamente de <strong>Google Fonts</strong> (catálogo oficial con +1,900 fuentes) o <strong>subir tu archivo de tipografía / Google Drive</strong>.</p>
+                        <p class="bge-panel-desc">Fuentes oficiales para títulos y cuerpos de texto (Google Fonts o Drive).</p>
                     </div>
                     <span style="font-size:0.8rem; background:rgba(236,72,153,0.1); color:#ec4899; padding:0.4rem 0.85rem; border-radius:999px; font-weight:700; display:inline-flex; align-items:center; gap:0.4rem;">
                         <i class="ph-bold ph-sparkle"></i> Renderizado en Vivo 16:9
@@ -2953,7 +3127,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         <div class="bge-section-panel" id="tab-rules">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-shield-check" style="color: #ec4899;"></i> Área de Seguridad y Tamaños Mínimos</h2>
-                <p class="bge-panel-desc">Establece el margen de protección indispensable para asegurar la legibilidad del logotipo.</p>
+                <p class="bge-panel-desc">Área de reserva y margen de protección del logo.</p>
 
                 <div class="bge-form-grid">
                     <div class="bge-field-group">
@@ -2971,7 +3145,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
             <!-- Usos Prohibidos -->
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-prohibit" style="color: #ef4444;"></i> Usos Incorrectos del Logotipo</h2>
-                <p class="bge-panel-desc">Indica de forma clara y visual las malas prácticas que deben evitarse al aplicar la identidad.</p>
+                <p class="bge-panel-desc">Usos incorrectos y restricciones a evitar.</p>
 
                 <div id="incorrectUsesContainer">
                     <?php foreach ($incorrectUses as $idx => $u): ?>
@@ -2979,7 +3153,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                             <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.12); color: #ef4444; display: flex; align-items:center; justify-content:center; font-size: 22px; flex-shrink: 0;">
                                 <i class="ph-bold ph-x-circle"></i>
                             </div>
-                            <div style="flex:1; display:grid; grid-template-columns: 1fr 2fr; gap: 0.75rem;">
+                            <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 2fr; gap: 0.75rem;">
                                 <input type="text" class="bge-input inc-title" value="<?php echo htmlspecialchars($u['title'] ?? ''); ?>" placeholder="Título de prohibición (ej. No deformar)">
                                 <input type="text" class="bge-input inc-desc" value="<?php echo htmlspecialchars($u['desc'] ?? ''); ?>" placeholder="Explicación del uso incorrecto...">
                             </div>
@@ -3000,7 +3174,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         <div class="bge-section-panel" id="tab-mockups">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-image-square" style="color: #ec4899;"></i> Aplicaciones de Marca y Mockups</h2>
-                <p class="bge-panel-desc">Sube imágenes reales o mockups de cómo se aplica la marca en papelería, redes sociales, packaging o tarjetas. Puedes elegir entre 10 aplicaciones predefinidas o cargar las tuyas.</p>
+                <p class="bge-panel-desc">Mockups y aplicaciones reales de la identidad corporativa.</p>
 
                 <!-- Mockups Toolbar: Presets & Live Preview -->
                 <div class="bge-apps-toolbar">
@@ -3027,7 +3201,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
                                     <i class="ph-bold ph-image" style="color: var(--text-muted); font-size: 1.8rem;"></i>
                                 <?php endif; ?>
                             </div>
-                            <div style="flex:1; display:grid; grid-template-columns: 1fr 1.5fr; gap: 0.75rem;">
+                            <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 1.5fr; gap: 0.75rem;">
                                 <input type="text" class="bge-input app-title" value="<?php echo htmlspecialchars($app['title'] ?? ''); ?>" placeholder="Título (ej. Tarjetas de Presentación)">
                                 <input type="text" class="bge-input app-desc" value="<?php echo htmlspecialchars($app['desc'] ?? ''); ?>" placeholder="Descripción de la aplicación">
                                 <input type="hidden" class="app-url" value="<?php echo htmlspecialchars($app['image_url'] ?? ''); ?>">
@@ -3055,7 +3229,7 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
         <div class="bge-section-panel" id="tab-privacy">
             <div class="bge-card-panel">
                 <h2 class="bge-panel-title"><i class="ph-bold ph-share-network" style="color: #ec4899;"></i> Enlace Corto y Modo de Compartir</h2>
-                <p class="bge-panel-desc">Configura la URL amigable y define si el manual estará disponible públicamente o protegido con contraseña/PIN.</p>
+                <p class="bge-panel-desc">Acceso público, URL personalizada y protección con contraseña.</p>
 
                 <div class="bge-form-grid">
                     <!-- Slug amigable -->
@@ -3116,27 +3290,29 @@ input[type="checkbox"]:checked + .bge-switch-toggle::after {
             </div>
         </div>
 
-        <!-- Sticky Floating Studio Bottom Dock -->
-        <div class="bge-bottom-dock">
-            <div class="bge-dock-step-info">
-                <span class="bge-dock-step-circle" id="dockStepNum">1</span>
-                <div>
-                    <div class="bge-dock-step-sub">Paso activo</div>
-                    <div class="bge-dock-step-title" id="dockStepTitle">Datos Generales</div>
+        <!-- App Studio Fixed Bottom Dock -->
+        <div class="bge-fixed-bottom-dock">
+            <div class="bge-dock-inner">
+                <div class="bge-dock-top-row">
+                    <div class="bge-dock-step-info">
+                        <span class="bge-dock-step-circle" id="dockStepNum">1</span>
+                        <div style="min-width:0;">
+                            <div class="bge-dock-step-sub" id="dockStepSub">Paso 1 de 9</div>
+                            <div class="bge-dock-step-title" id="dockStepTitle">Datos Generales</div>
+                        </div>
+                    </div>
+
+                    <div class="bge-dock-nav-group">
+                        <button type="button" class="bge-dock-btn" id="dockPrevBtn" onclick="navigateStep(-1)" disabled>
+                            <i class="ph-bold ph-arrow-left"></i> <span>Paso Anterior</span>
+                        </button>
+                        <button type="button" class="bge-dock-btn bge-dock-btn-next" id="dockNextBtn" onclick="navigateStep(1)">
+                            <span>Siguiente Paso</span> <i class="ph-bold ph-arrow-right"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="bge-dock-nav-group">
-                <button type="button" class="bge-dock-btn" id="dockPrevBtn" onclick="navigateStep(-1)" disabled>
-                    <i class="ph-bold ph-arrow-left"></i> <span>Paso Anterior</span>
-                </button>
-                <button type="button" class="bge-dock-btn bge-dock-btn-next" id="dockNextBtn" onclick="navigateStep(1)">
-                    <span>Siguiente Paso</span> <i class="ph-bold ph-arrow-right"></i>
-                </button>
-            </div>
-
-            <div class="bge-dock-save-group">
-                <button type="button" class="bge-btn-save bge-dock-save-btn" onclick="document.getElementById('brandGuidelineForm').requestSubmit()">
+                <button type="button" class="bge-dock-save-btn-fixed" onclick="document.getElementById('brandGuidelineForm').requestSubmit()">
                     <i class="ph-bold ph-floppy-disk"></i>
                     <span>Guardar Cambios</span>
                     <kbd class="bge-kbd-shortcut">Ctrl+S</kbd>
@@ -3193,11 +3369,13 @@ window.switchBgeTab = switchBgeTab;
 function updateBottomDock() {
     const step = BGE_STEPS[currentStepIndex] || BGE_STEPS[0];
     const numEl = document.getElementById('dockStepNum');
+    const subEl = document.getElementById('dockStepSub');
     const titleEl = document.getElementById('dockStepTitle');
     const prevBtn = document.getElementById('dockPrevBtn');
     const nextBtn = document.getElementById('dockNextBtn');
 
     if (numEl) numEl.textContent = step.num;
+    if (subEl) subEl.textContent = `Paso ${step.num} de ${BGE_STEPS.length}`;
     if (titleEl) titleEl.textContent = step.title;
 
     if (prevBtn) {
@@ -3205,7 +3383,7 @@ function updateBottomDock() {
     }
     if (nextBtn) {
         if (currentStepIndex === BGE_STEPS.length - 1) {
-            nextBtn.innerHTML = '<span>Finalizar & Guardar</span> <i class="ph-bold ph-check"></i>';
+            nextBtn.innerHTML = '<span>Finalizar</span> <i class="ph-bold ph-check"></i>';
             nextBtn.onclick = function() { document.getElementById('brandGuidelineForm').requestSubmit(); };
         } else {
             nextBtn.innerHTML = '<span>Siguiente Paso</span> <i class="ph-bold ph-arrow-right"></i>';
@@ -4064,7 +4242,7 @@ function addVariationRow() {
         <div style="width: 60px; height: 60px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; display:flex; align-items:center; justify-content:center; padding: 4px; flex-shrink: 0; overflow:hidden;">
             <i class="ph-bold ph-image" style="color: var(--text-muted); font-size: 1.5rem;"></i>
         </div>
-        <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <input type="text" class="bge-input var-name" placeholder="Nombre (ej. Versión Monocromática)">
             <input type="text" class="bge-input var-desc" placeholder="Uso recomendado">
             <input type="hidden" class="var-url" value="">
@@ -4106,7 +4284,7 @@ function addIconRow() {
         <div style="width: 50px; height: 50px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; display:flex; align-items:center; justify-content:center; padding: 4px; flex-shrink: 0; overflow:hidden;">
             <i class="ph-bold ph-app-window" style="color: var(--text-muted); font-size: 1.35rem;"></i>
         </div>
-        <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <input type="text" class="bge-input ico-name" placeholder="Nombre (ej. App Icon iOS)">
             <input type="text" class="bge-input ico-desc" placeholder="Descripción de uso">
             <input type="hidden" class="ico-url" value="">
@@ -4679,7 +4857,7 @@ function addAppRow(initialTitle = '', initialDesc = '', initialUrl = '') {
         <div style="width: 70px; height: 70px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; display:flex; align-items:center; justify-content:center; padding: 4px; flex-shrink: 0; overflow:hidden;">
             ${thumbHtml}
         </div>
-        <div style="flex:1; display:grid; grid-template-columns: 1fr 1.5fr; gap: 0.75rem;">
+        <div class="bge-item-fields-grid" style="flex:1; display:grid; grid-template-columns: 1fr 1.5fr; gap: 0.75rem;">
             <input type="text" class="bge-input app-title" placeholder="Título (ej. Packaging)" value="${escapeHtmlAttr(initialTitle)}">
             <input type="text" class="bge-input app-desc" placeholder="Descripción de la aplicación" value="${escapeHtmlAttr(initialDesc)}">
             <input type="hidden" class="app-url" value="${escapeHtmlAttr(initialUrl)}">
@@ -5521,19 +5699,23 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="app-presets-overlay" id="appPresetsModal" onclick="if(event.target === this) closeAppPresetsModal()">
     <div class="app-presets-dialog">
         <div class="app-presets-header">
-            <div>
-                <h3 style="margin:0; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; color:var(--text-main);">
-                    <i class="ph-bold ph-sparkle" style="color:#ec4899;"></i> Catálogo de 10 Mockups Sugeridos
-                </h3>
-                <p style="margin:0.25rem 0 0; font-size:0.78rem; color:var(--text-muted);">
-                    Selecciona las aplicaciones de marca recomendadas para enriquecer el manual corporativo.
-                </p>
+            <div style="display:flex; align-items:center; gap:0.85rem; min-width:0;">
+                <div style="width:44px; height:44px; border-radius:14px; background:linear-gradient(135deg, rgba(236,72,153,0.18), rgba(168,85,247,0.18)); color:#ec4899; display:flex; align-items:center; justify-content:center; font-size:1.45rem; flex-shrink:0;">
+                    <i class="ph-bold ph-sparkle"></i>
+                </div>
+                <div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                        <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--text-main);">Catálogo de Mockups Sugeridos</h3>
+                        <span style="background:rgba(236,72,153,0.12); color:#ec4899; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">10 Aplicaciones</span>
+                    </div>
+                    <p style="margin:0.2rem 0 0; font-size:0.78rem; color:var(--text-muted);">Elige las plantillas para enriquecer el manual de marca o cárgalas todas.</p>
+                </div>
             </div>
-            <div style="display:flex; align-items:center; gap:0.65rem;">
-                <button type="button" class="bge-btn-save" style="font-size:0.78rem; padding:0.45rem 0.85rem;" onclick="addAllPresetsToGuideline()">
+            <div style="display:flex; align-items:center; gap:0.65rem; flex-shrink:0;">
+                <button type="button" class="bge-btn-preset-catalog" style="font-size:0.82rem; padding:0.5rem 0.95rem;" onclick="addAllPresetsToGuideline()">
                     <i class="ph-bold ph-check-square-offset"></i> Cargar Todos los 10
                 </button>
-                <button type="button" onclick="closeAppPresetsModal()" style="background:transparent; border:none; font-size:1.35rem; color:var(--text-muted); cursor:pointer;">
+                <button type="button" onclick="closeAppPresetsModal()" style="width:36px; height:36px; border-radius:10px; background:var(--bg-body, #f1f5f9); border:none; font-size:1.2rem; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;" title="Cerrar">
                     <i class="ph-bold ph-x"></i>
                 </button>
             </div>
