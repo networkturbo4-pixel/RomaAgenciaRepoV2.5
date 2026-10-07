@@ -379,6 +379,10 @@ class DatabaseMigrationManager {
                 continue;
             }
 
+            if (preg_match('/^DELIMITER\b/i', $trimmed)) {
+                continue;
+            }
+
             $currentQuery .= $line . "\n";
             if (substr(rtrim($line), -1) === ';') {
                 $queries[] = trim($currentQuery);
