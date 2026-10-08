@@ -38,6 +38,7 @@ $has_custom_cols = true;
 try {
     $existing_cols = $db->query("SHOW COLUMNS FROM quotes")->fetchAll(PDO::FETCH_COLUMN);
     $missing_cols = [];
+    if (!in_array('client_company', $existing_cols)) $missing_cols[] = "ADD COLUMN `client_company` VARCHAR(255) NULL AFTER `client_id`";
     if (!in_array('theme_color', $existing_cols)) $missing_cols[] = "ADD COLUMN `theme_color` VARCHAR(50) DEFAULT 'corporate-blue'";
     if (!in_array('cover_image', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_image` VARCHAR(255) NULL";
     if (!in_array('cover_gradient', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_gradient` VARCHAR(100) DEFAULT 'mesh-blue'";
@@ -63,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $quote_id = isset($_POST['quote_id']) ? (int)$_POST['quote_id'] : 0;
         $client_name = trim($_POST['client_name'] ?? '');
+        $client_company = trim($_POST['client_company'] ?? '');
         $issue_date = $_POST['issue_date'] ?? date('Y-m-d');
         $due_date = $_POST['due_date'] ?? date('Y-m-d', strtotime('+15 days'));
         $currency = $_POST['currency'] ?? 'USD';
@@ -107,6 +109,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $client_id = $db->lastInsertId();
             }
         }
+
+        // Auto-resolve company from client_brands if not provided
+        if (empty($client_company) && $client_id > 0) {
+            try {
+                $stmtBr = $db->prepare("SELECT name FROM client_brands WHERE client_id = ? ORDER BY id ASC LIMIT 1");
+                $stmtBr->execute([$client_id]);
+                $client_company = $stmtBr->fetchColumn() ?: '';
+            } catch(Exception $e) {}
+        }
         
         $subtotal = 0;
         $tax = 0;
@@ -130,20 +141,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($quote_id == 0) {
             $token = bin2hex(random_bytes(6));
             if ($has_custom_cols) {
-                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, theme_color, cover_image, cover_gradient, hide_prices, show_gantt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $theme_color, $cover_image, $cover_gradient, $hide_prices, $show_gantt]);
+                $stmt = $db->prepare("INSERT INTO quotes (client_id, client_company, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, theme_color, cover_image, cover_gradient, hide_prices, show_gantt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$client_id, $client_company, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $theme_color, $cover_image, $cover_gradient, $hide_prices, $show_gantt]);
             } else {
-                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, hide_prices, show_gantt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $hide_prices, $show_gantt]);
+                $stmt = $db->prepare("INSERT INTO quotes (client_id, client_company, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, hide_prices, show_gantt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$client_id, $client_company, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $hide_prices, $show_gantt]);
             }
             $quote_id = $db->lastInsertId();
         } else {
             if ($has_custom_cols) {
-                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, theme_color=?, cover_image=?, cover_gradient=?, hide_prices=?, show_gantt=? WHERE id=?");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $theme_color, $cover_image, $cover_gradient, $hide_prices, $show_gantt, $quote_id]);
+                $stmt = $db->prepare("UPDATE quotes SET client_id=?, client_company=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, theme_color=?, cover_image=?, cover_gradient=?, hide_prices=?, show_gantt=? WHERE id=?");
+                $stmt->execute([$client_id, $client_company, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $theme_color, $cover_image, $cover_gradient, $hide_prices, $show_gantt, $quote_id]);
             } else {
-                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, hide_prices=?, show_gantt=? WHERE id=?");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $hide_prices, $show_gantt, $quote_id]);
+                $stmt = $db->prepare("UPDATE quotes SET client_id=?, client_company=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, hide_prices=?, show_gantt=? WHERE id=?");
+                $stmt->execute([$client_id, $client_company, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $hide_prices, $show_gantt, $quote_id]);
             }
             
             // Delete old items and tasks to re-insert

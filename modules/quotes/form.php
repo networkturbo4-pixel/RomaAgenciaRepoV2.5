@@ -26,7 +26,8 @@ $quote_items = [];
 
 if ($id > 0) {
     $stmt = $db->prepare("
-        SELECT q.*, c.name AS client_name, c.dni AS client_dni, c.email AS client_email, c.whatsapp AS client_whatsapp
+        SELECT q.*, c.name AS client_name, c.dni AS client_dni, c.email AS client_email, c.whatsapp AS client_whatsapp,
+               (SELECT b.name FROM client_brands b WHERE b.client_id = c.id ORDER BY b.id ASC LIMIT 1) AS client_default_brand
         FROM quotes q
         LEFT JOIN clients c ON q.client_id = c.id
         WHERE q.id = ?
@@ -42,7 +43,12 @@ if ($id > 0) {
 }
 
 // Fetch lists
-$clients = $db->query("SELECT id, name, dni, email, whatsapp FROM clients ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+$clients = $db->query("
+    SELECT c.id, c.name, c.dni, c.email, c.whatsapp,
+           (SELECT b.name FROM client_brands b WHERE b.client_id = c.id ORDER BY b.id ASC LIMIT 1) AS brand_name
+    FROM clients c 
+    ORDER BY c.name ASC
+")->fetchAll(PDO::FETCH_ASSOC);
 $services = $db->query("SELECT id, name, price FROM services ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 // Resolve selected client for quotes being edited
@@ -60,10 +66,15 @@ if ($quote && !empty($quote['client_id'])) {
             'name' => $quote['client_name'],
             'dni' => $quote['client_dni'] ?? '',
             'email' => $quote['client_email'] ?? '',
-            'whatsapp' => $quote['client_whatsapp'] ?? ''
+            'whatsapp' => $quote['client_whatsapp'] ?? '',
+            'brand_name' => $quote['client_default_brand'] ?? ''
         ];
     }
 }
+
+$selected_client_company = !empty($quote['client_company']) 
+    ? $quote['client_company'] 
+    : (!empty($selected_client['brand_name']) ? $selected_client['brand_name'] : ($quote['client_default_brand'] ?? ''));
 
 if (!function_exists('getClientInitialsMonogram')) {
     function getClientInitialsMonogram($name) {
@@ -2180,6 +2191,9 @@ require_once 'includes/header.php';
                                         </span>
                                     </div>
                                     <div class="client-meta-chips" id="cardClientMetaChips">
+                                        <span class="client-meta-pill pill-company" id="cardChipCompany" style="<?php echo (!empty($selected_client_company)) ? 'display: inline-flex;' : 'display: none;'; ?>">
+                                            <i class="ph ph-buildings"></i> <b>Empresa:</b> <span class="val"><?php echo htmlspecialchars($selected_client_company); ?></span>
+                                        </span>
                                         <span class="client-meta-pill" id="cardChipDni" style="<?php echo (!empty($selected_client['dni'])) ? 'display: inline-flex;' : 'display: none;'; ?>">
                                             <i class="ph ph-identification-card"></i> <b>DNI/RUC:</b> <span class="val"><?php echo htmlspecialchars($selected_client['dni'] ?? ''); ?></span>
                                         </span>
@@ -2189,6 +2203,12 @@ require_once 'includes/header.php';
                                         <span class="client-meta-pill" id="cardChipEmail" style="<?php echo (!empty($selected_client['email'])) ? 'display: inline-flex;' : 'display: none;'; ?>">
                                             <i class="ph ph-envelope-simple"></i> <span class="val"><?php echo htmlspecialchars($selected_client['email'] ?? ''); ?></span>
                                         </span>
+                                    </div>
+                                    <div class="client-company-edit-row" style="margin-top: 0.65rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                        <label for="client_company" style="font-size: 11px; font-weight: 700; color: var(--quote-text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ph ph-buildings" style="color: var(--quote-primary, #3b82f6);"></i> Empresa / Marca:
+                                        </label>
+                                        <input type="text" name="client_company" id="client_company" class="form-control" style="height: 32px; font-size: 12.5px; max-width: 320px; border-radius: 6px; padding: 0.25rem 0.6rem;" value="<?php echo htmlspecialchars($selected_client_company); ?>" placeholder="Ej: Mi Empresa S.A.C. (opcional)">
                                     </div>
                                 </div>
                             </div>
@@ -4125,6 +4145,22 @@ function updateClientCardUI(client) {
             emailPill.style.display = 'none';
         }
     }
+
+    const companyInput = document.getElementById('client_company');
+    const companyPill = document.getElementById('cardChipCompany');
+    const compVal = (client.brand_name || client.company || '').trim();
+    if (companyInput && compVal) {
+        companyInput.value = compVal;
+    }
+    if (companyPill) {
+        const curComp = (companyInput ? companyInput.value : '') || compVal;
+        if (curComp.trim() !== '') {
+            companyPill.style.display = 'inline-flex';
+            companyPill.querySelector('.val').textContent = curComp.trim();
+        } else {
+            companyPill.style.display = 'none';
+        }
+    }
 }
 
 function selectClient(client) {
@@ -4132,6 +4168,11 @@ function selectClient(client) {
     currentSelectedClient = client;
     document.getElementById('client_id').value = client.id || '';
     document.getElementById('client_name').value = client.name || '';
+    const compVal = (client.brand_name || client.company || '').trim();
+    const companyInput = document.getElementById('client_company');
+    if (companyInput && compVal) {
+        companyInput.value = compVal;
+    }
 
     updateClientCardUI(client);
 
@@ -4250,7 +4291,8 @@ function filterClientsList(query) {
             const dniMatch = (c.dni || '').toLowerCase().includes(q);
             const phoneMatch = (c.whatsapp || '').toLowerCase().includes(q);
             const emailMatch = (c.email || '').toLowerCase().includes(q);
-            return nameMatch || dniMatch || phoneMatch || emailMatch;
+            const brandMatch = (c.brand_name || '').toLowerCase().includes(q);
+            return nameMatch || dniMatch || phoneMatch || emailMatch || brandMatch;
         });
 
         if (quickAddRow && quickAddName) {
@@ -4299,6 +4341,9 @@ function renderClientOptions(list, query) {
         const isSel = (curId && curId == c.id);
 
         let metaHtml = '';
+        if (c.brand_name) {
+            metaHtml += `<span class="client-opt-chip" style="color:var(--quote-primary,#3b82f6); font-weight:700;"><i class="ph ph-buildings"></i> ${escapeHtml(c.brand_name)}</span>`;
+        }
         if (c.dni) {
             metaHtml += `<span class="client-opt-chip"><i class="ph ph-identification-card"></i> ${escapeHtml(c.dni)}</span>`;
         }
@@ -4363,6 +4408,22 @@ function initClientPicker() {
             closeClientDropdown();
         }
     });
+
+    const compInput = document.getElementById('client_company');
+    if (compInput) {
+        compInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            const pill = document.getElementById('cardChipCompany');
+            if (pill) {
+                if (val) {
+                    pill.style.display = 'inline-flex';
+                    pill.querySelector('.val').textContent = val;
+                } else {
+                    pill.style.display = 'none';
+                }
+            }
+        });
+    }
 
     if (currentSelectedClient) {
         updateClientCardUI(currentSelectedClient);
@@ -4440,6 +4501,7 @@ $('#btnSaveQuote').on('click', function(e) {
             quote_id: $('#quote_id').val(),
             client_id: $('#client_id').val() || '',
             client_name: client_name,
+            client_company: $('#client_company').val() || '',
             issue_date: $('#issue_date').val(),
             due_date: $('#due_date').val(),
             currency: $('#currency').val(),

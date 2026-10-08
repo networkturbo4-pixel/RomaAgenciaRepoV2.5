@@ -11,11 +11,22 @@ if (!$token) {
     die("Enlace inválido o expirado.");
 }
 
-// Fetch quote
-$stmt = $db->prepare("SELECT q.*, c.name as client_name 
-                     FROM quotes q 
-                     LEFT JOIN clients c ON q.client_id = c.id 
-                     WHERE q.public_token = ?");
+// Self-healing migration: Ensure client_company exists
+try {
+    $existing_cols = $db->query("SHOW COLUMNS FROM quotes")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('client_company', $existing_cols)) {
+        $db->exec("ALTER TABLE `quotes` ADD COLUMN `client_company` VARCHAR(255) NULL AFTER `client_id`");
+    }
+} catch (Exception $e) {}
+
+// Fetch quote with client and brand/company
+$stmt = $db->prepare("
+    SELECT q.*, c.name AS client_name, c.dni AS client_dni,
+           COALESCE(NULLIF(q.client_company, ''), (SELECT b.name FROM client_brands b WHERE b.client_id = c.id ORDER BY b.id ASC LIMIT 1)) AS client_company
+    FROM quotes q 
+    LEFT JOIN clients c ON q.client_id = c.id 
+    WHERE q.public_token = ?
+");
 $stmt->execute([$token]);
 $quote = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -950,6 +961,27 @@ if (!empty($quote['cover_image'])) {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .meta-item-company {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.01em;
+            line-height: 1.25;
+            margin-top: 0.15rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .meta-item-company i {
+            font-size: 0.95rem;
+            flex-shrink: 0;
         }
 
         .meta-item-sub {
@@ -2024,7 +2056,27 @@ if (!empty($quote['cover_image'])) {
                 font-size: 0.86rem !important;
             }
 
-            .meta-item-sub {
+            .meta-item-company {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 0.28rem !important;
+                font-size: 0.76rem !important;
+                font-weight: 700 !important;
+                color: var(--primary) !important;
+                line-height: 1.2 !important;
+                margin-top: 0.15rem !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 100% !important;
+            }
+
+            .meta-item-company i {
+                font-size: 0.86rem !important;
+                flex-shrink: 0 !important;
+            }
+
+            .meta-item-box:not(:first-child) .meta-item-sub {
                 display: none !important;
             }
 
@@ -2417,7 +2469,12 @@ if (!empty($quote['cover_image'])) {
                 <div class="meta-text-group">
                     <span class="meta-item-label">Preparado para</span>
                     <span class="meta-item-value"><?php echo htmlspecialchars($quote['client_name'] ?? 'Cliente'); ?></span>
-                    <?php if(!empty($quote['document_number'])): ?>
+                    <?php if(!empty($quote['client_company'])): ?>
+                        <span class="meta-item-company"><i class="ph ph-buildings"></i> <?php echo htmlspecialchars($quote['client_company']); ?></span>
+                    <?php endif; ?>
+                    <?php if(!empty($quote['client_dni'])): ?>
+                        <span class="meta-item-sub">Doc: <?php echo htmlspecialchars($quote['client_dni']); ?></span>
+                    <?php elseif(!empty($quote['document_number'])): ?>
                         <span class="meta-item-sub">Doc: <?php echo htmlspecialchars($quote['document_number']); ?></span>
                     <?php endif; ?>
                 </div>
