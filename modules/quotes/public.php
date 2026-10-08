@@ -308,6 +308,7 @@ if (!empty($quote['cover_image'])) {
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
             transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
         }
 
         .container {
@@ -903,14 +904,20 @@ if (!empty($quote['cover_image'])) {
             border-radius: var(--inner-radius);
             border: 1px solid var(--border);
             background: var(--surface);
-            overflow-x: auto;
-            scrollbar-width: thin;
+            overflow-x: hidden !important;
+            scrollbar-width: none !important;
+        }
+        .table-responsive-wrap::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         .services-table {
-            width: 100%;
+            width: 100% !important;
+            max-width: 100% !important;
             border-collapse: collapse;
-            table-layout: fixed; /* Ensures strict 100% layout and prevents columns from escaping */
+            table-layout: fixed !important; /* Ensures strict 100% layout and prevents columns from escaping */
         }
 
         .services-table th {
@@ -946,8 +953,9 @@ if (!empty($quote['cover_image'])) {
 
         /* When prices are hidden: description column takes 100% full width */
         .services-table.hide-prices-table {
-            width: 100%;
-            table-layout: auto;
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
         }
         .services-table.hide-prices-table th.col-desc,
         .services-table.hide-prices-table td.service-desc-cell {
@@ -958,10 +966,13 @@ if (!empty($quote['cover_image'])) {
         .services-table.hide-prices-table td.service-desc-cell .quote-table-wrapper {
             width: 100% !important;
             max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
         }
         .services-table.hide-prices-table td.service-desc-cell table {
             width: 100% !important;
-            min-width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
         }
 
         .services-table td {
@@ -1025,9 +1036,13 @@ if (!empty($quote['cover_image'])) {
             margin: 0.85rem 0 0.5rem 0;
             border: 1px solid var(--border);
             border-radius: 8px;
-            overflow-x: auto;
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
             background: var(--surface);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .service-desc-cell .quote-table-actions {
@@ -1035,13 +1050,17 @@ if (!empty($quote['cover_image'])) {
         }
 
         .service-desc-cell .quote-modern-table {
-            width: 100%;
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
             border-collapse: collapse;
             font-size: 0.84rem;
             line-height: 1.5;
             text-align: left;
             margin: 0;
             border: none;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .service-desc-cell .quote-modern-table th {
@@ -1056,7 +1075,9 @@ if (!empty($quote['cover_image'])) {
             border-top: none;
             border-left: none;
             border-right: none;
-            white-space: nowrap;
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .service-desc-cell .quote-modern-table td {
@@ -1069,6 +1090,9 @@ if (!empty($quote['cover_image'])) {
             border-right: none !important;
             background: transparent !important;
             vertical-align: middle !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .service-desc-cell .quote-modern-table tbody tr:last-child td {
@@ -1521,6 +1545,8 @@ if (!empty($quote['cover_image'])) {
         /* Sub-tables Modern Desktop Styling */
         .service-desc-cell table {
             width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
             border-collapse: separate !important;
             border-spacing: 0 !important;
             border: 1.5px solid var(--border-focus, #cbd5e1) !important;
@@ -1529,6 +1555,8 @@ if (!empty($quote['cover_image'])) {
             margin: 1rem 0 !important;
             background: var(--surface) !important;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .service-desc-cell table th {
@@ -1541,6 +1569,9 @@ if (!empty($quote['cover_image'])) {
             padding: 0.85rem 1rem !important;
             border-bottom: 1.5px solid var(--border-focus, #cbd5e1) !important;
             border-right: 1.5px solid var(--border) !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .service-desc-cell table th:last-child {
@@ -1555,6 +1586,9 @@ if (!empty($quote['cover_image'])) {
             font-size: 0.88rem !important;
             line-height: 1.55 !important;
             background: transparent !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .service-desc-cell table td:last-child {
@@ -1828,6 +1862,11 @@ if (!empty($quote['cover_image'])) {
             /* Tightened Body and Cards for Superior Mobile Readability */
             .doc-body {
                 padding: 0.85rem 0.65rem !important;
+            }
+
+            .table-responsive-wrap {
+                overflow-x: hidden !important;
+                scrollbar-width: none !important;
             }
 
             .services-table thead {

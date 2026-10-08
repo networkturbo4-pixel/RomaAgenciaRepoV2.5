@@ -1224,6 +1224,7 @@ require_once 'includes/header.php';
 
 .quote-modern-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
     font-size: 12.5px;
@@ -1234,6 +1235,8 @@ require_once 'includes/header.php';
     border: 1.5px solid #cbd5e1;
     border-radius: 8px;
     overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .quote-modern-table th {
@@ -1246,7 +1249,9 @@ require_once 'includes/header.php';
     padding: 8px 12px;
     border-bottom: 1.5px solid #cbd5e1;
     border-right: 1.5px solid var(--quote-border);
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .quote-modern-table th:last-child {
