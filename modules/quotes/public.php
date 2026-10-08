@@ -36,6 +36,75 @@ if (!empty($quote['show_payment_methods']) && !empty($quote['payment_methods_tex
     $pm_lines = explode("\n", trim($quote['payment_methods_text']));
 }
 
+// Build Sequential Execution Timeline ("solo fecha de inicio hasta el fin y así consiguiente")
+$timeline_phases = [];
+$project_start_date = null;
+$project_end_date = null;
+$total_project_days = 0;
+
+$cursor_date = !empty($quote['issue_date']) ? $quote['issue_date'] : date('Y-m-d');
+
+foreach ($items as $idx => $it) {
+    $duration = (int)($it['gantt_duration'] ?? 0);
+    $has_start = !empty($it['gantt_start_date']);
+    
+    if ($duration > 0 || $has_start) {
+        $duration = max(1, $duration);
+        $phase_start_str = $has_start ? $it['gantt_start_date'] : $cursor_date;
+        
+        try {
+            $s_dt = new DateTime($phase_start_str);
+        } catch(Exception $e) {
+            $s_dt = new DateTime();
+        }
+        
+        $e_dt = clone $s_dt;
+        if ($duration > 1) {
+            $e_dt->modify('+' . ($duration - 1) . ' days');
+        }
+        
+        $phase_start = $s_dt->format('Y-m-d');
+        $phase_end = $e_dt->format('Y-m-d');
+        
+        // Clean phase title
+        $raw_desc = strip_tags($it['description']);
+        $lines = preg_split("/\r\n|\n|\r/", trim($raw_desc));
+        $clean_title = !empty($lines[0]) ? mb_substr(trim($lines[0]), 0, 75) : ('Fase ' . (count($timeline_phases) + 1));
+        
+        $timeline_phases[] = [
+            'num' => count($timeline_phases) + 1,
+            'title' => $clean_title,
+            'start' => $phase_start,
+            'end' => $phase_end,
+            'start_formatted' => $s_dt->format('d M, Y'),
+            'end_formatted' => $e_dt->format('d M, Y'),
+            'duration' => $duration
+        ];
+        
+        // Advance cursor to next day for consecutive chaining
+        $next_dt = clone $e_dt;
+        $next_dt->modify('+1 day');
+        $cursor_date = $next_dt->format('Y-m-d');
+        
+        if ($project_start_date === null || $phase_start < $project_start_date) {
+            $project_start_date = $phase_start;
+        }
+        if ($project_end_date === null || $phase_end > $project_end_date) {
+            $project_end_date = $phase_end;
+        }
+    }
+}
+
+if (!empty($timeline_phases) && $project_start_date && $project_end_date) {
+    try {
+        $ps = new DateTime($project_start_date);
+        $pe = new DateTime($project_end_date);
+        $total_project_days = $ps->diff($pe)->days + 1;
+    } catch(Exception $e) {
+        $total_project_days = 0;
+    }
+}
+
 // Fetch Global Settings for company info
 $stmtSettings = $db->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
@@ -53,6 +122,75 @@ if ($base_path === '/' || $base_path === '\\') {
     $base_path = '';
 }
 $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
+
+// Theme Presets & Color Logic
+$theme_presets = [
+    'corporate-blue' => [
+        'name' => 'Azul Corporativo',
+        'light' => '#2563eb',
+        'dark' => '#3b82f6',
+        'glow' => 'rgba(37, 99, 235, 0.35)',
+        'gradient' => 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)'
+    ],
+    'emerald' => [
+        'name' => 'Esmeralda Tech',
+        'light' => '#059669',
+        'dark' => '#10b981',
+        'glow' => 'rgba(16, 185, 129, 0.35)',
+        'gradient' => 'linear-gradient(135deg, #047857 0%, #10b981 100%)'
+    ],
+    'violet' => [
+        'name' => 'Violeta Creativo',
+        'light' => '#7c3aed',
+        'dark' => '#8b5cf6',
+        'glow' => 'rgba(139, 92, 246, 0.35)',
+        'gradient' => 'linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%)'
+    ],
+    'minimal-black' => [
+        'name' => 'Negro Minimalista',
+        'light' => '#0f172a',
+        'dark' => '#f4f4f5',
+        'glow' => 'rgba(255, 255, 255, 0.15)',
+        'gradient' => 'linear-gradient(135deg, #27272a 0%, #09090b 100%)'
+    ],
+    'amber-gold' => [
+        'name' => 'Ámbar Ejecutivo',
+        'light' => '#d97706',
+        'dark' => '#f59e0b',
+        'glow' => 'rgba(245, 158, 11, 0.35)',
+        'gradient' => 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)'
+    ],
+    'crimson' => [
+        'name' => 'Carmín / Crimson',
+        'light' => '#e11d48',
+        'dark' => '#f43f5e',
+        'glow' => 'rgba(244, 63, 94, 0.35)',
+        'gradient' => 'linear-gradient(135deg, #be123c 0%, #f43f5e 100%)'
+    ],
+];
+
+$selected_theme_key = !empty($quote['theme_color']) ? $quote['theme_color'] : 'corporate-blue';
+$active_theme = $theme_presets[$selected_theme_key] ?? $theme_presets['corporate-blue'];
+
+// Cover Banner calculation
+$has_cover = false;
+$cover_css = '';
+if (!empty($quote['cover_image'])) {
+    $has_cover = true;
+    $cover_url = preg_match('#^https?://#i', $quote['cover_image']) ? $quote['cover_image'] : $base_url . ltrim($quote['cover_image'], '/');
+    $cover_css = 'background-image: url(' . htmlspecialchars($cover_url) . '); background-size: cover; background-position: center;';
+} elseif (!empty($quote['cover_gradient']) && $quote['cover_gradient'] !== 'none') {
+    $has_cover = true;
+    $grad_map = [
+        'mesh-blue' => 'radial-gradient(at 0% 0%, #2563eb 0px, transparent 65%), radial-gradient(at 100% 100%, #6366f1 0px, transparent 65%), linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
+        'emerald-glow' => 'radial-gradient(at 0% 0%, #059669 0px, transparent 65%), radial-gradient(at 100% 100%, #0891b2 0px, transparent 65%), linear-gradient(135deg, #064e3b 0%, #0f172a 100%)',
+        'creative-violet' => 'radial-gradient(at 0% 0%, #9333ea 0px, transparent 65%), radial-gradient(at 100% 100%, #db2777 0px, transparent 65%), linear-gradient(135deg, #581c87 0%, #0f172a 100%)',
+        'sunset-gold' => 'radial-gradient(at 0% 0%, #d97706 0px, transparent 65%), radial-gradient(at 100% 100%, #dc2626 0px, transparent 65%), linear-gradient(135deg, #78350f 0%, #0f172a 100%)',
+        'cyber-dark' => 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #090d16 100%)',
+        'minimal-clean' => 'linear-gradient(135deg, #334155 0%, #1e293b 100%)',
+    ];
+    $cover_css = 'background: ' . ($grad_map[$quote['cover_gradient']] ?? $grad_map['mesh-blue']) . ';';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -69,46 +207,48 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <!-- Frappe Gantt -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
 
     <style>
         :root {
-            --primary: <?php echo htmlspecialchars($settings['primary_color'] ?? '#6366f1'); ?>;
+            --primary: <?php echo $active_theme['light']; ?>;
             --primary-hover: color-mix(in srgb, var(--primary) 85%, #000000);
             --primary-light: color-mix(in srgb, var(--primary) 12%, transparent);
+            --theme-glow: <?php echo $active_theme['glow']; ?>;
+            --theme-gradient: <?php echo $active_theme['gradient']; ?>;
             --bg: #f8fafc;
             --surface: #ffffff;
             --surface-elevated: #f1f5f9;
+            --surface-card: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            --border-subtle: #f1f5f9;
             --border-focus: #cbd5e1;
             --header-bg: #f8fafc;
             --card-radius: 20px;
-            --inner-radius: 14px;
+            --inner-radius: 12px;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
             --shadow-card: 0 20px 40px -15px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
             --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         [data-theme="dark"] {
-            --primary: <?php echo htmlspecialchars($settings['primary_color'] ?? '#818cf8'); ?>;
+            --primary: <?php echo $active_theme['dark']; ?>;
             --primary-hover: color-mix(in srgb, var(--primary) 85%, #ffffff);
             --primary-light: color-mix(in srgb, var(--primary) 18%, transparent);
+            --theme-glow: <?php echo $active_theme['glow']; ?>;
             --bg: #000000;
             --surface: #0a0a0a;
             --surface-elevated: #141414;
+            --surface-card: #0f0f11;
             --text-main: #f4f4f5;
             --text-muted: #a1a1aa;
-            --border: #262626;
+            --border: #222225;
+            --border-subtle: #1a1a1c;
             --border-focus: #3f3f46;
-            --header-bg: #000000;
+            --header-bg: #0a0a0a;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-            --shadow-card: 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px #262626;
+            --shadow-card: 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px #222225;
         }
 
         * {
@@ -129,43 +269,52 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
         }
 
         .container {
-            max-width: 960px;
+            max-width: 1040px;
             margin: 0 auto;
         }
 
-        /* Top Action Bar */
+        /* Top Action Bar - Executive Modern Header */
         .top-action-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
             gap: 1rem;
-            flex-wrap: wrap;
         }
 
-        .brand-badge {
+        .top-bar-branding {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .top-folio-badge {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.4rem 0.85rem;
+            padding: 0.45rem 1rem;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 9999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: 0.05em;
             box-shadow: var(--shadow-sm);
         }
 
-        .brand-badge i {
-            color: var(--primary);
-            font-size: 1rem;
+        .folio-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
         }
 
         .actions-right {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.65rem;
         }
 
         .btn-theme-switch {
@@ -179,9 +328,10 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             background: var(--surface);
             color: var(--text-main);
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             transition: var(--transition);
             box-shadow: var(--shadow-sm);
+            flex-shrink: 0;
         }
 
         .btn-theme-switch:hover {
@@ -190,29 +340,68 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             transform: translateY(-1px);
         }
 
-        .btn-action-primary {
+        /* Print Button - High Contrast for Light and Dark Modes */
+        .btn-action-print {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: var(--primary);
+            background: #0f172a;
             color: #ffffff;
-            border: none;
+            border: 1px solid #0f172a;
             padding: 0.65rem 1.35rem;
             border-radius: 12px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             cursor: pointer;
             text-decoration: none;
             transition: var(--transition);
-            box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
             font-family: inherit;
+            white-space: nowrap;
         }
 
-        .btn-action-primary:hover {
-            background: var(--primary-hover);
+        .btn-action-print:hover {
+            background: #1e293b;
+            border-color: #1e293b;
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 45%, transparent);
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.28);
             color: #ffffff;
+        }
+
+        [data-theme="dark"] .btn-action-print {
+            background: #27272a;
+            color: #f4f4f5;
+            border: 1px solid #52525b;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="dark"] .btn-action-print:hover {
+            background: #3f3f46;
+            border-color: #71717a;
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Cover Banner Styles - Pure Smooth Contrast Blend */
+        .doc-cover-banner {
+            width: 100%;
+            height: 155px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            padding: 1.25rem 2.5rem;
+        }
+
+        .cover-banner-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.08) 50%, color-mix(in srgb, var(--surface) 60%, transparent) 80%, var(--surface) 100%);
+            pointer-events: none;
+        }
+
+        [data-theme="dark"] .cover-banner-overlay {
+            background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 50%, color-mix(in srgb, var(--surface) 75%, transparent) 85%, var(--surface) 100%);
         }
 
         /* Proposal Approval & Modal Styles */
@@ -527,55 +716,94 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 0.5rem;
+            text-align: right;
+            gap: 0.35rem;
         }
 
         .quote-badge-tag {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            padding: 0.3rem 0.75rem;
-            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
             background: var(--primary-light);
             color: var(--primary);
             border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
         }
 
         .doc-quote-number {
-            font-size: 2.25rem;
+            font-size: 2.35rem;
             font-weight: 800;
             color: var(--text-main);
             letter-spacing: -0.03em;
-            line-height: 1.1;
+            line-height: 1.05;
         }
 
         .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            padding: 0.25rem 0.65rem;
-            border-radius: 6px;
+            letter-spacing: 0.04em;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid transparent;
         }
-        .status-borrador { background: color-mix(in srgb, #71717a 15%, transparent); color: #71717a; border: 1px solid color-mix(in srgb, #71717a 25%, transparent); }
-        .status-enviada { background: color-mix(in srgb, #3b82f6 15%, transparent); color: #3b82f6; border: 1px solid color-mix(in srgb, #3b82f6 25%, transparent); }
-        .status-aceptada { background: color-mix(in srgb, #10b981 15%, transparent); color: #10b981; border: 1px solid color-mix(in srgb, #10b981 25%, transparent); }
-        .status-rechazada { background: color-mix(in srgb, #ef4444 15%, transparent); color: #ef4444; border: 1px solid color-mix(in srgb, #ef4444 25%, transparent); }
+        .status-pill .pulsing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-borrador { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); }
+        .status-borrador .pulsing-dot { background: #94a3b8; }
+        .status-enviada { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+        .status-enviada .pulsing-dot { background: #60a5fa; box-shadow: 0 0 8px #60a5fa; }
+        .status-aceptada { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+        .status-aceptada .pulsing-dot { background: #34d399; box-shadow: 0 0 8px #34d399; }
+        .status-rechazada { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+        .status-rechazada .pulsing-dot { background: #f87171; }
 
         /* Meta Cards Strip */
         .meta-strip {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-            padding: 1.75rem 3rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            padding: 1.35rem 2.5rem;
+            border-top: 1px solid var(--border);
             border-bottom: 1px solid var(--border);
-            background: color-mix(in srgb, var(--surface-elevated) 40%, var(--surface));
+            background: color-mix(in srgb, var(--surface-elevated) 60%, var(--surface));
         }
 
         .meta-item-box {
             display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .meta-icon-tile {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--primary);
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .meta-text-group {
+            display: flex;
             flex-direction: column;
-            gap: 0.25rem;
+            gap: 0.15rem;
+            min-width: 0;
         }
 
         .meta-item-label {
@@ -584,53 +812,77 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
+            display: block;
         }
 
         .meta-item-value {
             font-size: 1.05rem;
             font-weight: 700;
             color: var(--text-main);
+            letter-spacing: -0.01em;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .meta-item-sub {
-            font-size: 0.8rem;
+            font-size: 0.76rem;
             color: var(--text-muted);
+            display: block;
         }
 
         /* Document Body */
         .doc-body {
-            padding: 2.5rem 3rem;
+            padding: 2.25rem 2.5rem;
         }
 
-        /* Services Table */
+        /* Services Table - 100% full width, strictly responsive, no horizontal cutoff */
         .table-responsive-wrap {
             width: 100%;
-            overflow-x: auto;
             margin-bottom: 2rem;
+            border-radius: var(--inner-radius);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            overflow-x: auto;
+            scrollbar-width: thin;
         }
 
         .services-table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            border-radius: var(--inner-radius);
-            overflow: hidden;
-            border: 1px solid var(--border);
+            border-collapse: collapse;
+            table-layout: fixed; /* Ensures strict 100% layout and prevents columns from escaping */
         }
 
         .services-table th {
             background: var(--surface-elevated);
             color: var(--text-muted);
-            font-size: 0.75rem;
+            font-size: 0.74rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            padding: 1rem 1.25rem;
-            text-align: left;
+            padding: 0.95rem 1.25rem;
             border-bottom: 1px solid var(--border);
+        }
+
+        .services-table th.col-desc {
+            width: auto;
+            text-align: left;
+        }
+
+        .services-table th.col-qty {
+            width: 80px;
+            text-align: center;
+        }
+
+        .services-table th.col-price {
+            width: 135px;
+            text-align: right;
+        }
+
+        .services-table th.col-total {
+            width: 145px;
+            text-align: right;
         }
 
         .services-table td {
@@ -642,16 +894,36 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             background: var(--surface);
         }
 
+        .services-table td.col-qty {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .services-table td.col-price {
+            text-align: right;
+        }
+
+        .services-table td.col-total {
+            text-align: right;
+        }
+
         .services-table tbody tr:last-child td {
             border-bottom: none;
         }
 
         .services-table tbody tr:hover td {
-            background: color-mix(in srgb, var(--surface-elevated) 40%, var(--surface));
+            background: color-mix(in srgb, var(--surface-elevated) 35%, var(--surface));
         }
 
         .service-desc-cell {
             line-height: 1.6;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .service-desc-cell * {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .service-desc-cell strong {
@@ -667,6 +939,65 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
 
         .service-desc-cell li {
             margin-bottom: 0.25rem;
+        }
+
+        /* Nested Modern Tables inside Service Description */
+        .service-desc-cell .quote-table-wrapper {
+            margin: 0.85rem 0 0.5rem 0;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow-x: auto;
+            background: var(--surface);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+
+        .service-desc-cell .quote-table-actions {
+            display: none !important;
+        }
+
+        .service-desc-cell .quote-modern-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+            line-height: 1.5;
+            text-align: left;
+            margin: 0;
+            border: none;
+        }
+
+        .service-desc-cell .quote-modern-table th {
+            background: var(--surface-elevated, #f8fafc);
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            white-space: nowrap;
+        }
+
+        .service-desc-cell .quote-modern-table td {
+            padding: 8px 12px !important;
+            font-size: 0.84rem !important;
+            color: var(--text-main) !important;
+            border-bottom: 1px solid var(--border) !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            background: transparent !important;
+            vertical-align: middle !important;
+        }
+
+        .service-desc-cell .quote-modern-table tbody tr:last-child td {
+            border-bottom: none !important;
+        }
+
+        .service-desc-cell .quote-modern-table tbody tr:hover td {
+            background: color-mix(in srgb, var(--surface-elevated) 60%, var(--surface)) !important;
         }
 
         .amount-highlight {
@@ -757,114 +1088,406 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             font-size: 1.3rem;
         }
 
-        /* Gantt Chart Container */
-        .gantt-wrapper-card {
-            border: 1px solid var(--border);
-            border-radius: var(--inner-radius);
-            background: var(--surface);
-            padding: 1.25rem;
-            overflow-x: auto;
-            box-shadow: var(--shadow-sm);
-        }
-
-        /* Read-only Gantt bar styling */
-        .gantt-wrapper-card .bar-wrapper { cursor: default !important; pointer-events: none !important; }
-        .gantt-wrapper-card .handle-group { display: none !important; }
-        .gantt-wrapper-card .bar { cursor: default !important; }
-        .gantt-wrapper-card .bar-progress { cursor: default !important; }
-
-        /* Dark mode gantt */
-        [data-theme="dark"] .gantt .grid-header { fill: #0a0a0a; }
-        [data-theme="dark"] .gantt .grid-row { fill: #0a0a0a; }
-        [data-theme="dark"] .gantt .grid-row:nth-child(even) { fill: #141414; }
-        [data-theme="dark"] .gantt .lower-text, 
-        [data-theme="dark"] .gantt .upper-text { fill: #a1a1aa; }
-        [data-theme="dark"] .gantt .row-line,
-        [data-theme="dark"] .gantt .tick { stroke: #262626; }
-
-        /* Payment Methods Grid */
-        .payment-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        /* ==========================================================================
+           Modern Sequential Execution Roadmap (Timeline)
+           ========================================================================== */
+        .timeline-header-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
         }
 
-        .payment-card {
+        .section-header-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .timeline-meta-badges {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .timeline-badge-duration,
+        .timeline-badge-range {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
             background: var(--surface-elevated);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
+            color: var(--text-muted);
+        }
+
+        .timeline-badge-duration {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: color-mix(in srgb, var(--primary) 25%, transparent);
+        }
+
+        .roadmap-phases-container {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
             gap: 1rem;
-            transition: var(--transition);
+            position: relative;
         }
 
-        .payment-card:hover {
-            border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
-            transform: translateY(-1px);
+        .roadmap-phase-card {
+            display: flex;
+            align-items: stretch;
+            gap: 1.25rem;
+            position: relative;
         }
 
-        .payment-card-left {
+        .phase-left-milestone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40px;
+            flex-shrink: 0;
+        }
+
+        .phase-number-chip {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: var(--surface);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            font-size: 0.95rem;
+            font-weight: 800;
             display: flex;
             align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px var(--theme-glow);
+            z-index: 2;
+            flex-shrink: 0;
+        }
+
+        .phase-connector-line {
+            width: 2px;
+            flex-grow: 1;
+            background: linear-gradient(to bottom, var(--primary) 0%, var(--border) 100%);
+            margin: 6px 0;
+            opacity: 0.6;
+        }
+
+        .phase-card-body {
+            flex-grow: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
             gap: 0.85rem;
         }
 
-        .payment-icon-wrap {
-            width: 38px;
-            height: 38px;
+        .phase-card-body:hover {
+            border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+            transform: translateX(3px);
+        }
+
+        .phase-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .phase-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .phase-duration-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 0.25rem 0.65rem;
+            border-radius: 8px;
+        }
+
+        .phase-dates-flow {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--surface-elevated);
+            padding: 0.65rem 1rem;
             border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .date-step {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+        }
+
+        .date-step strong {
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .date-step i {
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .date-flow-arrow {
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+        }
+
+        .phase-progress-track {
+            width: 100%;
+            height: 6px;
+            background: var(--surface-elevated);
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .phase-progress-bar {
+            height: 100%;
+            background: var(--theme-gradient);
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        /* ==========================================================================
+           Modern Corporate Payment Hub
+           ========================================================================== */
+        .payment-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+
+        .payment-security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+        }
+
+        .payment-grid-modern {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 1.15rem;
+        }
+
+        .payment-card-modern {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .payment-card-modern:hover {
+            border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+
+        .card-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .bank-identity {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .bank-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
             background: var(--primary-light);
             color: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.15rem;
+            font-size: 1.3rem;
             flex-shrink: 0;
         }
 
-        .payment-text-group {
+        .payment-card-modern.card-wallet .bank-avatar {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .bank-titles {
             display: flex;
             flex-direction: column;
             gap: 0.15rem;
         }
 
-        .payment-bank-name {
-            font-size: 0.75rem;
+        .bank-name-label {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .bank-type-pill {
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
             color: var(--text-muted);
             letter-spacing: 0.04em;
         }
 
-        .payment-account-number {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-main);
-            font-family: monospace, sans-serif;
-            letter-spacing: 0.02em;
-        }
-
-        .btn-copy-account {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            cursor: pointer;
+        .btn-copy-account-modern {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
+            gap: 0.35rem;
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.45rem 0.85rem;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
             transition: var(--transition);
+            font-family: inherit;
         }
 
-        .btn-copy-account:hover {
-            background: var(--surface);
-            color: var(--primary);
+        .btn-copy-account-modern:hover {
+            background: var(--primary);
+            color: #ffffff;
             border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .account-number-box {
+            background: color-mix(in srgb, var(--surface-elevated) 70%, var(--surface));
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            text-align: center;
+        }
+
+        .account-code-value {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: 0.05em;
+            user-select: all;
+        }
+
+        .payment-instructions-footer {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            margin-top: 1.25rem;
+            padding: 0.9rem 1.15rem;
+            background: color-mix(in srgb, var(--surface-elevated) 50%, var(--surface));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        .payment-instructions-footer i {
+            color: var(--primary);
+            font-size: 1.15rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* Sub-tables Modern Desktop Styling */
+        .service-desc-cell table {
+            width: 100% !important;
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            margin: 1rem 0 !important;
+            background: var(--surface) !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+        }
+
+        .service-desc-cell table th {
+            background: var(--surface-elevated) !important;
+            color: var(--text-main) !important;
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            padding: 0.85rem 1rem !important;
+            border-bottom: 1px solid var(--border) !important;
+            border-right: 1px solid var(--border-subtle) !important;
+        }
+
+        .service-desc-cell table th:last-child {
+            border-right: none !important;
+        }
+
+        .service-desc-cell table td {
+            padding: 0.85rem 1rem !important;
+            border-bottom: 1px solid var(--border-subtle) !important;
+            border-right: 1px solid var(--border-subtle) !important;
+            color: var(--text-main) !important;
+            font-size: 0.88rem !important;
+            line-height: 1.55 !important;
+            background: transparent !important;
+        }
+
+        .service-desc-cell table td:last-child {
+            border-right: none !important;
+        }
+
+        .service-desc-cell table tr:last-child td {
+            border-bottom: none !important;
+        }
+
+        .service-desc-cell table tr:hover td {
+            background: color-mix(in srgb, var(--primary) 3%, var(--surface)) !important;
         }
 
         /* Notes & Terms Grid */
@@ -1034,12 +1657,124 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
                 margin-bottom: 0.25rem;
             }
 
+            /* Sub-tables Responsive Cards inside description */
+            .service-desc-cell table,
+            .service-desc-cell table thead,
+            .service-desc-cell table tbody,
+            .service-desc-cell table tr,
+            .service-desc-cell table td {
+                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .service-desc-cell table {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                margin: 1rem 0 !important;
+                overflow: visible !important;
+            }
+            .service-desc-cell table thead {
+                display: none !important;
+            }
+            .service-desc-cell table tbody {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.85rem !important;
+            }
+            .service-desc-cell table tr {
+                background: var(--surface) !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 14px !important;
+                padding: 1.1rem !important;
+                box-shadow: var(--shadow-sm) !important;
+                margin-bottom: 0 !important;
+            }
+            .service-desc-cell table td {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.3rem !important;
+                padding: 0.65rem 0 !important;
+                border: none !important;
+                border-bottom: 1px dashed var(--border-subtle) !important;
+                text-align: left !important;
+            }
+            .service-desc-cell table td:last-child {
+                border-bottom: none !important;
+                padding-bottom: 0 !important;
+            }
+            .service-desc-cell table td::before {
+                content: attr(data-label) !important;
+                font-size: 0.72rem !important;
+                font-weight: 700 !important;
+                color: var(--primary) !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+                display: block !important;
+            }
+
             .totals-summary-card {
                 max-width: 100%;
             }
 
             .calc-row.total-row .calc-row-val {
                 font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .top-action-bar {
+                margin-bottom: 1rem;
+                gap: 0.4rem;
+            }
+            .top-bar-branding {
+                display: none;
+            }
+            .actions-right {
+                width: 100%;
+                justify-content: space-between;
+                gap: 0.4rem;
+            }
+            .btn-theme-switch {
+                width: 38px;
+                height: 38px;
+                font-size: 1rem;
+            }
+            .btn-action-print {
+                padding: 0.55rem 0.8rem;
+                font-size: 0.8rem;
+                flex: 1;
+                justify-content: center;
+            }
+            .btn-action-print .btn-text-full {
+                display: none;
+            }
+            .btn-action-print .btn-text-mobile {
+                display: inline !important;
+            }
+            .btn-action-approve {
+                padding: 0.55rem 0.85rem;
+                font-size: 0.8rem;
+                flex: 1.1;
+                justify-content: center;
+            }
+            .btn-action-approve .btn-text-full {
+                display: none;
+            }
+            .btn-action-approve .btn-text-mobile {
+                display: inline !important;
+            }
+            .timeline-header-wrap {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .phase-dates-flow {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .date-flow-arrow {
+                display: none;
             }
         }
 
@@ -1080,6 +1815,22 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
             .services-table td::before {
                 display: none !important;
             }
+            .service-desc-cell .quote-table-wrapper {
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+            .service-desc-cell .quote-modern-table th {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .service-desc-cell .quote-modern-table td {
+                color: #1e293b !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+            }
         }
     </style>
     <script>
@@ -1094,25 +1845,32 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
 <body>
 
 <div class="container">
-    <!-- Action Bar -->
+    <!-- Executive Top Action Bar -->
     <div class="top-action-bar">
-        <div class="brand-badge">
-            <i class="ph ph-shield-check"></i>
-            <span>Documento Oficial Verificado</span>
+        <div class="top-bar-branding">
+            <span class="top-folio-badge">
+                <span class="folio-dot"></span>
+                COTIZACIÓN #<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?>
+            </span>
+            <?php if (!empty($quote['client_name'])): ?>
+                <span class="top-client-name">&bull; <?php echo htmlspecialchars($quote['client_name']); ?></span>
+            <?php endif; ?>
         </div>
         <div class="actions-right">
             <button class="btn-theme-switch" id="themeToggle" title="Cambiar tema (Claro / Oscuro)">
                 <i class="ph ph-moon" id="themeIconDark"></i>
                 <i class="ph ph-sun" id="themeIconLight" style="display:none;"></i>
             </button>
-            <button onclick="window.print()" class="btn-action-primary">
+            <button onclick="window.print()" class="btn-action-print" title="Imprimir o guardar como PDF">
                 <i class="ph ph-printer"></i>
-                <span>Imprimir / Descargar PDF</span>
+                <span class="btn-text-full">Imprimir / Descargar PDF</span>
+                <span class="btn-text-mobile" style="display:none;">PDF</span>
             </button>
             <?php if (strtolower($quote['status']) !== 'aceptada'): ?>
                 <button type="button" class="btn-action-approve" id="topApproveBtn" onclick="openApproveModal()">
                     <i class="ph-bold ph-check-circle"></i>
-                    <span>Aprobar Propuesta</span>
+                    <span class="btn-text-full">Aprobar Propuesta</span>
+                    <span class="btn-text-mobile" style="display:none;">Aprobar</span>
                 </button>
             <?php else: ?>
                 <div class="badge-approved-status">
@@ -1124,6 +1882,12 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
 
     <!-- Main Document -->
     <div class="document-card">
+        <?php if ($has_cover): ?>
+        <div class="doc-cover-banner" style="<?php echo $cover_css; ?>">
+            <div class="cover-banner-overlay"></div>
+        </div>
+        <?php endif; ?>
+
         <!-- Header -->
         <div class="doc-header">
             <div class="company-brand">
@@ -1158,6 +1922,7 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
                 <div class="doc-quote-number">#<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?></div>
                 <?php if (!empty($quote['status'])): ?>
                     <span class="status-pill status-<?php echo strtolower($quote['status']); ?>">
+                        <span class="pulsing-dot"></span>
                         <?php echo htmlspecialchars($quote['status']); ?>
                     </span>
                 <?php endif; ?>
@@ -1167,21 +1932,30 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
         <!-- Meta Details Strip -->
         <div class="meta-strip">
             <div class="meta-item-box">
-                <span class="meta-item-label"><i class="ph ph-user"></i> Preparado para</span>
-                <span class="meta-item-value"><?php echo htmlspecialchars($quote['client_name'] ?? 'Cliente'); ?></span>
-                <?php if(!empty($quote['document_number'])): ?>
-                    <span class="meta-item-sub">Doc: <?php echo htmlspecialchars($quote['document_number']); ?></span>
-                <?php endif; ?>
+                <div class="meta-icon-tile"><i class="ph ph-user"></i></div>
+                <div class="meta-text-group">
+                    <span class="meta-item-label">Preparado para</span>
+                    <span class="meta-item-value"><?php echo htmlspecialchars($quote['client_name'] ?? 'Cliente'); ?></span>
+                    <?php if(!empty($quote['document_number'])): ?>
+                        <span class="meta-item-sub">Doc: <?php echo htmlspecialchars($quote['document_number']); ?></span>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="meta-item-box">
-                <span class="meta-item-label"><i class="ph ph-calendar-check"></i> Fecha de Emisión</span>
-                <span class="meta-item-value"><?php echo date('d M, Y', strtotime($quote['issue_date'])); ?></span>
-                <span class="meta-item-sub">Validez estándar</span>
+                <div class="meta-icon-tile"><i class="ph ph-calendar-check"></i></div>
+                <div class="meta-text-group">
+                    <span class="meta-item-label">Fecha de Emisión</span>
+                    <span class="meta-item-value"><?php echo date('d M, Y', strtotime($quote['issue_date'])); ?></span>
+                    <span class="meta-item-sub">Validez estándar</span>
+                </div>
             </div>
             <div class="meta-item-box">
-                <span class="meta-item-label"><i class="ph ph-clock"></i> Fecha de Vencimiento</span>
-                <span class="meta-item-value"><?php echo date('d M, Y', strtotime($quote['due_date'])); ?></span>
-                <span class="meta-item-sub">Válido hasta las 23:59</span>
+                <div class="meta-icon-tile"><i class="ph ph-clock"></i></div>
+                <div class="meta-text-group">
+                    <span class="meta-item-label">Fecha de Vencimiento</span>
+                    <span class="meta-item-value"><?php echo date('d M, Y', strtotime($quote['due_date'])); ?></span>
+                    <span class="meta-item-sub">Válido hasta las 23:59</span>
+                </div>
             </div>
         </div>
 
@@ -1192,28 +1966,28 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
                 <table class="services-table">
                     <thead>
                         <tr>
-                            <th style="width: 52%;">Descripción del Servicio</th>
-                            <th style="text-align: center; width: 12%;">Cant.</th>
-                            <th style="text-align: right; width: 18%;">Precio Unit.</th>
-                            <th style="text-align: right; width: 18%;">Importe</th>
+                            <th class="col-desc">Descripción del Servicio</th>
+                            <th class="col-qty">Cant.</th>
+                            <th class="col-price">Precio Unit.</th>
+                            <th class="col-total">Importe</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach($items as $i): ?>
                         <tr>
                             <td class="service-desc-cell" data-label="Servicio">
-                                <?php echo strip_tags($i['description'], '<strong><em><b><i><u><br><ul><ol><li><p><span><font>'); ?>
+                                <?php echo strip_tags($i['description'], '<strong><em><b><i><u><br><ul><ol><li><p><span><font><table><thead><tbody><tfoot><tr><th><td><div><style><svg>'); ?>
                             </td>
-                            <td style="text-align: center; font-weight: 600;" data-label="Cantidad">
+                            <td class="col-qty" data-label="Cantidad">
                                 <?php echo (float)$i['quantity']; ?>
                             </td>
-                            <td style="text-align: right;" data-label="Precio Unit.">
+                            <td class="col-price" data-label="Precio Unit.">
                                 <div><?php echo $sym . ' ' . number_format($i['unit_price'], 2); ?></div>
                                 <?php if($i['discount'] > 0): ?>
                                     <div class="discount-tag">-<?php echo $sym . ' ' . number_format($i['discount'], 2); ?> desc.</div>
                                 <?php endif; ?>
                             </td>
-                            <td style="text-align: right;" data-label="Importe">
+                            <td class="col-total" data-label="Importe">
                                 <span class="amount-highlight"><?php echo $sym . ' ' . number_format($i['total'], 2); ?></span>
                             </td>
                         </tr>
@@ -1239,74 +2013,174 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
                 </div>
             </div>
 
-            <!-- Gantt Chart Section -->
+            <!-- Modern Sequential Execution Roadmap (Timeline) -->
+            <?php if (!empty($timeline_phases)): ?>
             <div class="section-block" id="ganttSection">
-                <h3 class="section-header-title">
-                    <i class="ph ph-chart-line-up"></i>
-                    Cronograma Estimado de Ejecución
-                </h3>
-                <div class="gantt-wrapper-card" id="gantt_here"></div>
-                <div id="gantt_empty_state" style="text-align: center; padding: 2.5rem; color: var(--text-muted); display: none;">
-                    <i class="ph ph-calendar-blank" style="font-size: 2rem; opacity: 0.4;"></i>
-                    <p style="margin-top: 0.5rem; font-size: 0.88rem;">Sin fases o cronograma asignado para este presupuesto.</p>
+                <div class="timeline-header-wrap">
+                    <div>
+                        <h3 class="section-header-title">
+                            <i class="ph ph-chart-line-up"></i>
+                            Cronograma de Ejecución y Entregables
+                        </h3>
+                        <p class="section-header-sub">Secuencia estimada de fases desde el inicio hasta la culminación del proyecto.</p>
+                    </div>
+                    <div class="timeline-meta-badges">
+                        <span class="timeline-badge-duration">
+                            <i class="ph ph-clock-countdown"></i> <?php echo $total_project_days; ?> días de ejecución total
+                        </span>
+                        <?php if ($project_start_date && $project_end_date): ?>
+                        <span class="timeline-badge-range">
+                            <i class="ph ph-calendar"></i> <?php echo (new DateTime($project_start_date))->format('d M'); ?> &rarr; <?php echo (new DateTime($project_end_date))->format('d M, Y'); ?>
+                        </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="roadmap-phases-container">
+                    <?php foreach ($timeline_phases as $p): ?>
+                    <div class="roadmap-phase-card">
+                        <div class="phase-left-milestone">
+                            <div class="phase-number-chip"><?php echo str_pad($p['num'], 2, '0', STR_PAD_LEFT); ?></div>
+                            <?php if ($p['num'] < count($timeline_phases)): ?>
+                                <div class="phase-connector-line"></div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="phase-card-body">
+                            <div class="phase-header-row">
+                                <h4 class="phase-title"><?php echo htmlspecialchars($p['title']); ?></h4>
+                                <span class="phase-duration-tag">
+                                    <i class="ph ph-timer"></i> <?php echo $p['duration']; ?> <?php echo $p['duration'] == 1 ? 'día' : 'días'; ?>
+                                </span>
+                            </div>
+                            <div class="phase-dates-flow">
+                                <div class="date-step start-date">
+                                    <i class="ph ph-calendar-plus"></i>
+                                    <span class="date-label">Inicio:</span>
+                                    <strong><?php echo $p['start_formatted']; ?></strong>
+                                </div>
+                                <div class="date-flow-arrow">
+                                    <i class="ph ph-arrow-right"></i>
+                                </div>
+                                <div class="date-step end-date">
+                                    <i class="ph ph-flag-banner"></i>
+                                    <span class="date-label">Culminación:</span>
+                                    <strong><?php echo $p['end_formatted']; ?></strong>
+                                </div>
+                            </div>
+                            <!-- Proportional visual timeline bar -->
+                            <div class="phase-progress-track">
+                                <?php
+                                    $offset_pct = ($total_project_days > 0 && $project_start_date) ? max(0, min(95, round(((new DateTime($p['start']))->diff(new DateTime($project_start_date))->days / $total_project_days) * 100))) : 0;
+                                    $width_pct = $total_project_days > 0 ? max(6, min(100 - $offset_pct, round(($p['duration'] / $total_project_days) * 100))) : 100;
+                                ?>
+                                <div class="phase-progress-bar" style="margin-left: <?php echo $offset_pct; ?>%; width: <?php echo $width_pct; ?>%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
+            <?php endif; ?>
 
-            <!-- Payment Methods Section -->
+            <!-- Modern Corporate Payment Methods Hub -->
             <?php if(!empty($quote['show_payment_methods'])): ?>
             <div class="section-block">
-                <h3 class="section-header-title">
-                    <i class="ph ph-credit-card"></i>
-                    Cuentas y Métodos de Pago
-                </h3>
-                <div class="payment-grid">
+                <div class="payment-section-header">
+                    <div>
+                        <h3 class="section-header-title">
+                            <i class="ph ph-credit-card"></i>
+                            Cuentas y Métodos de Pago
+                        </h3>
+                        <p class="section-header-sub">Canales bancarios y billeteras digitales autorizadas para la formalización del abono.</p>
+                    </div>
+                    <div class="payment-security-badge">
+                        <i class="ph-bold ph-shield-check"></i>
+                        <span>Cuentas Verificadas</span>
+                    </div>
+                </div>
+
+                <div class="payment-grid-modern">
                     <?php if(!empty($pm_lines)): ?>
                         <?php foreach($pm_lines as $line): ?>
-                            <?php if(trim($line)): ?>
-                                <?php 
-                                    $parts = explode(':', trim($line), 2);
-                                    $bName = count($parts) > 1 ? trim($parts[0]) : 'Cuenta';
-                                    $bNum = count($parts) > 1 ? trim($parts[1]) : trim($parts[0]);
-                                ?>
-                                <div class="payment-card">
-                                    <div class="payment-card-left">
-                                        <div class="payment-icon-wrap">
-                                            <i class="ph ph-bank"></i>
+                            <?php 
+                                $line = trim($line);
+                                if(!$line) continue;
+                                
+                                $parts = explode(':', $line, 2);
+                                $bName = count($parts) > 1 ? trim($parts[0]) : 'Cuenta Bancaria';
+                                $bNum = count($parts) > 1 ? trim($parts[1]) : trim($parts[0]);
+                                
+                                $lowerName = strtolower($bName);
+                                $isYapePlin = strpos($lowerName, 'yape') !== false || strpos($lowerName, 'plin') !== false;
+                                $isCci = strpos($lowerName, 'cci') !== false;
+                                $isUsd = strpos($lowerName, 'dólar') !== false || strpos($lowerName, 'dolar') !== false || strpos($lowerName, 'usd') !== false || strpos($lowerName, '$') !== false;
+
+                                $iconClass = $isYapePlin ? 'ph-device-mobile' : ($isCci ? 'ph-arrows-left-right' : 'ph-bank');
+                                $tagText = $isYapePlin ? 'Billetera Digital' : ($isUsd ? 'Dólares ($)' : ($isCci ? 'Interbancario' : 'Soles (S/)'));
+                            ?>
+                            <div class="payment-card-modern <?php echo $isYapePlin ? 'card-wallet' : ''; ?>">
+                                <div class="card-top-row">
+                                    <div class="bank-identity">
+                                        <div class="bank-avatar">
+                                            <i class="ph <?php echo $iconClass; ?>"></i>
                                         </div>
-                                        <div class="payment-text-group">
-                                            <span class="payment-bank-name"><?php echo htmlspecialchars($bName); ?></span>
-                                            <span class="payment-account-number"><?php echo htmlspecialchars($bNum); ?></span>
+                                        <div class="bank-titles">
+                                            <span class="bank-name-label"><?php echo htmlspecialchars($bName); ?></span>
+                                            <span class="bank-type-pill"><?php echo $tagText; ?></span>
                                         </div>
                                     </div>
-                                    <button class="btn-copy-account" onclick="copyNumber('<?php echo htmlspecialchars($bNum); ?>')" title="Copiar número de cuenta">
+                                    <button type="button" class="btn-copy-account-modern" onclick="copyNumber('<?php echo htmlspecialchars(addslashes($bNum)); ?>')" title="Copiar número de cuenta">
                                         <i class="ph ph-copy"></i>
+                                        <span class="copy-label">Copiar</span>
                                     </button>
                                 </div>
-                            <?php endif; ?>
+                                <div class="account-number-box">
+                                    <span class="account-code-value"><?php echo htmlspecialchars($bNum); ?></span>
+                                </div>
+                            </div>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <!-- Default Bank Accounts if none custom -->
-                        <div class="payment-card">
-                            <div class="payment-card-left">
-                                <div class="payment-icon-wrap"><i class="ph ph-bank"></i></div>
-                                <div class="payment-text-group">
-                                    <span class="payment-bank-name">BCP Soles</span>
-                                    <span class="payment-account-number">191-74092813-0-24</span>
+                        <div class="payment-card-modern">
+                            <div class="card-top-row">
+                                <div class="bank-identity">
+                                    <div class="bank-avatar"><i class="ph ph-bank"></i></div>
+                                    <div class="bank-titles">
+                                        <span class="bank-name-label">BCP Soles</span>
+                                        <span class="bank-type-pill">Soles (S/)</span>
+                                    </div>
                                 </div>
+                                <button type="button" class="btn-copy-account-modern" onclick="copyNumber('191-74092813-0-24')" title="Copiar">
+                                    <i class="ph ph-copy"></i> <span class="copy-label">Copiar</span>
+                                </button>
                             </div>
-                            <button class="btn-copy-account" onclick="copyNumber('191-74092813-0-24')" title="Copiar"><i class="ph ph-copy"></i></button>
+                            <div class="account-number-box">
+                                <span class="account-code-value">191-74092813-0-24</span>
+                            </div>
                         </div>
-                        <div class="payment-card">
-                            <div class="payment-card-left">
-                                <div class="payment-icon-wrap"><i class="ph ph-device-mobile"></i></div>
-                                <div class="payment-text-group">
-                                    <span class="payment-bank-name">Yape / Plin</span>
-                                    <span class="payment-account-number">998 289 752</span>
+                        <div class="payment-card-modern card-wallet">
+                            <div class="card-top-row">
+                                <div class="bank-identity">
+                                    <div class="bank-avatar"><i class="ph ph-device-mobile"></i></div>
+                                    <div class="bank-titles">
+                                        <span class="bank-name-label">Yape / Plin</span>
+                                        <span class="bank-type-pill">Billetera Móvil</span>
+                                    </div>
                                 </div>
+                                <button type="button" class="btn-copy-account-modern" onclick="copyNumber('998289752')" title="Copiar">
+                                    <i class="ph ph-copy"></i> <span class="copy-label">Copiar</span>
+                                </button>
                             </div>
-                            <button class="btn-copy-account" onclick="copyNumber('998289752')" title="Copiar"><i class="ph ph-copy"></i></button>
+                            <div class="account-number-box">
+                                <span class="account-code-value">998 289 752</span>
+                            </div>
                         </div>
                     <?php endif; ?>
+                </div>
+
+                <div class="payment-instructions-footer">
+                    <i class="ph ph-info"></i>
+                    <span>Una vez realizada la transferencia o depósito, remite tu constancia al correo de facturación indicando la <strong>Cotización #<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?></strong>.</span>
                 </div>
             </div>
             <?php endif; ?>
@@ -1491,63 +2365,30 @@ $base_url = rtrim($protocol . $host . $base_path, '/') . '/';
         });
     }
     
-    // Gantt rendering
-    const ganttColors = [
-        { bg: '#6366f1' },
-        { bg: '#3b82f6' },
-        { bg: '#8b5cf6' },
-        { bg: '#06b6d4' },
-        { bg: '#10b981' },
-        { bg: '#f59e0b' },
-        { bg: '#ec4899' },
-    ];
-    const tasks = [];
-    itemsData.forEach((item, index) => {
-        if (item.gantt_start_date && parseInt(item.gantt_duration) > 0) {
-            let div = document.createElement('div');
-            div.innerHTML = item.description;
-            let text = div.textContent || div.innerText || 'Fase ' + (index + 1);
-            text = text.substring(0, 50).trim();
-            
-            let startDate = new Date(item.gantt_start_date + 'T00:00:00');
-            let endDate = new Date(startDate);
-            endDate.setDate(endDate.getDate() + parseInt(item.gantt_duration));
-            
-            tasks.push({
-                id: 'task_' + index,
-                name: text,
-                start: startDate.toISOString().split('T')[0],
-                end: endDate.toISOString().split('T')[0],
-                progress: 0,
-                custom_class: 'gantt-color-' + (tasks.length % ganttColors.length)
+    // Setup responsive card view for sub-tables embedded in service descriptions
+    function setupResponsiveCardsForTables() {
+        const descCells = document.querySelectorAll('.service-desc-cell');
+        descCells.forEach(cell => {
+            const tables = cell.querySelectorAll('table');
+            tables.forEach(table => {
+                let headers = [];
+                const ths = table.querySelectorAll('thead th, tr:first-child th');
+                if (ths.length > 0) {
+                    ths.forEach(th => headers.push(th.innerText.trim()));
+                }
+                
+                const rows = table.querySelectorAll('tbody tr, tr:not(:first-child)');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    cells.forEach((td, idx) => {
+                        const label = headers[idx] || ('Columna ' + (idx + 1));
+                        td.setAttribute('data-label', label);
+                    });
+                });
             });
-        }
-    });
-
-    if (tasks.length > 0) {
-        document.getElementById('gantt_here').style.display = 'block';
-        document.getElementById('gantt_empty_state').style.display = 'none';
-        const gantt = new Gantt("#gantt_here", tasks, {
-            view_mode: 'Day',
-            language: 'es',
-            readonly: true
         });
-        
-        // CSS for custom colored bars
-        let styleEl = document.createElement('style');
-        let css = '';
-        ganttColors.forEach((c, i) => {
-            css += `.gantt-color-${i} .bar { fill: ${c.bg} !important; rx: 6px; ry: 6px; }
-                    .gantt-color-${i} .bar-progress { fill: ${c.bg} !important; }
-                    .gantt-color-${i} .bar-label { fill: #fff !important; font-weight: 600; }
-`;
-        });
-        styleEl.textContent = css;
-        document.head.appendChild(styleEl);
-    } else {
-        document.getElementById('gantt_here').style.display = 'none';
-        document.getElementById('gantt_empty_state').style.display = 'block';
     }
+    setupResponsiveCardsForTables();
 
     // Theme Switch
     const themeBtn = document.getElementById('themeToggle');

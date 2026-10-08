@@ -592,6 +592,300 @@ require_once 'includes/header.php';
     margin-bottom: 0.2rem;
 }
 
+/* Modern Quote Tables inside Partidas */
+.quote-table-wrapper {
+    margin: 0.85rem 0;
+    border: 1px solid var(--quote-border);
+    border-radius: var(--quote-radius-md, 10px);
+    background: var(--quote-card);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    position: relative;
+    user-select: text;
+}
+
+.quote-table-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    background: var(--quote-card-sub);
+    border-bottom: 1px solid var(--quote-border);
+    font-size: 11px;
+    user-select: none;
+    flex-wrap: wrap;
+}
+
+.btn-tbl-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--quote-border);
+    background: var(--quote-card);
+    color: var(--quote-text-main);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1.2;
+}
+
+.btn-tbl-action:hover {
+    background: var(--quote-border);
+    color: var(--quote-text-title);
+}
+
+.btn-tbl-action.btn-tbl-del:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
+.btn-tbl-action.btn-tbl-danger {
+    margin-left: auto;
+    color: #ef4444;
+}
+
+.btn-tbl-action.btn-tbl-danger:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+.quote-modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    line-height: 1.5;
+    text-align: left;
+    background: transparent;
+    margin: 0;
+}
+
+.quote-modern-table th {
+    background: var(--quote-card-sub);
+    color: var(--quote-text-title);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--quote-border);
+    white-space: nowrap;
+}
+
+.quote-modern-table td {
+    padding: 8px 12px;
+    color: var(--quote-text-main);
+    border-bottom: 1px solid var(--quote-border-subtle);
+    vertical-align: middle;
+    transition: background 0.1s ease;
+    min-width: 60px;
+    outline: none;
+}
+
+.quote-modern-table td:focus,
+.quote-modern-table th:focus {
+    background: rgba(14, 165, 233, 0.06);
+    box-shadow: inset 0 0 0 1.5px #0ea5e9;
+}
+
+.quote-modern-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.quote-modern-table tbody tr:hover td {
+    background: rgba(0, 0, 0, 0.015);
+}
+
+[data-theme="dark"] .quote-modern-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .quote-modern-table td:focus,
+[data-theme="dark"] .quote-modern-table th:focus {
+    background: rgba(14, 165, 233, 0.12);
+}
+
+/* Preset Cards in SweetAlert */
+.table-preset-card {
+    transition: all 0.15s ease;
+}
+.table-preset-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Theme and Cover Selector in Form */
+.quote-theme-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.65rem;
+}
+.quote-theme-card {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--quote-radius-sm);
+    background: var(--quote-card);
+    border: 1px solid var(--quote-border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+.quote-theme-card:hover {
+    border-color: var(--quote-border-subtle);
+    background: var(--quote-card-sub);
+    transform: translateY(-1px);
+}
+.quote-theme-card.active {
+    border-color: #0ea5e9;
+    background: var(--quote-card-sub);
+    box-shadow: 0 0 0 1.5px #0ea5e9;
+}
+.theme-card-color-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+.theme-card-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.theme-card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--quote-text-title);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.theme-card-desc {
+    font-size: 10px;
+    color: var(--quote-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cover-live-preview-box {
+    width: 100%;
+    height: 95px;
+    border-radius: var(--quote-radius-sm);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--quote-border);
+    transition: all 0.3s ease;
+    background-size: cover;
+    background-position: center;
+}
+.cover-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0.65rem 0.85rem;
+}
+.cover-preview-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+.cover-quick-actions {
+    display: flex;
+    gap: 6px;
+}
+.btn-cover-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.9);
+    color: #0f172a;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+.btn-cover-action:hover {
+    background: #ffffff;
+    transform: translateY(-1px);
+}
+.btn-cover-action.btn-cover-remove {
+    background: rgba(0,0,0,0.55);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-cover-action.btn-cover-remove:hover {
+    background: rgba(239, 68, 68, 0.85);
+}
+
+.gradient-presets-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0.65rem;
+    flex-wrap: wrap;
+}
+.presets-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--quote-text-muted);
+}
+.btn-gradient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--quote-border);
+    background: var(--quote-card);
+    color: var(--quote-text-main);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-gradient-chip:hover {
+    background: var(--quote-card-sub);
+    border-color: #0ea5e9;
+}
+.btn-gradient-chip.active {
+    border-color: #0ea5e9;
+    background: var(--quote-card-sub);
+    font-weight: 600;
+}
+.chip-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+.chip-color-dot.grad-mesh-blue { background: linear-gradient(135deg, #2563eb, #8b5cf6); }
+.chip-color-dot.grad-emerald-glow { background: linear-gradient(135deg, #10b981, #06b6d4); }
+.chip-color-dot.grad-creative-violet { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+.chip-color-dot.grad-sunset-gold { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.chip-color-dot.grad-cyber-dark { background: linear-gradient(135deg, #18181b, #3f3f46); }
+.chip-color-dot.grad-minimal-clean { background: linear-gradient(135deg, #64748b, #94a3b8); }
+
 /* Metrics & Schedule Layout (Responsive Core) */
 .item-metrics-layout {
     display: grid;
@@ -1152,6 +1446,96 @@ require_once 'includes/header.php';
                     <label class="field-label" for="due_date">FECHA DE VENCIMIENTO</label>
                     <input type="date" id="due_date" class="app-input" value="<?php echo $quote ? $quote['due_date'] : date('Y-m-d', strtotime('+15 days')); ?>">
                 </div>
+
+                <!-- Selector de Tema de Color y Portada -->
+                <div class="grid-col-full" style="margin-top: 0.5rem; padding-top: 1rem; border-top: 1px dashed var(--quote-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <span class="field-label" style="margin-bottom: 0.2rem;">ESTILO VISUAL & MARCA DE LA PROPUESTA</span>
+                            <span style="font-size: 11.5px; color: var(--quote-text-muted);">Personaliza el color de acento y la portada ejecutiva visible para el cliente</span>
+                        </div>
+                    </div>
+
+                    <!-- Color Themes Grid -->
+                    <div class="quote-theme-selector-grid">
+                        <?php 
+                        $current_theme = $quote['theme_color'] ?? 'corporate-blue';
+                        $themes_available = [
+                            'corporate-blue' => ['label' => 'Azul Corporativo', 'color' => '#2563eb', 'sub' => 'Tecnología & Finanzas'],
+                            'emerald' => ['label' => 'Esmeralda Tech', 'color' => '#10b981', 'sub' => 'Crecimiento & Innovación'],
+                            'violet' => ['label' => 'Violeta Creativo', 'color' => '#8b5cf6', 'sub' => 'Agencia & Diseño'],
+                            'minimal-black' => ['label' => 'Negro Minimalista', 'color' => '#18181b', 'sub' => 'Lujo & Consultoría'],
+                            'amber-gold' => ['label' => 'Ámbar Ejecutivo', 'color' => '#f59e0b', 'sub' => 'Prestigio Comercial'],
+                            'crimson' => ['label' => 'Carmín / Crimson', 'color' => '#f43f5e', 'sub' => 'Impacto & Marca'],
+                        ];
+                        foreach($themes_available as $tKey => $tData): 
+                            $isActive = ($current_theme === $tKey);
+                        ?>
+                            <div class="quote-theme-card <?php echo $isActive ? 'active' : ''; ?>" onclick="selectQuoteTheme('<?php echo $tKey; ?>', this)">
+                                <div class="theme-card-color-dot" style="background: <?php echo $tData['color']; ?>; box-shadow: 0 0 10px <?php echo $tData['color']; ?>66;">
+                                    <i class="ph-bold ph-check" style="<?php echo $isActive ? 'display:inline-block;' : 'display:none;'; ?>"></i>
+                                </div>
+                                <div class="theme-card-text">
+                                    <span class="theme-card-title"><?php echo $tData['label']; ?></span>
+                                    <span class="theme-card-desc"><?php echo $tData['sub']; ?></span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <input type="hidden" id="theme_color" value="<?php echo htmlspecialchars($current_theme); ?>">
+
+                    <!-- Cover Banner Selector -->
+                    <div class="quote-cover-settings-box" style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                            <label class="field-label" style="margin-bottom:0;">PORTADA O BANNER DE CABECERA (OPCIONAL)</label>
+                            <span id="coverBadgeText" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: var(--quote-card-sub); border: 1px solid var(--quote-border); color: var(--quote-text-muted);">
+                                <?php echo !empty($quote['cover_image']) ? 'Imagen personalizada activa' : (!empty($quote['cover_gradient']) && $quote['cover_gradient'] !== 'none' ? 'Degradado estético activo' : 'Sin portada'); ?>
+                            </span>
+                        </div>
+
+                        <!-- Live Banner Preview Bar -->
+                        <div id="coverLivePreview" class="cover-live-preview-box">
+                            <div class="cover-preview-overlay">
+                                <span class="cover-preview-tag"><i class="ph ph-sparkle"></i> Vista Previa del Banner</span>
+                                <div class="cover-quick-actions">
+                                    <label class="btn-cover-action" for="coverFileInput" title="Subir imagen desde PC">
+                                        <i class="ph ph-upload-simple"></i> Subir Imagen
+                                    </label>
+                                    <button type="button" class="btn-cover-action btn-cover-remove" onclick="removeCoverBanner()" title="Quitar Portada">
+                                        <i class="ph ph-x"></i> Sin Portada
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" id="coverFileInput" style="display:none;" accept="image/*" onchange="uploadCoverFile(this)">
+
+                        <!-- Gradient Presets Pills -->
+                        <div class="gradient-presets-strip">
+                            <span class="presets-label">Degradados:</span>
+                            <?php 
+                            $current_grad = $quote['cover_gradient'] ?? 'mesh-blue';
+                            $grad_presets = [
+                                'mesh-blue' => 'Mesh Azul',
+                                'emerald-glow' => 'Emerald Glow',
+                                'creative-violet' => 'Violeta Deep',
+                                'sunset-gold' => 'Sunset Gold',
+                                'cyber-dark' => 'Cyber Dark',
+                                'minimal-clean' => 'Minimal Slate',
+                            ];
+                            foreach($grad_presets as $gKey => $gName): 
+                                $isGradActive = (empty($quote['cover_image']) && $current_grad === $gKey);
+                            ?>
+                                <button type="button" class="btn-gradient-chip <?php echo $isGradActive ? 'active' : ''; ?>" data-grad="<?php echo $gKey; ?>" onclick="selectCoverGradient('<?php echo $gKey; ?>', this)">
+                                    <span class="chip-color-dot grad-<?php echo $gKey; ?>"></span>
+                                    <span><?php echo $gName; ?></span>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <input type="hidden" id="cover_gradient" value="<?php echo htmlspecialchars($current_grad); ?>">
+                        <input type="hidden" id="cover_image" value="<?php echo htmlspecialchars($quote['cover_image'] ?? ''); ?>">
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1522,6 +1906,533 @@ function syncData() {
     renderGantt();
 }
 
+/* ==========================================================================
+   MODERN TABLE BUILDER & EXCEL / SHEETS PASTE SYSTEM
+   ========================================================================== */
+let activeEditor = null;
+let currentTableTargetIndex = null;
+let savedRange = null;
+
+function saveSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+        savedRange = sel.getRangeAt(0).cloneRange();
+    }
+}
+
+function restoreSelection() {
+    if (savedRange) {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(savedRange);
+    }
+}
+
+function escapeHtmlEntities(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function showPasteToast(msg) {
+    if (typeof Swal !== 'undefined') {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true
+        });
+        Toast.fire({
+            icon: 'success',
+            title: msg
+        });
+    }
+}
+
+function sanitizeTableCellContent(node) {
+    if (!node) return '&nbsp;';
+    const clone = node.cloneNode(true);
+    const unwanted = clone.querySelectorAll('script, style, link, meta, xml, object, embed, iframe');
+    unwanted.forEach(el => el.remove());
+
+    const all = clone.querySelectorAll('*');
+    all.forEach(el => {
+        const attrs = Array.from(el.attributes);
+        attrs.forEach(attr => {
+            if (attr.name !== 'href' && attr.name !== 'target') {
+                el.removeAttribute(attr.name);
+            }
+        });
+    });
+
+    let html = clone.innerHTML.trim();
+    html = html.replace(/&nbsp;/g, ' ').trim();
+    return html || '&nbsp;';
+}
+
+function buildTableHtmlSkeleton(theadHtml, tbodyHtml) {
+    return `<div class="quote-table-wrapper" contenteditable="false">` +
+        `<div class="quote-table-actions">` +
+            `<button type="button" class="btn-tbl-action" onclick="addTableRow(this)" title="Añadir Fila"><i class="ph ph-plus"></i> Fila</button>` +
+            `<button type="button" class="btn-tbl-action" onclick="addTableColumn(this)" title="Añadir Columna"><i class="ph ph-plus"></i> Col</button>` +
+            `<button type="button" class="btn-tbl-action btn-tbl-del" onclick="deleteTableRow(this)" title="Eliminar Fila"><i class="ph ph-minus"></i> Fila</button>` +
+            `<button type="button" class="btn-tbl-action btn-tbl-del" onclick="deleteTableColumn(this)" title="Eliminar Columna"><i class="ph ph-minus"></i> Col</button>` +
+            `<button type="button" class="btn-tbl-action btn-tbl-danger" onclick="removeModernTable(this)" title="Eliminar Tabla"><i class="ph ph-trash"></i></button>` +
+        `</div>` +
+        `<table class="quote-modern-table" contenteditable="true">` +
+            (theadHtml ? `<thead>${theadHtml}</thead>` : '') +
+            `<tbody>${tbodyHtml}</tbody>` +
+        `</table>` +
+    `</div><p><br></p>`;
+}
+
+function cleanAndModernizeHtmlTable(html) {
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const table = doc.querySelector('table');
+        if (!table) return '';
+
+        const allRows = Array.from(table.querySelectorAll('tr'));
+        if (allRows.length === 0) return '';
+
+        let theadRows = [];
+        let tbodyRows = [];
+
+        const thead = table.querySelector('thead');
+        if (thead) {
+            theadRows = Array.from(thead.querySelectorAll('tr'));
+        }
+
+        const tbody = table.querySelector('tbody');
+        if (tbody) {
+            tbodyRows = Array.from(tbody.querySelectorAll('tr'));
+        } else {
+            tbodyRows = allRows;
+        }
+
+        if (theadRows.length === 0 && tbodyRows.length > 1) {
+            theadRows = [tbodyRows[0]];
+            tbodyRows = tbodyRows.slice(1);
+        } else if (theadRows.length === 0 && tbodyRows.length === 1) {
+            theadRows = [tbodyRows[0]];
+            tbodyRows = [];
+        }
+
+        let theadHtml = '';
+        if (theadRows.length > 0) {
+            theadRows.forEach(tr => {
+                theadHtml += '<tr>';
+                const cells = Array.from(tr.querySelectorAll('th, td'));
+                cells.forEach(cell => {
+                    const clean = sanitizeTableCellContent(cell);
+                    theadHtml += `<th>${clean}</th>`;
+                });
+                theadHtml += '</tr>';
+            });
+        }
+
+        let tbodyHtml = '';
+        tbodyRows.forEach(tr => {
+            tbodyHtml += '<tr>';
+            const cells = Array.from(tr.querySelectorAll('th, td'));
+            cells.forEach(cell => {
+                const clean = sanitizeTableCellContent(cell);
+                tbodyHtml += `<td>${clean}</td>`;
+            });
+            tbodyHtml += '</tr>';
+        });
+
+        return buildTableHtmlSkeleton(theadHtml, tbodyHtml);
+    } catch(err) {
+        console.error("Error cleaning HTML table:", err);
+        return '';
+    }
+}
+
+function convertTsvToModernTable(tsv) {
+    try {
+        const rawLines = tsv.trim().split(/\r?\n/).filter(line => line.trim().length > 0);
+        if (rawLines.length === 0) return null;
+        if (!rawLines.some(l => l.includes('\t'))) return null;
+
+        const rowsData = rawLines.map(line => line.split('\t'));
+        const maxCols = Math.max(...rowsData.map(r => r.length));
+        if (maxCols < 1) return null;
+
+        let theadHtml = '<tr>';
+        for (let c = 0; c < maxCols; c++) {
+            const val = (rowsData[0][c] || '').trim();
+            theadHtml += `<th>${escapeHtmlEntities(val) || '&nbsp;'}</th>`;
+        }
+        theadHtml += '</tr>';
+
+        let tbodyHtml = '';
+        if (rowsData.length > 1) {
+            for (let r = 1; r < rowsData.length; r++) {
+                tbodyHtml += '<tr>';
+                for (let c = 0; c < maxCols; c++) {
+                    const val = (rowsData[r][c] || '').trim();
+                    tbodyHtml += `<td>${escapeHtmlEntities(val) || '&nbsp;'}</td>`;
+                }
+                tbodyHtml += '</tr>';
+            }
+        } else {
+            tbodyHtml += '<tr>';
+            for (let c = 0; c < maxCols; c++) {
+                tbodyHtml += `<td>&nbsp;</td>`;
+            }
+            tbodyHtml += '</tr>';
+        }
+
+        return buildTableHtmlSkeleton(theadHtml, tbodyHtml);
+    } catch(err) {
+        console.error("Error converting TSV to table:", err);
+        return null;
+    }
+}
+
+function insertHtmlAtCursorOrAppend(html, targetTextarea) {
+    if (!targetTextarea) {
+        targetTextarea = activeEditor || document.querySelector('.item-textarea');
+    }
+    if (!targetTextarea) return;
+
+    targetTextarea.focus();
+    restoreSelection();
+
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        let container = range.commonAncestorContainer;
+        while (container && container !== targetTextarea && container.parentNode) {
+            container = container.parentNode;
+        }
+
+        if (container === targetTextarea) {
+            range.deleteContents();
+            const el = document.createElement("div");
+            el.innerHTML = html;
+            const frag = document.createDocumentFragment();
+            let nodeToAdd, lastNode;
+            while ((nodeToAdd = el.firstChild)) {
+                lastNode = frag.appendChild(nodeToAdd);
+            }
+            range.insertNode(frag);
+
+            if (lastNode) {
+                const newRange = document.createRange();
+                newRange.setStartAfter(lastNode);
+                newRange.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+            }
+            return;
+        }
+    }
+
+    targetTextarea.insertAdjacentHTML('beforeend', html);
+}
+
+function handleEditorPaste(e, textarea, index) {
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData) return;
+
+    const htmlData = clipboardData.getData('text/html');
+    const textData = clipboardData.getData('text/plain');
+
+    if (htmlData && (htmlData.toLowerCase().includes('<table') || (htmlData.toLowerCase().includes('<tr') && htmlData.toLowerCase().includes('<td')))) {
+        e.preventDefault();
+        const cleanedHtml = cleanAndModernizeHtmlTable(htmlData);
+        if (cleanedHtml) {
+            insertHtmlAtCursorOrAppend(cleanedHtml, textarea);
+            syncData();
+            showPasteToast('¡Tabla pegada y adaptada con estilo moderno!');
+            return;
+        }
+    }
+
+    if (textData && textData.includes('\t') && (textData.includes('\n') || textData.includes('\r'))) {
+        e.preventDefault();
+        const tableHtml = convertTsvToModernTable(textData);
+        if (tableHtml) {
+            insertHtmlAtCursorOrAppend(tableHtml, textarea);
+            syncData();
+            showPasteToast('¡Celdas de Excel convertidas en tabla moderna!');
+            return;
+        }
+    }
+}
+
+function handleEditorKeyDown(e) {
+    if (e.key === 'Tab') {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return;
+        const cell = sel.anchorNode ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode.closest('td, th') : sel.anchorNode.parentElement.closest('td, th')) : null;
+        if (cell) {
+            e.preventDefault();
+            const table = cell.closest('table');
+            const cells = Array.from(table.querySelectorAll('th, td'));
+            const idx = cells.indexOf(cell);
+            if (e.shiftKey) {
+                if (idx > 0) {
+                    cells[idx - 1].focus();
+                }
+            } else {
+                if (idx < cells.length - 1) {
+                    cells[idx + 1].focus();
+                } else {
+                    const wrapper = table.closest('.quote-table-wrapper');
+                    const addBtn = wrapper ? wrapper.querySelector('.btn-tbl-action') : null;
+                    if (addBtn) {
+                        addTableRow(addBtn);
+                        const newCells = Array.from(table.querySelectorAll('th, td'));
+                        if (newCells.length > cells.length) {
+                            newCells[cells.length].focus();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function removeModernTable(btn) {
+    const wrapper = btn.closest('.quote-table-wrapper');
+    if (wrapper) {
+        wrapper.remove();
+        syncData();
+    }
+}
+
+function addTableRow(btn) {
+    const wrapper = btn.closest('.quote-table-wrapper');
+    if (!wrapper) return;
+    const table = wrapper.querySelector('.quote-modern-table');
+    if (!table) return;
+
+    let tbody = table.querySelector('tbody');
+    if (!tbody) {
+        tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+    }
+
+    let colCount = 2;
+    const firstRow = table.querySelector('tr');
+    if (firstRow) {
+        colCount = firstRow.querySelectorAll('th, td').length;
+    }
+
+    const tr = document.createElement('tr');
+    for (let i = 0; i < colCount; i++) {
+        const td = document.createElement('td');
+        td.innerHTML = '&nbsp;';
+        tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+    syncData();
+    tr.querySelector('td').focus();
+}
+
+function deleteTableRow(btn) {
+    const wrapper = btn.closest('.quote-table-wrapper');
+    if (!wrapper) return;
+    const table = wrapper.querySelector('.quote-modern-table');
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    if (tbody) {
+        const rows = tbody.querySelectorAll('tr');
+        if (rows.length > 1) {
+            rows[rows.length - 1].remove();
+            syncData();
+        } else if (rows.length === 1) {
+            rows[0].remove();
+            syncData();
+        }
+    }
+}
+
+function addTableColumn(btn) {
+    const wrapper = btn.closest('.quote-table-wrapper');
+    if (!wrapper) return;
+    const table = wrapper.querySelector('.quote-modern-table');
+    if (!table) return;
+
+    const theadRows = table.querySelectorAll('thead tr');
+    theadRows.forEach(tr => {
+        const th = document.createElement('th');
+        th.innerText = 'Columna';
+        tr.appendChild(th);
+    });
+
+    const tbodyRows = table.querySelectorAll('tbody tr');
+    tbodyRows.forEach(tr => {
+        const td = document.createElement('td');
+        td.innerHTML = '&nbsp;';
+        tr.appendChild(td);
+    });
+    syncData();
+}
+
+function deleteTableColumn(btn) {
+    const wrapper = btn.closest('.quote-table-wrapper');
+    if (!wrapper) return;
+    const table = wrapper.querySelector('.quote-modern-table');
+    if (!table) return;
+
+    const firstRow = table.querySelector('tr');
+    if (!firstRow || firstRow.querySelectorAll('th, td').length <= 1) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Mínimo 1 columna',
+            text: 'La tabla no puede tener menos de una columna.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        return;
+    }
+
+    table.querySelectorAll('tr').forEach(tr => {
+        const cells = tr.querySelectorAll('th, td');
+        if (cells.length > 0) {
+            cells[cells.length - 1].remove();
+        }
+    });
+    syncData();
+}
+
+window.selectedTablePreset = 'custom';
+window.selectPreset = function(preset, cardEl) {
+    window.selectedTablePreset = preset;
+    document.querySelectorAll('.table-preset-card').forEach(el => {
+        el.style.border = '1px solid var(--quote-border)';
+    });
+    cardEl.style.border = '2px solid #0ea5e9';
+    const customBox = document.getElementById('customTableDims');
+    if (customBox) {
+        customBox.style.display = (preset === 'custom') ? 'flex' : 'none';
+    }
+};
+
+function insertConfiguredTable(config) {
+    let theadHtml = '';
+    let tbodyHtml = '';
+
+    if (config.preset === 'deliverables') {
+        theadHtml = '<tr><th>Hito / Fase</th><th>Entregable Clave</th><th>Formato / Medio</th><th>Plazo Estimado</th></tr>';
+        tbodyHtml = '<tr><td>Fase 1: Estrategia</td><td>Briefing & Wireframes</td><td>Figma / PDF</td><td>5 días laborables</td></tr>' +
+                    '<tr><td>Fase 2: Ejecución</td><td>Prototipo Funcional</td><td>Demo Online</td><td>10 días laborables</td></tr>' +
+                    '<tr><td>Fase 3: Entrega</td><td>Despliegue & Capacitación</td><td>Acceso Producción</td><td>3 días laborables</td></tr>';
+    } else if (config.preset === 'specs') {
+        theadHtml = '<tr><th>Módulo / Componente</th><th>Especificación Técnica</th><th>Alcance / Detalle</th></tr>';
+        tbodyHtml = '<tr><td>Frontend</td><td>Next.js / Tailwind CSS</td><td>Diseño 100% responsivo y dark mode</td></tr>' +
+                    '<tr><td>Backend & API</td><td>PHP / Node REST API</td><td>Autenticación JWT y roles</td></tr>' +
+                    '<tr><td>Infraestructura</td><td>Cloudflare / VPS SSD</td><td>SSL, backups automáticos diarios</td></tr>';
+    } else if (config.preset === 'pricing') {
+        theadHtml = '<tr><th>Concepto / Tarea</th><th>Cant.</th><th>Precio Unit.</th><th>Subtotal</th></tr>';
+        tbodyHtml = '<tr><td>Configuración de Servidor</td><td>1</td><td>S/ 250.00</td><td>S/ 250.00</td></tr>' +
+                    '<tr><td>Integración Pasarela de Pagos</td><td>1</td><td>S/ 450.00</td><td>S/ 450.00</td></tr>';
+    } else {
+        const cols = Math.min(Math.max(config.cols, 1), 10);
+        const rows = Math.min(Math.max(config.rows, 1), 25);
+
+        theadHtml = '<tr>';
+        for (let c = 1; c <= cols; c++) {
+            theadHtml += `<th>Columna ${c}</th>`;
+        }
+        theadHtml += '</tr>';
+
+        for (let r = 1; r <= rows; r++) {
+            tbodyHtml += '<tr>';
+            for (let c = 1; c <= cols; c++) {
+                tbodyHtml += `<td>Dato ${r}.${c}</td>`;
+            }
+            tbodyHtml += '</tr>';
+        }
+    }
+
+    const outTable = buildTableHtmlSkeleton(theadHtml, tbodyHtml);
+    const target = activeEditor || (currentTableTargetIndex !== null ? document.querySelectorAll('.item-card')[currentTableTargetIndex]?.querySelector('.item-textarea') : null) || document.querySelector('.item-textarea');
+    insertHtmlAtCursorOrAppend(outTable, target);
+    syncData();
+}
+
+function openModernTableModal(index) {
+    currentTableTargetIndex = index;
+    const cards = document.querySelectorAll('.item-card');
+    if (cards[index]) {
+        activeEditor = cards[index].querySelector('.item-textarea');
+    }
+    window.selectedTablePreset = 'custom';
+
+    Swal.fire({
+        title: '<div style="display:flex;align-items:center;gap:8px;font-size:1.15rem;font-weight:700;"><i class="ph ph-table" style="color:#0ea5e9;"></i> Insertar Tabla Moderna</div>',
+        html: `
+            <div style="text-align: left; font-size: 13px; color: var(--quote-text-main);">
+                <p style="margin-bottom: 12px; color: var(--quote-text-muted);">
+                    Selecciona una plantilla prediseñada o configura dimensiones personalizadas:
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+                    <div class="table-preset-card active" onclick="selectPreset('custom', this)" style="border: 2px solid #0ea5e9; border-radius: 8px; padding: 10px; cursor: pointer; background: var(--quote-card-sub);">
+                        <strong style="display: block; font-size: 12.5px;">🛠️ Personalizada</strong>
+                        <span style="font-size: 11px; color: var(--quote-text-muted);">Elige filas y columnas</span>
+                    </div>
+                    <div class="table-preset-card" onclick="selectPreset('deliverables', this)" style="border: 1px solid var(--quote-border); border-radius: 8px; padding: 10px; cursor: pointer; background: var(--quote-card-sub);">
+                        <strong style="display: block; font-size: 12.5px;">🚀 Entregables & Plazos</strong>
+                        <span style="font-size: 11px; color: var(--quote-text-muted);">Fase, Entregable, Plazo</span>
+                    </div>
+                    <div class="table-preset-card" onclick="selectPreset('specs', this)" style="border: 1px solid var(--quote-border); border-radius: 8px; padding: 10px; cursor: pointer; background: var(--quote-card-sub);">
+                        <strong style="display: block; font-size: 12.5px;">⚙️ Especificaciones</strong>
+                        <span style="font-size: 11px; color: var(--quote-text-muted);">Módulo, Detalle, Alcance</span>
+                    </div>
+                    <div class="table-preset-card" onclick="selectPreset('pricing', this)" style="border: 1px solid var(--quote-border); border-radius: 8px; padding: 10px; cursor: pointer; background: var(--quote-card-sub);">
+                        <strong style="display: block; font-size: 12.5px;">💰 Desglose Económico</strong>
+                        <span style="font-size: 11px; color: var(--quote-text-muted);">Ítem, Cantidad, Precio</span>
+                    </div>
+                </div>
+
+                <div id="customTableDims" style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Columnas:</label>
+                        <input type="number" id="tblCols" class="app-input" value="3" min="1" max="8" style="width: 100%;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Filas de Datos:</label>
+                        <input type="number" id="tblRows" class="app-input" value="3" min="1" max="15" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div style="background: rgba(14, 165, 233, 0.08); border-left: 3px solid #0ea5e9; padding: 8px 12px; border-radius: 4px; font-size: 11.5px; line-height: 1.4;">
+                    💡 <strong>Pro Tip:</strong> También puedes copiar cualquier tabla o rango de celdas desde <strong>Excel o Google Sheets</strong> (Ctrl+C) y pegarla directamente con (Ctrl+V). Se convertirá automáticamente a este diseño moderno.
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="ph ph-plus-circle"></i> Insertar Tabla',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#0ea5e9',
+        focusConfirm: false,
+        preConfirm: () => {
+            return {
+                preset: window.selectedTablePreset || 'custom',
+                cols: parseInt(document.getElementById('tblCols').value) || 3,
+                rows: parseInt(document.getElementById('tblRows').value) || 3
+            };
+        }
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            insertConfiguredTable(result.value);
+        }
+    });
+}
+
 function renderItems() {
     const container = document.getElementById('itemsContainer');
     container.innerHTML = '';
@@ -1580,6 +2491,10 @@ function renderItems() {
                     <button type="button" class="editor-btn" title="Lista Numerada" onclick="document.execCommand('insertOrderedList', false, null)">
                         <i class="ph ph-list-numbers"></i>
                     </button>
+                    <div class="editor-divider"></div>
+                    <button type="button" class="editor-btn btn-table-trigger" title="Insertar o Pegar Tabla Moderna" onclick="openModernTableModal(${index})">
+                        <i class="ph ph-table"></i>
+                    </button>
                 </div>
                 <div class="item-textarea" contenteditable="true" onblur="syncData()" placeholder="Describe el servicio detalladamente...">${item.description || ''}</div>
             </div>
@@ -1625,6 +2540,13 @@ function renderItems() {
             </div>
         `;
         container.appendChild(card);
+
+        const textarea = card.querySelector('.item-textarea');
+        textarea.addEventListener('paste', (e) => handleEditorPaste(e, textarea, index));
+        textarea.addEventListener('focus', () => { activeEditor = textarea; currentTableTargetIndex = index; saveSelection(); });
+        textarea.addEventListener('keyup', () => { saveSelection(); syncData(); });
+        textarea.addEventListener('mouseup', saveSelection);
+        textarea.addEventListener('keydown', handleEditorKeyDown);
     });
 
     calculateTotals(subtotal);
@@ -1729,6 +2651,95 @@ function calculateTotals(subtotal) {
     document.getElementById('calcTotal').innerText = sym + ' ' + total.toFixed(2);
 }
 
+/* Theme & Cover Handlers */
+const gradientMap = {
+    'mesh-blue': 'radial-gradient(at 0% 0%, #2563eb 0px, transparent 65%), radial-gradient(at 100% 100%, #6366f1 0px, transparent 65%), linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
+    'emerald-glow': 'radial-gradient(at 0% 0%, #059669 0px, transparent 65%), radial-gradient(at 100% 100%, #0891b2 0px, transparent 65%), linear-gradient(135deg, #064e3b 0%, #0f172a 100%)',
+    'creative-violet': 'radial-gradient(at 0% 0%, #9333ea 0px, transparent 65%), radial-gradient(at 100% 100%, #db2777 0px, transparent 65%), linear-gradient(135deg, #581c87 0%, #0f172a 100%)',
+    'sunset-gold': 'radial-gradient(at 0% 0%, #d97706 0px, transparent 65%), radial-gradient(at 100% 100%, #dc2626 0px, transparent 65%), linear-gradient(135deg, #78350f 0%, #0f172a 100%)',
+    'cyber-dark': 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #090d16 100%)',
+    'minimal-clean': 'linear-gradient(135deg, #334155 0%, #1e293b 100%)',
+    'none': '#0f172a'
+};
+
+function updateCoverPreview() {
+    const preview = document.getElementById('coverLivePreview');
+    if (!preview) return;
+    const imgVal = document.getElementById('cover_image').value.trim();
+    const gradVal = document.getElementById('cover_gradient').value;
+    const badge = document.getElementById('coverBadgeText');
+
+    if (imgVal) {
+        preview.style.background = `url(${imgVal}) center / cover no-repeat`;
+        if (badge) badge.textContent = 'Imagen personalizada activa';
+    } else if (gradVal && gradVal !== 'none') {
+        preview.style.background = gradientMap[gradVal] || gradientMap['mesh-blue'];
+        if (badge) badge.textContent = 'Degradado ' + gradVal + ' activo';
+    } else {
+        preview.style.background = '#1e293b';
+        if (badge) badge.textContent = 'Sin portada';
+    }
+}
+
+function selectQuoteTheme(themeKey, cardEl) {
+    document.getElementById('theme_color').value = themeKey;
+    document.querySelectorAll('.quote-theme-card').forEach(c => {
+        c.classList.remove('active');
+        const icon = c.querySelector('.theme-card-color-dot i');
+        if (icon) icon.style.display = 'none';
+    });
+    cardEl.classList.add('active');
+    const activeIcon = cardEl.querySelector('.theme-card-color-dot i');
+    if (activeIcon) activeIcon.style.display = 'inline-block';
+}
+
+function selectCoverGradient(gradKey, btnEl) {
+    document.getElementById('cover_gradient').value = gradKey;
+    document.getElementById('cover_image').value = '';
+    document.querySelectorAll('.btn-gradient-chip').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    updateCoverPreview();
+}
+
+function removeCoverBanner() {
+    document.getElementById('cover_gradient').value = 'none';
+    document.getElementById('cover_image').value = '';
+    document.querySelectorAll('.btn-gradient-chip').forEach(b => b.classList.remove('active'));
+    updateCoverPreview();
+}
+
+function uploadCoverFile(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('cover_file', file);
+
+    const badge = document.getElementById('coverBadgeText');
+    if (badge) badge.textContent = 'Subiendo imagen...';
+
+    fetch('modules/quotes/ajax_upload_cover.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.url) {
+            document.getElementById('cover_image').value = data.url;
+            document.querySelectorAll('.btn-gradient-chip').forEach(b => b.classList.remove('active'));
+            updateCoverPreview();
+            showPasteToast('¡Portada subida con éxito!');
+        } else {
+            Swal.fire('Error', data.message || 'Error al subir la imagen', 'error');
+            updateCoverPreview();
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        Swal.fire('Error', 'Fallo de conexión al subir la imagen', 'error');
+        updateCoverPreview();
+    });
+}
+
 // Initial bootstrap
 document.addEventListener('DOMContentLoaded', () => {
     if (itemsData.length === 0 && !document.getElementById('quote_id').value) {
@@ -1737,6 +2748,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderItems();
     }
     renderGantt();
+    updateCoverPreview();
 });
 
 // Save Logic
@@ -1779,6 +2791,9 @@ $('#btnSaveQuote').on('click', function(e) {
             due_date: $('#due_date').val(),
             currency: $('#currency').val(),
             status: $('#status').val(),
+            theme_color: $('#theme_color').val() || 'corporate-blue',
+            cover_image: $('#cover_image').val() || '',
+            cover_gradient: $('#cover_gradient').val() || 'mesh-blue',
             tax_rate: $('#tax_rate').val(),
             notes: $('#notes').val(),
             terms_conditions: $('#terms_conditions').val(),
