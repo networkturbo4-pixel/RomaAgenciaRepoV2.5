@@ -5,6 +5,19 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Self-healing migration for customization columns
+try {
+    $existing_cols = $db->query("SHOW COLUMNS FROM quotes")->fetchAll(PDO::FETCH_COLUMN);
+    $missing_cols = [];
+    if (!in_array('theme_color', $existing_cols)) $missing_cols[] = "ADD COLUMN `theme_color` VARCHAR(50) DEFAULT 'corporate-blue'";
+    if (!in_array('cover_image', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_image` VARCHAR(255) NULL";
+    if (!in_array('cover_gradient', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_gradient` VARCHAR(100) DEFAULT 'mesh-blue'";
+    
+    if (!empty($missing_cols)) {
+        $db->exec("ALTER TABLE `quotes` " . implode(', ', $missing_cols));
+    }
+} catch (Exception $e) {}
+
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $quote = null;
 $quote_items = [];

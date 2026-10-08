@@ -33,6 +33,28 @@ require_once '../../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+// Self-healing migration: check and auto-add customization columns if missing
+$has_custom_cols = true;
+try {
+    $existing_cols = $db->query("SHOW COLUMNS FROM quotes")->fetchAll(PDO::FETCH_COLUMN);
+    $missing_cols = [];
+    if (!in_array('theme_color', $existing_cols)) $missing_cols[] = "ADD COLUMN `theme_color` VARCHAR(50) DEFAULT 'corporate-blue'";
+    if (!in_array('cover_image', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_image` VARCHAR(255) NULL";
+    if (!in_array('cover_gradient', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_gradient` VARCHAR(100) DEFAULT 'mesh-blue'";
+    
+    if (!empty($missing_cols)) {
+        $db->exec("ALTER TABLE `quotes` " . implode(', ', $missing_cols));
+    }
+} catch (Exception $colEx) {
+    // If ALTER TABLE fails due to user permissions, check if columns actually exist
+    try {
+        $checkCols = $db->query("SHOW COLUMNS FROM quotes LIKE 'theme_color'")->fetch();
+        $has_custom_cols = !empty($checkCols);
+    } catch(Exception $e2) {
+        $has_custom_cols = false;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $db->beginTransaction();
@@ -89,12 +111,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($quote_id == 0) {
             $token = bin2hex(random_bytes(6));
-            $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, theme_color, cover_image, cover_gradient) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $theme_color, $cover_image, $cover_gradient]);
+            if ($has_custom_cols) {
+                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, theme_color, cover_image, cover_gradient) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $theme_color, $cover_image, $cover_gradient]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token]);
+            }
             $quote_id = $db->lastInsertId();
         } else {
-            $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, theme_color=?, cover_image=?, cover_gradient=? WHERE id=?");
-            $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $theme_color, $cover_image, $cover_gradient, $quote_id]);
+            if ($has_custom_cols) {
+                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, theme_color=?, cover_image=?, cover_gradient=? WHERE id=?");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $theme_color, $cover_image, $cover_gradient, $quote_id]);
+            } else {
+                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=? WHERE id=?");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $quote_id]);
+            }
             
             // Delete old items and tasks to re-insert
             $db->prepare("DELETE FROM quote_items WHERE quote_id=?")->execute([$quote_id]);
