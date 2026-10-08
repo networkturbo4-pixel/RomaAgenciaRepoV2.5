@@ -689,7 +689,7 @@ if (!empty($quote['cover_image'])) {
             cursor: pointer;
         }
 
-        @media (max-width: 768px) {
+        @media screen and (max-width: 768px) {
             .approval-cta-banner {
                 margin: 1.5rem 1rem 0;
                 padding: 1.25rem;
@@ -1877,8 +1877,8 @@ if (!empty($quote['cover_image'])) {
             transform: translateY(0);
         }
 
-        /* Responsive Styles - Highly Compact & Ergonomic Mobile Layout */
-        @media (max-width: 768px) {
+        /* Responsive Styles - Highly Compact & Ergonomic Mobile Layout (Screen Only) */
+        @media screen and (max-width: 768px) {
             body {
                 padding: 0.5rem 0.35rem 3rem !important;
             }
@@ -2231,7 +2231,7 @@ if (!empty($quote['cover_image'])) {
             }
         }
 
-        @media (max-width: 640px) {
+        @media screen and (max-width: 640px) {
             .top-action-bar {
                 margin-bottom: 1rem;
                 gap: 0.4rem;
@@ -2287,58 +2287,693 @@ if (!empty($quote['cover_image'])) {
             }
         }
 
-        /* Print Optimization */
+        /* ==========================================================================
+           Executive Print / PDF Optimization (A4 Compact Corporate Standard)
+           ========================================================================== */
+        @page {
+            size: A4 portrait;
+            margin: 10mm 12mm 12mm 12mm;
+        }
+
         @media print {
-            body {
+            :root, html, body {
+                --bg-body: #ffffff !important;
+                --surface: #ffffff !important;
+                --surface-elevated: #f8fafc !important;
+                --border: #cbd5e1 !important;
+                --border-subtle: #e2e8f0 !important;
+                --text-main: #0f172a !important;
+                --text-muted: #475569 !important;
+                --primary: #0284c7 !important;
+                --primary-light: #f0f9ff !important;
                 background: #ffffff !important;
-                color: #000000 !important;
-                padding: 0 !important;
+                color: #0f172a !important;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                font-size: 9.5pt !important;
+                line-height: 1.35 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
+
+            body {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
             .container {
                 max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
+
+            /* Hide all interactive screen-only elements */
             .top-action-bar,
             .btn-theme-switch,
             .btn-copy-account,
-            .copy-toast {
+            .btn-copy-account-modern,
+            .copy-toast,
+            .mobile-quote-hero-icon,
+            .approval-cta-banner,
+            .approval-success-banner,
+            #bottomApprovalBanner,
+            #bottomApprovalSuccess,
+            .mobile-status-slot,
+            .pulsing-dot,
+            .doc-cover-banner {
                 display: none !important;
             }
+
             .document-card {
                 box-shadow: none !important;
                 border: none !important;
                 border-radius: 0 !important;
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
-            .doc-header, .meta-strip, .services-table th, .totals-summary-card, .note-card, .payment-card {
+
+            /* Always enforce Light/Colored Logo for white paper (Never faint dark logo) */
+            .company-logo-img {
+                display: block !important;
+                max-height: 42px !important;
+                max-width: 180px !important;
+                width: auto !important;
+                object-fit: contain !important;
+                filter: none !important;
+            }
+            .company-logo-img.logo-dark {
+                display: none !important;
+            }
+            .company-logo-img.logo-light {
+                display: block !important;
+            }
+
+            /* Executive Compact Letterhead */
+            .doc-header {
+                padding: 0 0 10px 0 !important;
+                margin-bottom: 12px !important;
+                border-bottom: 2px solid #0f172a !important;
+                background: transparent !important;
+                display: grid !important;
+                grid-template-columns: 1fr auto !important;
+                grid-template-rows: auto auto !important;
+                grid-template-areas: 
+                    "brand-top quote-meta"
+                    "brand-details quote-meta" !important;
+                gap: 6px 20px !important;
+                align-items: start !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            .doc-header-top {
+                grid-area: brand-top !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+            }
+
+            .brand-logo-holder {
+                display: flex !important;
+                align-items: center !important;
+            }
+
+            .company-brand-details {
+                grid-area: brand-details !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 2px !important;
+                max-width: 480px !important;
+            }
+
+            .company-name-title {
+                font-size: 9.5pt !important;
+                font-weight: 800 !important;
+                color: #0f172a !important;
+                letter-spacing: -0.01em !important;
+                line-height: 1.2 !important;
+            }
+
+            .company-details-grid {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 1px !important;
+            }
+
+            .company-info-item {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                font-size: 7.5pt !important;
+                color: #475569 !important;
+                line-height: 1.35 !important;
+            }
+
+            .company-info-item i {
+                display: none !important;
+            }
+
+            /* Clean Quote Number in Print (No oversized boxes or drop-shadows) */
+            .doc-quote-meta {
+                grid-area: quote-meta !important;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end !important;
+                text-align: right !important;
+                min-width: auto !important;
+                gap: 2px !important;
+            }
+
+            .quote-badge-tag {
+                display: inline-flex !important;
+                font-size: 7pt !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+                padding: 2px 6px !important;
+                border-radius: 4px !important;
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            .doc-quote-number {
+                font-size: 1.75rem !important;
+                font-weight: 800 !important;
+                color: #0f172a !important;
+                letter-spacing: -0.03em !important;
+                line-height: 1.1 !important;
+            }
+
+            .desktop-status-slot {
+                display: block !important;
+                margin-top: 2px !important;
+            }
+
+            .status-pill {
+                font-size: 7pt !important;
+                padding: 2px 8px !important;
+                border-radius: 9999px !important;
+                border: 1px solid #cbd5e1 !important;
+                color: #0f172a !important;
                 background: #f8fafc !important;
-                border-color: #e2e8f0 !important;
             }
-            .calc-row.total-row .calc-row-val {
-                color: #000000 !important;
+
+            /* Compact Meta Details Strip */
+            .meta-strip {
+                display: grid !important;
+                grid-template-columns: 1.8fr 1.1fr 1.1fr !important;
+                gap: 8px !important;
+                padding: 8px 12px !important;
+                margin-bottom: 12px !important;
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
+
+            .meta-icon-tile {
+                display: none !important;
+            }
+
+            .meta-item-box {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 2px !important;
+            }
+
+            .meta-text-group {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 1px !important;
+            }
+
+            .meta-item-label {
+                font-size: 6.8pt !important;
+                color: #64748b !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+            }
+
+            .meta-item-value {
+                font-size: 9pt !important;
+                font-weight: 700 !important;
+                color: #0f172a !important;
+                line-height: 1.25 !important;
+            }
+
+            .meta-item-company {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 3px !important;
+                font-size: 8pt !important;
+                font-weight: 700 !important;
+                color: #0284c7 !important;
+                line-height: 1.2 !important;
+            }
+
+            .meta-item-company i {
+                font-size: 9pt !important;
+            }
+
+            .meta-item-sub {
+                font-size: 7pt !important;
+                color: #64748b !important;
+            }
+
+            /* Services Table & Descriptions */
+            .doc-body {
+                padding: 0 !important;
+            }
+
+            .table-responsive-wrap {
+                width: 100% !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                margin-bottom: 10px !important;
+                background: #ffffff !important;
+                overflow: visible !important;
+            }
+
+            .services-table {
+                display: table !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: auto !important;
+            }
+
             .services-table thead {
                 display: table-header-group !important;
             }
-            .services-table, .services-table tbody, .services-table tr, .services-table td {
-                display: revert !important;
+
+            .services-table tbody {
+                display: table-row-group !important;
             }
-            .services-table td::before {
-                display: none !important;
+
+            .services-table tr {
+                display: table-row !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
-            .service-desc-cell .quote-table-wrapper {
-                border: 1px solid #cbd5e1 !important;
-                box-shadow: none !important;
-                page-break-inside: avoid;
-            }
-            .service-desc-cell .quote-modern-table th {
+
+            .services-table th {
+                display: table-cell !important;
                 background: #f1f5f9 !important;
                 color: #0f172a !important;
+                font-size: 7.5pt !important;
+                font-weight: 700 !important;
+                padding: 6px 10px !important;
                 border-bottom: 1px solid #cbd5e1 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
             }
-            .service-desc-cell .quote-modern-table td {
-                color: #1e293b !important;
+
+            .services-table th.col-qty { width: 60px !important; text-align: center !important; }
+            .services-table th.col-price { width: 110px !important; text-align: right !important; }
+            .services-table th.col-total { width: 110px !important; text-align: right !important; }
+
+            .services-table td {
+                display: table-cell !important;
+                padding: 8px 10px !important;
                 border-bottom: 1px solid #e2e8f0 !important;
+                color: #1e293b !important;
+                font-size: 8.5pt !important;
+                vertical-align: top !important;
+                background: transparent !important;
+            }
+
+            .services-table td::before {
+                display: none !important;
+                content: none !important;
+            }
+
+            .services-table td.col-qty { text-align: center !important; font-weight: 600 !important; }
+            .services-table td.col-price { text-align: right !important; }
+            .services-table td.col-total { text-align: right !important; }
+
+            .services-table td.service-desc-cell {
+                font-size: 8.5pt !important;
+                line-height: 1.4 !important;
+                padding: 8px 10px !important;
+            }
+
+            .services-table td.service-desc-cell p {
+                margin: 0 0 4px 0 !important;
+            }
+
+            .services-table td.service-desc-cell ul,
+            .services-table td.service-desc-cell ol {
+                margin: 4px 0 6px 18px !important;
+                padding: 0 !important;
+            }
+
+            .services-table td.service-desc-cell li {
+                margin-bottom: 2px !important;
+            }
+
+            /* Sub-tables embedded in description */
+            .service-desc-cell .quote-table-wrapper {
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 4px !important;
+                margin: 6px 0 !important;
+                padding: 0 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+            }
+
+            .service-desc-cell table {
+                display: table !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+
+            .service-desc-cell table thead {
+                display: table-header-group !important;
+            }
+
+            .service-desc-cell table tbody {
+                display: table-row-group !important;
+            }
+
+            .service-desc-cell table tr {
+                display: table-row !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                border: none !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                background: transparent !important;
+            }
+
+            .service-desc-cell table th {
+                display: table-cell !important;
+                background: #f8fafc !important;
+                color: #0f172a !important;
+                font-size: 7.5pt !important;
+                font-weight: 700 !important;
+                padding: 4px 6px !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            .service-desc-cell table td {
+                display: table-cell !important;
+                padding: 4px 6px !important;
+                border: 1px solid #e2e8f0 !important;
+                font-size: 7.5pt !important;
+                color: #1e293b !important;
+                background: transparent !important;
+            }
+
+            .service-desc-cell table td::before {
+                display: none !important;
+                content: none !important;
+            }
+
+            /* Totals Summary Card */
+            .totals-summary-card {
+                max-width: 260px !important;
+                margin-left: auto !important;
+                margin-top: 6px !important;
+                margin-bottom: 12px !important;
+                padding: 8px 12px !important;
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                box-shadow: none !important;
+                gap: 4px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .calc-row {
+                font-size: 8pt !important;
+                color: #475569 !important;
+            }
+
+            .calc-row-val {
+                font-size: 8.5pt !important;
+                color: #0f172a !important;
+                font-weight: 700 !important;
+            }
+
+            .calc-divider {
+                background: #cbd5e1 !important;
+                margin: 2px 0 !important;
+            }
+
+            .calc-row.total-row {
+                margin-top: 2px !important;
+                padding-top: 4px !important;
+            }
+
+            .calc-row.total-row .calc-row-label {
+                font-size: 9pt !important;
+                font-weight: 800 !important;
+                color: #0f172a !important;
+            }
+
+            .calc-row.total-row .calc-row-val {
+                font-size: 11pt !important;
+                font-weight: 800 !important;
+                color: #0284c7 !important;
+            }
+
+            /* Gantt Roadmap Section */
+            #ganttSection {
+                margin-top: 12px !important;
+                padding-top: 10px !important;
+                border-top: 1px dashed #cbd5e1 !important;
+                page-break-inside: auto !important;
+            }
+
+            .timeline-header-wrap {
+                margin-bottom: 8px !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            .timeline-badge-duration,
+            .timeline-badge-range {
+                font-size: 7pt !important;
+                padding: 2px 6px !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            .roadmap-phases-container {
+                gap: 6px !important;
+            }
+
+            .roadmap-phase-card {
+                padding: 6px 10px !important;
+                gap: 10px !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                background: #ffffff !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .phase-number-chip {
+                width: 24px !important;
+                height: 24px !important;
+                font-size: 8pt !important;
+            }
+
+            .phase-title {
+                font-size: 8.5pt !important;
+                color: #0f172a !important;
+            }
+
+            .phase-duration-tag {
+                font-size: 7pt !important;
+                padding: 2px 6px !important;
+            }
+
+            .phase-dates-flow {
+                font-size: 7.5pt !important;
+                gap: 8px !important;
+            }
+
+            .date-step strong {
+                color: #0f172a !important;
+            }
+
+            /* Section Headers */
+            .section-block {
+                margin-top: 12px !important;
+                padding-top: 10px !important;
+                border-top: 1px dashed #cbd5e1 !important;
+                page-break-inside: auto !important;
+            }
+
+            .section-header-title {
+                font-size: 9.5pt !important;
+                font-weight: 700 !important;
+                color: #0f172a !important;
+                margin-bottom: 3px !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            .section-header-sub {
+                font-size: 7.5pt !important;
+                color: #64748b !important;
+                margin-bottom: 8px !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            /* Notes & Terms Grid */
+            .notes-grid {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .note-card {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                padding: 8px 10px !important;
+                box-shadow: none !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .note-card-title {
+                font-size: 8pt !important;
+                font-weight: 700 !important;
+                color: #0f172a !important;
+                margin-bottom: 4px !important;
+            }
+
+            .note-card-body {
+                font-size: 7.5pt !important;
+                line-height: 1.35 !important;
+                color: #334155 !important;
+            }
+
+            /* Payment Hub (Positioned At The Very End) */
+            .payment-section-header {
+                margin-bottom: 6px !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            .payment-security-badge {
+                font-size: 7pt !important;
+                padding: 2px 6px !important;
+                border: 1px solid #cbd5e1 !important;
+                background: #f8fafc !important;
+                color: #0f172a !important;
+            }
+
+            .payment-grid-modern {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .payment-card-modern {
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                padding: 6px 8px !important;
+                box-shadow: none !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .payment-card-modern .card-top-row {
+                margin-bottom: 4px !important;
+            }
+
+            .payment-card-modern .bank-avatar {
+                display: none !important;
+            }
+
+            .payment-card-modern .bank-name-label {
+                font-size: 8pt !important;
+                font-weight: 700 !important;
+                color: #0f172a !important;
+            }
+
+            .payment-card-modern .bank-type-pill {
+                font-size: 6.5pt !important;
+                padding: 1px 4px !important;
+                background: #f1f5f9 !important;
+                border: 1px solid #cbd5e1 !important;
+                color: #475569 !important;
+            }
+
+            .payment-card-modern .btn-copy-account-modern {
+                display: none !important;
+            }
+
+            .account-number-box {
+                padding: 3px 6px !important;
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 4px !important;
+            }
+
+            .account-code-value {
+                font-size: 8.5pt !important;
+                font-weight: 700 !important;
+                color: #0f172a !important;
+                font-family: monospace, sans-serif !important;
+            }
+
+            .payment-instructions-footer {
+                font-size: 7.2pt !important;
+                padding: 6px 10px !important;
+                margin-top: 8px !important;
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                color: #475569 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .doc-footer {
+                font-size: 7pt !important;
+                color: #94a3b8 !important;
+                padding: 8px 0 0 0 !important;
+                margin-top: 10px !important;
+                border-top: 1px solid #e2e8f0 !important;
+            }
+
+            /* Clean Pagination Breaks */
+            tr, .roadmap-phase-card, .note-card, .payment-card-modern, .totals-summary-card, .meta-strip, .payment-instructions-footer {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            h1, h2, h3, h4, .section-header-title, .timeline-header-wrap, .payment-section-header {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
         }
     </style>
@@ -2626,9 +3261,48 @@ if (!empty($quote['cover_image'])) {
             </div>
             <?php endif; ?>
 
-            <!-- Modern Corporate Payment Methods Hub -->
+            <!-- Notes & Terms -->
+            <?php if(!empty(trim($quote['notes'] ?? '')) || !empty(trim($quote['terms_conditions'] ?? ''))): ?>
+            <div class="section-block" id="notesSection">
+                <div class="notes-grid">
+                    <?php if(!empty(trim($quote['notes'] ?? ''))): ?>
+                    <div class="note-card">
+                        <span class="note-card-title"><i class="ph ph-notepad"></i> Notas Adicionales</span>
+                        <div class="note-card-body">
+                            <?php 
+                                $raw_notes = $quote['notes'];
+                                if (preg_match('/<[a-z][\s\S]*>/i', $raw_notes)) {
+                                    echo strip_tags($raw_notes, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
+                                } else {
+                                    echo nl2br(htmlspecialchars($raw_notes));
+                                }
+                            ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if(!empty(trim($quote['terms_conditions'] ?? ''))): ?>
+                    <div class="note-card">
+                        <span class="note-card-title"><i class="ph ph-file-text"></i> Términos y Condiciones</span>
+                        <div class="note-card-body">
+                            <?php 
+                                $raw_terms = $quote['terms_conditions'];
+                                if (preg_match('/<[a-z][\s\S]*>/i', $raw_terms)) {
+                                    echo strip_tags($raw_terms, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
+                                } else {
+                                    echo nl2br(htmlspecialchars($raw_terms));
+                                }
+                            ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Modern Corporate Payment Methods Hub (At The Very End) -->
             <?php if(!empty($quote['show_payment_methods'])): ?>
-            <div class="section-block">
+            <div class="section-block" id="paymentSection">
                 <div class="payment-section-header">
                     <div>
                         <h3 class="section-header-title">
@@ -2725,45 +3399,6 @@ if (!empty($quote['cover_image'])) {
                 <div class="payment-instructions-footer">
                     <i class="ph ph-info"></i>
                     <span>Una vez realizada la transferencia o depósito, remite tu constancia al correo de facturación indicando la <strong>Cotización #<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?></strong>.</span>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Notes & Terms -->
-            <?php if(!empty(trim($quote['notes'] ?? '')) || !empty(trim($quote['terms_conditions'] ?? ''))): ?>
-            <div class="section-block">
-                <div class="notes-grid">
-                    <?php if(!empty(trim($quote['notes'] ?? ''))): ?>
-                    <div class="note-card">
-                        <span class="note-card-title"><i class="ph ph-notepad"></i> Notas Adicionales</span>
-                        <div class="note-card-body">
-                            <?php 
-                                $raw_notes = $quote['notes'];
-                                if (preg_match('/<[a-z][\s\S]*>/i', $raw_notes)) {
-                                    echo strip_tags($raw_notes, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
-                                } else {
-                                    echo nl2br(htmlspecialchars($raw_notes));
-                                }
-                            ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if(!empty(trim($quote['terms_conditions'] ?? ''))): ?>
-                    <div class="note-card">
-                        <span class="note-card-title"><i class="ph ph-file-text"></i> Términos y Condiciones</span>
-                        <div class="note-card-body">
-                            <?php 
-                                $raw_terms = $quote['terms_conditions'];
-                                if (preg_match('/<[a-z][\s\S]*>/i', $raw_terms)) {
-                                    echo strip_tags($raw_terms, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
-                                } else {
-                                    echo nl2br(htmlspecialchars($raw_terms));
-                                }
-                            ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
