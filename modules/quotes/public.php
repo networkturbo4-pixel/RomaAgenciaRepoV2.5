@@ -707,23 +707,33 @@ if (!empty($quote['cover_image'])) {
             transition: var(--transition);
         }
 
-        /* Header section */
+        /* ==========================================================================
+           Executive Document Header (Desktop & Base)
+           ========================================================================== */
         .doc-header {
-            padding: 2.5rem 3rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            padding: 2.25rem 2.75rem;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: auto auto;
+            grid-template-areas: 
+                "brand-top quote-meta"
+                "brand-details quote-meta";
+            gap: 1.15rem 2.5rem;
+            align-items: center;
             border-bottom: 1px solid var(--border);
             background: var(--header-bg);
-            gap: 2rem;
-            flex-wrap: wrap;
         }
 
-        .company-brand {
+        .doc-header-top {
+            grid-area: brand-top;
             display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            max-width: 440px;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .brand-logo-holder {
+            display: flex;
+            align-items: center;
         }
 
         .company-logo-img {
@@ -746,46 +756,94 @@ if (!empty($quote['cover_image'])) {
             gap: 0.5rem;
         }
 
-        .company-info-list {
+        .mobile-status-slot {
+            display: none;
+        }
+
+        .company-brand-details {
+            grid-area: brand-details;
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
-            font-size: 0.85rem;
-            color: var(--text-muted);
+            gap: 0.5rem;
+            max-width: 540px;
         }
 
         .company-name-title {
-            font-weight: 700;
+            font-weight: 800;
             color: var(--text-main);
             font-size: 0.95rem;
+            letter-spacing: -0.01em;
+            line-height: 1.25;
+        }
+
+        .company-details-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem 0.6rem;
         }
 
         .company-info-item {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            background: color-mix(in srgb, var(--surface-elevated) 45%, var(--surface));
+            border: 1px solid var(--border);
+            padding: 0.28rem 0.65rem;
+            border-radius: 8px;
+            line-height: 1.4;
+            transition: var(--transition);
+        }
+
+        .company-info-item:hover {
+            color: var(--text-main);
+            border-color: var(--border-focus);
         }
 
         .company-info-item i {
             color: var(--primary);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             flex-shrink: 0;
         }
 
+        .company-info-item.company-item-full {
+            width: 100%;
+        }
+
+        /* Quote Hero / Identity Card on Desktop */
         .doc-quote-meta {
+            grid-area: quote-meta;
+            justify-self: end;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             text-align: right;
-            gap: 0.35rem;
+            gap: 0.45rem;
+            background: color-mix(in srgb, var(--surface-elevated) 55%, var(--surface));
+            border: 1px solid var(--border);
+            padding: 1.25rem 1.65rem;
+            border-radius: var(--inner-radius, 14px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+            min-width: 230px;
+        }
+
+        .quote-meta-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
         }
 
         .quote-badge-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
             font-size: 0.72rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            padding: 0.25rem 0.75rem;
+            letter-spacing: 0.07em;
+            padding: 0.25rem 0.7rem;
             border-radius: 6px;
             background: var(--primary-light);
             color: var(--primary);
@@ -793,11 +851,19 @@ if (!empty($quote['cover_image'])) {
         }
 
         .doc-quote-number {
-            font-size: 2.35rem;
+            font-size: 2.25rem;
             font-weight: 800;
             color: var(--text-main);
             letter-spacing: -0.03em;
             line-height: 1.05;
+        }
+
+        .desktop-status-slot {
+            margin-top: 0.2rem;
+        }
+
+        .mobile-quote-hero-icon {
+            display: none;
         }
 
         .status-pill {
@@ -807,8 +873,8 @@ if (!empty($quote['cover_image'])) {
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            padding: 0.25rem 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.3rem 0.8rem;
             border-radius: 9999px;
             border: 1px solid transparent;
         }
@@ -1669,6 +1735,32 @@ if (!empty($quote['cover_image'])) {
             text-decoration-color: #60a5fa !important;
         }
 
+        /* Dark Mode Header Enhancements */
+        [data-theme="dark"] .doc-header {
+            background: #0c0c0e !important;
+            border-bottom-color: #27272a !important;
+        }
+        [data-theme="dark"] .doc-quote-meta {
+            background: #141416 !important;
+            border-color: #27272a !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+        }
+        [data-theme="dark"] .doc-quote-number {
+            color: #ffffff !important;
+        }
+        [data-theme="dark"] .company-name-title {
+            color: #f4f4f5 !important;
+        }
+        [data-theme="dark"] .company-info-item {
+            background: rgba(255, 255, 255, 0.04) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #a1a1aa !important;
+        }
+        [data-theme="dark"] .company-info-item:hover {
+            background: rgba(255, 255, 255, 0.07) !important;
+            color: #f4f4f5 !important;
+        }
+
         /* Notes & Terms Grid */
         .notes-grid {
             display: grid;
@@ -1780,48 +1872,125 @@ if (!empty($quote['cover_image'])) {
                 margin-bottom: 1rem !important;
             }
 
+            /* Executive Mobile Header Re-architecture */
             .doc-header {
-                padding: 0.95rem 0.85rem !important;
-                flex-direction: row !important;
-                justify-content: space-between !important;
-                align-items: center !important;
-                gap: 0.75rem !important;
-                flex-wrap: wrap !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding: 1.15rem 1rem !important;
+                gap: 0.85rem !important;
+                border-bottom: 1px solid var(--border) !important;
             }
 
-            .company-brand {
-                max-width: 60% !important;
-                gap: 0.35rem !important;
+            .doc-header-top {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                width: 100% !important;
+            }
+
+            .brand-logo-holder {
+                display: flex !important;
+                align-items: center !important;
             }
 
             .company-logo-img {
-                max-height: 36px !important;
-                max-width: 150px !important;
+                max-height: 38px !important;
+                max-width: 155px !important;
             }
 
-            .company-name-title {
-                font-size: 0.85rem !important;
+            .company-fallback-logo {
+                font-size: 1.35rem !important;
             }
 
-            .company-info-list {
-                font-size: 0.75rem !important;
-                gap: 0.15rem !important;
+            .mobile-status-slot {
+                display: block !important;
             }
 
+            .desktop-status-slot {
+                display: none !important;
+            }
+
+            /* Modern Executive Hero Card for Quote ID on Mobile */
             .doc-quote-meta {
-                align-items: flex-end !important;
-                text-align: right !important;
-                width: auto !important;
-                gap: 0.2rem !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                padding: 0.85rem 1.15rem !important;
+                border-radius: 14px !important;
+                background: color-mix(in srgb, var(--surface-elevated) 70%, var(--surface)) !important;
+                border: 1px solid var(--border) !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+                box-sizing: border-box !important;
             }
 
-            .doc-quote-number {
-                font-size: 1.45rem !important;
+            .quote-meta-content {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                text-align: left !important;
+                gap: 0.25rem !important;
             }
 
             .quote-badge-tag {
                 font-size: 0.65rem !important;
-                padding: 0.15rem 0.5rem !important;
+                padding: 0.2rem 0.55rem !important;
+                letter-spacing: 0.06em !important;
+            }
+
+            .doc-quote-number {
+                font-size: 1.7rem !important;
+                font-weight: 800 !important;
+                letter-spacing: -0.02em !important;
+                line-height: 1 !important;
+            }
+
+            .mobile-quote-hero-icon {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 44px !important;
+                height: 44px !important;
+                border-radius: 12px !important;
+                background: var(--primary-light) !important;
+                color: var(--primary) !important;
+                font-size: 1.35rem !important;
+                flex-shrink: 0 !important;
+                border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent) !important;
+            }
+
+            /* Compact Issuer Details Block on Mobile */
+            .company-brand-details {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.45rem !important;
+                width: 100% !important;
+            }
+
+            .company-name-title {
+                font-size: 0.86rem !important;
+                font-weight: 700 !important;
+                color: var(--text-main) !important;
+                letter-spacing: 0.01em !important;
+            }
+
+            .company-details-grid {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.35rem !important;
+                width: 100% !important;
+            }
+
+            .company-info-item {
+                font-size: 0.74rem !important;
+                padding: 0.35rem 0.65rem !important;
+                border-radius: 8px !important;
+                background: color-mix(in srgb, var(--surface-elevated) 40%, var(--surface)) !important;
+                border: 1px solid var(--border) !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
             }
 
             /* Compact 2-column Metadata Strip */
@@ -2178,42 +2347,66 @@ if (!empty($quote['cover_image'])) {
 
         <!-- Header -->
         <div class="doc-header">
-            <div class="company-brand">
-                <?php if(!empty($settings['logo_light']) && !empty($settings['logo_dark'])): ?>
-                    <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_light'], '/')); ?>" class="company-logo-img logo-light" alt="Logo">
-                    <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_dark'], '/')); ?>" class="company-logo-img logo-dark" alt="Logo">
-                <?php elseif(!empty($settings['logo_light'])): ?>
-                    <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_light'], '/')); ?>" class="company-logo-img" alt="Logo">
-                <?php else: ?>
-                    <div class="company-fallback-logo">
-                        <i class="ph ph-file-text"></i>
-                        <span><?php echo htmlspecialchars($settings['site_name'] ?? 'Empresa'); ?></span>
-                    </div>
-                <?php endif; ?>
-
-                <div class="company-info-list">
-                    <span class="company-name-title"><?php echo htmlspecialchars($settings['company_trade_name'] ?? $settings['site_name'] ?? ''); ?></span>
-                    <?php if(!empty($settings['company_ruc'])): ?>
-                        <span class="company-info-item"><i class="ph ph-identification-card"></i> RUC: <?php echo htmlspecialchars($settings['company_ruc']); ?></span>
-                    <?php endif; ?>
-                    <?php if(!empty($settings['company_address'])): ?>
-                        <span class="company-info-item"><i class="ph ph-map-pin"></i> <?php echo htmlspecialchars($settings['company_address']); ?></span>
-                    <?php endif; ?>
-                    <?php if(!empty($settings['company_email'])): ?>
-                        <span class="company-info-item"><i class="ph ph-envelope"></i> <?php echo htmlspecialchars($settings['company_email']); ?></span>
+            <div class="doc-header-top">
+                <div class="brand-logo-holder">
+                    <?php if(!empty($settings['logo_light']) && !empty($settings['logo_dark'])): ?>
+                        <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_light'], '/')); ?>" class="company-logo-img logo-light" alt="Logo">
+                        <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_dark'], '/')); ?>" class="company-logo-img logo-dark" alt="Logo">
+                    <?php elseif(!empty($settings['logo_light'])): ?>
+                        <img src="<?php echo htmlspecialchars($base_url . ltrim($settings['logo_light'], '/')); ?>" class="company-logo-img" alt="Logo">
+                    <?php else: ?>
+                        <div class="company-fallback-logo">
+                            <i class="ph ph-file-text"></i>
+                            <span><?php echo htmlspecialchars($settings['site_name'] ?? 'Empresa'); ?></span>
+                        </div>
                     <?php endif; ?>
                 </div>
-            </div>
 
-            <div class="doc-quote-meta">
-                <span class="quote-badge-tag">Cotización Comercial</span>
-                <div class="doc-quote-number">#<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?></div>
                 <?php if (!empty($quote['status'])): ?>
+                <div class="mobile-status-slot">
                     <span class="status-pill status-<?php echo strtolower($quote['status']); ?>">
                         <span class="pulsing-dot"></span>
                         <?php echo htmlspecialchars($quote['status']); ?>
                     </span>
+                </div>
                 <?php endif; ?>
+            </div>
+
+            <!-- Quote Hero / Identity Card -->
+            <div class="doc-quote-meta">
+                <div class="quote-meta-content">
+                    <span class="quote-badge-tag"><i class="ph ph-file-text"></i> Cotización Comercial</span>
+                    <div class="doc-quote-number-row">
+                        <span class="doc-quote-number">#<?php echo str_pad($quote['id'], 4, '0', STR_PAD_LEFT); ?></span>
+                    </div>
+                </div>
+                <?php if (!empty($quote['status'])): ?>
+                <div class="desktop-status-slot">
+                    <span class="status-pill status-<?php echo strtolower($quote['status']); ?>">
+                        <span class="pulsing-dot"></span>
+                        <?php echo htmlspecialchars($quote['status']); ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+                <div class="mobile-quote-hero-icon">
+                    <i class="ph ph-receipt"></i>
+                </div>
+            </div>
+
+            <!-- Company Issuer Details Block -->
+            <div class="company-brand-details">
+                <span class="company-name-title"><?php echo htmlspecialchars($settings['company_trade_name'] ?? $settings['site_name'] ?? ''); ?></span>
+                <div class="company-details-grid">
+                    <?php if(!empty($settings['company_ruc'])): ?>
+                        <span class="company-info-item"><i class="ph ph-identification-card"></i> <span>RUC: <?php echo htmlspecialchars($settings['company_ruc']); ?></span></span>
+                    <?php endif; ?>
+                    <?php if(!empty($settings['company_email'])): ?>
+                        <span class="company-info-item"><i class="ph ph-envelope"></i> <span><?php echo htmlspecialchars($settings['company_email']); ?></span></span>
+                    <?php endif; ?>
+                    <?php if(!empty($settings['company_address'])): ?>
+                        <span class="company-info-item company-item-full"><i class="ph ph-map-pin"></i> <span><?php echo htmlspecialchars($settings['company_address']); ?></span></span>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
