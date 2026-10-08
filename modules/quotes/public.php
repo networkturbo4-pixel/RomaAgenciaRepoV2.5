@@ -30,6 +30,7 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $sym = $quote['currency'] === 'USD' ? '$' : 'S/';
 $hide_prices = !empty($quote['hide_prices']);
+$show_gantt = isset($quote['show_gantt']) ? (int)$quote['show_gantt'] : 1;
 
 // Parse bank accounts if available
 $pm_lines = [];
@@ -43,66 +44,106 @@ $project_start_date = null;
 $project_end_date = null;
 $total_project_days = 0;
 
-$cursor_date = !empty($quote['issue_date']) ? $quote['issue_date'] : date('Y-m-d');
+if ($show_gantt) {
+    $cursor_date = !empty($quote['issue_date']) ? $quote['issue_date'] : date('Y-m-d');
 
-foreach ($items as $idx => $it) {
-    $duration = (int)($it['gantt_duration'] ?? 0);
-    $has_start = !empty($it['gantt_start_date']);
-    
-    if ($duration > 0 || $has_start) {
-        $duration = max(1, $duration);
-        $phase_start_str = $has_start ? $it['gantt_start_date'] : $cursor_date;
+    foreach ($items as $idx => $it) {
+        $duration = (int)($it['gantt_duration'] ?? 0);
+        $has_start = !empty($it['gantt_start_date']);
         
-        try {
-            $s_dt = new DateTime($phase_start_str);
-        } catch(Exception $e) {
-            $s_dt = new DateTime();
-        }
-        
-        $e_dt = clone $s_dt;
-        if ($duration > 1) {
-            $e_dt->modify('+' . ($duration - 1) . ' days');
-        }
-        
-        $phase_start = $s_dt->format('Y-m-d');
-        $phase_end = $e_dt->format('Y-m-d');
-        
-        // Clean phase title
-        $raw_desc = strip_tags($it['description']);
-        $lines = preg_split("/\r\n|\n|\r/", trim($raw_desc));
-        $clean_title = !empty($lines[0]) ? mb_substr(trim($lines[0]), 0, 75) : ('Fase ' . (count($timeline_phases) + 1));
-        
-        $timeline_phases[] = [
-            'num' => count($timeline_phases) + 1,
-            'title' => $clean_title,
-            'start' => $phase_start,
-            'end' => $phase_end,
-            'start_formatted' => $s_dt->format('d M, Y'),
-            'end_formatted' => $e_dt->format('d M, Y'),
-            'duration' => $duration
-        ];
-        
-        // Advance cursor to next day for consecutive chaining
-        $next_dt = clone $e_dt;
-        $next_dt->modify('+1 day');
-        $cursor_date = $next_dt->format('Y-m-d');
-        
-        if ($project_start_date === null || $phase_start < $project_start_date) {
-            $project_start_date = $phase_start;
-        }
-        if ($project_end_date === null || $phase_end > $project_end_date) {
-            $project_end_date = $phase_end;
+        if ($duration > 0 || $has_start) {
+            $duration = max(1, $duration);
+            $phase_start_str = $has_start ? $it['gantt_start_date'] : $cursor_date;
+            
+            try {
+                $s_dt = new DateTime($phase_start_str);
+            } catch(Exception $e) {
+                $s_dt = new DateTime();
+            }
+            
+            $e_dt = clone $s_dt;
+            if ($duration > 1) {
+                $e_dt->modify('+' . ($duration - 1) . ' days');
+            }
+            
+            $phase_start = $s_dt->format('Y-m-d');
+            $phase_end = $e_dt->format('Y-m-d');
+            
+            // Clean phase title
+            $raw_desc = strip_tags($it['description']);
+            $lines = preg_split("/\r\n|\n|\r/", trim($raw_desc));
+            $clean_title = !empty($lines[0]) ? mb_substr(trim($lines[0]), 0, 75) : ('Fase ' . (count($timeline_phases) + 1));
+            
+            $timeline_phases[] = [
+                'num' => count($timeline_phases) + 1,
+                'title' => $clean_title,
+                'start' => $phase_start,
+                'end' => $phase_end,
+                'start_formatted' => $s_dt->format('d M, Y'),
+                'end_formatted' => $e_dt->format('d M, Y'),
+                'duration' => $duration
+            ];
+            
+            // Advance cursor to next day for consecutive chaining
+            $next_dt = clone $e_dt;
+            $next_dt->modify('+1 day');
+            $cursor_date = $next_dt->format('Y-m-d');
+            
+            if ($project_start_date === null || $phase_start < $project_start_date) {
+                $project_start_date = $phase_start;
+            }
+            if ($project_end_date === null || $phase_end > $project_end_date) {
+                $project_end_date = $phase_end;
+            }
         }
     }
-}
 
-if (!empty($timeline_phases) && $project_start_date && $project_end_date) {
-    try {
-        $ps = new DateTime($project_start_date);
-        $pe = new DateTime($project_end_date);
-        $total_project_days = $ps->diff($pe)->days + 1;
-    } catch(Exception $e) {
-        $total_project_days = 0;
+    // Fallback: If no phases from items, check quote_gantt_tasks
+    if (empty($timeline_phases)) {
+        try {
+            $stmtGT = $db->prepare("SELECT * FROM quote_gantt_tasks WHERE quote_id = ? ORDER BY id ASC");
+            $stmtGT->execute([$quote['id']]);
+            $g_tasks = $stmtGT->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($g_tasks as $gt) {
+                $s_str = !empty($gt['start_date']) ? $gt['start_date'] : $cursor_date;
+                $e_str = !empty($gt['end_date']) ? $gt['end_date'] : $s_str;
+                try {
+                    $s_dt = new DateTime($s_str);
+                    $e_dt = new DateTime($e_str);
+                } catch(Exception $e) {
+                    $s_dt = new DateTime();
+                    $e_dt = clone $s_dt;
+                }
+                $dur = max(1, $s_dt->diff($e_dt)->days + 1);
+                $phase_start = $s_dt->format('Y-m-d');
+                $phase_end = $e_dt->format('Y-m-d');
+                $timeline_phases[] = [
+                    'num' => count($timeline_phases) + 1,
+                    'title' => !empty($gt['task_name']) ? mb_substr(trim($gt['task_name']), 0, 75) : ('Fase ' . (count($timeline_phases) + 1)),
+                    'start' => $phase_start,
+                    'end' => $phase_end,
+                    'start_formatted' => $s_dt->format('d M, Y'),
+                    'end_formatted' => $e_dt->format('d M, Y'),
+                    'duration' => $dur
+                ];
+                if ($project_start_date === null || $phase_start < $project_start_date) {
+                    $project_start_date = $phase_start;
+                }
+                if ($project_end_date === null || $phase_end > $project_end_date) {
+                    $project_end_date = $phase_end;
+                }
+            }
+        } catch(Exception $e) {}
+    }
+
+    if (!empty($timeline_phases) && $project_start_date && $project_end_date) {
+        try {
+            $ps = new DateTime($project_start_date);
+            $pe = new DateTime($project_end_date);
+            $total_project_days = $ps->diff($pe)->days + 1;
+        } catch(Exception $e) {
+            $total_project_days = 0;
+        }
     }
 }
 
@@ -274,13 +315,30 @@ if (!empty($quote['cover_image'])) {
             margin: 0 auto;
         }
 
-        /* Top Action Bar - Executive Modern Header */
+        /* Top Action Bar - Sticky Executive Modern Header */
         .top-action-bar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
+            padding: 0.85rem 1.25rem;
             gap: 1rem;
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: var(--inner-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        [data-theme="dark"] .top-action-bar {
+            background: color-mix(in srgb, var(--surface) 90%, transparent);
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.7);
+            border-color: #222225;
         }
 
         .top-bar-branding {
@@ -1465,12 +1523,12 @@ if (!empty($quote['cover_image'])) {
             width: 100% !important;
             border-collapse: separate !important;
             border-spacing: 0 !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 12px !important;
+            border: 1.5px solid var(--border-focus, #cbd5e1) !important;
+            border-radius: 10px !important;
             overflow: hidden !important;
             margin: 1rem 0 !important;
             background: var(--surface) !important;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
         }
 
         .service-desc-cell table th {
@@ -1481,8 +1539,8 @@ if (!empty($quote['cover_image'])) {
             text-transform: uppercase !important;
             letter-spacing: 0.05em !important;
             padding: 0.85rem 1rem !important;
-            border-bottom: 1px solid var(--border) !important;
-            border-right: 1px solid var(--border-subtle) !important;
+            border-bottom: 1.5px solid var(--border-focus, #cbd5e1) !important;
+            border-right: 1.5px solid var(--border) !important;
         }
 
         .service-desc-cell table th:last-child {
@@ -1491,8 +1549,8 @@ if (!empty($quote['cover_image'])) {
 
         .service-desc-cell table td {
             padding: 0.85rem 1rem !important;
-            border-bottom: 1px solid var(--border-subtle) !important;
-            border-right: 1px solid var(--border-subtle) !important;
+            border-bottom: 1.5px solid var(--border) !important;
+            border-right: 1.5px solid var(--border) !important;
             color: var(--text-main) !important;
             font-size: 0.88rem !important;
             line-height: 1.55 !important;
@@ -1509,6 +1567,72 @@ if (!empty($quote['cover_image'])) {
 
         .service-desc-cell table tr:hover td {
             background: color-mix(in srgb, var(--primary) 3%, var(--surface)) !important;
+        }
+
+        [data-theme="dark"] .service-desc-cell table {
+            border-color: #3f3f46 !important;
+        }
+        [data-theme="dark"] .service-desc-cell table th {
+            background: #141414 !important;
+            border-bottom-color: #3f3f46 !important;
+            border-right-color: #27272a !important;
+        }
+        [data-theme="dark"] .service-desc-cell table td {
+            border-bottom-color: #27272a !important;
+            border-right-color: #27272a !important;
+        }
+
+        /* Dark Mode High-Contrast Text & Highlights */
+        [data-theme="dark"] .service-desc-cell,
+        [data-theme="dark"] .service-desc-cell p,
+        [data-theme="dark"] .service-desc-cell span,
+        [data-theme="dark"] .service-desc-cell li,
+        [data-theme="dark"] .service-desc-cell div {
+            color: #e2e8f0 !important;
+        }
+
+        [data-theme="dark"] .service-desc-cell strong,
+        [data-theme="dark"] .service-desc-cell b,
+        [data-theme="dark"] .service-desc-cell h1,
+        [data-theme="dark"] .service-desc-cell h2,
+        [data-theme="dark"] .service-desc-cell h3,
+        [data-theme="dark"] .service-desc-cell h4 {
+            color: #ffffff !important;
+        }
+
+        /* High contrast yellow highlights in Dark Mode */
+        [data-theme="dark"] mark,
+        [data-theme="dark"] .service-desc-cell mark,
+        [data-theme="dark"] .service-desc-cell [style*="background-color: rgb(254, 240, 138)"],
+        [data-theme="dark"] .service-desc-cell [style*="background-color:#fef08a"],
+        [data-theme="dark"] .service-desc-cell [style*="background-color: #fef08a"],
+        [data-theme="dark"] .service-desc-cell [style*="background: rgb(254, 240, 138)"],
+        [data-theme="dark"] .service-desc-cell [style*="background:#fef08a"],
+        [data-theme="dark"] .service-desc-cell [style*="background: #fef08a"],
+        [data-theme="dark"] .service-desc-cell [style*="yellow"] {
+            background-color: #fde047 !important;
+            color: #09090b !important;
+            font-weight: 700 !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+            display: inline-block !important;
+            line-height: 1.3 !important;
+        }
+        [data-theme="dark"] .service-desc-cell mark *,
+        [data-theme="dark"] .service-desc-cell [style*="background-color: rgb(254, 240, 138)"] *,
+        [data-theme="dark"] .service-desc-cell [style*="background-color:#fef08a"] * {
+            color: #09090b !important;
+        }
+
+        u, [style*="text-decoration: underline"], [style*="text-decoration:underline"] {
+            text-decoration: underline !important;
+            text-decoration-color: var(--primary) !important;
+            text-underline-offset: 3px !important;
+            text-decoration-thickness: 1.5px !important;
+        }
+        [data-theme="dark"] u {
+            color: #ffffff !important;
+            text-decoration-color: #60a5fa !important;
         }
 
         /* Notes & Terms Grid */
@@ -1547,8 +1671,16 @@ if (!empty($quote['cover_image'])) {
         .note-card-body {
             font-size: 0.88rem;
             color: var(--text-muted);
-            white-space: pre-wrap;
             line-height: 1.6;
+        }
+        .note-card-body p {
+            margin-bottom: 0.5rem;
+        }
+        .note-card-body p:last-child {
+            margin-bottom: 0;
+        }
+        .note-card-body ul, .note-card-body ol {
+            margin: 0.4rem 0 0.4rem 1.25rem;
         }
 
         /* Footer */
@@ -1587,39 +1719,115 @@ if (!empty($quote['cover_image'])) {
             transform: translateY(0);
         }
 
-        /* Responsive Styles */
+        /* Responsive Styles - Highly Compact & Ergonomic Mobile Layout */
         @media (max-width: 768px) {
             body {
-                padding: 1rem 0.5rem;
+                padding: 0.5rem 0.35rem 3rem !important;
+            }
+
+            .container {
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+
+            .top-action-bar {
+                margin-bottom: 0.85rem;
+                padding: 0.6rem 0.75rem;
+                border-radius: 12px;
+            }
+
+            .doc-cover-banner {
+                height: 85px !important;
+                padding: 0.75rem 1rem !important;
+            }
+
+            .document-card {
+                border-radius: 14px !important;
+                margin-bottom: 1rem !important;
             }
 
             .doc-header {
-                padding: 1.75rem 1.5rem;
-                flex-direction: column;
-                gap: 1.5rem;
+                padding: 0.95rem 0.85rem !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                gap: 0.75rem !important;
+                flex-wrap: wrap !important;
             }
 
             .company-brand {
-                max-width: 100%;
+                max-width: 60% !important;
+                gap: 0.35rem !important;
+            }
+
+            .company-logo-img {
+                max-height: 36px !important;
+                max-width: 150px !important;
+            }
+
+            .company-name-title {
+                font-size: 0.85rem !important;
+            }
+
+            .company-info-list {
+                font-size: 0.75rem !important;
+                gap: 0.15rem !important;
             }
 
             .doc-quote-meta {
-                align-items: flex-start;
-                width: 100%;
+                align-items: flex-end !important;
+                text-align: right !important;
+                width: auto !important;
+                gap: 0.2rem !important;
             }
 
             .doc-quote-number {
-                font-size: 1.75rem;
+                font-size: 1.45rem !important;
             }
 
+            .quote-badge-tag {
+                font-size: 0.65rem !important;
+                padding: 0.15rem 0.5rem !important;
+            }
+
+            /* Compact 2-column Metadata Strip */
             .meta-strip {
-                padding: 1.25rem 1.5rem;
-                grid-template-columns: 1fr;
-                gap: 1rem;
+                padding: 0.65rem 0.75rem !important;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0.5rem !important;
             }
 
+            .meta-strip .meta-item-box:first-child {
+                grid-column: span 2 !important;
+            }
+
+            .meta-item-box {
+                gap: 0.45rem !important;
+            }
+
+            .meta-icon-tile {
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 8px !important;
+                font-size: 1rem !important;
+            }
+
+            .meta-item-label {
+                font-size: 0.65rem !important;
+            }
+
+            .meta-item-value {
+                font-size: 0.86rem !important;
+            }
+
+            .meta-item-sub {
+                display: none !important;
+            }
+
+            /* Tightened Body and Cards for Superior Mobile Readability */
             .doc-body {
-                padding: 1.5rem;
+                padding: 0.85rem 0.65rem !important;
             }
 
             .services-table thead {
@@ -1643,8 +1851,8 @@ if (!empty($quote['cover_image'])) {
                 background: var(--surface-elevated);
                 border: 1px solid var(--border);
                 border-radius: 12px;
-                padding: 1rem;
-                margin-bottom: 1rem;
+                padding: 0.75rem 0.65rem !important;
+                margin-bottom: 0.75rem !important;
             }
 
             .services-table td {
@@ -1663,15 +1871,17 @@ if (!empty($quote['cover_image'])) {
                 color: var(--text-muted);
                 text-transform: uppercase;
                 letter-spacing: 0.04em;
-                min-width: 100px;
+                min-width: 90px;
             }
 
             .services-table td.service-desc-cell {
                 flex-direction: column;
                 gap: 0.35rem;
-                padding-bottom: 0.75rem;
-                margin-bottom: 0.5rem;
+                padding: 0 !important;
+                padding-bottom: 0.65rem !important;
+                margin-bottom: 0.45rem !important;
                 border-bottom: 1px solid var(--border);
+                font-size: 0.88rem !important;
             }
 
             .services-table td.service-desc-cell::before {
@@ -1687,7 +1897,16 @@ if (!empty($quote['cover_image'])) {
                 display: none !important;
             }
 
-            /* Sub-tables Responsive Cards inside description */
+            /* Sub-tables Responsive Cards Fix (Eliminates empty ghost wrapper border) */
+            .service-desc-cell .quote-table-wrapper {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0.5rem 0 !important;
+                overflow: visible !important;
+            }
+
             .service-desc-cell table,
             .service-desc-cell table thead,
             .service-desc-cell table tbody,
@@ -1701,7 +1920,7 @@ if (!empty($quote['cover_image'])) {
                 border: none !important;
                 background: transparent !important;
                 box-shadow: none !important;
-                margin: 1rem 0 !important;
+                margin: 0.5rem 0 !important;
                 overflow: visible !important;
             }
             .service-desc-cell table thead {
@@ -1710,21 +1929,21 @@ if (!empty($quote['cover_image'])) {
             .service-desc-cell table tbody {
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 0.85rem !important;
+                gap: 0.65rem !important;
             }
             .service-desc-cell table tr {
                 background: var(--surface) !important;
                 border: 1px solid var(--border) !important;
-                border-radius: 14px !important;
-                padding: 1.1rem !important;
+                border-radius: 10px !important;
+                padding: 0.75rem 0.85rem !important;
                 box-shadow: var(--shadow-sm) !important;
                 margin-bottom: 0 !important;
             }
             .service-desc-cell table td {
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 0.3rem !important;
-                padding: 0.65rem 0 !important;
+                gap: 0.25rem !important;
+                padding: 0.5rem 0 !important;
                 border: none !important;
                 border-bottom: 1px dashed var(--border-subtle) !important;
                 text-align: left !important;
@@ -2050,7 +2269,7 @@ if (!empty($quote['cover_image'])) {
             <?php endif; ?>
 
             <!-- Modern Sequential Execution Roadmap (Timeline) -->
-            <?php if (!empty($timeline_phases)): ?>
+            <?php if ($show_gantt && !empty($timeline_phases)): ?>
             <div class="section-block" id="ganttSection">
                 <div class="timeline-header-wrap">
                     <div>
@@ -2228,14 +2447,32 @@ if (!empty($quote['cover_image'])) {
                     <?php if(!empty(trim($quote['notes'] ?? ''))): ?>
                     <div class="note-card">
                         <span class="note-card-title"><i class="ph ph-notepad"></i> Notas Adicionales</span>
-                        <div class="note-card-body"><?php echo htmlspecialchars($quote['notes']); ?></div>
+                        <div class="note-card-body">
+                            <?php 
+                                $raw_notes = $quote['notes'];
+                                if (preg_match('/<[a-z][\s\S]*>/i', $raw_notes)) {
+                                    echo strip_tags($raw_notes, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
+                                } else {
+                                    echo nl2br(htmlspecialchars($raw_notes));
+                                }
+                            ?>
+                        </div>
                     </div>
                     <?php endif; ?>
 
                     <?php if(!empty(trim($quote['terms_conditions'] ?? ''))): ?>
                     <div class="note-card">
                         <span class="note-card-title"><i class="ph ph-file-text"></i> Términos y Condiciones</span>
-                        <div class="note-card-body"><?php echo htmlspecialchars($quote['terms_conditions']); ?></div>
+                        <div class="note-card-body">
+                            <?php 
+                                $raw_terms = $quote['terms_conditions'];
+                                if (preg_match('/<[a-z][\s\S]*>/i', $raw_terms)) {
+                                    echo strip_tags($raw_terms, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
+                                } else {
+                                    echo nl2br(htmlspecialchars($raw_terms));
+                                }
+                            ?>
+                        </div>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -2438,10 +2675,23 @@ if (!empty($quote['cover_image'])) {
     const iconDark = document.getElementById('themeIconDark');
     const iconLight = document.getElementById('themeIconLight');
 
+    function fixDarkModeContrast() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            document.querySelectorAll('.service-desc-cell *').forEach(el => {
+                if (el.tagName === 'MARK' || el.closest('mark') || (el.style && el.style.backgroundColor && (el.style.backgroundColor.includes('254, 240, 138') || el.style.backgroundColor.includes('fef08a') || el.style.backgroundColor.includes('yellow')))) {
+                    el.style.color = '#09090b';
+                    el.style.fontWeight = '700';
+                }
+            });
+        }
+    }
+
     function applyThemeIcons() {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         iconDark.style.display = isDark ? 'none' : 'inline';
         iconLight.style.display = isDark ? 'inline' : 'none';
+        fixDarkModeContrast();
     }
     applyThemeIcons();
 

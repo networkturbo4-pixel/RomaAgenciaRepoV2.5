@@ -12,6 +12,8 @@ try {
     if (!in_array('theme_color', $existing_cols)) $missing_cols[] = "ADD COLUMN `theme_color` VARCHAR(50) DEFAULT 'corporate-blue'";
     if (!in_array('cover_image', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_image` VARCHAR(255) NULL";
     if (!in_array('cover_gradient', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_gradient` VARCHAR(100) DEFAULT 'mesh-blue'";
+    if (!in_array('hide_prices', $existing_cols)) $missing_cols[] = "ADD COLUMN `hide_prices` TINYINT(1) DEFAULT 0";
+    if (!in_array('show_gantt', $existing_cols)) $missing_cols[] = "ADD COLUMN `show_gantt` TINYINT(1) DEFAULT 1";
     
     if (!empty($missing_cols)) {
         $db->exec("ALTER TABLE `quotes` " . implode(', ', $missing_cols));
@@ -1222,34 +1224,48 @@ require_once 'includes/header.php';
 
 .quote-modern-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 12.5px;
     line-height: 1.5;
     text-align: left;
     background: transparent;
     margin: 0;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .quote-modern-table th {
     background: var(--quote-card-sub);
     color: var(--quote-text-title);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--quote-border);
+    border-bottom: 1.5px solid #cbd5e1;
+    border-right: 1.5px solid var(--quote-border);
     white-space: nowrap;
+}
+
+.quote-modern-table th:last-child {
+    border-right: none;
 }
 
 .quote-modern-table td {
     padding: 8px 12px;
     color: var(--quote-text-main);
-    border-bottom: 1px solid var(--quote-border-subtle);
+    border-bottom: 1.5px solid var(--quote-border);
+    border-right: 1.5px solid var(--quote-border);
     vertical-align: middle;
     transition: background 0.1s ease;
     min-width: 60px;
     outline: none;
+}
+
+.quote-modern-table td:last-child {
+    border-right: none;
 }
 
 .quote-modern-table td:focus,
@@ -1264,6 +1280,21 @@ require_once 'includes/header.php';
 
 .quote-modern-table tbody tr:hover td {
     background: rgba(0, 0, 0, 0.015);
+}
+
+[data-theme="dark"] .quote-modern-table {
+    border-color: #3f3f46 !important;
+}
+
+[data-theme="dark"] .quote-modern-table th {
+    background: #141414 !important;
+    border-bottom-color: #3f3f46 !important;
+    border-right-color: #27272a !important;
+}
+
+[data-theme="dark"] .quote-modern-table td {
+    border-bottom-color: #27272a !important;
+    border-right-color: #27272a !important;
 }
 
 [data-theme="dark"] .quote-modern-table tbody tr:hover td {
@@ -2436,25 +2467,75 @@ require_once 'includes/header.php';
 
         <!-- 3. Cronograma del Proyecto (Gantt) -->
         <section class="app-section-card" id="ganttSectionContainer">
-            <div class="card-header-app">
-                <div class="card-icon-tile icon-purple">
-                    <i class="ph ph-calendar"></i>
+            <div class="card-header-app" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div class="card-icon-tile icon-purple">
+                        <i class="ph ph-calendar"></i>
+                    </div>
+                    <div class="card-title-content">
+                        <h3>Cronograma del Proyecto (Gantt)</h3>
+                        <p>Constructor de fases de ejecución y línea temporal interactiva</p>
+                    </div>
                 </div>
-                <div class="card-title-content">
-                    <h3>Cronograma del Proyecto (Gantt)</h3>
-                    <p>Línea temporal dinámica generada a partir de las fechas y duración de cada partida</p>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <label class="ios-switch" title="Activar u ocultar cronograma en la propuesta">
+                        <input type="checkbox" id="show_gantt" name="show_gantt" <?php echo ($quote && isset($quote['show_gantt']) && !$quote['show_gantt']) ? '' : 'checked'; ?> onchange="toggleGanttVisibility(this.checked)">
+                        <span class="ios-slider"></span>
+                    </label>
+                    <span id="gantt_status_text" style="font-size: 12px; font-weight: 600; color: var(--quote-text-main);"><?php echo ($quote && isset($quote['show_gantt']) && !$quote['show_gantt']) ? 'Oculto para cliente' : 'Visible para cliente'; ?></span>
                 </div>
-                <span class="mobile-swipe-badge d-md-none"><i class="ph ph-arrows-horizontal"></i> Desliza horizontal</span>
             </div>
 
-            <div class="gantt-scroll-container">
-                <div id="gantt_here"></div>
-                <div id="gantt_empty_state" class="gantt-empty-state">
-                    <div class="empty-icon-circle">
-                        <i class="ph ph-chart-bar"></i>
+            <div id="gantt_disabled_banner" style="display: <?php echo ($quote && isset($quote['show_gantt']) && !$quote['show_gantt']) ? 'flex' : 'none'; ?>; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; margin: 0 1.25rem 1rem; background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: 10px; font-size: 12px; color: #ef4444;">
+                <i class="ph ph-eye-slash" style="font-size: 1.15rem;"></i>
+                <span><strong>Cronograma Oculto:</strong> El cronograma de ejecución no se mostrará en la propuesta comercial ni en el PDF del cliente.</span>
+            </div>
+
+            <!-- Constructor Interactivo de Fases Gantt -->
+            <div class="gantt-constructor-box" style="padding: 0 1.25rem 1.25rem;">
+                <div class="gantt-constructor-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <span style="font-size: 11.5px; font-weight: 700; color: var(--quote-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Fases del Cronograma</span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn-app-secondary" onclick="addGanttPhase()" style="font-size: 11.5px; padding: 0.35rem 0.75rem; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="ph ph-plus"></i> Añadir Fase
+                        </button>
+                        <button type="button" class="btn-app-secondary" onclick="autoChainGanttPhases()" style="font-size: 11.5px; padding: 0.35rem 0.75rem; display: inline-flex; align-items: center; gap: 4px;" title="Encadena las fechas de forma consecutiva (cada fase inicia al concluir la anterior)">
+                            <i class="ph ph-link"></i> Secuencial Automático
+                        </button>
                     </div>
-                    <h4>Sin cronograma registrado</h4>
-                    <p>Establece fechas de inicio y días de duración en las partidas para visualizar el diagrama interactivo.</p>
+                </div>
+
+                <div class="gantt-constructor-table-wrap" style="border: 1px solid var(--quote-border); border-radius: 10px; overflow-x: auto; background: var(--quote-card); margin-bottom: 1.25rem;">
+                    <table class="gantt-builder-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: var(--quote-card-sub); border-bottom: 1px solid var(--quote-border); text-align: left; color: var(--quote-text-muted); font-size: 11px; text-transform: uppercase;">
+                                <th style="padding: 8px 12px; width: 45px;">#</th>
+                                <th style="padding: 8px 12px;">Nombre de la Fase / Entregable</th>
+                                <th style="padding: 8px 12px; width: 145px;">Fecha Inicio</th>
+                                <th style="padding: 8px 12px; width: 105px;">Días Duración</th>
+                                <th style="padding: 8px 12px; width: 140px;">Culminación Estimada</th>
+                                <th style="padding: 8px 12px; width: 45px; text-align: center;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="ganttConstructorBody">
+                            <!-- Populated dynamically by renderGanttConstructor() -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--quote-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Diagrama Visual Interactivo</span>
+                    <span class="mobile-swipe-badge d-md-none"><i class="ph ph-arrows-horizontal"></i> Desliza horizontal</span>
+                </div>
+                <div class="gantt-scroll-container" style="border: 1px solid var(--quote-border); border-radius: 10px; background: var(--quote-card); min-height: 120px;">
+                    <div id="gantt_here"></div>
+                    <div id="gantt_empty_state" class="gantt-empty-state">
+                        <div class="empty-icon-circle">
+                            <i class="ph ph-chart-bar"></i>
+                        </div>
+                        <h4>Sin cronograma registrado</h4>
+                        <p>Añade fases o establece fechas de inicio y días de duración en el constructor de arriba para visualizar el diagrama.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -2467,18 +2548,64 @@ require_once 'includes/header.php';
                 </div>
                 <div class="card-title-content">
                     <h3>Notas y Condiciones</h3>
-                    <p>Información visible al cliente, términos comerciales y cuentas bancarias</p>
+                    <p>Información visible al cliente con formato enriquecido, términos y cuentas bancarias</p>
                 </div>
             </div>
 
             <div class="notes-grid">
                 <div>
-                    <label class="field-label" for="notes">NOTAS ADICIONALES</label>
-                    <textarea id="notes" class="app-input app-textarea" rows="4" placeholder="Observaciones o notas visibles para el cliente..."><?php echo $quote ? htmlspecialchars($quote['notes']) : ''; ?></textarea>
+                    <label class="field-label" for="notes_editor">NOTAS ADICIONALES</label>
+                    <div class="rich-notes-box" style="border: 1px solid var(--quote-border); border-radius: 10px; overflow: hidden; background: var(--quote-card);">
+                        <div class="rich-notes-toolbar" style="display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: var(--quote-card-sub); border-bottom: 1px solid var(--quote-border); flex-wrap: wrap;">
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('notes_editor', 'bold')" title="Negrita"><i class="ph-bold ph-text-b"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('notes_editor', 'italic')" title="Cursiva"><i class="ph-bold ph-text-italic"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('notes_editor', 'underline')" title="Subrayado"><i class="ph-bold ph-text-underline"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('notes_editor', 'highlight')" title="Resaltador"><i class="ph ph-highlighter"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('notes_editor', 'insertUnorderedList')" title="Lista con viñetas"><i class="ph ph-list-bullets"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('notes_editor', 'insertOrderedList')" title="Lista numerada"><i class="ph ph-list-numbers"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('notes_editor', 'removeFormat')" title="Limpiar formato"><i class="ph ph-eraser"></i></button>
+                        </div>
+                        <div id="notes_editor" class="rich-text-area" contenteditable="true" style="padding: 10px 12px; min-height: 110px; font-size: 13px; line-height: 1.6; outline: none; color: var(--quote-text-main);" placeholder="Observaciones o notas visibles para el cliente...">
+                            <?php 
+                                $raw_notes = $quote ? $quote['notes'] : '';
+                                if (!empty($raw_notes)) {
+                                    if (preg_match('/<[a-z][\s\S]*>/i', $raw_notes)) {
+                                        echo strip_tags($raw_notes, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
+                                    } else {
+                                        echo nl2br(htmlspecialchars($raw_notes));
+                                    }
+                                }
+                            ?>
+                        </div>
+                    </div>
+                    <textarea id="notes" style="display:none;"><?php echo $quote ? htmlspecialchars($quote['notes']) : ''; ?></textarea>
                 </div>
                 <div>
-                    <label class="field-label" for="terms_conditions">TÉRMINOS Y CONDICIONES</label>
-                    <textarea id="terms_conditions" class="app-input app-textarea" rows="4" placeholder="Ej: Válido por 15 días..."><?php echo $quote ? htmlspecialchars($quote['terms_conditions']) : "1. La presente cotización tiene una validez de 15 días.\n2. Para iniciar el proyecto se requiere un abono del 50% y el saldo contra entrega.\n3. Los tiempos de entrega corren a partir de la recepción de todo el material necesario."; ?></textarea>
+                    <label class="field-label" for="terms_editor">TÉRMINOS Y CONDICIONES</label>
+                    <div class="rich-notes-box" style="border: 1px solid var(--quote-border); border-radius: 10px; overflow: hidden; background: var(--quote-card);">
+                        <div class="rich-notes-toolbar" style="display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: var(--quote-card-sub); border-bottom: 1px solid var(--quote-border); flex-wrap: wrap;">
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('terms_editor', 'bold')" title="Negrita"><i class="ph-bold ph-text-b"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('terms_editor', 'italic')" title="Cursiva"><i class="ph-bold ph-text-italic"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('terms_editor', 'underline')" title="Subrayado"><i class="ph-bold ph-text-underline"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('terms_editor', 'highlight')" title="Resaltador"><i class="ph ph-highlighter"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('terms_editor', 'insertUnorderedList')" title="Lista con viñetas"><i class="ph ph-list-bullets"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('terms_editor', 'insertOrderedList')" title="Lista numerada"><i class="ph ph-list-numbers"></i></button>
+                            <button type="button" class="btn-tbl-action" onclick="formatRichDoc('terms_editor', 'removeFormat')" title="Limpiar formato"><i class="ph ph-eraser"></i></button>
+                        </div>
+                        <div id="terms_editor" class="rich-text-area" contenteditable="true" style="padding: 10px 12px; min-height: 110px; font-size: 13px; line-height: 1.6; outline: none; color: var(--quote-text-main);" placeholder="Ej: Válido por 15 días...">
+                            <?php 
+                                $raw_terms = $quote ? $quote['terms_conditions'] : "1. La presente cotización tiene una validez de 15 días.\n2. Para iniciar el proyecto se requiere un abono del 50% y el saldo contra entrega.\n3. Los tiempos de entrega corren a partir de la recepción de todo el material necesario.";
+                                if (!empty($raw_terms)) {
+                                    if (preg_match('/<[a-z][\s\S]*>/i', $raw_terms)) {
+                                        echo strip_tags($raw_terms, '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>');
+                                    } else {
+                                        echo nl2br(htmlspecialchars($raw_terms));
+                                    }
+                                }
+                            ?>
+                        </div>
+                    </div>
+                    <textarea id="terms_conditions" style="display:none;"><?php echo $quote ? htmlspecialchars($quote['terms_conditions']) : "1. La presente cotización tiene una validez de 15 días.\n2. Para iniciar el proyecto se requiere un abono del 50% y el saldo contra entrega.\n3. Los tiempos de entrega corren a partir de la recepción de todo el material necesario."; ?></textarea>
                 </div>
             </div>
 
@@ -2730,6 +2857,205 @@ function toggleHidePrices(isChecked) {
     }
 }
 
+function toggleGanttVisibility(isChecked) {
+    const banner = document.getElementById('gantt_disabled_banner');
+    const statusText = document.getElementById('gantt_status_text');
+    if (banner) banner.style.display = isChecked ? 'none' : 'flex';
+    if (statusText) statusText.textContent = isChecked ? 'Visible para cliente' : 'Oculto para cliente';
+}
+
+function renderGanttConstructor() {
+    const tbody = document.getElementById('ganttConstructorBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (itemsData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--quote-text-muted);">No hay partidas o fases registradas. Haz clic en <strong>+ Añadir Fase</strong> para registrar hitos de entrega.</td></tr>`;
+        return;
+    }
+
+    itemsData.forEach((item, idx) => {
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = item.description || '';
+        let plainTitle = tempDiv.textContent.trim();
+        let firstLine = plainTitle.split('\n')[0] || ('Fase ' + (idx + 1));
+        firstLine = firstLine.substring(0, 60);
+
+        let startDate = item.gantt_start_date || '';
+        let duration = parseInt(item.gantt_duration) || 0;
+        
+        let endFormatted = '-';
+        if (startDate && duration > 0) {
+            try {
+                let s = new Date(startDate + 'T00:00:00');
+                let e = new Date(s);
+                e.setDate(e.getDate() + duration - 1);
+                endFormatted = e.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch(e) {}
+        }
+
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--quote-border-subtle)';
+        tr.innerHTML = `
+            <td style="padding: 8px 12px; font-weight: 700; color: var(--quote-text-muted);">${idx + 1}</td>
+            <td style="padding: 8px 12px;">
+                <input type="text" class="app-input" value="${escapeHtmlEntities(firstLine)}" onchange="updatePhaseTitle(${idx}, this.value)" placeholder="Nombre del entregable o hito" style="font-size: 12px; padding: 4px 8px; width: 100%;">
+            </td>
+            <td style="padding: 8px 12px;">
+                <input type="date" class="app-input" value="${startDate}" onchange="updatePhaseStartDate(${idx}, this.value)" style="font-size: 12px; padding: 4px 6px; width: 100%;">
+            </td>
+            <td style="padding: 8px 12px;">
+                <input type="number" min="1" max="365" class="app-input" value="${duration > 0 ? duration : ''}" placeholder="Días" onchange="updatePhaseDuration(${idx}, this.value)" style="font-size: 12px; padding: 4px 8px; width: 85px;">
+            </td>
+            <td style="padding: 8px 12px; font-weight: 600; color: var(--quote-text-title);">
+                <span class="badge-phase-end">${endFormatted}</span>
+            </td>
+            <td style="padding: 8px 12px; text-align: center;">
+                <button type="button" class="btn-tbl-action btn-tbl-danger" onclick="deleteGanttPhase(${idx})" title="Eliminar fase"><i class="ph ph-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function updatePhaseTitle(idx, val) {
+    if (!itemsData[idx]) return;
+    let desc = itemsData[idx].description || '';
+    if (!desc || desc.trim() === '') {
+        itemsData[idx].description = '<strong>' + escapeHtmlEntities(val) + '</strong>';
+    } else {
+        let lines = desc.split('<br>');
+        lines[0] = '<strong>' + escapeHtmlEntities(val) + '</strong>';
+        itemsData[idx].description = lines.join('<br>');
+    }
+    const cards = document.querySelectorAll('.item-card');
+    if (cards[idx]) {
+        const textEl = cards[idx].querySelector('.item-textarea');
+        if (textEl) textEl.innerHTML = itemsData[idx].description;
+    }
+    renderGantt();
+}
+
+function updatePhaseStartDate(idx, val) {
+    if (!itemsData[idx]) return;
+    itemsData[idx].gantt_start_date = val;
+    const cards = document.querySelectorAll('.item-card');
+    if (cards[idx]) {
+        const startEl = cards[idx].querySelector('.item-start');
+        if (startEl) startEl.value = val;
+    }
+    renderGanttConstructor();
+    renderGantt();
+}
+
+function updatePhaseDuration(idx, val) {
+    if (!itemsData[idx]) return;
+    itemsData[idx].gantt_duration = parseInt(val) || 0;
+    const cards = document.querySelectorAll('.item-card');
+    if (cards[idx]) {
+        const durEl = cards[idx].querySelector('.item-duration');
+        if (durEl) durEl.value = itemsData[idx].gantt_duration;
+    }
+    renderGanttConstructor();
+    renderGantt();
+}
+
+function addGanttPhase() {
+    const baseIssueDate = document.getElementById('issue_date') ? document.getElementById('issue_date').value : new Date().toISOString().split('T')[0];
+    let nextStart = baseIssueDate;
+    
+    if (itemsData.length > 0) {
+        const last = itemsData[itemsData.length - 1];
+        if (last.gantt_start_date && parseInt(last.gantt_duration) > 0) {
+            let lastEnd = new Date(last.gantt_start_date + 'T00:00:00');
+            lastEnd.setDate(lastEnd.getDate() + parseInt(last.gantt_duration));
+            nextStart = lastEnd.toISOString().split('T')[0];
+        }
+    }
+
+    itemsData.push({
+        id: 0,
+        service_id: '',
+        description: '<strong>Fase ' + (itemsData.length + 1) + ': Nuevo Entregable</strong>',
+        quantity: 1,
+        unit_price: 0,
+        discount: 0,
+        total: 0,
+        icon: 'ph-code',
+        gantt_start_date: nextStart,
+        gantt_duration: 5
+    });
+
+    renderItems();
+    renderGanttConstructor();
+    renderGantt();
+}
+
+function autoChainGanttPhases() {
+    if (itemsData.length === 0) return;
+    let cursor = document.getElementById('issue_date') ? document.getElementById('issue_date').value : new Date().toISOString().split('T')[0];
+
+    itemsData.forEach((it, i) => {
+        let dur = parseInt(it.gantt_duration) || 5;
+        it.gantt_start_date = cursor;
+        it.gantt_duration = dur;
+        
+        let d = new Date(cursor + 'T00:00:00');
+        d.setDate(d.getDate() + dur);
+        cursor = d.toISOString().split('T')[0];
+    });
+
+    renderItems();
+    renderGanttConstructor();
+    renderGantt();
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Fechas Encadenadas',
+        text: 'Se han configurado las fases consecutivamente a partir de la fecha de emisión.',
+        timer: 1600,
+        showConfirmButton: false
+    });
+}
+
+function deleteGanttPhase(idx) {
+    if (!itemsData[idx]) return;
+    itemsData.splice(idx, 1);
+    renderItems();
+    renderGanttConstructor();
+    renderGantt();
+}
+
+function formatRichDoc(editorId, command) {
+    const editor = document.getElementById(editorId);
+    if (!editor) return;
+    editor.focus();
+    if (command === 'highlight') {
+        let color = document.queryCommandValue('backColor');
+        if (color && color !== 'transparent' && color !== 'rgba(0, 0, 0, 0)' && color !== 'rgb(255, 255, 255)') {
+            document.execCommand('hiliteColor', false, 'transparent');
+            document.execCommand('backColor', false, 'transparent');
+        } else {
+            document.execCommand('hiliteColor', false, '#fef08a');
+            document.execCommand('backColor', false, '#fef08a');
+        }
+    } else {
+        document.execCommand(command, false, null);
+    }
+    syncRichEditors();
+}
+
+function syncRichEditors() {
+    const notesEd = document.getElementById('notes_editor');
+    const termsEd = document.getElementById('terms_editor');
+    if (notesEd) {
+        document.getElementById('notes').value = notesEd.innerHTML.trim();
+    }
+    if (termsEd) {
+        document.getElementById('terms_conditions').value = termsEd.innerHTML.trim();
+    }
+}
+
 function syncData() {
     const cards = document.querySelectorAll('.item-card');
     let subtotal = 0;
@@ -2843,6 +3169,10 @@ function buildTableHtmlSkeleton(theadHtml, tbodyHtml) {
         `<div class="quote-table-actions">` +
             `<button type="button" class="btn-tbl-action" onclick="addTableRow(this)" title="Añadir Fila"><i class="ph ph-plus"></i> Fila</button>` +
             `<button type="button" class="btn-tbl-action" onclick="addTableColumn(this)" title="Añadir Columna"><i class="ph ph-plus"></i> Col</button>` +
+            `<button type="button" class="btn-tbl-action" onclick="moveTableRow(this, -1)" title="Subir fila actual"><i class="ph ph-arrow-up"></i> Subir Fila</button>` +
+            `<button type="button" class="btn-tbl-action" onclick="moveTableRow(this, 1)" title="Bajar fila actual"><i class="ph ph-arrow-down"></i> Bajar Fila</button>` +
+            `<button type="button" class="btn-tbl-action" onclick="moveTableColumn(this, -1)" title="Mover columna a la izquierda"><i class="ph ph-arrow-left"></i> Col Izq</button>` +
+            `<button type="button" class="btn-tbl-action" onclick="moveTableColumn(this, 1)" title="Mover columna a la derecha"><i class="ph ph-arrow-right"></i> Col Der</button>` +
             `<button type="button" class="btn-tbl-action btn-tbl-del" onclick="deleteTableRow(this)" title="Eliminar Fila"><i class="ph ph-minus"></i> Fila</button>` +
             `<button type="button" class="btn-tbl-action btn-tbl-del" onclick="deleteTableColumn(this)" title="Eliminar Columna"><i class="ph ph-minus"></i> Col</button>` +
             `<button type="button" class="btn-tbl-action btn-tbl-danger" onclick="removeModernTable(this)" title="Eliminar Tabla"><i class="ph ph-trash"></i></button>` +
@@ -3073,6 +3403,20 @@ function removeModernTable(btn) {
     }
 }
 
+window.lastActiveCell = null;
+document.addEventListener('focusin', function(e) {
+    const cell = e.target.closest('td, th');
+    if (cell && cell.closest('.quote-modern-table')) {
+        window.lastActiveCell = cell;
+    }
+});
+document.addEventListener('click', function(e) {
+    const cell = e.target.closest('td, th');
+    if (cell && cell.closest('.quote-modern-table')) {
+        window.lastActiveCell = cell;
+    }
+});
+
 function addTableRow(btn) {
     const wrapper = btn.closest('.quote-table-wrapper');
     if (!wrapper) return;
@@ -3102,23 +3446,78 @@ function addTableRow(btn) {
     tr.querySelector('td').focus();
 }
 
+function moveTableRow(btn, direction) {
+    const wrapper = btn.closest('.quote-table-wrapper');
+    if (!wrapper) return;
+    const table = wrapper.querySelector('.quote-modern-table');
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody') || table;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length <= 1) return;
+
+    let targetRow = null;
+    if (window.lastActiveCell && table.contains(window.lastActiveCell)) {
+        targetRow = window.lastActiveCell.closest('tr');
+        if (targetRow && targetRow.closest('thead')) {
+            targetRow = null;
+        }
+    }
+    if (!targetRow) {
+        targetRow = direction === -1 ? rows[rows.length - 1] : rows[0];
+    }
+
+    const currentIndex = rows.indexOf(targetRow);
+    if (currentIndex === -1) return;
+    const newIndex = currentIndex + direction;
+
+    if (newIndex >= 0 && newIndex < rows.length) {
+        if (direction === -1) {
+            tbody.insertBefore(targetRow, rows[newIndex]);
+        } else {
+            tbody.insertBefore(targetRow, rows[newIndex].nextElementSibling);
+        }
+        syncData();
+        const firstCell = targetRow.querySelector('td, th');
+        if (firstCell) firstCell.focus();
+    }
+}
+
 function deleteTableRow(btn) {
     const wrapper = btn.closest('.quote-table-wrapper');
     if (!wrapper) return;
     const table = wrapper.querySelector('.quote-modern-table');
     if (!table) return;
 
-    const tbody = table.querySelector('tbody');
-    if (tbody) {
-        const rows = tbody.querySelectorAll('tr');
-        if (rows.length > 1) {
-            rows[rows.length - 1].remove();
-            syncData();
-        } else if (rows.length === 1) {
-            rows[0].remove();
-            syncData();
+    const tbody = table.querySelector('tbody') || table;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length === 0) return;
+
+    let targetRow = null;
+    if (window.lastActiveCell && table.contains(window.lastActiveCell)) {
+        targetRow = window.lastActiveCell.closest('tr');
+        if (targetRow && targetRow.closest('thead')) {
+            targetRow = null;
         }
     }
+    if (!targetRow) {
+        targetRow = rows[rows.length - 1];
+    }
+
+    if (rows.length <= 1) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Mínimo 1 fila',
+            text: 'La tabla debe tener al menos una fila de datos.',
+            timer: 1800,
+            showConfirmButton: false
+        });
+        return;
+    }
+
+    targetRow.remove();
+    window.lastActiveCell = null;
+    syncData();
 }
 
 function addTableColumn(btn) {
@@ -3143,6 +3542,43 @@ function addTableColumn(btn) {
     syncData();
 }
 
+function moveTableColumn(btn, direction) {
+    const wrapper = btn.closest('.quote-table-wrapper');
+    if (!wrapper) return;
+    const table = wrapper.querySelector('.quote-modern-table');
+    if (!table) return;
+
+    let colIndex = -1;
+    if (window.lastActiveCell && table.contains(window.lastActiveCell)) {
+        colIndex = window.lastActiveCell.cellIndex;
+    }
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) return;
+    const totalCols = firstRow.querySelectorAll('th, td').length;
+    if (totalCols <= 1) return;
+
+    if (colIndex === -1 || colIndex >= totalCols) {
+        colIndex = direction === -1 ? totalCols - 1 : 0;
+    }
+
+    const newColIndex = colIndex + direction;
+    if (newColIndex < 0 || newColIndex >= totalCols) return;
+
+    table.querySelectorAll('tr').forEach(tr => {
+        const cells = Array.from(tr.querySelectorAll('th, td'));
+        if (colIndex < cells.length && newColIndex < cells.length) {
+            const cellA = cells[colIndex];
+            const cellB = cells[newColIndex];
+            if (direction === -1) {
+                tr.insertBefore(cellA, cellB);
+            } else {
+                tr.insertBefore(cellA, cellB.nextElementSibling);
+            }
+        }
+    });
+    syncData();
+}
+
 function deleteTableColumn(btn) {
     const wrapper = btn.closest('.quote-table-wrapper');
     if (!wrapper) return;
@@ -3161,12 +3597,21 @@ function deleteTableColumn(btn) {
         return;
     }
 
+    let colIndex = -1;
+    if (window.lastActiveCell && table.contains(window.lastActiveCell)) {
+        colIndex = window.lastActiveCell.cellIndex;
+    }
+    if (colIndex === -1) {
+        colIndex = firstRow.querySelectorAll('th, td').length - 1;
+    }
+
     table.querySelectorAll('tr').forEach(tr => {
         const cells = tr.querySelectorAll('th, td');
-        if (cells.length > 0) {
-            cells[cells.length - 1].remove();
+        if (colIndex < cells.length) {
+            cells[colIndex].remove();
         }
     });
+    window.lastActiveCell = null;
     syncData();
 }
 
@@ -3413,6 +3858,8 @@ function renderItems() {
     });
 
     calculateTotals(subtotal);
+    renderGanttConstructor();
+    renderGantt();
 }
 
 function removeItem(index) {
@@ -3924,11 +4371,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hidePricesInput) {
         toggleHidePrices(hidePricesInput.checked);
     }
+    const showGanttInput = document.getElementById('show_gantt');
+    if (showGanttInput) {
+        toggleGanttVisibility(showGanttInput.checked);
+    }
+
+    const notesEd = document.getElementById('notes_editor');
+    const termsEd = document.getElementById('terms_editor');
+    if (notesEd) {
+        notesEd.addEventListener('input', syncRichEditors);
+        notesEd.addEventListener('blur', syncRichEditors);
+    }
+    if (termsEd) {
+        termsEd.addEventListener('input', syncRichEditors);
+        termsEd.addEventListener('blur', syncRichEditors);
+    }
+
     if (itemsData.length === 0 && !document.getElementById('quote_id').value) {
         addEmptyRow();
     } else {
         renderItems();
     }
+    renderGanttConstructor();
     renderGantt();
     updateCoverPreview();
 });
@@ -3941,6 +4405,7 @@ $('#btnSaveQuote').on('click', function(e) {
 
     try {
         syncData();
+        syncRichEditors();
 
         const client_name = $('#client_name').val().trim();
         if (!client_name) {
@@ -3978,6 +4443,7 @@ $('#btnSaveQuote').on('click', function(e) {
             cover_image: $('#cover_image').val() || '',
             cover_gradient: $('#cover_gradient').val() || 'mesh-blue',
             hide_prices: $('#hide_prices').is(':checked') ? 1 : 0,
+            show_gantt: $('#show_gantt').is(':checked') ? 1 : 0,
             tax_rate: $('#tax_rate').val(),
             notes: $('#notes').val(),
             terms_conditions: $('#terms_conditions').val(),

@@ -42,6 +42,7 @@ try {
     if (!in_array('cover_image', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_image` VARCHAR(255) NULL";
     if (!in_array('cover_gradient', $existing_cols)) $missing_cols[] = "ADD COLUMN `cover_gradient` VARCHAR(100) DEFAULT 'mesh-blue'";
     if (!in_array('hide_prices', $existing_cols)) $missing_cols[] = "ADD COLUMN `hide_prices` TINYINT(1) DEFAULT 0";
+    if (!in_array('show_gantt', $existing_cols)) $missing_cols[] = "ADD COLUMN `show_gantt` TINYINT(1) DEFAULT 1";
     
     if (!empty($missing_cols)) {
         $db->exec("ALTER TABLE `quotes` " . implode(', ', $missing_cols));
@@ -66,14 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $due_date = $_POST['due_date'] ?? date('Y-m-d', strtotime('+15 days'));
         $currency = $_POST['currency'] ?? 'USD';
         $status = $_POST['status'] ?? 'Borrador';
-        $notes = $_POST['notes'] ?? '';
-        $terms_conditions = $_POST['terms_conditions'] ?? '';
+        $allowed_html = '<strong><em><b><i><u><br><ul><ol><li><p><span><div><mark><font>';
+        $notes = isset($_POST['notes']) ? strip_tags($_POST['notes'], $allowed_html) : '';
+        $terms_conditions = isset($_POST['terms_conditions']) ? strip_tags($_POST['terms_conditions'], $allowed_html) : '';
         $show_payment_methods = isset($_POST['show_payment_methods']) ? 1 : 0;
         $payment_methods_text = $_POST['payment_methods_text'] ?? '';
         $theme_color = !empty($_POST['theme_color']) ? trim($_POST['theme_color']) : 'corporate-blue';
         $cover_image = !empty($_POST['cover_image']) ? trim($_POST['cover_image']) : null;
         $cover_gradient = !empty($_POST['cover_gradient']) ? trim($_POST['cover_gradient']) : 'mesh-blue';
         $hide_prices = isset($_POST['hide_prices']) && ($_POST['hide_prices'] == '1' || $_POST['hide_prices'] === 'true' || $_POST['hide_prices'] === true) ? 1 : 0;
+        $show_gantt = isset($_POST['show_gantt']) && ($_POST['show_gantt'] == '0' || $_POST['show_gantt'] === 'false' || $_POST['show_gantt'] === false) ? 0 : 1;
         
         if (empty($client_name)) {
             throw new Exception('El cliente es obligatorio.');
@@ -127,20 +130,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($quote_id == 0) {
             $token = bin2hex(random_bytes(6));
             if ($has_custom_cols) {
-                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, theme_color, cover_image, cover_gradient, hide_prices) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $theme_color, $cover_image, $cover_gradient, $hide_prices]);
+                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, theme_color, cover_image, cover_gradient, hide_prices, show_gantt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $theme_color, $cover_image, $cover_gradient, $hide_prices, $show_gantt]);
             } else {
-                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, hide_prices) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $hide_prices]);
+                $stmt = $db->prepare("INSERT INTO quotes (client_id, issue_date, due_date, currency, status, subtotal, tax, total, notes, terms_conditions, show_payment_methods, payment_methods_text, public_token, hide_prices, show_gantt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $token, $hide_prices, $show_gantt]);
             }
             $quote_id = $db->lastInsertId();
         } else {
             if ($has_custom_cols) {
-                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, theme_color=?, cover_image=?, cover_gradient=?, hide_prices=? WHERE id=?");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $theme_color, $cover_image, $cover_gradient, $hide_prices, $quote_id]);
+                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, theme_color=?, cover_image=?, cover_gradient=?, hide_prices=?, show_gantt=? WHERE id=?");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $theme_color, $cover_image, $cover_gradient, $hide_prices, $show_gantt, $quote_id]);
             } else {
-                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, hide_prices=? WHERE id=?");
-                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $hide_prices, $quote_id]);
+                $stmt = $db->prepare("UPDATE quotes SET client_id=?, issue_date=?, due_date=?, currency=?, status=?, subtotal=?, tax=?, total=?, notes=?, terms_conditions=?, show_payment_methods=?, payment_methods_text=?, hide_prices=?, show_gantt=? WHERE id=?");
+                $stmt->execute([$client_id, $issue_date, $due_date, $currency, $status, $subtotal, $tax, $total, $notes, $terms_conditions, $show_payment_methods, $payment_methods_text, $hide_prices, $show_gantt, $quote_id]);
             }
             
             // Delete old items and tasks to re-insert
@@ -176,6 +179,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $end_date = date('Y-m-d', strtotime($g_start . " + {$g_dur} days"));
                     $stmtGantt->execute([$quote_id, $task_name, $g_start, $end_date, 0, '#3498db']);
                 }
+            }
+        }
+
+        // Insert custom gantt tasks if passed from Gantt Constructor and not already inserted
+        $gantt_tasks = isset($_POST['gantt_tasks']) && is_array($_POST['gantt_tasks']) ? $_POST['gantt_tasks'] : [];
+        if (!empty($gantt_tasks)) {
+            $stmtGanttCustom = $db->prepare("INSERT INTO quote_gantt_tasks (quote_id, task_name, start_date, end_date, progress, color) VALUES (?, ?, ?, ?, ?, ?)");
+            foreach ($gantt_tasks as $gt) {
+                $t_name = !empty($gt['task_name']) ? trim($gt['task_name']) : 'Fase';
+                $t_start = !empty($gt['start_date']) ? $gt['start_date'] : date('Y-m-d');
+                $t_end = !empty($gt['end_date']) ? $gt['end_date'] : $t_start;
+                $t_prog = isset($gt['progress']) ? (int)$gt['progress'] : 0;
+                $t_color = !empty($gt['color']) ? $gt['color'] : '#3498db';
+                $stmtGanttCustom->execute([$quote_id, $t_name, $t_start, $t_end, $t_prog, $t_color]);
             }
         }
 
