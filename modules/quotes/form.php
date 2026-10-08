@@ -23,7 +23,12 @@ $quote = null;
 $quote_items = [];
 
 if ($id > 0) {
-    $stmt = $db->prepare("SELECT * FROM quotes WHERE id = ?");
+    $stmt = $db->prepare("
+        SELECT q.*, c.name AS client_name, c.dni AS client_dni, c.email AS client_email, c.whatsapp AS client_whatsapp
+        FROM quotes q
+        LEFT JOIN clients c ON q.client_id = c.id
+        WHERE q.id = ?
+    ");
     $stmt->execute([$id]);
     $quote = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -35,8 +40,40 @@ if ($id > 0) {
 }
 
 // Fetch lists
-$clients = $db->query("SELECT id, name FROM clients ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+$clients = $db->query("SELECT id, name, dni, email, whatsapp FROM clients ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 $services = $db->query("SELECT id, name, price FROM services ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+// Resolve selected client for quotes being edited
+$selected_client = null;
+if ($quote && !empty($quote['client_id'])) {
+    foreach ($clients as $c) {
+        if ($c['id'] == $quote['client_id']) {
+            $selected_client = $c;
+            break;
+        }
+    }
+    if (!$selected_client && !empty($quote['client_name'])) {
+        $selected_client = [
+            'id' => $quote['client_id'],
+            'name' => $quote['client_name'],
+            'dni' => $quote['client_dni'] ?? '',
+            'email' => $quote['client_email'] ?? '',
+            'whatsapp' => $quote['client_whatsapp'] ?? ''
+        ];
+    }
+}
+
+if (!function_exists('getClientInitialsMonogram')) {
+    function getClientInitialsMonogram($name) {
+        $clean = trim((string)$name);
+        if (empty($clean)) return 'CL';
+        $parts = preg_split('/\s+/', $clean);
+        if (count($parts) >= 2) {
+            return mb_strtoupper(mb_substr($parts[0], 0, 1) . mb_substr($parts[1], 0, 1));
+        }
+        return mb_strtoupper(mb_substr($clean, 0, 2));
+    }
+}
 
 require_once 'includes/header.php';
 ?>
@@ -383,6 +420,522 @@ require_once 'includes/header.php';
 }
 .grid-col-full {
     grid-column: 1 / -1;
+}
+
+/* ==========================================================================
+   MODERN CLIENT PICKER & SELECTED CLIENT CARD
+   ========================================================================== */
+
+.client-picker-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* Selected Client Card */
+.selected-client-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.1rem 1.35rem;
+    background: linear-gradient(135deg, var(--quote-card) 0%, var(--quote-card-sub) 100%);
+    border: 1px solid var(--quote-border);
+    border-radius: var(--quote-radius-md);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+.selected-client-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #4f46e5, #06b6d4);
+    border-radius: 4px 0 0 4px;
+}
+.selected-client-card:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 6px 22px rgba(99, 102, 241, 0.09);
+    transform: translateY(-1px);
+}
+.client-card-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+    flex: 1;
+}
+.client-avatar-badge {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+.client-details-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+.client-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+.client-display-name {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--quote-text-title);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+}
+.client-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.client-status-badge.badge-custom {
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    border-color: rgba(99, 102, 241, 0.2);
+}
+.client-meta-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.client-meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 11.5px;
+    padding: 0.22rem 0.65rem;
+    border-radius: 8px;
+    background: var(--quote-card);
+    border: 1px solid var(--quote-border);
+    color: var(--quote-text-main);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+.client-meta-pill i {
+    color: var(--primary-color, #4f46e5);
+    font-size: 13px;
+}
+.client-meta-pill.pill-wa i {
+    color: #10b981;
+}
+.client-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+.btn-switch-client {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.95rem;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    background: var(--quote-card);
+    border: 1px solid var(--quote-border);
+    color: var(--quote-text-main);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-switch-client:hover {
+    background: var(--quote-border);
+    color: var(--quote-text-title);
+    transform: translateY(-1px);
+}
+.btn-client-wa-direct {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    text-decoration: none;
+    font-size: 17px;
+    transition: all 0.2s ease;
+}
+.btn-client-wa-direct:hover {
+    background: #10b981;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* Custom Dropdown / Searchable Combobox */
+.client-selector-container {
+    position: relative;
+    width: 100%;
+}
+.custom-client-combobox {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--quote-input-bg);
+    border: 1px solid var(--quote-border);
+    border-radius: var(--quote-radius-sm);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+}
+.custom-client-combobox:focus-within {
+    border-color: var(--primary-color, #4f46e5);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+}
+.combobox-search-icon {
+    position: absolute;
+    left: 0.85rem;
+    color: var(--quote-text-muted);
+    font-size: 16px;
+    pointer-events: none;
+}
+.client-search-input {
+    width: 100%;
+    padding: 0.65rem 4.5rem 0.65rem 2.5rem;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: var(--quote-text-title);
+    min-height: 42px;
+}
+.client-search-input::placeholder {
+    color: var(--quote-text-muted);
+    opacity: 0.7;
+}
+.combobox-btn-group {
+    position: absolute;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.btn-clear-client-search {
+    background: none;
+    border: none;
+    color: var(--quote-text-muted);
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s ease;
+}
+.btn-clear-client-search:hover {
+    background: var(--quote-border);
+    color: var(--quote-text-title);
+}
+.btn-toggle-client-dropdown {
+    background: none;
+    border: none;
+    color: var(--quote-text-muted);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s ease;
+}
+.btn-toggle-client-dropdown:hover {
+    color: var(--quote-text-title);
+}
+.btn-toggle-client-dropdown.open {
+    transform: rotate(180deg);
+}
+
+/* Floating Dropdown Panel */
+.client-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--quote-card);
+    border: 1px solid var(--quote-border);
+    border-radius: var(--quote-radius-md);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: clientDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes clientDropdownFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.client-dropdown-panel.open {
+    display: flex;
+}
+.dropdown-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.95rem;
+    background: var(--quote-card-sub);
+    border-bottom: 1px solid var(--quote-border);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--quote-text-muted);
+}
+.dropdown-panel-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--primary-color, #4f46e5);
+}
+
+/* Quick Add New Client Bar */
+.quick-add-client-row {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    background: rgba(99, 102, 241, 0.05);
+    border-bottom: 1px dashed var(--quote-border);
+    transition: background 0.15s ease;
+}
+.quick-add-client-row:hover {
+    background: rgba(99, 102, 241, 0.12);
+}
+.quick-add-icon-tile {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--primary-color, #4f46e5);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+.quick-add-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.quick-add-content span {
+    font-size: 11px;
+    color: var(--quote-text-muted);
+}
+.quick-add-content strong {
+    font-size: 13px;
+    color: var(--quote-text-title);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.quick-add-pill-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    background: var(--primary-color, #4f46e5);
+    color: #ffffff;
+}
+
+/* Scrollable Options */
+.client-options-scroll {
+    max-height: 280px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.35rem 0;
+}
+.client-option-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    border-left: 3px solid transparent;
+}
+.client-option-card:hover {
+    background: var(--quote-card-sub);
+    border-left-color: var(--primary-color, #4f46e5);
+}
+.client-option-card.selected {
+    background: rgba(99, 102, 241, 0.08);
+    border-left-color: var(--primary-color, #4f46e5);
+}
+.client-opt-avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
+    background: var(--quote-border);
+    color: var(--quote-text-title);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.client-option-card:hover .client-opt-avatar {
+    background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+    color: #ffffff;
+}
+.client-opt-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.client-opt-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--quote-text-title);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.client-opt-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: var(--quote-text-muted);
+}
+.client-opt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.client-opt-check {
+    color: #10b981;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* Empty State */
+.client-options-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--quote-text-muted);
+    font-size: 12.5px;
+}
+.client-options-empty i {
+    font-size: 28px;
+    margin-bottom: 0.4rem;
+    opacity: 0.5;
+    display: block;
+}
+
+/* Dropdown Footer */
+.dropdown-panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.55rem 0.95rem;
+    background: var(--quote-card-sub);
+    border-top: 1px solid var(--quote-border);
+}
+.btn-cancel-client-change {
+    background: none;
+    border: none;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--quote-text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+.btn-cancel-client-change:hover {
+    color: var(--quote-text-title);
+    background: var(--quote-border);
+}
+
+/* OLED Dark Mode Overrides */
+[data-theme="dark"] .selected-client-card {
+    background: #0d1117 !important;
+    border-color: #21262d !important;
+    box-shadow: none !important;
+}
+[data-theme="dark"] .selected-client-card:hover {
+    border-color: #388bfd !important;
+}
+[data-theme="dark"] .client-meta-pill {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+}
+[data-theme="dark"] .btn-switch-client {
+    background: #161b22 !important;
+    border-color: #30363d !important;
+    color: #e2e8f0 !important;
+}
+[data-theme="dark"] .btn-switch-client:hover {
+    background: #21262d !important;
+    color: #ffffff !important;
+}
+[data-theme="dark"] .client-status-badge {
+    background: rgba(16, 185, 129, 0.18) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+[data-theme="dark"] .client-dropdown-panel {
+    background: #0d1117 !important;
+    border-color: #30363d !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
+}
+[data-theme="dark"] .dropdown-panel-header,
+[data-theme="dark"] .dropdown-panel-footer {
+    background: #161b22 !important;
+    border-color: #21262d !important;
+}
+[data-theme="dark"] .client-opt-avatar {
+    background: #21262d !important;
+    color: #c9d1d9 !important;
+}
+[data-theme="dark"] .quick-add-client-row {
+    background: rgba(99, 102, 241, 0.12) !important;
+}
+[data-theme="dark"] .quick-add-client-row:hover {
+    background: rgba(99, 102, 241, 0.22) !important;
 }
 
 /* Catalog Import Bar */
@@ -1336,6 +1889,24 @@ require_once 'includes/header.php';
         gap: 0.75rem;
     }
 
+    .selected-client-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.85rem;
+        padding: 0.95rem;
+    }
+    .client-card-left {
+        width: 100%;
+    }
+    .client-card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .btn-switch-client {
+        flex: 1;
+        justify-content: center;
+    }
+
     .catalog-import-bar {
         flex-direction: column;
         align-items: stretch;
@@ -1417,15 +1988,112 @@ require_once 'includes/header.php';
             <div class="general-data-grid">
                 <!-- Cliente (Full row) -->
                 <div class="grid-col-full">
-                    <label class="field-label" for="client_name">
-                        CLIENTE * <span class="optional-note">(Seleccione del catálogo o escriba un nombre nuevo)</span>
+                    <label class="field-label">
+                        CLIENTE * <span class="optional-note">(Seleccione del catálogo o registre uno nuevo)</span>
                     </label>
-                    <input type="text" id="client_name" class="app-input" list="clientsList" value="<?php echo $quote ? htmlspecialchars(current(array_filter($clients, function($c) use($quote) { return $c['id'] == $quote['client_id']; }))['name'] ?? '') : ''; ?>" placeholder="Escribir o buscar cliente..." required autocomplete="off">
-                    <datalist id="clientsList">
-                        <?php foreach($clients as $c): ?>
-                            <option value="<?php echo htmlspecialchars($c['name']); ?>" data-id="<?php echo $c['id']; ?>">
-                        <?php endforeach; ?>
-                    </datalist>
+
+                    <!-- Hidden inputs to submit with form -->
+                    <input type="hidden" name="client_id" id="client_id" value="<?php echo htmlspecialchars($selected_client['id'] ?? ($quote['client_id'] ?? '')); ?>">
+                    <input type="hidden" name="client_name" id="client_name" value="<?php echo htmlspecialchars($selected_client['name'] ?? ''); ?>">
+
+                    <!-- 1. Card del Cliente Seleccionado (Visible cuando hay cliente seleccionado, predeterminado en edición) -->
+                    <div id="clientCardWrap" class="client-card-wrapper" style="<?php echo $selected_client ? 'display: block;' : 'display: none;'; ?>">
+                        <div class="selected-client-card">
+                            <div class="client-card-left">
+                                <div class="client-avatar-badge" id="cardClientInitials">
+                                    <?php echo $selected_client ? getClientInitialsMonogram($selected_client['name']) : 'CL'; ?>
+                                </div>
+                                <div class="client-details-body">
+                                    <div class="client-name-row">
+                                        <span class="client-display-name" id="cardClientName">
+                                            <?php echo htmlspecialchars($selected_client['name'] ?? ''); ?>
+                                        </span>
+                                        <span class="client-status-badge <?php echo (!empty($selected_client['id'])) ? '' : 'badge-custom'; ?>" id="cardClientBadge">
+                                            <?php if (!empty($selected_client['id'])): ?>
+                                                <i class="ph ph-check-circle-fill"></i> Cliente Vinculado
+                                            <?php else: ?>
+                                                <i class="ph ph-user-plus"></i> Cliente Personalizado
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                    <div class="client-meta-chips" id="cardClientMetaChips">
+                                        <span class="client-meta-pill" id="cardChipDni" style="<?php echo (!empty($selected_client['dni'])) ? 'display: inline-flex;' : 'display: none;'; ?>">
+                                            <i class="ph ph-identification-card"></i> <b>DNI/RUC:</b> <span class="val"><?php echo htmlspecialchars($selected_client['dni'] ?? ''); ?></span>
+                                        </span>
+                                        <span class="client-meta-pill pill-wa" id="cardChipPhone" style="<?php echo (!empty($selected_client['whatsapp'])) ? 'display: inline-flex;' : 'display: none;'; ?>">
+                                            <i class="ph ph-whatsapp-logo"></i> <span class="val"><?php echo htmlspecialchars($selected_client['whatsapp'] ?? ''); ?></span>
+                                        </span>
+                                        <span class="client-meta-pill" id="cardChipEmail" style="<?php echo (!empty($selected_client['email'])) ? 'display: inline-flex;' : 'display: none;'; ?>">
+                                            <i class="ph ph-envelope-simple"></i> <span class="val"><?php echo htmlspecialchars($selected_client['email'] ?? ''); ?></span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="client-card-actions">
+                                <?php if (!empty($selected_client['whatsapp'])): ?>
+                                    <a id="cardClientWaLink" href="https://wa.me/<?php echo preg_replace('/\D/', '', $selected_client['whatsapp']); ?>" target="_blank" class="btn-client-wa-direct" title="Abrir WhatsApp">
+                                        <i class="ph ph-whatsapp-logo"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <a id="cardClientWaLink" href="#" target="_blank" class="btn-client-wa-direct" style="display: none;" title="Abrir WhatsApp">
+                                        <i class="ph ph-whatsapp-logo"></i>
+                                    </a>
+                                <?php endif; ?>
+                                <button type="button" class="btn-switch-client" onclick="showClientSelector()" title="Seleccionar otro cliente">
+                                    <i class="ph ph-arrows-clockwise"></i>
+                                    <span>Cambiar cliente</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Desplegable Moderno Profesional (Oculto si ya hay cliente seleccionado, mostrado si no hay cliente o al hacer clic en Cambiar) -->
+                    <div id="clientSelectorWrap" class="client-selector-container" style="<?php echo $selected_client ? 'display: none;' : 'display: block;'; ?>">
+                        <div class="custom-client-combobox" id="customClientCombobox">
+                            <i class="ph ph-magnifying-glass combobox-search-icon"></i>
+                            <input type="text" id="clientSearchInput" class="client-search-input" placeholder="Buscar cliente por nombre, DNI o teléfono..." autocomplete="off">
+                            <div class="combobox-btn-group">
+                                <button type="button" class="btn-clear-client-search" id="btnClearClientSearch" style="display: none;" onclick="clearClientSearch(event)" title="Limpiar búsqueda">
+                                    <i class="ph ph-x"></i>
+                                </button>
+                                <button type="button" class="btn-toggle-client-dropdown" id="btnToggleClientDropdown" onclick="toggleClientDropdown()" title="Desplegar catálogo">
+                                    <i class="ph ph-caret-down"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Panel Flotante del Catálogo -->
+                        <div class="client-dropdown-panel" id="clientDropdownPanel">
+                            <div class="dropdown-panel-header">
+                                <span id="clientDropdownCount">Clientes disponibles (<?php echo count($clients); ?>)</span>
+                                <span class="dropdown-panel-hint"><i class="ph ph-lightning"></i> Búsqueda en tiempo real</span>
+                            </div>
+
+                            <!-- Opción para registrar / escribir cliente nuevo rápido -->
+                            <div class="quick-add-client-row" id="quickAddClientRow" style="display: none;" onclick="selectTypedClient()">
+                                <div class="quick-add-icon-tile">
+                                    <i class="ph ph-user-plus"></i>
+                                </div>
+                                <div class="quick-add-content">
+                                    <span>Usar como nuevo cliente:</span>
+                                    <strong id="quickAddClientName"></strong>
+                                </div>
+                                <span class="quick-add-pill-tag">+ Asignar</span>
+                            </div>
+
+                            <!-- Listado de Clientes con Scroll -->
+                            <div class="client-options-scroll" id="clientOptionsScroll">
+                                <!-- Populated dynamically by JS for smooth instant filtering -->
+                            </div>
+
+                            <!-- Pie del menú desplegable: Botón cancelar si ya había cliente -->
+                            <div class="dropdown-panel-footer" id="clientDropdownFooter" style="display: none;">
+                                <button type="button" class="btn-cancel-client-change" onclick="cancelChangeClient()">
+                                    <i class="ph ph-x-circle"></i> Cancelar y mantener cliente actual
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Moneda -->
@@ -2753,8 +3421,323 @@ function uploadCoverFile(input) {
     });
 }
 
+/* ==========================================================================
+   MODERN CLIENT PICKER & CARD LOGIC
+   ========================================================================== */
+const ALL_CLIENTS = <?php echo json_encode($clients); ?>;
+let currentSelectedClient = <?php echo json_encode($selected_client ?: null); ?>;
+
+function getClientInitials(name) {
+    if (!name) return 'CL';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    return name.trim().substring(0, 2).toUpperCase();
+}
+
+function updateClientCardUI(client) {
+    if (!client) return;
+
+    const initialsEl = document.getElementById('cardClientInitials');
+    if (initialsEl) initialsEl.textContent = getClientInitials(client.name);
+
+    const nameEl = document.getElementById('cardClientName');
+    if (nameEl) nameEl.textContent = client.name || 'Sin nombre';
+
+    const badgeEl = document.getElementById('cardClientBadge');
+    if (badgeEl) {
+        if (client.id && parseInt(client.id) > 0) {
+            badgeEl.className = 'client-status-badge';
+            badgeEl.innerHTML = '<i class="ph ph-check-circle-fill"></i> Cliente Vinculado';
+        } else {
+            badgeEl.className = 'client-status-badge badge-custom';
+            badgeEl.innerHTML = '<i class="ph ph-user-plus"></i> Cliente Personalizado';
+        }
+    }
+
+    const dniPill = document.getElementById('cardChipDni');
+    if (dniPill) {
+        if (client.dni && client.dni.trim() !== '') {
+            dniPill.style.display = 'inline-flex';
+            dniPill.querySelector('.val').textContent = client.dni.trim();
+        } else {
+            dniPill.style.display = 'none';
+        }
+    }
+
+    const phonePill = document.getElementById('cardChipPhone');
+    const waLink = document.getElementById('cardClientWaLink');
+    if (phonePill) {
+        if (client.whatsapp && client.whatsapp.trim() !== '') {
+            phonePill.style.display = 'inline-flex';
+            phonePill.querySelector('.val').textContent = client.whatsapp.trim();
+            if (waLink) {
+                waLink.style.display = 'inline-flex';
+                waLink.href = 'https://wa.me/' + client.whatsapp.replace(/\D/g, '');
+            }
+        } else {
+            phonePill.style.display = 'none';
+            if (waLink) waLink.style.display = 'none';
+        }
+    }
+
+    const emailPill = document.getElementById('cardChipEmail');
+    if (emailPill) {
+        if (client.email && client.email.trim() !== '') {
+            emailPill.style.display = 'inline-flex';
+            emailPill.querySelector('.val').textContent = client.email.trim();
+        } else {
+            emailPill.style.display = 'none';
+        }
+    }
+}
+
+function selectClient(client) {
+    if (!client || !client.name) return;
+    currentSelectedClient = client;
+    document.getElementById('client_id').value = client.id || '';
+    document.getElementById('client_name').value = client.name || '';
+
+    updateClientCardUI(client);
+
+    closeClientDropdown();
+    document.getElementById('clientSelectorWrap').style.display = 'none';
+    document.getElementById('clientCardWrap').style.display = 'block';
+
+    const sInput = document.getElementById('clientSearchInput');
+    if (sInput) sInput.value = '';
+    const clearBtn = document.getElementById('btnClearClientSearch');
+    if (clearBtn) clearBtn.style.display = 'none';
+}
+
+function selectClientById(clientId) {
+    const found = ALL_CLIENTS.find(c => c.id == clientId);
+    if (found) {
+        selectClient(found);
+    }
+}
+
+function selectTypedClient() {
+    const sInput = document.getElementById('clientSearchInput');
+    const name = sInput ? sInput.value.trim() : '';
+    if (!name) return;
+
+    const exact = ALL_CLIENTS.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (exact) {
+        selectClient(exact);
+    } else {
+        selectClient({
+            id: '',
+            name: name,
+            dni: '',
+            whatsapp: '',
+            email: ''
+        });
+    }
+}
+
+function showClientSelector() {
+    document.getElementById('clientCardWrap').style.display = 'none';
+    const selectorWrap = document.getElementById('clientSelectorWrap');
+    selectorWrap.style.display = 'block';
+
+    const footer = document.getElementById('clientDropdownFooter');
+    if (footer) {
+        footer.style.display = (currentSelectedClient && currentSelectedClient.name) ? 'flex' : 'none';
+    }
+
+    openClientDropdown();
+    const sInput = document.getElementById('clientSearchInput');
+    if (sInput) {
+        sInput.focus();
+        filterClientsList(sInput.value);
+    }
+}
+
+function cancelChangeClient() {
+    if (currentSelectedClient && currentSelectedClient.name) {
+        closeClientDropdown();
+        document.getElementById('clientSelectorWrap').style.display = 'none';
+        document.getElementById('clientCardWrap').style.display = 'block';
+    }
+}
+
+function toggleClientDropdown() {
+    const panel = document.getElementById('clientDropdownPanel');
+    if (!panel) return;
+    if (panel.classList.contains('open')) {
+        closeClientDropdown();
+    } else {
+        openClientDropdown();
+    }
+}
+
+function openClientDropdown() {
+    const panel = document.getElementById('clientDropdownPanel');
+    const btn = document.getElementById('btnToggleClientDropdown');
+    if (panel) panel.classList.add('open');
+    if (btn) btn.classList.add('open');
+}
+
+function closeClientDropdown() {
+    const panel = document.getElementById('clientDropdownPanel');
+    const btn = document.getElementById('btnToggleClientDropdown');
+    if (panel) panel.classList.remove('open');
+    if (btn) btn.classList.remove('open');
+}
+
+function clearClientSearch(e) {
+    if (e) e.stopPropagation();
+    const sInput = document.getElementById('clientSearchInput');
+    if (sInput) {
+        sInput.value = '';
+        sInput.focus();
+    }
+    const clearBtn = document.getElementById('btnClearClientSearch');
+    if (clearBtn) clearBtn.style.display = 'none';
+    filterClientsList('');
+}
+
+function filterClientsList(query) {
+    const q = (query || '').trim().toLowerCase();
+    const clearBtn = document.getElementById('btnClearClientSearch');
+    if (clearBtn) {
+        clearBtn.style.display = q.length > 0 ? 'flex' : 'none';
+    }
+
+    const quickAddRow = document.getElementById('quickAddClientRow');
+    const quickAddName = document.getElementById('quickAddClientName');
+
+    let filtered = ALL_CLIENTS;
+    if (q.length > 0) {
+        filtered = ALL_CLIENTS.filter(c => {
+            const nameMatch = (c.name || '').toLowerCase().includes(q);
+            const dniMatch = (c.dni || '').toLowerCase().includes(q);
+            const phoneMatch = (c.whatsapp || '').toLowerCase().includes(q);
+            const emailMatch = (c.email || '').toLowerCase().includes(q);
+            return nameMatch || dniMatch || phoneMatch || emailMatch;
+        });
+
+        if (quickAddRow && quickAddName) {
+            quickAddRow.style.display = 'flex';
+            quickAddName.textContent = query.trim();
+        }
+    } else {
+        if (quickAddRow) quickAddRow.style.display = 'none';
+    }
+
+    const countEl = document.getElementById('clientDropdownCount');
+    if (countEl) {
+        countEl.textContent = `Clientes disponibles (${filtered.length})`;
+    }
+
+    renderClientOptions(filtered, q);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+}
+
+function renderClientOptions(list, query) {
+    const container = document.getElementById('clientOptionsScroll');
+    if (!container) return;
+
+    if (!list || list.length === 0) {
+        container.innerHTML = `
+            <div class="client-options-empty">
+                <i class="ph ph-magnifying-glass"></i>
+                <p>No se encontraron clientes coincidentes.</p>
+                <span style="font-size:11px;opacity:0.8;">Haz clic en la opción superior para crear uno nuevo con este nombre.</span>
+            </div>
+        `;
+        return;
+    }
+
+    const curId = currentSelectedClient ? (currentSelectedClient.id || '') : '';
+
+    let html = '';
+    list.forEach(c => {
+        const initials = getClientInitials(c.name);
+        const isSel = (curId && curId == c.id);
+
+        let metaHtml = '';
+        if (c.dni) {
+            metaHtml += `<span class="client-opt-chip"><i class="ph ph-identification-card"></i> ${escapeHtml(c.dni)}</span>`;
+        }
+        if (c.whatsapp) {
+            metaHtml += `<span class="client-opt-chip"><i class="ph ph-whatsapp-logo" style="color:#10b981;"></i> ${escapeHtml(c.whatsapp)}</span>`;
+        }
+        if (c.email) {
+            metaHtml += `<span class="client-opt-chip"><i class="ph ph-envelope-simple"></i> ${escapeHtml(c.email)}</span>`;
+        }
+        if (!metaHtml) {
+            metaHtml = `<span class="client-opt-chip" style="opacity:0.6;"><i class="ph ph-user"></i> Sin datos adicionales</span>`;
+        }
+
+        html += `
+            <div class="client-option-card ${isSel ? 'selected' : ''}" onclick="selectClientById(${c.id})">
+                <div class="client-opt-avatar">${initials}</div>
+                <div class="client-opt-info">
+                    <span class="client-opt-name">${escapeHtml(c.name)}</span>
+                    <div class="client-opt-meta">${metaHtml}</div>
+                </div>
+                ${isSel ? '<i class="ph ph-check-circle-fill client-opt-check" title="Seleccionado actualmente"></i>' : ''}
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function initClientPicker() {
+    renderClientOptions(ALL_CLIENTS, '');
+
+    const sInput = document.getElementById('clientSearchInput');
+    if (sInput) {
+        sInput.addEventListener('input', function() {
+            filterClientsList(this.value);
+        });
+        sInput.addEventListener('focus', function() {
+            openClientDropdown();
+            filterClientsList(this.value);
+        });
+        sInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const q = this.value.trim();
+                const firstOpt = document.querySelector('.client-option-card');
+                if (q.length > 0 && (!firstOpt || e.ctrlKey || e.metaKey)) {
+                    selectTypedClient();
+                } else if (firstOpt) {
+                    firstOpt.click();
+                } else if (q.length > 0) {
+                    selectTypedClient();
+                }
+            } else if (e.key === 'Escape') {
+                closeClientDropdown();
+            }
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        const selWrap = document.getElementById('clientSelectorWrap');
+        if (selWrap && !selWrap.contains(e.target)) {
+            closeClientDropdown();
+        }
+    });
+
+    if (currentSelectedClient) {
+        updateClientCardUI(currentSelectedClient);
+    }
+}
+
 // Initial bootstrap
 document.addEventListener('DOMContentLoaded', () => {
+    initClientPicker();
     if (itemsData.length === 0 && !document.getElementById('quote_id').value) {
         addEmptyRow();
     } else {
@@ -2799,6 +3782,7 @@ $('#btnSaveQuote').on('click', function(e) {
 
         const payload = {
             quote_id: $('#quote_id').val(),
+            client_id: $('#client_id').val() || '',
             client_name: client_name,
             issue_date: $('#issue_date').val(),
             due_date: $('#due_date').val(),

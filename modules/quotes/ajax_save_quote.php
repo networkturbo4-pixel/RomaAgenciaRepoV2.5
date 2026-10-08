@@ -78,16 +78,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Find or create client
-        $stmtFindClient = $db->prepare("SELECT id FROM clients WHERE name = ?");
-        $stmtFindClient->execute([$client_name]);
-        $client = $stmtFindClient->fetch(PDO::FETCH_ASSOC);
+        $post_client_id = isset($_POST['client_id']) ? (int)$_POST['client_id'] : 0;
+        $client_id = 0;
+        if ($post_client_id > 0) {
+            $stmtCheck = $db->prepare("SELECT id, name FROM clients WHERE id = ?");
+            $stmtCheck->execute([$post_client_id]);
+            $client_row = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            if ($client_row) {
+                $client_id = $client_row['id'];
+            }
+        }
 
-        if ($client) {
-            $client_id = $client['id'];
-        } else {
-            $stmtInsertClient = $db->prepare("INSERT INTO clients (name) VALUES (?)");
-            $stmtInsertClient->execute([$client_name]);
-            $client_id = $db->lastInsertId();
+        if (!$client_id) {
+            $stmtFindClient = $db->prepare("SELECT id FROM clients WHERE name = ?");
+            $stmtFindClient->execute([$client_name]);
+            $client = $stmtFindClient->fetch(PDO::FETCH_ASSOC);
+
+            if ($client) {
+                $client_id = $client['id'];
+            } else {
+                $stmtInsertClient = $db->prepare("INSERT INTO clients (name) VALUES (?)");
+                $stmtInsertClient->execute([$client_name]);
+                $client_id = $db->lastInsertId();
+            }
         }
         
         $subtotal = 0;
