@@ -1605,6 +1605,133 @@ require_once 'includes/header.php';
     white-space: nowrap;
 }
 
+/* Pricing Visibility Toggle & Hidden Mode */
+.pricing-visibility-toggle-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1.25rem;
+    background: var(--quote-card-sub);
+    border: 1px solid var(--quote-border);
+    border-radius: var(--quote-radius-md);
+    margin-bottom: 1.25rem;
+    transition: all 0.2s ease;
+}
+.pricing-visibility-toggle-box:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+}
+.pricing-visibility-toggle-box .toggle-content {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+}
+.pricing-visibility-toggle-box .toggle-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--primary-color, #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.pricing-visibility-toggle-box .toggle-text-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+.pricing-visibility-toggle-box .toggle-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--quote-text-title);
+    letter-spacing: -0.01em;
+}
+.pricing-visibility-toggle-box .toggle-subtitle {
+    font-size: 11.5px;
+    color: var(--quote-text-muted);
+    line-height: 1.4;
+}
+
+/* Totals Hidden Notice Card */
+.totals-hidden-notice {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.45rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);
+    border: 1px dashed rgba(99, 102, 241, 0.35);
+    border-radius: var(--quote-radius-md);
+    color: var(--quote-text-title);
+    width: 100%;
+    box-sizing: border-box;
+}
+.totals-hidden-notice .notice-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--primary-color, #4f46e5);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.28);
+}
+.totals-hidden-notice .notice-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.totals-hidden-notice .notice-text strong {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--quote-text-title);
+}
+.totals-hidden-notice .notice-text p {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--quote-text-muted);
+    line-height: 1.45;
+}
+
+/* Active Hidden Mode in Form */
+.pricing-hidden-mode .item-amounts-box {
+    display: none !important;
+}
+.pricing-hidden-mode .item-metrics-layout {
+    grid-template-columns: 1fr !important;
+}
+.pricing-hidden-mode .item-schedule-box {
+    max-width: 420px;
+    margin-left: auto;
+}
+.pricing-hidden-mode .totals-container {
+    max-width: 520px;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .pricing-visibility-toggle-box {
+    background: #0d1117 !important;
+    border-color: #21262d !important;
+}
+[data-theme="dark"] .pricing-visibility-toggle-box:hover {
+    border-color: #388bfd !important;
+}
+[data-theme="dark"] .totals-hidden-notice {
+    background: rgba(99, 102, 241, 0.12) !important;
+    border-color: #388bfd !important;
+}
+
 /* Gantt Chart Styling */
 .gantt-scroll-container {
     width: 100%;
@@ -2232,6 +2359,21 @@ require_once 'includes/header.php';
                 </div>
             </div>
 
+            <!-- Switch Ocultar Precios y Totales -->
+            <div class="pricing-visibility-toggle-box">
+                <div class="toggle-content">
+                    <div class="toggle-icon"><i class="ph ph-eye-slash"></i></div>
+                    <div class="toggle-text-block">
+                        <span class="toggle-title">Ocultar Precios, Subtotal, IGV y Total</span>
+                        <span class="toggle-subtitle">Oculta los montos en la cotización para que la descripción y tablas ocupen el 100% del ancho</span>
+                    </div>
+                </div>
+                <label class="ios-switch">
+                    <input type="checkbox" id="hide_prices" name="hide_prices" <?php echo (!empty($quote['hide_prices'])) ? 'checked' : ''; ?> onchange="toggleHidePrices(this.checked)">
+                    <span class="ios-slider"></span>
+                </label>
+            </div>
+
             <!-- Selector de Catálogo -->
             <div class="catalog-import-bar">
                 <div class="catalog-select-wrapper">
@@ -2250,7 +2392,7 @@ require_once 'includes/header.php';
             </div>
 
             <!-- Listado dinámico de partidas -->
-            <div id="itemsContainer" class="items-list-container">
+            <div id="itemsContainer" class="items-list-container <?php echo (!empty($quote['hide_prices'])) ? 'pricing-hidden-mode' : ''; ?>">
                 <!-- Generado por JavaScript -->
             </div>
 
@@ -2262,7 +2404,7 @@ require_once 'includes/header.php';
 
             <!-- Desglose de Totales -->
             <div class="totals-container">
-                <div class="totals-breakdown">
+                <div class="totals-breakdown" id="totalsBreakdownBox" style="<?php echo (!empty($quote['hide_prices'])) ? 'display: none;' : ''; ?>">
                     <div class="totals-row">
                         <span class="totals-label">SUBTOTAL:</span>
                         <span id="calcSubtotal" class="totals-val">0.00</span>
@@ -2278,6 +2420,15 @@ require_once 'includes/header.php';
                     <div class="totals-row grand-total-row">
                         <span class="totals-label">TOTAL:</span>
                         <span id="calcTotal" class="grand-total-val">0.00</span>
+                    </div>
+                </div>
+
+                <!-- Aviso informativo cuando los precios están ocultos -->
+                <div class="totals-hidden-notice" id="totalsHiddenNotice" style="<?php echo (!empty($quote['hide_prices'])) ? 'display: flex;' : 'display: none;'; ?>">
+                    <div class="notice-icon"><i class="ph ph-eye-slash"></i></div>
+                    <div class="notice-text">
+                        <strong>Precios y Totales Ocultos</strong>
+                        <p>La propuesta comercial se generará sin importes monetarios. Las tablas y especificaciones de servicio se expandirán al 100% del ancho del documento.</p>
                     </div>
                 </div>
             </div>
@@ -2560,6 +2711,25 @@ function renderGantt() {
     }
 }
 
+function toggleHidePrices(isChecked) {
+    const container = document.getElementById('itemsContainer');
+    const form = document.getElementById('quoteForm');
+    const totalsBox = document.getElementById('totalsBreakdownBox');
+    const noticeBox = document.getElementById('totalsHiddenNotice');
+
+    if (isChecked) {
+        if (container) container.classList.add('pricing-hidden-mode');
+        if (form) form.classList.add('pricing-hidden-mode');
+        if (totalsBox) totalsBox.style.display = 'none';
+        if (noticeBox) noticeBox.style.display = 'flex';
+    } else {
+        if (container) container.classList.remove('pricing-hidden-mode');
+        if (form) form.classList.remove('pricing-hidden-mode');
+        if (totalsBox) totalsBox.style.display = 'flex';
+        if (noticeBox) noticeBox.style.display = 'none';
+    }
+}
+
 function syncData() {
     const cards = document.querySelectorAll('.item-card');
     let subtotal = 0;
@@ -2567,20 +2737,32 @@ function syncData() {
 
     cards.forEach((card, index) => {
         if (!itemsData[index]) return;
-        itemsData[index].icon = card.querySelector('.item-icon').value;
-        itemsData[index].description = card.querySelector('.item-textarea').innerHTML;
+        const iconEl = card.querySelector('.item-icon');
+        const textEl = card.querySelector('.item-textarea');
+        const qtyEl = card.querySelector('.item-qty');
+        const priceEl = card.querySelector('.item-price');
+        const discEl = card.querySelector('.item-disc');
+        const startEl = card.querySelector('.item-start');
+        const durEl = card.querySelector('.item-duration');
+        const totalDisplay = card.querySelector('.item-total-display');
+
+        if (iconEl) itemsData[index].icon = iconEl.value;
+        if (textEl) itemsData[index].description = textEl.innerHTML;
         
-        itemsData[index].quantity = parseFloat(card.querySelector('.item-qty').value) || 0;
-        itemsData[index].unit_price = parseFloat(card.querySelector('.item-price').value) || 0;
-        itemsData[index].discount = parseFloat(card.querySelector('.item-disc').value) || 0;
-        itemsData[index].gantt_start_date = card.querySelector('.item-start').value;
-        itemsData[index].gantt_duration = parseInt(card.querySelector('.item-duration').value) || 0;
+        if (qtyEl) itemsData[index].quantity = parseFloat(qtyEl.value) || 0;
+        if (priceEl) itemsData[index].unit_price = parseFloat(priceEl.value) || 0;
+        if (discEl) itemsData[index].discount = parseFloat(discEl.value) || 0;
+        if (startEl) itemsData[index].gantt_start_date = startEl.value;
+        if (durEl) itemsData[index].gantt_duration = parseInt(durEl.value) || 0;
         
-        const totalItem = (itemsData[index].quantity * itemsData[index].unit_price) - itemsData[index].discount;
+        const qty = itemsData[index].quantity || 0;
+        const price = itemsData[index].unit_price || 0;
+        const disc = itemsData[index].discount || 0;
+        const totalItem = (qty * price) - disc;
         itemsData[index].total = totalItem;
         subtotal += totalItem;
 
-        card.querySelector('.item-total-display').innerText = sym + ' ' + totalItem.toFixed(2);
+        if (totalDisplay) totalDisplay.innerText = sym + ' ' + totalItem.toFixed(2);
     });
 
     calculateTotals(subtotal);
@@ -3738,6 +3920,10 @@ function initClientPicker() {
 // Initial bootstrap
 document.addEventListener('DOMContentLoaded', () => {
     initClientPicker();
+    const hidePricesInput = document.getElementById('hide_prices');
+    if (hidePricesInput) {
+        toggleHidePrices(hidePricesInput.checked);
+    }
     if (itemsData.length === 0 && !document.getElementById('quote_id').value) {
         addEmptyRow();
     } else {
@@ -3791,6 +3977,7 @@ $('#btnSaveQuote').on('click', function(e) {
             theme_color: $('#theme_color').val() || 'corporate-blue',
             cover_image: $('#cover_image').val() || '',
             cover_gradient: $('#cover_gradient').val() || 'mesh-blue',
+            hide_prices: $('#hide_prices').is(':checked') ? 1 : 0,
             tax_rate: $('#tax_rate').val(),
             notes: $('#notes').val(),
             terms_conditions: $('#terms_conditions').val(),

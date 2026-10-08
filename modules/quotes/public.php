@@ -29,6 +29,7 @@ $stmt->execute([$quote['id']]);
 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $sym = $quote['currency'] === 'USD' ? '$' : 'S/';
+$hide_prices = !empty($quote['hide_prices']);
 
 // Parse bank accounts if available
 $pm_lines = [];
@@ -885,6 +886,26 @@ if (!empty($quote['cover_image'])) {
             text-align: right;
         }
 
+        /* When prices are hidden: description column takes 100% full width */
+        .services-table.hide-prices-table {
+            width: 100%;
+            table-layout: auto;
+        }
+        .services-table.hide-prices-table th.col-desc,
+        .services-table.hide-prices-table td.service-desc-cell {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .services-table.hide-prices-table td.service-desc-cell .quote-table-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        .services-table.hide-prices-table td.service-desc-cell table {
+            width: 100% !important;
+            min-width: 100% !important;
+        }
+
         .services-table td {
             padding: 1.25rem;
             border-bottom: 1px solid var(--border);
@@ -1657,6 +1678,15 @@ if (!empty($quote['cover_image'])) {
                 margin-bottom: 0.25rem;
             }
 
+            .services-table.hide-prices-table td.service-desc-cell {
+                border-bottom: none !important;
+                margin-bottom: 0 !important;
+                padding-bottom: 0 !important;
+            }
+            .services-table.hide-prices-table td.service-desc-cell::before {
+                display: none !important;
+            }
+
             /* Sub-tables Responsive Cards inside description */
             .service-desc-cell table,
             .service-desc-cell table thead,
@@ -1963,39 +1993,44 @@ if (!empty($quote['cover_image'])) {
         <div class="doc-body">
             <!-- Table of Items -->
             <div class="table-responsive-wrap">
-                <table class="services-table">
+                <table class="services-table <?php echo $hide_prices ? 'hide-prices-table' : ''; ?>">
                     <thead>
                         <tr>
-                            <th class="col-desc">Descripción del Servicio</th>
-                            <th class="col-qty">Cant.</th>
-                            <th class="col-price">Precio Unit.</th>
-                            <th class="col-total">Importe</th>
+                            <th class="col-desc" <?php echo $hide_prices ? 'style="width: 100%;"' : ''; ?>>Descripción del Servicio</th>
+                            <?php if(!$hide_prices): ?>
+                                <th class="col-qty">Cant.</th>
+                                <th class="col-price">Precio Unit.</th>
+                                <th class="col-total">Importe</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach($items as $i): ?>
                         <tr>
-                            <td class="service-desc-cell" data-label="Servicio">
+                            <td class="service-desc-cell <?php echo $hide_prices ? 'col-full-width' : ''; ?>" data-label="Servicio" <?php echo $hide_prices ? 'style="width: 100%; max-width: 100%;"' : ''; ?>>
                                 <?php echo strip_tags($i['description'], '<strong><em><b><i><u><br><ul><ol><li><p><span><font><table><thead><tbody><tfoot><tr><th><td><div><style><svg>'); ?>
                             </td>
-                            <td class="col-qty" data-label="Cantidad">
-                                <?php echo (float)$i['quantity']; ?>
-                            </td>
-                            <td class="col-price" data-label="Precio Unit.">
-                                <div><?php echo $sym . ' ' . number_format($i['unit_price'], 2); ?></div>
-                                <?php if($i['discount'] > 0): ?>
-                                    <div class="discount-tag">-<?php echo $sym . ' ' . number_format($i['discount'], 2); ?> desc.</div>
-                                <?php endif; ?>
-                            </td>
-                            <td class="col-total" data-label="Importe">
-                                <span class="amount-highlight"><?php echo $sym . ' ' . number_format($i['total'], 2); ?></span>
-                            </td>
+                            <?php if(!$hide_prices): ?>
+                                <td class="col-qty" data-label="Cantidad">
+                                    <?php echo (float)$i['quantity']; ?>
+                                </td>
+                                <td class="col-price" data-label="Precio Unit.">
+                                    <div><?php echo $sym . ' ' . number_format($i['unit_price'], 2); ?></div>
+                                    <?php if($i['discount'] > 0): ?>
+                                        <div class="discount-tag">-<?php echo $sym . ' ' . number_format($i['discount'], 2); ?> desc.</div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="col-total" data-label="Importe">
+                                    <span class="amount-highlight"><?php echo $sym . ' ' . number_format($i['total'], 2); ?></span>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
 
+            <?php if(!$hide_prices): ?>
             <!-- Calculation Totals -->
             <div class="totals-summary-card">
                 <div class="calc-row">
@@ -2012,6 +2047,7 @@ if (!empty($quote['cover_image'])) {
                     <span class="calc-row-val"><?php echo $sym . ' ' . number_format($quote['total'], 2); ?></span>
                 </div>
             </div>
+            <?php endif; ?>
 
             <!-- Modern Sequential Execution Roadmap (Timeline) -->
             <?php if (!empty($timeline_phases)): ?>
@@ -2256,10 +2292,17 @@ if (!empty($quote['cover_image'])) {
         </div>
         <form id="approveQuoteForm" onsubmit="submitApproval(event)">
             <div class="approve-modal-body">
+                <?php if(!$hide_prices): ?>
                 <div class="approve-summary-box">
                     <div class="summary-label">Monto Total Acordado</div>
                     <div class="summary-total"><?php echo htmlspecialchars($quote['currency']); ?> <?php echo number_format($quote['total'], 2); ?></div>
                 </div>
+                <?php else: ?>
+                <div class="approve-summary-box">
+                    <div class="summary-label">Propuesta de Alcance y Servicios</div>
+                    <div class="summary-total" style="font-size: 1.05rem; color: var(--primary);">Conforme a Especificaciones</div>
+                </div>
+                <?php endif; ?>
 
                 <div style="margin-bottom: 1rem;">
                     <label style="display:block; font-size:0.84rem; font-weight:600; margin-bottom:6px; color:var(--text-main);">Nombre del Representante o Aprobador *</label>
@@ -2273,7 +2316,7 @@ if (!empty($quote['cover_image'])) {
 
                 <label class="approve-checkbox-wrap">
                     <input type="checkbox" id="approve_terms_check" required checked>
-                    <span>Confirmo la aceptación de los servicios, montos y condiciones detallados en esta propuesta comercial.</span>
+                    <span>Confirmo la aceptación de los servicios<?php echo !$hide_prices ? ', montos' : ''; ?> y condiciones detallados en esta propuesta comercial.</span>
                 </label>
             </div>
             <div class="approve-modal-footer">
