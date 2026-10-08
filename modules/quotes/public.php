@@ -1104,9 +1104,11 @@ if (!empty($quote['cover_image'])) {
         }
 
         .service-desc-cell {
-            line-height: 1.6;
+            line-height: 1.65;
             word-break: break-word;
             overflow-wrap: anywhere;
+            text-align: justify;
+            text-justify: inter-word;
         }
 
         .service-desc-cell * {
@@ -1114,19 +1116,51 @@ if (!empty($quote['cover_image'])) {
             box-sizing: border-box !important;
         }
 
-        .service-desc-cell strong {
+        .service-desc-cell p {
+            margin-bottom: 0.85rem;
+            line-height: 1.65;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+        .service-desc-cell strong,
+        .service-desc-cell b {
             color: var(--text-main);
             font-size: 0.98rem;
+            font-weight: 700;
         }
 
         .service-desc-cell ul, .service-desc-cell ol {
-            margin: 0.5rem 0 0 1.25rem;
+            margin: 0.65rem 0 0.85rem 1.4rem;
             color: var(--text-muted);
-            font-size: 0.88rem;
+            font-size: 0.9rem;
+            text-align: justify;
+            text-justify: inter-word;
         }
 
         .service-desc-cell li {
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.55rem;
+            line-height: 1.65;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+        .service-desc-cell li strong,
+        .service-desc-cell li b {
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .service-desc-cell em,
+        .service-desc-cell i {
+            display: inline-block;
+            font-style: normal;
+            font-weight: 800;
+            color: var(--primary);
+            margin-top: 0.85rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.96rem;
+            letter-spacing: 0.01em;
         }
 
         /* Nested Modern Tables inside Service Description */
@@ -2291,8 +2325,29 @@ if (!empty($quote['cover_image'])) {
            Executive Print / PDF Optimization (A4 Compact Corporate Standard)
            ========================================================================== */
         @page {
-            size: A4 portrait;
-            margin: 11mm 13mm 11mm 13mm;
+            size: auto;
+            margin: 0mm !important;
+        }
+
+        /* Screen behavior for the print-document-frame: completely transparent container */
+        .print-document-frame {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+            background: transparent;
+            margin: 0;
+            padding: 0;
+        }
+        .print-document-frame > thead,
+        .print-document-frame > tfoot,
+        .print-frame-spacer {
+            display: none;
+        }
+        .print-frame-body {
+            padding: 0;
+            border: none;
+            background: transparent;
+            display: block;
         }
 
         @media print {
@@ -2327,6 +2382,44 @@ if (!empty($quote['cover_image'])) {
                 width: 100% !important;
                 padding: 0 !important;
                 margin: 0 !important;
+            }
+
+            /* Print Document Frame (Repeating Margin Spacers) */
+            .print-document-frame {
+                display: table !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+                border: none !important;
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .print-document-frame > thead {
+                display: table-header-group !important;
+            }
+
+            .print-document-frame > tfoot {
+                display: table-footer-group !important;
+            }
+
+            .print-frame-spacer {
+                display: table-cell !important;
+                border: none !important;
+                padding: 0 !important;
+                background: transparent !important;
+                height: 12mm !important;
+                max-height: 12mm !important;
+                font-size: 0 !important;
+                line-height: 0 !important;
+            }
+
+            .print-frame-body {
+                display: table-cell !important;
+                padding: 0 14mm !important;
+                border: none !important;
+                background: #ffffff !important;
+                vertical-align: top !important;
             }
 
             /* Hide all interactive screen-only elements */
@@ -2646,42 +2739,79 @@ if (!empty($quote['cover_image'])) {
             .services-table td.col-price { text-align: right !important; }
             .services-table td.col-total { text-align: right !important; }
 
-            .services-table td.service-desc-cell {
+            .services-table td.service-desc-cell,
+            .service-desc-cell {
                 font-size: 9.5pt !important;
-                line-height: 1.48 !important;
+                line-height: 1.65 !important;
                 color: #1e293b !important;
+                text-align: justify !important;
+                text-justify: inter-word !important;
             }
 
-            .services-table td.service-desc-cell p {
-                margin: 0 0 6px 0 !important;
+            .services-table td.service-desc-cell p,
+            .service-desc-cell p {
+                margin: 0 0 8px 0 !important;
                 color: #1e293b !important;
+                line-height: 1.65 !important;
+                text-align: justify !important;
+                text-justify: inter-word !important;
             }
 
             .services-table td.service-desc-cell strong,
-            .services-table td.service-desc-cell b {
+            .services-table td.service-desc-cell b,
+            .service-desc-cell strong,
+            .service-desc-cell b {
                 color: #0f172a !important;
                 font-weight: 700 !important;
             }
 
             .services-table td.service-desc-cell ul,
-            .services-table td.service-desc-cell ol {
-                margin: 6px 0 8px 20px !important;
+            .services-table td.service-desc-cell ol,
+            .service-desc-cell ul,
+            .service-desc-cell ol {
+                margin: 6px 0 10px 20px !important;
                 padding: 0 !important;
+                text-align: justify !important;
+                text-justify: inter-word !important;
             }
 
-            .services-table td.service-desc-cell li {
-                margin-bottom: 3px !important;
-                line-height: 1.45 !important;
+            .services-table td.service-desc-cell li,
+            .service-desc-cell li {
+                margin-bottom: 7px !important;
+                line-height: 1.65 !important;
+                text-align: justify !important;
+                text-justify: inter-word !important;
+                color: #1e293b !important;
+            }
+
+            .services-table td.service-desc-cell li strong,
+            .services-table td.service-desc-cell li b {
+                color: #0f172a !important;
+                font-weight: 700 !important;
+            }
+
+            .services-table td.service-desc-cell em,
+            .services-table td.service-desc-cell i,
+            .service-desc-cell em,
+            .service-desc-cell i {
+                font-style: normal !important;
+                font-weight: 800 !important;
+                color: #0284c7 !important;
+                display: inline-block !important;
+                margin-top: 10px !important;
+                margin-bottom: 5px !important;
+                font-size: 9.8pt !important;
+                letter-spacing: 0.01em !important;
             }
 
             /* Sub-tables embedded in description (Executive Comparison Matrix) */
             .service-desc-cell .quote-table-wrapper {
                 border: 1px solid #cbd5e1 !important;
                 border-radius: 6px !important;
-                margin: 10px 0 !important;
+                margin: 12px 0 !important;
                 padding: 0 !important;
-                page-break-inside: auto !important;
-                break-inside: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
                 background: #ffffff !important;
                 box-shadow: none !important;
                 overflow: hidden !important;
@@ -2693,6 +2823,8 @@ if (!empty($quote['cover_image'])) {
                 border-collapse: collapse !important;
                 margin: 0 !important;
                 box-shadow: none !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
 
             .service-desc-cell table thead {
@@ -2726,6 +2858,7 @@ if (!empty($quote['cover_image'])) {
                 border: 1px solid #0f172a !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.03em !important;
+                text-align: left !important;
             }
 
             .service-desc-cell table th:last-child {
@@ -2738,9 +2871,16 @@ if (!empty($quote['cover_image'])) {
                 padding: 7px 10px !important;
                 border: 1px solid #e2e8f0 !important;
                 font-size: 8.5pt !important;
-                line-height: 1.42 !important;
+                line-height: 1.45 !important;
                 color: #1e293b !important;
                 vertical-align: top !important;
+                text-align: left !important;
+            }
+
+            .service-desc-cell table td p {
+                margin: 0 !important;
+                line-height: 1.45 !important;
+                text-align: left !important;
             }
 
             .service-desc-cell table tr td:first-child {
@@ -3078,12 +3218,12 @@ if (!empty($quote['cover_image'])) {
             }
 
             /* Clean Pagination Breaks */
-            tr, .roadmap-phase-card, .note-card, .payment-card-modern, .totals-summary-card, .meta-strip, .payment-instructions-footer {
+            tr, .roadmap-phase-card, .note-card, .payment-card-modern, .totals-summary-card, .meta-strip, .payment-instructions-footer, .quote-table-wrapper, .service-desc-cell table {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
 
-            h1, h2, h3, h4, .section-header-title, .timeline-header-wrap, .payment-section-header {
+            h1, h2, h3, h4, .section-header-title, .timeline-header-wrap, .payment-section-header, .doc-header, .meta-strip {
                 page-break-after: avoid !important;
                 break-after: avoid !important;
             }
@@ -3136,8 +3276,15 @@ if (!empty($quote['cover_image'])) {
         </div>
     </div>
 
-    <!-- Main Document -->
-    <div class="document-card">
+    <!-- Main Document Frame for Print Pagination Spacers -->
+    <table class="print-document-frame">
+        <thead>
+            <tr><th class="print-frame-spacer print-frame-top"></th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="print-frame-body">
+                    <div class="document-card">
         <?php if ($has_cover): ?>
         <div class="doc-cover-banner" style="<?php echo $cover_css; ?>">
             <div class="cover-banner-overlay"></div>
@@ -3541,7 +3688,14 @@ if (!empty($quote['cover_image'])) {
         <div class="doc-footer">
             <span>Generado con tecnología RomaAgencia SaaS &bull; Confidencial</span>
         </div>
-    </div>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr><th class="print-frame-spacer print-frame-bottom"></th></tr>
+        </tfoot>
+    </table>
 </div>
 
 <!-- Copy Toast Notification -->
