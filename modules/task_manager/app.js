@@ -32,6 +32,8 @@ const TM = {
     currentAttachments: [],
     activeUploads: new Map(),
     imageViewerZoom: 1,
+    timelineSteps: [],
+    activeStepId: null,
 
     init: function() {
         this.currentDailyUser = window.TM_USER_ID || 1;
@@ -2749,13 +2751,28 @@ const TM = {
         document.getElementById('tm-edit-actions').style.display = 'none';
 
         if (this.quillDesc) this.quillDesc.root.innerHTML = '';
+        this.timelineSteps = [
+            {
+                id: 'step_1',
+                title: 'Hito 1: Requerimientos & Briefing Inicial',
+                description: '',
+                completed: false,
+                attachments: [],
+                created_at: new Date().toISOString()
+            }
+        ];
+        this.activeStepId = 'step_1';
+        this.renderTimeline();
+
         this.currentAssignedUserIds = [];
         this.renderAssignedUsers();
         this.currentTags = [];
         this.renderTags();
         this.updateProjectMembersBar();
 
-        document.getElementById('tm-subtasks-list').innerHTML = '';
+        if (document.getElementById('tm-subtasks-list')) {
+            document.getElementById('tm-subtasks-list').innerHTML = '';
+        }
 
         if (document.getElementById('tm-project-service-id')) {
             document.getElementById('tm-project-service-id').value = '';
@@ -2953,11 +2970,35 @@ const TM = {
         }
         this.currentAttachments = atts;
         this.renderAttachments();
-        this.setDriveBarState(task.drive_folder_id || '', task.drive_folder_url || '');
+        this.setDriveBarState(task.drive_folder_id || '', task.drive_folder_url || '', '');
+
+        // Initialize Timeline from existing task or timeline_data
+        let initialTimeline = null;
+        if (task.timeline_data) {
+            try {
+                const parsedTL = typeof task.timeline_data === 'string' ? JSON.parse(task.timeline_data) : task.timeline_data;
+                if (Array.isArray(parsedTL) && parsedTL.length > 0) initialTimeline = parsedTL;
+            } catch(e) {}
+        }
+        if (!initialTimeline || initialTimeline.length === 0) {
+            initialTimeline = [
+                {
+                    id: 'step_1',
+                    title: 'Hito 1: Requerimientos & Briefing Inicial',
+                    description: task.description || '',
+                    completed: false,
+                    attachments: [...atts],
+                    created_at: task.created_at || new Date().toISOString()
+                }
+            ];
+        }
+        this.timelineSteps = initialTimeline;
+        this.activeStepId = this.timelineSteps[this.timelineSteps.length - 1].id;
+        this.renderTimeline();
 
         // Load subtasks list
         const subtasksContainer = document.getElementById('tm-subtasks-list');
-        subtasksContainer.innerHTML = '';
+        if (subtasksContainer) subtasksContainer.innerHTML = '';
         
         fetch('modules/task_manager/ajax.php', {
             method: 'POST',
@@ -2968,7 +3009,22 @@ const TM = {
         .then(data => {
             if (data.success && data.task) {
                 if (data.task.drive_folder_id || data.task.drive_folder_url) {
-                    this.setDriveBarState(data.task.drive_folder_id || '', data.task.drive_folder_url || '');
+                    this.setDriveBarState(data.task.drive_folder_id || '', data.task.drive_folder_url || '', '');
+                }
+                if (data.task.timeline_data && Array.isArray(data.task.timeline_data) && data.task.timeline_data.length > 0) {
+                    this.timelineSteps = data.task.timeline_data;
+                    this.activeStepId = this.timelineSteps[this.timelineSteps.length - 1].id;
+                    this.renderTimeline();
+                } else if (data.task.subtasks_list && this.timelineSteps && this.timelineSteps.length === 1 && (!this.timelineSteps[0].subtasks || this.timelineSteps[0].subtasks.length === 0)) {
+                    this.timelineSteps[0].subtasks = data.task.subtasks_list.map(st => ({
+                        id: st.id,
+                        title: st.title,
+                        is_completed: Boolean(st.is_completed)
+                    }));
+                    if (data.task.attachments && Array.isArray(data.task.attachments)) {
+                        this.timelineSteps[0].attachments = data.task.attachments;
+                    }
+                    this.renderTimeline();
                 }
                 if (data.task.attachments) {
                     let fetchedAtts = [];
@@ -2998,7 +3054,7 @@ const TM = {
                     document.getElementById('tm-brand-group-id').value = data.task.brand_group_id;
                     this.refreshSyncPanelFromSelections();
                 }
-                if (data.task.subtasks_list) {
+                if (data.task.subtasks_list && subtasksContainer) {
                     data.task.subtasks_list.forEach(st => {
                         const row = document.createElement('div');
                         row.className = 'lumio-subtask-row';
@@ -3187,16 +3243,62 @@ const TM = {
             tagNewInput.value = '';
         }
 
-        const descriptionHTML = this.quillDesc ? this.quillDesc.root.innerHTML : '';
+        this.syncTimelineFromDOM();
 
-        // Subtasks
+        let descriptionHTML = '';
+        if (this.timelineSteps && this.timelineSteps.length > 0) {
+            descriptionHTML = this.timelineSteps[0].description || '';
+        } else if (this.quillDesc) {
+            descriptionHTML = this.quillDesc.root.innerHTML;
+        }
+
+        // Subtasks: gather all subtasks across timeline steps
+        const allTimelineSubtasks = [];
+        (this.timelineSteps || []).forEach(step => {
+            (step.subtasks || []).forEach(st => {
+                if (st && st.title && st.title.trim()) {
+                    allTimelineSubtasks.push(st.title.trim());
+                }
+            });
+        });
         const subtasksContainer = document.getElementById('tm-subtasks-list');
-        const subtaskInputs = subtasksContainer ? Array.from(subtasksContainer.querySelectorAll('.lumio-subtask-input:not([readonly])'))
+        const legacySubtaskInputs = subtasksContainer ? Array.from(subtasksContainer.querySelectorAll('.lumio-subtask-input:not([readonly])'))
                                 .map(input => input.value.trim()).filter(Boolean) : [];
+        const combinedSubtasks = Array.from(new Set([...allTimelineSubtasks, ...legacySubtaskInputs]));
 
-        // Separate completed attachments from in-flight ones
-        const readyAttachments = (this.currentAttachments || []).filter(a => !a.isUploading);
-        const inFlightAttachments = (this.currentAttachments || []).filter(a => a.isUploading);
+        // Gather all attachments across timeline steps
+        let allTimelineAttachments = [];
+        (this.timelineSteps || []).forEach(step => {
+            (step.attachments || []).forEach(att => {
+                if (att && !att.isUploading) {
+                    allTimelineAttachments.push(att);
+                }
+            });
+        });
+        if (Array.isArray(this.currentAttachments)) {
+            this.currentAttachments.forEach(att => {
+                if (att && !att.isUploading && !allTimelineAttachments.some(a => a.id === att.id)) {
+                    allTimelineAttachments.push(att);
+                }
+            });
+        }
+
+        const readyAttachments = allTimelineAttachments;
+        let inFlightAttachments = [];
+        (this.timelineSteps || []).forEach(step => {
+            (step.attachments || []).forEach(att => {
+                if (att && att.isUploading) {
+                    inFlightAttachments.push(att);
+                }
+            });
+        });
+        if (Array.isArray(this.currentAttachments)) {
+            this.currentAttachments.forEach(att => {
+                if (att && att.isUploading && !inFlightAttachments.some(a => a.id === att.id)) {
+                    inFlightAttachments.push(att);
+                }
+            });
+        }
 
         const priority = document.getElementById('tm-priority')?.value || 'medium';
         const status = document.getElementById('tm-status')?.value || 'new';
@@ -3222,6 +3324,7 @@ const TM = {
 
         formData.append('title', title);
         formData.append('description', descriptionHTML);
+        formData.append('timeline_data', JSON.stringify(this.timelineSteps || []));
         formData.append('priority', priority);
         formData.append('status', status);
         formData.append('frequency', isPinned ? 'daily' : frequency);
@@ -3239,14 +3342,14 @@ const TM = {
         formData.append('due_date', dueDate);
         formData.append('assigned_users', JSON.stringify(this.currentAssignedUserIds));
         formData.append('tags', JSON.stringify(this.currentTags));
-        formData.append('attachments', JSON.stringify(readyAttachments));
+        formData.append('attachments', JSON.stringify(allTimelineAttachments));
         formData.append('drive_folder_id', driveFolderId);
         formData.append('drive_folder_url', driveFolderUrl);
 
         if (isEdit) {
-            formData.append('new_subtasks', JSON.stringify(subtaskInputs));
+            formData.append('new_subtasks', JSON.stringify(combinedSubtasks));
         } else {
-            formData.append('subtasks', JSON.stringify(subtaskInputs));
+            formData.append('subtasks', JSON.stringify(combinedSubtasks));
         }
 
         // 1. CIERRE INSTANTÁNEO DEL MODAL (0 ms de espera para el usuario)
@@ -3282,7 +3385,7 @@ const TM = {
                 due_date: dueDate,
                 assigned_users: assignedUserObjects,
                 tags: [...this.currentTags],
-                subtasks: { total: subtaskInputs.length, completed: 0 },
+                subtasks: { total: combinedSubtasks.length, completed: 0 },
                 attachments: readyAttachments,
                 in_flight_count: inFlightAttachments.length,
                 drive_folder_id: driveFolderId,
@@ -3432,6 +3535,877 @@ const TM = {
     },
 
     // ══════════════════════════════════════════════════════
+    // TIMELINE & HITOS (LÍNEA DE TIEMPO INTERACTIVA)
+    // ══════════════════════════════════════════════════════
+    syncTimelineFromDOM: function() {
+        if (!this.timelineSteps || this.timelineSteps.length === 0) return;
+        this.timelineSteps.forEach(step => {
+            const titleInput = document.getElementById(`tm-step-title-${step.id}`);
+            if (titleInput) step.title = titleInput.value.trim() || step.title;
+
+            const descEl = document.getElementById(`tm-step-desc-${step.id}`);
+            if (descEl) step.description = descEl.innerHTML;
+        });
+        const hiddenJson = document.getElementById('tm-timeline-json');
+        if (hiddenJson) hiddenJson.value = JSON.stringify(this.timelineSteps);
+    },
+
+    getAdobeInfo: function(ext) {
+        if (!ext) return null;
+        const normalized = String(ext).toLowerCase().replace(/^\./, '');
+        const map = {
+            'psd':   { app: 'ps', badge: 'Ps', name: 'Photoshop', color: '#31A8FF', bg: '#001e36' },
+            'psb':   { app: 'ps', badge: 'Ps', name: 'Photoshop Big', color: '#31A8FF', bg: '#001e36' },
+            'abr':   { app: 'ps', badge: 'Ps', name: 'Photoshop Brushes', color: '#31A8FF', bg: '#001e36' },
+            'atn':   { app: 'ps', badge: 'Ps', name: 'Photoshop Actions', color: '#31A8FF', bg: '#001e36' },
+            'csh':   { app: 'ps', badge: 'Ps', name: 'Photoshop Shapes', color: '#31A8FF', bg: '#001e36' },
+            'ai':    { app: 'ai', badge: 'Ai', name: 'Illustrator', color: '#FF9A00', bg: '#330000' },
+            'ait':   { app: 'ai', badge: 'Ai', name: 'Illustrator Template', color: '#FF9A00', bg: '#330000' },
+            'eps':   { app: 'eps', badge: 'EPS', name: 'Vector EPS', color: '#FF7A00', bg: '#331100' },
+            'indd':  { app: 'id', badge: 'Id', name: 'InDesign', color: '#FF3366', bg: '#49021f' },
+            'idml':  { app: 'id', badge: 'Id', name: 'InDesign Markup', color: '#FF3366', bg: '#49021f' },
+            'indt':  { app: 'id', badge: 'Id', name: 'InDesign Template', color: '#FF3366', bg: '#49021f' },
+            'prproj':{ app: 'pr', badge: 'Pr', name: 'Premiere Pro', color: '#9999FF', bg: '#00005b' },
+            'mogrt': { app: 'pr', badge: 'Pr', name: 'Premiere MOGRT', color: '#9999FF', bg: '#00005b' },
+            'prel':  { app: 'pr', badge: 'Pr', name: 'Premiere Elements', color: '#9999FF', bg: '#00005b' },
+            'aep':   { app: 'ae', badge: 'Ae', name: 'After Effects', color: '#CF96FD', bg: '#000055' },
+            'aepx':  { app: 'ae', badge: 'Ae', name: 'After Effects XML', color: '#CF96FD', bg: '#000055' },
+            'xd':    { app: 'xd', badge: 'Xd', name: 'Adobe XD', color: '#FF61F6', bg: '#470137' },
+            'sesx':  { app: 'au', badge: 'Au', name: 'Audition', color: '#00E4BB', bg: '#003b30' },
+            'dng':   { app: 'lr', badge: 'Lr', name: 'Lightroom Raw', color: '#31A8FF', bg: '#001e36' },
+            'lrcat': { app: 'lr', badge: 'Lr', name: 'Lightroom Catalog', color: '#31A8FF', bg: '#001e36' },
+            'pdf':   { app: 'pdf', badge: 'PDF', name: 'Adobe Acrobat PDF', color: '#FF2D2D', bg: '#3a0000' },
+            'fla':   { app: 'an', badge: 'An', name: 'Adobe Animate', color: '#FF5C00', bg: '#331000' },
+            'flad':  { app: 'an', badge: 'An', name: 'Adobe Animate Doc', color: '#FF5C00', bg: '#331000' },
+            'swf':   { app: 'an', badge: 'An', name: 'Flash SWF', color: '#FF5C00', bg: '#331000' },
+            'dn':    { app: 'dn', badge: 'Dn', name: 'Dimension', color: '#00FFAA', bg: '#003020' },
+            'sbs':   { app: 'sub', badge: '3D', name: 'Substance 3D', color: '#00FFAA', bg: '#003020' },
+            'sbsar': { app: 'sub', badge: '3D', name: 'Substance Archive', color: '#00FFAA', bg: '#003020' }
+        };
+        return map[normalized] || null;
+    },
+
+    getDocInfo: function(ext) {
+        const normalized = String(ext || '').toLowerCase().replace(/^\./, '');
+        if (['doc', 'docx', 'odt', 'rtf'].includes(normalized)) {
+            return { kind: 'doc', icon: 'ph-file-doc', tag: 'DOC', label: 'Word', color: '#2563eb' };
+        }
+        if (['xls', 'xlsx', 'csv', 'ods'].includes(normalized)) {
+            return { kind: 'xls', icon: 'ph-file-xls', tag: 'XLS', label: 'Excel', color: '#10b981' };
+        }
+        if (['ppt', 'pptx', 'odp'].includes(normalized)) {
+            return { kind: 'ppt', icon: 'ph-file-ppt', tag: 'PPT', label: 'PowerPoint', color: '#f97316' };
+        }
+        if (['zip', 'rar', '7z', 'tar', 'gz', 'iso', 'bz2'].includes(normalized)) {
+            return { kind: 'zip', icon: 'ph-file-zip', tag: 'ZIP', label: 'Comprimido', color: '#d97706' };
+        }
+        if (['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma', 'aiff', 'alac'].includes(normalized)) {
+            return { kind: 'audio', icon: 'ph-waveform', tag: 'AUDIO', label: 'Audio', color: '#06b6d4' };
+        }
+        if (['fig'].includes(normalized)) {
+            return { kind: 'figma', icon: 'ph-figma-logo', tag: 'FIG', label: 'Figma', color: '#f24e1e' };
+        }
+        return { kind: 'text', icon: 'ph-file-text', tag: normalized ? normalized.toUpperCase().substring(0, 4) : 'DOC', label: 'Documento', color: '#64748b' };
+    },
+
+    getAttachmentMediaUrls: function(att) {
+        if (!att) {
+            return {
+                thumbUrl: '',
+                previewUrl: '',
+                driveUrl: '',
+                downloadUrl: '',
+                isImg: false,
+                isVideo: false,
+                isAudio: false,
+                isDrive: false,
+                driveId: null,
+                ext: ''
+            };
+        }
+
+        const ext = (att.ext || (att.name ? att.name.split('.').pop() : '')).toLowerCase();
+        const isImg = att.type === 'image' || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'tif'].includes(ext);
+        const isVideo = att.type === 'video' || ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'm4v', '3gp', 'ts', 'mts', 'm2ts', 'vob'].includes(ext);
+        const isAudio = att.type === 'audio' || ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma', 'aiff', 'alac'].includes(ext);
+
+        let driveId = att.drive_id || null;
+        if (!driveId && att.storage === 'drive' && att.id && !String(att.id).startsWith('att_') && !String(att.id).startsWith('temp_')) {
+            driveId = att.id;
+        }
+
+        const rawUrl = typeof att.url === 'string' ? att.url : '';
+        if (!driveId && rawUrl) {
+            const m = rawUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || 
+                      rawUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                      rawUrl.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+            if (m) driveId = m[1];
+        }
+
+        const isDrive = Boolean(driveId) || att.storage === 'drive';
+
+        let thumbUrl = att.thumb_url || rawUrl || '#';
+        let previewUrl = att.preview_url || rawUrl || '#';
+        let driveUrl = att.drive_url || (driveId ? `https://drive.google.com/file/d/${driveId}/view` : (rawUrl || '#'));
+        let downloadUrl = att.download_url || (driveId ? `https://drive.google.com/uc?export=download&id=${driveId}` : (rawUrl || '#'));
+
+        if ((isImg || isVideo) && isDrive && driveId) {
+            thumbUrl = `https://lh3.googleusercontent.com/d/${driveId}=s400`;
+            if (isImg) {
+                previewUrl = `https://lh3.googleusercontent.com/d/${driveId}`;
+            }
+        }
+
+        return {
+            thumbUrl,
+            previewUrl,
+            driveUrl,
+            downloadUrl,
+            isImg,
+            isVideo,
+            isAudio,
+            isDrive,
+            driveId,
+            ext
+        };
+    },
+
+    renderTimeline: function() {
+        const container = document.getElementById('tm-timeline-container');
+        const countBadge = document.getElementById('tm-timeline-steps-count');
+        const hiddenJson = document.getElementById('tm-timeline-json');
+        if (!container) return;
+
+        if (!this.timelineSteps || this.timelineSteps.length === 0) {
+            this.timelineSteps = [{
+                id: 'step_1',
+                title: 'Hito 1: Requerimientos & Briefing Inicial',
+                description: '',
+                completed: false,
+                attachments: [],
+                created_at: new Date().toISOString()
+            }];
+            this.activeStepId = 'step_1';
+        }
+
+        const count = this.timelineSteps.length;
+        const completedCount = this.timelineSteps.filter(s => Boolean(s.completed)).length;
+        if (countBadge) {
+            if (completedCount > 0) {
+                countBadge.innerHTML = `<i class="ph-bold ph-check"></i> ${completedCount}/${count} hitos`;
+                countBadge.classList.add('has-completed');
+            } else {
+                countBadge.textContent = count === 1 ? '1 hito' : `${count} hitos`;
+                countBadge.classList.remove('has-completed');
+            }
+        }
+        if (hiddenJson) hiddenJson.value = JSON.stringify(this.timelineSteps);
+
+        container.innerHTML = this.timelineSteps.map((step, idx) => {
+            const stepNum = idx + 1;
+            const isFirst = idx === 0;
+            const isActive = step.id === this.activeStepId;
+            const isDone = Boolean(step.completed);
+            const safeTitle = this.escapeHtml(step.title || `Hito ${stepNum}`);
+            const safeDesc = this.escapeHtml(step.description || '');
+            const atts = step.attachments || [];
+
+            // Thumbnails HTML
+            let thumbsHtml = '';
+            if (atts.length > 0) {
+                thumbsHtml = atts.map(att => {
+                    const media = this.getAttachmentMediaUrls(att);
+                    const ext = (att.ext || (att.name ? att.name.split('.').pop() : '')).toLowerCase();
+                    const safeName = this.escapeHtml(att.name || 'Archivo');
+                    const safeSize = this.escapeHtml(att.size || '');
+                    const isDrive = media.isDrive;
+                    const adobeInfo = this.getAdobeInfo(ext);
+                    const isAdobe = Boolean(adobeInfo);
+                    const isVideo = media.isVideo;
+                    const isSvg = ext === 'svg';
+                    const isImg = !isAdobe && media.isImg; // SVG es imagen nativa en <img>, formatos Adobe van a su tarjeta
+
+                    if (att.isUploading) {
+                        return `
+                            <div class="tm-step-thumb-item is-uploading" title="Subiendo ${safeName}...">
+                                <div class="tm-step-thumb-loading">
+                                    <i class="ph-bold ph-spinner ph-spin"></i>
+                                    <span>Subiendo...</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Botones de acción en overlay en cuadrícula compacta 2x2 que NUNCA desborda
+                    const renderActions = (onViewClick, viewTitle = 'Ver archivo', viewIcon = 'ph-eye') => `
+                        <div class="tm-step-thumb-overlay">
+                            <div class="tm-step-thumb-actions">
+                                <button type="button" class="tm-step-thumb-btn view-btn" onclick="${onViewClick}" title="${viewTitle}">
+                                    <i class="ph-bold ${viewIcon}"></i>
+                                </button>
+                                ${isDrive ? `
+                                    <a href="${media.driveUrl}" target="_blank" rel="noopener noreferrer" class="tm-step-thumb-btn drive-btn" onclick="event.stopPropagation()" title="Abrir en Google Drive">
+                                        <i class="ph-bold ph-google-drive-logo"></i>
+                                    </a>
+                                ` : ''}
+                                <a href="${media.downloadUrl}" download="${safeName}" class="tm-step-thumb-btn dl-btn" onclick="event.stopPropagation()" title="Descargar archivo">
+                                    <i class="ph-bold ph-download-simple"></i>
+                                </a>
+                                <button type="button" class="tm-step-thumb-btn del-btn" onclick="TM.removeStepAttachment('${step.id}', '${att.id}', event)" title="Eliminar archivo">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // 1. Imagen / Vector SVG
+                    if (isImg) {
+                        const fallbackAttr = media.driveId
+                            ? `onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='https://drive.google.com/thumbnail?id=${media.driveId}&sz=w400';}"`
+                            : '';
+                        const viewAction = `event.stopPropagation(); TM.openImageViewer('${media.previewUrl}', '${safeName}', '${safeSize}', '${media.downloadUrl}', '${media.driveUrl}')`;
+                        return `
+                            <div class="tm-step-thumb-item type-image ${isSvg ? 'is-svg' : ''}" title="${safeName} (${safeSize}) ${isDrive ? '· En Google Drive' : ''}" onclick="TM.openImageViewer('${media.previewUrl}', '${safeName}', '${safeSize}', '${media.downloadUrl}', '${media.driveUrl}')">
+                                <img src="${media.thumbUrl}" alt="${safeName}" class="tm-step-thumb-img" loading="lazy" ${fallbackAttr}>
+                                ${isSvg ? `<span class="tm-step-badge-tag svg">SVG</span>` : ''}
+                                ${isDrive ? `<span class="tm-step-drive-badge" title="Almacenado en Google Drive"><i class="ph-bold ph-cloud-check"></i></span>` : ''}
+                                ${renderActions(viewAction, 'Ver imagen completa', 'ph-eye')}
+                            </div>
+                        `;
+                    }
+
+                    // 2. Programas Adobe Suite (Ps, Ai, EPS, Id, Pr, Ae, Xd, Au, Lr, PDF, An, 3D)
+                    if (isAdobe) {
+                        const viewAction = `event.stopPropagation(); window.open('${media.driveUrl || media.previewUrl}', '_blank')`;
+                        const badgeClass = `adobe-${adobeInfo.app}`;
+                        return `
+                            <div class="tm-step-thumb-item type-adobe" style="--adobe-color: ${adobeInfo.color}; --adobe-bg: ${adobeInfo.bg};" title="${safeName} (${safeSize}) · ${adobeInfo.name} ${isDrive ? '· En Google Drive' : ''}" onclick="window.open('${media.driveUrl || media.previewUrl}', '_blank')">
+                                <div class="tm-step-adobe-item">
+                                    <div class="tm-adobe-logo-badge ${badgeClass}">${adobeInfo.badge}</div>
+                                    <span class="tm-step-adobe-app">${adobeInfo.name}</span>
+                                    <span class="tm-step-card-name" title="${safeName}">${safeName}</span>
+                                </div>
+                                ${isDrive ? `<span class="tm-step-drive-badge" title="Almacenado en Google Drive"><i class="ph-bold ph-cloud-check"></i></span>` : ''}
+                                ${renderActions(viewAction, 'Abrir proyecto ' + adobeInfo.name, 'ph-arrow-square-out')}
+                            </div>
+                        `;
+                    }
+
+                    // 3. Archivos de Video (MP4, MOV, MKV, WEBM, etc.)
+                    if (isVideo) {
+                        const viewAction = `event.stopPropagation(); window.open('${media.driveUrl || media.previewUrl}', '_blank')`;
+                        const hasDriveThumb = isDrive && media.driveId;
+                        return `
+                            <div class="tm-step-thumb-item type-video" title="${safeName} (${safeSize}) · Video ${ext.toUpperCase()} ${isDrive ? '· En Google Drive' : ''}" onclick="window.open('${media.driveUrl || media.previewUrl}', '_blank')">
+                                ${hasDriveThumb ? `
+                                    <img src="${media.thumbUrl}" alt="${safeName}" class="tm-step-thumb-img" loading="lazy" onerror="this.style.display='none';">
+                                    <div class="tm-step-video-overlay-play">
+                                        <i class="ph-fill ph-play"></i>
+                                    </div>
+                                ` : `
+                                    <div class="tm-step-video-item">
+                                        <div class="tm-step-video-icon-box">
+                                            <i class="ph-bold ph-film-strip"></i>
+                                        </div>
+                                        <span class="tm-step-card-name" title="${safeName}">${safeName}</span>
+                                    </div>
+                                `}
+                                <span class="tm-step-badge-tag video">${ext.toUpperCase()}</span>
+                                ${isDrive ? `<span class="tm-step-drive-badge" title="Almacenado en Google Drive"><i class="ph-bold ph-cloud-check"></i></span>` : ''}
+                                ${renderActions(viewAction, 'Reproducir / Abrir video', 'ph-play')}
+                            </div>
+                        `;
+                    }
+
+                    // 4. Documentos de Oficina & Otros (Word, Excel, PowerPoint, ZIP, Audio, etc.)
+                    const docInfo = this.getDocInfo(ext);
+                    const viewAction = `event.stopPropagation(); window.open('${media.driveUrl || media.previewUrl}', '_blank')`;
+                    return `
+                        <div class="tm-step-thumb-item type-doc doc-${docInfo.kind}" style="--doc-accent: ${docInfo.color};" title="${safeName} (${safeSize}) · ${docInfo.label} ${isDrive ? '· En Google Drive' : ''}" onclick="window.open('${media.driveUrl || media.previewUrl}', '_blank')">
+                            <div class="tm-step-doc-item">
+                                <div class="tm-step-doc-badge ${docInfo.kind}">
+                                    <i class="ph-bold ${docInfo.icon}"></i>
+                                </div>
+                                <span class="tm-step-badge-tag ${docInfo.kind}">${docInfo.tag}</span>
+                                <span class="tm-step-card-name" title="${safeName}">${safeName}</span>
+                            </div>
+                            ${isDrive ? `<span class="tm-step-drive-badge" title="Almacenado en Google Drive"><i class="ph-bold ph-cloud-check"></i></span>` : ''}
+                            ${renderActions(viewAction, 'Abrir ' + docInfo.label, 'ph-arrow-square-out')}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            return `
+                <div class="tm-timeline-item ${isActive ? 'active-step' : ''} ${isDone ? 'is-completed' : ''}" id="tm-step-item-${step.id}" onclick="TM.setActiveStep('${step.id}')">
+                    <!-- Riel / Nodo luminoso (Desktop) -->
+                    <div class="tm-timeline-node" title="${isDone ? 'Hito completado' : 'Hito ' + stepNum}">
+                        ${isDone ? '<i class="ph-bold ph-check"></i>' : stepNum}
+                    </div>
+
+                    <div class="tm-timeline-card">
+                        <!-- Cabecera del Hito -->
+                        <div class="tm-step-header">
+                            <!-- Indicador de hito para móvil (sustituye la barra lateral ahorrando espacio) -->
+                            <button type="button" class="tm-step-mobile-pill ${isDone ? 'completed' : ''}" onclick="event.stopPropagation(); TM.toggleStepCompleted('${step.id}')" title="${isDone ? 'Hito completado. Clic para marcar pendiente' : 'Marcar hito completado'}">
+                                ${isDone ? '<i class="ph-bold ph-check"></i>' : stepNum}
+                            </button>
+
+                            <input type="text" class="tm-step-title-input ${isDone ? 'completed' : ''}" id="tm-step-title-${step.id}" value="${safeTitle}" placeholder="Nombre del hito o avance..." onchange="TM.onTimelineTitleChange('${step.id}', this.value)">
+
+                            <div class="tm-step-actions">
+                                <!-- Botón de Estado / Completar -->
+                                <button type="button" class="tm-step-complete-btn ${isDone ? 'completed' : ''}" onclick="event.stopPropagation(); TM.toggleStepCompleted('${step.id}')" title="${isDone ? 'Hito completado. Clic para marcar pendiente' : 'Marcar hito como completado'}">
+                                    <i class="${isDone ? 'ph-fill ph-check-circle' : 'ph-bold ph-circle'}"></i>
+                                    <span>${isDone ? 'Completado' : 'Completar'}</span>
+                                </button>
+
+                                <span class="tm-step-date-badge"><i class="ph ph-clock"></i> ${isFirst ? 'Inicio' : 'Avance'}</span>
+
+                                ${!isFirst ? `
+                                    <button type="button" class="tm-step-del-btn" onclick="event.stopPropagation(); TM.removeTimelineStep('${step.id}')" title="Eliminar este hito">
+                                        <i class="ph ph-trash"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Descripción / Notas con Formato Enriquecido & Soporte de Tablas -->
+                        <div class="tm-step-desc-wrap">
+                            <div class="tm-step-desc-header">
+                                <label class="tm-step-desc-label">
+                                    <i class="ph-bold ph-article"></i> Descripción & Criterios del Hito
+                                </label>
+                                <span class="tm-step-desc-hint"><i class="ph-bold ph-table"></i> Soporta tablas, listas y formato</span>
+                            </div>
+
+                            <!-- Barra de Herramientas de Formato y Tablas -->
+                            <div class="tm-editor-toolbar" data-step-id="${step.id}" onclick="event.stopPropagation()">
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorCmd('${step.id}', 'bold')" title="Negrita (Ctrl+B)">
+                                        <i class="ph-bold ph-text-b"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorCmd('${step.id}', 'italic')" title="Cursiva (Ctrl+I)">
+                                        <i class="ph-bold ph-text-italic"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorCmd('${step.id}', 'underline')" title="Subrayado (Ctrl+U)">
+                                        <i class="ph-bold ph-text-underline"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorCmd('${step.id}', 'strikeThrough')" title="Tachado">
+                                        <i class="ph-bold ph-text-strikethrough"></i>
+                                    </button>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorFormatBlock('${step.id}', 'H2')" title="Título">
+                                        <i class="ph-bold ph-text-h-two"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorFormatBlock('${step.id}', 'H3')" title="Subtítulo">
+                                        <i class="ph-bold ph-text-h-three"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorFormatBlock('${step.id}', 'P')" title="Párrafo normal">
+                                        <i class="ph-bold ph-paragraph"></i>
+                                    </button>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorCmd('${step.id}', 'insertUnorderedList')" title="Lista con viñetas">
+                                        <i class="ph-bold ph-list-bullets"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorCmd('${step.id}', 'insertOrderedList')" title="Lista numerada">
+                                        <i class="ph-bold ph-list-numbers"></i>
+                                    </button>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <!-- Herramientas de Tablas -->
+                                <div class="tm-tb-group tm-tb-table-wrapper">
+                                    <button type="button" class="tm-tb-btn tm-tb-table-btn" onclick="TM.toggleTableMenu('${step.id}', event)" title="Insertar tabla">
+                                        <i class="ph-bold ph-table"></i> <span class="tm-tb-btn-text">Tabla</span> <i class="ph-bold ph-caret-down" style="font-size:0.6rem;"></i>
+                                    </button>
+                                    <div class="tm-table-menu" id="tm-table-menu-${step.id}" style="display:none;">
+                                        <div class="tm-table-menu-title">Insertar Tabla</div>
+                                        <button type="button" class="tm-table-menu-item" onclick="TM.insertTable('${step.id}', 2, 2)">
+                                            <i class="ph-bold ph-table"></i> Tabla 2 × 2
+                                        </button>
+                                        <button type="button" class="tm-table-menu-item" onclick="TM.insertTable('${step.id}', 3, 3)">
+                                            <i class="ph-bold ph-table"></i> Tabla 3 × 3 (Estándar)
+                                        </button>
+                                        <button type="button" class="tm-table-menu-item" onclick="TM.insertTable('${step.id}', 4, 3)">
+                                            <i class="ph-bold ph-table"></i> Tabla 4 × 3
+                                        </button>
+                                        <button type="button" class="tm-table-menu-item" onclick="TM.promptCustomTable('${step.id}')">
+                                            <i class="ph-bold ph-faders"></i> Personalizada...
+                                        </button>
+                                    </div>
+
+                                    <!-- Acciones rápidas de tabla cuando el cursor está en una celda -->
+                                    <div class="tm-table-context-btns" id="tm-table-tools-${step.id}" style="display:none;">
+                                        <button type="button" class="tm-tb-btn-subtle" onclick="TM.tableAction('${step.id}', 'add-row-below')" title="Insertar fila debajo">
+                                            <i class="ph-bold ph-rows"></i> +Fila
+                                        </button>
+                                        <button type="button" class="tm-tb-btn-subtle" onclick="TM.tableAction('${step.id}', 'add-col-right')" title="Insertar columna a la derecha">
+                                            <i class="ph-bold ph-columns"></i> +Col
+                                        </button>
+                                        <button type="button" class="tm-tb-btn-subtle del" onclick="TM.tableAction('${step.id}', 'del-row')" title="Eliminar fila actual">
+                                            <i class="ph-bold ph-minus"></i> Fila
+                                        </button>
+                                        <button type="button" class="tm-tb-btn-subtle del" onclick="TM.tableAction('${step.id}', 'del-col')" title="Eliminar columna actual">
+                                            <i class="ph-bold ph-minus"></i> Col
+                                        </button>
+                                        <button type="button" class="tm-tb-btn-subtle del" onclick="TM.tableAction('${step.id}', 'del-table')" title="Eliminar tabla">
+                                            <i class="ph-bold ph-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="TM.execEditorCmd('${step.id}', 'removeFormat')" title="Limpiar formato">
+                                        <i class="ph-bold ph-paint-brush"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Área Editable ContentEditable -->
+                            <div class="tm-step-editor" 
+                                 id="tm-step-desc-${step.id}" 
+                                 contenteditable="true" 
+                                 data-placeholder="Añade notas, especificaciones o criterios de aceptación para esta etapa..."
+                                 oninput="TM.onTimelineEditorInput('${step.id}', this)"
+                                 onkeydown="TM.onTimelineEditorKeydown('${step.id}', event)"
+                                 onkeyup="TM.checkTableContext('${step.id}')"
+                                 onclick="TM.checkTableContext('${step.id}')"
+                                 onfocus="TM.setActiveStep('${step.id}')">${step.description || ''}</div>
+                        </div>
+
+                        <!-- Capturas & Miniaturas (Ctrl+V) -->
+                        <div class="tm-step-attachments-wrap">
+                            <div class="tm-step-dropzone" data-step-id="${step.id}" onclick="event.stopPropagation(); TM.triggerStepFileInput('${step.id}')">
+                                <div class="tm-step-dropzone-left">
+                                    <i class="ph-bold ph-paperclip"></i>
+                                    <span>Pega capturas con <kbd class="tm-kbd">Ctrl + V</kbd> o <strong>haz clic para adjuntar</strong> <span class="tm-dropzone-formats">(Imágenes, Adobe, Video, Docs, EPS, SVG)</span></span>
+                                </div>
+                                <button type="button" class="tm-step-attach-btn" onclick="event.stopPropagation(); TM.triggerStepFileInput('${step.id}')">
+                                    <i class="ph-bold ph-paperclip"></i> Adjuntar
+                                </button>
+                                <input type="file" multiple id="tm-step-file-${step.id}" style="display:none;" onchange="TM.handleStepFileInput('${step.id}', event)">
+                            </div>
+                            ${thumbsHtml ? `
+                                <div class="tm-step-thumbs-grid" id="tm-step-thumbs-${step.id}">
+                                    ${thumbsHtml}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    setActiveStep: function(stepId) {
+        this.activeStepId = stepId;
+        document.querySelectorAll('.tm-timeline-item').forEach(el => {
+            el.classList.toggle('active-step', el.id === `tm-step-item-${stepId}`);
+        });
+    },
+
+    addTimelineStep: function(title) {
+        this.syncTimelineFromDOM();
+        const nextNum = this.timelineSteps.length + 1;
+        const newStep = {
+            id: 'step_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+            title: title || `Avance #${nextNum}: Entrega / Revisión`,
+            description: '',
+            completed: false,
+            attachments: [],
+            created_at: new Date().toISOString()
+        };
+        this.timelineSteps.push(newStep);
+        this.activeStepId = newStep.id;
+        this.renderTimeline();
+
+        setTimeout(() => {
+            const inp = document.getElementById(`tm-step-title-${newStep.id}`);
+            if (inp) {
+                inp.focus();
+                inp.select();
+                inp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 80);
+    },
+
+    removeTimelineStep: function(stepId) {
+        if (this.timelineSteps.length <= 1) {
+            this.showToast('La línea de tiempo debe tener al menos un hito inicial.', 'info');
+            return;
+        }
+        if (!confirm('¿Deseas eliminar este hito y sus notas/adjuntos?')) return;
+        this.syncTimelineFromDOM();
+        this.timelineSteps = this.timelineSteps.filter(s => s.id !== stepId);
+        if (this.activeStepId === stepId) {
+            this.activeStepId = this.timelineSteps[this.timelineSteps.length - 1].id;
+        }
+        this.renderTimeline();
+    },
+
+    onTimelineTitleChange: function(stepId, title) {
+        const step = this.timelineSteps.find(s => s.id === stepId);
+        if (step) step.title = title.trim();
+    },
+
+    onTimelineEditorInput: function(stepId, el) {
+        const step = this.timelineSteps.find(s => s.id === stepId);
+        if (step) step.description = el.innerHTML;
+        this.checkTableContext(stepId);
+    },
+
+    onTimelineEditorKeydown: function(stepId, e) {
+        if (e.key === 'Tab') {
+            const cell = this.getCurrentTableCell();
+            if (cell) {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    const prev = cell.previousElementSibling || cell.parentElement.previousElementSibling?.lastElementChild;
+                    if (prev) prev.focus();
+                } else {
+                    const next = cell.nextElementSibling || cell.parentElement.nextElementSibling?.firstElementChild;
+                    if (next) {
+                        next.focus();
+                    } else {
+                        this.tableAction(stepId, 'add-row-below');
+                    }
+                }
+            }
+        }
+    },
+
+    execEditorCmd: function(stepId, cmd, value = null) {
+        const editor = document.getElementById(`tm-step-desc-${stepId}`);
+        if (editor) editor.focus();
+        document.execCommand(cmd, false, value);
+        this.syncTimelineFromDOM();
+    },
+
+    execEditorFormatBlock: function(stepId, tag) {
+        const editor = document.getElementById(`tm-step-desc-${stepId}`);
+        if (editor) editor.focus();
+        document.execCommand('formatBlock', false, `<${tag}>`);
+        this.syncTimelineFromDOM();
+    },
+
+    toggleTableMenu: function(stepId, event) {
+        if (event) event.stopPropagation();
+        document.querySelectorAll('.tm-table-menu').forEach(m => {
+            if (m.id !== `tm-table-menu-${stepId}`) m.style.display = 'none';
+        });
+
+        const menu = document.getElementById(`tm-table-menu-${stepId}`);
+        if (!menu) return;
+        const isHidden = menu.style.display === 'none';
+        menu.style.display = isHidden ? 'flex' : 'none';
+
+        if (isHidden) {
+            const closeMenuHandler = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.style.display = 'none';
+                    document.removeEventListener('click', closeMenuHandler);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeMenuHandler), 10);
+        }
+    },
+
+    insertTable: function(stepId, rows = 3, cols = 3) {
+        const menu = document.getElementById(`tm-table-menu-${stepId}`);
+        if (menu) menu.style.display = 'none';
+
+        const editor = document.getElementById(`tm-step-desc-${stepId}`);
+        if (!editor) return;
+        editor.focus();
+
+        let tableHtml = '<table class="tm-table"><thead><tr>';
+        for (let c = 1; c <= cols; c++) {
+            tableHtml += `<th>Columna ${c}</th>`;
+        }
+        tableHtml += '</tr></thead><tbody>';
+        for (let r = 1; r <= rows - 1; r++) {
+            tableHtml += '<tr>';
+            for (let c = 1; c <= cols; c++) {
+                tableHtml += '<td>Dato</td>';
+            }
+            tableHtml += '</tr>';
+        }
+        tableHtml += '</tbody></table><p><br></p>';
+
+        document.execCommand('insertHTML', false, tableHtml);
+        this.syncTimelineFromDOM();
+        this.checkTableContext(stepId);
+        this.showToast(`Tabla de ${rows}×${cols} insertada`, 'info');
+    },
+
+    promptCustomTable: function(stepId) {
+        const menu = document.getElementById(`tm-table-menu-${stepId}`);
+        if (menu) menu.style.display = 'none';
+
+        const rowsStr = prompt('Número de filas (incluyendo encabezado):', '4');
+        if (!rowsStr) return;
+        const colsStr = prompt('Número de columnas:', '3');
+        if (!colsStr) return;
+
+        const rows = Math.min(Math.max(parseInt(rowsStr, 10) || 3, 2), 20);
+        const cols = Math.min(Math.max(parseInt(colsStr, 10) || 3, 1), 12);
+        this.insertTable(stepId, rows, cols);
+    },
+
+    getCurrentTableCell: function() {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return null;
+        let node = sel.anchorNode;
+        while (node && node !== document.body) {
+            if (node.nodeName === 'TD' || node.nodeName === 'TH') return node;
+            node = node.parentNode;
+        }
+        return null;
+    },
+
+    getCurrentTable: function() {
+        const cell = this.getCurrentTableCell();
+        if (cell) {
+            let node = cell;
+            while (node && node !== document.body) {
+                if (node.nodeName === 'TABLE') return node;
+                node = node.parentNode;
+            }
+        }
+        return null;
+    },
+
+    checkTableContext: function(stepId) {
+        const tools = document.getElementById(`tm-table-tools-${stepId}`);
+        if (!tools) return;
+        const table = this.getCurrentTable();
+        const editor = document.getElementById(`tm-step-desc-${stepId}`);
+        if (table && editor && editor.contains(table)) {
+            tools.style.display = 'inline-flex';
+        } else {
+            tools.style.display = 'none';
+        }
+    },
+
+    tableAction: function(stepId, action) {
+        const cell = this.getCurrentTableCell();
+        const table = this.getCurrentTable();
+        if (!cell || !table) {
+            this.showToast('Haz clic dentro de una celda de la tabla para modificarla', 'info');
+            return;
+        }
+
+        const tr = cell.parentElement;
+        const isHeader = cell.nodeName === 'TH';
+        const colIdx = Array.from(tr.children).indexOf(cell);
+
+        if (action === 'add-row-below') {
+            const numCols = tr.children.length;
+            const newTr = document.createElement('tr');
+            for (let i = 0; i < numCols; i++) {
+                const td = document.createElement('td');
+                td.innerHTML = '&nbsp;';
+                newTr.appendChild(td);
+            }
+            if (isHeader) {
+                const tbody = table.querySelector('tbody') || table;
+                tbody.insertBefore(newTr, tbody.firstChild);
+            } else {
+                tr.parentNode.insertBefore(newTr, tr.nextSibling);
+            }
+            this.syncTimelineFromDOM();
+            if (newTr.firstElementChild) newTr.firstElementChild.focus();
+            this.showToast('Fila añadida', 'success');
+        } else if (action === 'add-col-right') {
+            const allRows = table.querySelectorAll('tr');
+            allRows.forEach(row => {
+                const targetCell = row.children[colIdx];
+                const isHeadRow = row.parentElement.nodeName === 'THEAD' || row.firstElementChild?.nodeName === 'TH';
+                const newCell = document.createElement(isHeadRow ? 'th' : 'td');
+                newCell.innerHTML = isHeadRow ? 'Columna' : '&nbsp;';
+                if (targetCell) {
+                    row.insertBefore(newCell, targetCell.nextSibling);
+                } else {
+                    row.appendChild(newCell);
+                }
+            });
+            this.syncTimelineFromDOM();
+            this.showToast('Columna añadida', 'success');
+        } else if (action === 'del-row') {
+            const tbody = table.querySelector('tbody');
+            const totalRows = table.querySelectorAll('tr').length;
+            if (totalRows <= 1 || (tbody && tbody.children.length <= 1 && !isHeader)) {
+                if (confirm('¿Eliminar la tabla completa?')) {
+                    table.remove();
+                    this.checkTableContext(stepId);
+                    this.syncTimelineFromDOM();
+                }
+            } else {
+                tr.remove();
+                this.syncTimelineFromDOM();
+                this.showToast('Fila eliminada', 'info');
+            }
+        } else if (action === 'del-col') {
+            const numCols = tr.children.length;
+            if (numCols <= 1) {
+                if (confirm('¿Eliminar la tabla completa?')) {
+                    table.remove();
+                    this.checkTableContext(stepId);
+                    this.syncTimelineFromDOM();
+                }
+            } else {
+                const allRows = table.querySelectorAll('tr');
+                allRows.forEach(row => {
+                    if (row.children[colIdx]) {
+                        row.children[colIdx].remove();
+                    }
+                });
+                this.syncTimelineFromDOM();
+                this.showToast('Columna eliminada', 'info');
+            }
+        } else if (action === 'del-table') {
+            if (confirm('¿Deseas eliminar esta tabla?')) {
+                table.remove();
+                this.checkTableContext(stepId);
+                this.syncTimelineFromDOM();
+                this.showToast('Tabla eliminada', 'info');
+            }
+        }
+    },
+
+    toggleStepCompleted: function(stepId) {
+        this.syncTimelineFromDOM();
+        const step = this.timelineSteps.find(s => s.id === stepId);
+        if (!step) return;
+        step.completed = !step.completed;
+        this.renderTimeline();
+
+        const taskId = document.getElementById('tm-task-id')?.value;
+        if (taskId) {
+            const formData = new FormData();
+            formData.append('action_type', 'update_task_details');
+            formData.append('task_id', taskId);
+            formData.append('timeline_data', JSON.stringify(this.timelineSteps));
+            fetch('modules/task_manager/ajax.php', { method: 'POST', body: formData });
+        }
+
+        this.showToast(step.completed ? '✓ Hito marcado como completado' : 'Hito marcado como pendiente', step.completed ? 'success' : 'info');
+    },
+
+    triggerStepFileInput: function(stepId) {
+        this.activeStepId = stepId;
+        const fileInput = document.getElementById(`tm-step-file-${stepId}`);
+        if (fileInput) fileInput.click();
+    },
+
+    handleStepFileInput: function(stepId, event) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+        Array.from(files).forEach(f => this.uploadStepFile(stepId, f));
+        event.target.value = '';
+    },
+
+    uploadStepFile: function(stepId, file, customName = null) {
+        this.syncTimelineFromDOM();
+        let step = this.timelineSteps.find(s => s.id === stepId);
+        if (!step) {
+            step = this.timelineSteps[this.timelineSteps.length - 1];
+            stepId = step.id;
+        }
+        if (!step.attachments) step.attachments = [];
+
+        const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        const fileName = customName || file.name || 'captura_' + Date.now() + '.png';
+        const ext = (fileName.split('.').pop() || '').toLowerCase();
+        const isImg = file.type ? file.type.startsWith('image/') : /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName);
+        const driveFolderId = document.getElementById('tm-drive-folder-id')?.value || '';
+        const currentTaskId = document.getElementById('tm-task-id')?.value || '';
+
+        const blobUrl = isImg ? URL.createObjectURL(file) : '';
+        const tempItem = {
+            id: tempId,
+            name: fileName,
+            url: blobUrl,
+            thumb_url: blobUrl,
+            preview_url: blobUrl,
+            type: isImg ? 'image' : 'document',
+            ext: ext,
+            size: file.size > 1048576 ? (file.size / 1048576).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB',
+            storage: driveFolderId ? 'drive' : 'local',
+            isUploading: true
+        };
+
+        step.attachments.push(tempItem);
+        this.renderTimeline();
+
+        const formData = new FormData();
+        formData.append('action_type', 'upload_task_attachment');
+        formData.append('file', file, fileName);
+        if (driveFolderId) formData.append('drive_folder_id', driveFolderId);
+        if (currentTaskId) formData.append('task_id', currentTaskId);
+
+        fetch('modules/task_manager/ajax.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            const currentStep = this.timelineSteps.find(s => s.id === stepId);
+            if (!currentStep) return;
+            const idx = (currentStep.attachments || []).findIndex(a => a.id === tempId);
+
+            if (data.success && data.file) {
+                if (idx !== -1) {
+                    currentStep.attachments[idx] = data.file;
+                } else {
+                    currentStep.attachments.push(data.file);
+                }
+                this.renderTimeline();
+
+                if (currentTaskId) {
+                    this.syncAttachmentToTask(currentTaskId, data.file);
+                }
+                this.showToast('Archivo adjunto con éxito: ' + fileName, 'success');
+            } else {
+                if (idx !== -1) currentStep.attachments.splice(idx, 1);
+                this.renderTimeline();
+                this.showToast('Error al subir ' + fileName + ': ' + (data.error || 'Desconocido'), 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Upload error:', err);
+            const currentStep = this.timelineSteps.find(s => s.id === stepId);
+            if (currentStep) {
+                const idx = (currentStep.attachments || []).findIndex(a => a.id === tempId);
+                if (idx !== -1) currentStep.attachments.splice(idx, 1);
+                this.renderTimeline();
+            }
+            this.showToast('Error de red al subir ' + fileName, 'error');
+        });
+    },
+
+    removeStepAttachment: function(stepId, attId, event) {
+        if (event) event.stopPropagation();
+        this.syncTimelineFromDOM();
+        const step = this.timelineSteps.find(s => s.id === stepId);
+        if (!step || !step.attachments) return;
+        step.attachments = step.attachments.filter(a => a.id !== attId);
+        this.renderTimeline();
+    },
+
+    // ══════════════════════════════════════════════════════
     // Attachments, Drag & Drop, Clipboard Paste & Lightbox
     // ══════════════════════════════════════════════════════
     initAttachmentHandlers: function() {
@@ -3455,7 +4429,8 @@ const TM = {
                     if (file) {
                         e.preventDefault();
                         const timeStamp = new Date().toISOString().replace(/[-:T\.]/g, '').substring(0, 14);
-                        this.uploadFile(file, 'captura_' + timeStamp + '.png');
+                        const targetStepId = this.activeStepId || (this.timelineSteps && this.timelineSteps.length > 0 ? this.timelineSteps[this.timelineSteps.length - 1].id : 'step_1');
+                        this.uploadStepFile(targetStepId, file, 'captura_' + timeStamp + '.png');
                         break;
                     }
                 }
@@ -3495,7 +4470,8 @@ const TM = {
 
                 const files = e.dataTransfer ? e.dataTransfer.files : null;
                 if (files && files.length > 0) {
-                    Array.from(files).forEach(f => this.uploadFile(f));
+                    const targetStepId = this.activeStepId || (this.timelineSteps && this.timelineSteps.length > 0 ? this.timelineSteps[this.timelineSteps.length - 1].id : 'step_1');
+                    Array.from(files).forEach(f => this.uploadStepFile(targetStepId, f));
                 }
             });
         }
@@ -3526,40 +4502,94 @@ const TM = {
     handleFileInputChange: function(event) {
         const files = event.target.files;
         if (files && files.length > 0) {
-            Array.from(files).forEach(f => this.uploadFile(f));
+            const targetStepId = this.activeStepId || (this.timelineSteps && this.timelineSteps.length > 0 ? this.timelineSteps[this.timelineSteps.length - 1].id : 'step_1');
+            Array.from(files).forEach(f => this.uploadStepFile(targetStepId, f));
         }
         event.target.value = '';
     },
 
-    setDriveBarState: function(folderId, folderUrl) {
+    setDriveBarState: function(folderId, folderUrl, folderName = '') {
         const idInput = document.getElementById('tm-drive-folder-id');
         const urlInput = document.getElementById('tm-drive-folder-url');
+        const nameInput = document.getElementById('tm-drive-folder-name');
         const btnCreate = document.getElementById('tm-btn-create-drive');
         const groupConnected = document.getElementById('tm-drive-connected-group');
         const btnOpen = document.getElementById('tm-btn-open-drive');
+        const titleBadge = document.getElementById('tm-drive-folder-title');
         const desc = document.getElementById('tm-drive-desc');
 
         if (idInput) idInput.value = folderId || '';
         if (urlInput) urlInput.value = folderUrl || '';
+        if (nameInput && folderName) nameInput.value = folderName;
 
         if (folderId) {
-            if (btnCreate) btnCreate.style.display = 'none';
-            if (groupConnected) groupConnected.style.display = 'flex';
+            if (btnCreate) {
+                btnCreate.style.display = 'none';
+                btnCreate.classList.add('is-hidden');
+            }
+            if (groupConnected) {
+                groupConnected.style.display = 'flex';
+                groupConnected.classList.remove('is-hidden');
+            }
             if (btnOpen) {
                 btnOpen.href = folderUrl || `https://drive.google.com/drive/folders/${folderId}`;
                 btnOpen.style.display = 'inline-flex';
+            }
+            if (titleBadge) {
+                titleBadge.textContent = folderName || 'Carpeta Activa';
             }
             if (desc) desc.textContent = 'Carpeta conectada. Todos los archivos se suben a Google Drive (0 Bytes en servidor).';
         } else {
             if (btnCreate) {
                 btnCreate.style.display = 'inline-flex';
+                btnCreate.classList.remove('is-hidden');
                 btnCreate.disabled = false;
-                btnCreate.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive';
+                btnCreate.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Conectar / Crear en Drive';
             }
-            if (groupConnected) groupConnected.style.display = 'none';
+            if (groupConnected) {
+                groupConnected.style.display = 'none';
+                groupConnected.classList.add('is-hidden');
+            }
             if (btnOpen) btnOpen.style.display = 'none';
+            if (titleBadge) titleBadge.textContent = 'Carpeta Activa';
             if (desc) desc.textContent = 'Almacena archivos pesados y proyectos Adobe sin saturar el servidor';
         }
+    },
+
+    openDriveModal: function() {
+        if (typeof cdOpenPicker === 'function') {
+            cdOpenPicker(null, (folder) => {
+                if (folder && folder.id) {
+                    this.setDriveBarState(folder.id, folder.url, folder.name);
+                    const taskId = document.getElementById('tm-task-id')?.value;
+                    if (taskId) {
+                        this.syncTaskDriveFolder(taskId, folder.id, folder.url);
+                    }
+                    this.showToast('Carpeta de Google Drive vinculada: ' + (folder.name || 'OK'), 'success');
+                }
+            });
+        } else {
+            this.createTaskDriveFolder();
+        }
+    },
+
+    disconnectDriveFolder: function() {
+        if (!confirm('¿Deseas desvincular la carpeta de Google Drive de esta tarea?')) return;
+        this.setDriveBarState('', '', '');
+        const taskId = document.getElementById('tm-task-id')?.value;
+        if (taskId) {
+            this.syncTaskDriveFolder(taskId, '', '');
+        }
+        this.showToast('Carpeta de Google Drive desvinculada', 'info');
+    },
+
+    syncTaskDriveFolder: function(taskId, folderId, folderUrl) {
+        const formData = new FormData();
+        formData.append('action_type', 'update_task_drive_folder');
+        formData.append('task_id', taskId);
+        formData.append('drive_folder_id', folderId || '');
+        formData.append('drive_folder_url', folderUrl || '');
+        fetch('modules/task_manager/ajax.php', { method: 'POST', body: formData });
     },
 
     createTaskDriveFolder: function() {
@@ -3589,7 +4619,7 @@ const TM = {
             } else {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive';
+                    btn.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Conectar / Crear en Drive';
                 }
                 alert(data.error || 'No se pudo crear la carpeta en Google Drive.');
             }
@@ -3598,7 +4628,7 @@ const TM = {
             console.error('Error creando carpeta en Drive:', err);
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive';
+                btn.innerHTML = '<i class="ph-bold ph-folder-plus"></i> Conectar / Crear en Drive';
             }
             alert('Error de red al conectar con Google Drive.');
         });
@@ -3728,178 +4758,52 @@ const TM = {
         const countBadge = document.getElementById('tm-attachments-count');
         const jsonInput = document.getElementById('tm-attachments-json');
 
-        if (!grid) return;
-
         const count = (this.currentAttachments || []).length;
         if (countBadge) countBadge.textContent = count;
         if (jsonInput) jsonInput.value = JSON.stringify(this.currentAttachments || []);
 
-        if (count === 0) {
+        if (grid) {
             grid.innerHTML = '';
             grid.style.display = 'none';
-            return;
         }
-
-        const adobeMap = {
-            'psd':   { app: 'ps', badge: 'Ps', name: 'Photoshop', color: '#31A8FF' },
-            'psb':   { app: 'ps', badge: 'Ps', name: 'Photoshop Big', color: '#31A8FF' },
-            'ai':    { app: 'ai', badge: 'Ai', name: 'Illustrator', color: '#FF9A00' },
-            'eps':   { app: 'ai', badge: 'Ai', name: 'Illustrator EPS', color: '#FF9A00' },
-            'ait':   { app: 'ai', badge: 'Ai', name: 'Illustrator Template', color: '#FF9A00' },
-            'indd':  { app: 'id', badge: 'Id', name: 'InDesign', color: '#FF3366' },
-            'idml':  { app: 'id', badge: 'Id', name: 'InDesign Markup', color: '#FF3366' },
-            'indt':  { app: 'id', badge: 'Id', name: 'InDesign Template', color: '#FF3366' },
-            'prproj':{ app: 'pr', badge: 'Pr', name: 'Premiere Pro', color: '#9999FF' },
-            'mogrt': { app: 'pr', badge: 'Pr', name: 'Premiere MOGRT', color: '#9999FF' },
-            'aep':   { app: 'ae', badge: 'Ae', name: 'After Effects', color: '#CF96FD' },
-            'aepx':  { app: 'ae', badge: 'Ae', name: 'After Effects XML', color: '#CF96FD' },
-            'xd':    { app: 'xd', badge: 'Xd', name: 'Adobe XD', color: '#FF61F6' },
-            'sesx':  { app: 'au', badge: 'Au', name: 'Audition', color: '#00E4BB' },
-            'dng':   { app: 'lr', badge: 'Lr', name: 'Lightroom Raw', color: '#31A8FF' },
-            'lrcat': { app: 'lr', badge: 'Lr', name: 'Lightroom Catalog', color: '#31A8FF' },
-            'pdf':   { app: 'pdf', badge: 'PDF', name: 'Adobe Acrobat PDF', color: '#FF2D2D' }
-        };
-
-        grid.style.display = 'grid';
-        grid.innerHTML = (this.currentAttachments || []).map(att => {
-            const ext = (att.ext || (att.name ? att.name.split('.').pop() : '')).toLowerCase();
-            const isAdobe = att.type === 'adobe' || Boolean(adobeMap[ext]);
-            const isImg = !isAdobe && (att.type === 'image' || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext));
-            const safeName = this.escapeHtml(att.name || 'Archivo');
-            const safeSize = this.escapeHtml(att.size || '');
-            const safeUrl = this.escapeHtml(att.url || '#');
-            const downloadUrl = this.escapeHtml(att.download_url || att.url || '#');
-            const isDrive = att.storage === 'drive';
-
-            const storageBadge = isDrive
-                ? `<span class="tm-att-storage-chip drive" title="Almacenado en Google Drive sin ocupar espacio en servidor"><i class="ph-bold ph-cloud-check"></i> Drive</span>`
-                : `<span class="tm-att-storage-chip local" title="Almacenado localmente en servidor"><i class="ph ph-hard-drive"></i> Local</span>`;
-
-            if (isAdobe) {
-                const info = adobeMap[ext] || { app: 'ps', badge: 'Adobe', name: 'Adobe Document', color: '#ff0000' };
-                const badgeClass = `adobe-${info.app}`;
-                return `
-                    <div class="tm-attachment-card ${att.isUploading ? 'is-uploading' : ''}" title="${safeName} (${safeSize}) - Formato Adobe">
-                        <div class="tm-attachment-adobe" onclick="window.open('${safeUrl}', '_blank')">
-                            <div class="tm-adobe-logo-badge ${badgeClass}">${info.badge}</div>
-                            <span class="tm-adobe-app-name">${this.escapeHtml(info.name)}</span>
-                            <div class="tm-attachment-overlay">
-                                ${!att.isUploading ? `
-                                    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="tm-att-btn view" onclick="event.stopPropagation()" title="Abrir en ${isDrive ? 'Google Drive' : 'nueva pestaña'}">
-                                        <i class="ph-bold ph-arrow-square-out"></i>
-                                    </a>
-                                    <a href="${downloadUrl}" download="${safeName}" class="tm-att-btn download" onclick="event.stopPropagation()" title="Descargar proyecto Adobe">
-                                        <i class="ph-bold ph-download-simple"></i>
-                                    </a>
-                                    <button type="button" class="tm-att-btn del" onclick="TM.removeAttachment('${att.id}', event)" title="Eliminar archivo">
-                                        <i class="ph-bold ph-trash"></i>
-                                    </button>
-                                ` : `
-                                    <span style="color:#ffffff; font-size:0.75rem; font-weight:700;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo a Drive...</span>
-                                `}
-                            </div>
-                        </div>
-                        <div class="tm-attachment-meta">
-                            <span class="tm-attachment-name" title="${safeName}">${safeName}</span>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                ${storageBadge}
-                                <span class="tm-attachment-size">${safeSize}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (isImg) {
-                return `
-                    <div class="tm-attachment-card ${att.isUploading ? 'is-uploading' : ''}" title="${safeName} (${safeSize})">
-                        <div class="tm-attachment-thumb-wrap" onclick="TM.openImageViewer('${safeUrl}', '${safeName}', '${safeSize}')">
-                            <img src="${safeUrl}" alt="${safeName}" class="tm-attachment-thumb-img" loading="lazy">
-                            <div class="tm-attachment-overlay">
-                                ${!att.isUploading ? `
-                                    <button type="button" class="tm-att-btn view" onclick="event.stopPropagation(); TM.openImageViewer('${safeUrl}', '${safeName}', '${safeSize}')" title="Ver imagen completa">
-                                        <i class="ph-bold ph-eye"></i>
-                                    </button>
-                                    <a href="${downloadUrl}" download="${safeName}" class="tm-att-btn download" onclick="event.stopPropagation()" title="Descargar imagen">
-                                        <i class="ph-bold ph-download-simple"></i>
-                                    </a>
-                                    <button type="button" class="tm-att-btn del" onclick="TM.removeAttachment('${att.id}', event)" title="Eliminar archivo">
-                                        <i class="ph-bold ph-trash"></i>
-                                    </button>
-                                ` : `
-                                    <span style="color:#ffffff; font-size:0.75rem; font-weight:700;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo...</span>
-                                `}
-                            </div>
-                        </div>
-                        <div class="tm-attachment-meta">
-                            <span class="tm-attachment-name" title="${safeName}">${safeName}</span>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                ${storageBadge}
-                                <span class="tm-attachment-size">${safeSize}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                let docIcon = 'ph-file-text';
-                if (['doc', 'docx'].includes(ext)) docIcon = 'ph-file-doc';
-                else if (['xls', 'xlsx', 'csv'].includes(ext)) docIcon = 'ph-file-xls';
-                else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) docIcon = 'ph-file-zip';
-                else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) docIcon = 'ph-file-video';
-                else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) docIcon = 'ph-file-audio';
-
-                return `
-                    <div class="tm-attachment-card ${att.isUploading ? 'is-uploading' : ''}" title="${safeName} (${safeSize})">
-                        <div class="tm-attachment-doc" onclick="window.open('${safeUrl}', '_blank')">
-                            <i class="ph-bold ${docIcon} tm-attachment-doc-icon"></i>
-                            <div class="tm-attachment-overlay">
-                                ${!att.isUploading ? `
-                                    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="tm-att-btn view" onclick="event.stopPropagation()" title="Abrir archivo">
-                                        <i class="ph-bold ph-arrow-square-out"></i>
-                                    </a>
-                                    <a href="${downloadUrl}" download="${safeName}" class="tm-att-btn download" onclick="event.stopPropagation()" title="Descargar">
-                                        <i class="ph-bold ph-download-simple"></i>
-                                    </a>
-                                    <button type="button" class="tm-att-btn del" onclick="TM.removeAttachment('${att.id}', event)" title="Eliminar archivo">
-                                        <i class="ph-bold ph-trash"></i>
-                                    </button>
-                                ` : `
-                                    <span style="color:#ffffff; font-size:0.75rem; font-weight:700;"><i class="ph-bold ph-spinner ph-spin"></i> Subiendo...</span>
-                                `}
-                            </div>
-                        </div>
-                        <div class="tm-attachment-meta">
-                            <span class="tm-attachment-name" title="${safeName}">${safeName}</span>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                ${storageBadge}
-                                <span class="tm-attachment-size">${safeSize}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        }).join('');
     },
 
     // ══════════════════════════════════════════════════════
     // Lightbox / Image Viewer Methods
     // ══════════════════════════════════════════════════════
-    openImageViewer: function(url, title = 'Vista previa', size = '') {
+    openImageViewer: function(url, title = 'Vista previa', size = '', downloadUrl = null, driveUrl = null) {
         const viewer = document.getElementById('tm-image-viewer');
         const img = document.getElementById('tm-iv-img');
         const titleEl = document.getElementById('tm-iv-title');
         const sizeEl = document.getElementById('tm-iv-size');
         const downloadEl = document.getElementById('tm-iv-download');
+        const externalEl = document.getElementById('tm-iv-external');
 
         if (!viewer || !img) return;
 
+        const media = this.getAttachmentMediaUrls({ url: url, name: title, download_url: downloadUrl, drive_url: driveUrl });
+        const finalUrl = (media.isImg && media.previewUrl) ? media.previewUrl : url;
+        const finalDownload = downloadUrl || media.downloadUrl || finalUrl;
+        const finalExternal = driveUrl || (media.isDrive ? media.driveUrl : null);
+
         this.imageViewerZoom = 1;
         img.style.transform = `scale(${this.imageViewerZoom})`;
-        img.src = url;
+        img.src = finalUrl;
+        img.alt = title;
 
         if (titleEl) titleEl.textContent = title;
         if (sizeEl) sizeEl.textContent = size;
         if (downloadEl) {
-            downloadEl.href = url;
+            downloadEl.href = finalDownload;
             downloadEl.download = title;
+        }
+        if (externalEl) {
+            if (finalExternal && finalExternal !== '#') {
+                externalEl.href = finalExternal;
+                externalEl.style.display = 'inline-flex';
+            } else {
+                externalEl.style.display = 'none';
+            }
         }
         const zoomText = document.getElementById('tm-iv-zoom-level');
         if (zoomText) zoomText.textContent = '100%';

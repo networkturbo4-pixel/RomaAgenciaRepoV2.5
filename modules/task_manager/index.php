@@ -551,117 +551,78 @@ try {
                             </div>
                         </div>
 
-                        <!-- Pestañas de Contenido (Tabs) -->
-                        <div class="lumio-tabs-nav tm-app-tabs-nav" data-modal="task">
-                            <button type="button" class="lumio-tab active tm-app-tab-btn" data-tab="0" onclick="TM.switchTab(this)">
-                                <i class="ph-bold ph-text-align-left"></i> <span>Descripción y Criterios</span>
-                            </button>
-                            <button type="button" class="lumio-tab tm-app-tab-btn" data-tab="1" onclick="TM.switchTab(this)">
-                                <i class="ph-bold ph-list-checks"></i> <span>Subtareas & Checklist</span>
-                            </button>
-                        </div>
-                        
-                        <!-- Panel 0: Descripción con Editor Enriquecido Quill -->
-                        <div class="lumio-tab-panel active tm-app-tab-panel" data-panel="0">
-                            <div class="lumio-details-area tm-app-details-area">
-                                <label class="lumio-section-label tm-app-section-title">
-                                    <i class="ph-bold ph-article"></i> Descripción y Criterios de Aceptación
-                                </label>
-                                <div id="tm-desc-editor" class="lumio-quill-editor tm-app-quill-container"></div>
-                            </div>
-                        </div>
-
-                        <!-- Panel 1: Subtareas & Checklist dinámico -->
-                        <div class="lumio-tab-panel tm-app-tab-panel" data-panel="1" style="display:none;">
-                            <div class="lumio-details-area tm-app-details-area">
-                                <div class="tm-app-subtasks-header">
+                        <!-- LÍNEA DE TIEMPO INTERACTIVA (Hitos, Entregables, Subtareas y Capturas Ctrl+V) -->
+                        <div class="tm-timeline-section" id="tm-timeline-section">
+                            <div class="tm-timeline-header">
+                                <div class="tm-timeline-header-left">
                                     <label class="lumio-section-label tm-app-section-title" style="margin:0;">
-                                        <i class="ph-bold ph-list-checks"></i> Subtareas & Checklist
+                                        <i class="ph-bold ph-git-commit"></i> Línea de Tiempo & Avances
                                     </label>
-                                    <button type="button" class="lumio-add-subtask-btn tm-app-add-subtask-inline" onclick="TM.addSubtaskInput()">
-                                        <i class="ph-bold ph-plus-circle"></i> Añadir subtarea
-                                    </button>
+                                    <span class="tm-timeline-badge-count" id="tm-timeline-steps-count">1 hito</span>
                                 </div>
-                                <div id="tm-subtasks-list" class="lumio-dynamic-subtasks tm-app-dynamic-subtasks"></div>
+                                <button type="button" class="tm-btn-add-step" onclick="TM.addTimelineStep()">
+                                    <i class="ph-bold ph-plus-circle"></i> Añadir Hito / Avance
+                                </button>
+                            </div>
+
+                            <!-- Contenedor del timeline dinámico con riel vertical -->
+                            <div class="tm-timeline-flow" id="tm-timeline-container">
+                                <!-- Generado dinámicamente por TM.renderTimeline() -->
                             </div>
                         </div>
 
-                        <!-- SECCIÓN DE ARCHIVOS Y ADJUNTOS (Google Drive + Formatos Adobe + Ctrl+V) -->
-                        <div class="tm-app-attachments-section">
-                            <div class="tm-app-attachments-header">
-                                <label class="lumio-section-label tm-app-section-title" style="margin:0;">
-                                    <i class="ph-bold ph-paperclip"></i> Archivos y Adjuntos 
-                                    <span class="tm-meta-counter-badge" id="tm-attachments-count">0</span>
-                                </label>
-                                <span class="tm-app-attachments-hint">
-                                    <kbd class="tm-kbd">Ctrl + V</kbd> para pegar captura o arrastra aquí
-                                </span>
-                            </div>
-
-                            <!-- Barra de Integración Google Drive (Almacenamiento Cloud sin saturar servidor) -->
-                            <div class="tm-app-drive-bar" id="tm-drive-bar">
-                                <div class="tm-drive-bar-left">
-                                    <div class="tm-drive-logo-icon">
-                                        <svg viewBox="0 0 87.3 78" width="22" height="22">
-                                            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                                            <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
-                                            <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                                            <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                                            <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                                            <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                                        </svg>
-                                    </div>
-                                    <div class="tm-drive-info">
-                                        <div class="tm-drive-title-row">
-                                            <span class="tm-drive-title">Google Drive</span>
-                                            <span class="tm-drive-chip">Nube · 0 Bytes Servidor</span>
-                                        </div>
-                                        <span class="tm-drive-desc" id="tm-drive-desc">Almacena archivos pesados y proyectos Adobe sin saturar el servidor</span>
-                                    </div>
-                                </div>
-                                <div class="tm-drive-bar-right">
-                                    <!-- Botón Crear Carpeta (Desconectado) -->
-                                    <button type="button" class="tm-btn-drive-connect" id="tm-btn-create-drive" onclick="TM.createTaskDriveFolder()">
-                                        <i class="ph-bold ph-folder-plus"></i> Crear Carpeta en Drive
-                                    </button>
-                                    <!-- Grupo Conectado -->
-                                    <div class="tm-drive-connected-group" id="tm-drive-connected-group" style="display:none;">
-                                        <span class="tm-drive-badge-synced">
-                                            <i class="ph-fill ph-check-circle"></i> Carpeta Activa
-                                        </span>
-                                        <a href="#" target="_blank" rel="noopener noreferrer" class="tm-btn-drive-open" id="tm-btn-open-drive" title="Abrir carpeta de la tarea en Google Drive">
-                                            <i class="ph-bold ph-arrow-square-out"></i> Abrir en Drive
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="hidden" id="tm-drive-folder-id" value="">
-                            <input type="hidden" id="tm-drive-folder-url" value="">
-
-                            <!-- Dropzone de arrastrar y soltar -->
-                            <div class="tm-app-dropzone" id="tm-app-dropzone" onclick="document.getElementById('tm-file-input').click()">
-                                <input type="file" id="tm-file-input" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.psd,.psb,.ai,.eps,.ait,.indd,.idml,.indt,.prproj,.mogrt,.aep,.aepx,.xd,.sesx,.dng,.lrcat,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.7z,.mp4,.mov" style="display:none;" onchange="TM.handleFileInputChange(event)">
-                                <div class="tm-dropzone-inner">
-                                    <div class="tm-dropzone-icon-circle">
-                                        <i class="ph-bold ph-cloud-arrow-up"></i>
-                                    </div>
-                                    <div class="tm-dropzone-texts">
-                                        <span class="tm-dropzone-title"><strong>Haz clic para subir</strong> o arrastra archivos aquí</span>
-                                        <span class="tm-dropzone-sub">Compatible con <strong>Formatos Adobe</strong> (PSD, AI, InDesign, Premiere, After Effects, XD, PDF) e imágenes/docs • Soporta <kbd class="tm-kbd">Ctrl+V</kbd></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Grid de Miniaturas y Archivos -->
-                            <div class="tm-app-attachments-grid" id="tm-attachments-grid"></div>
-                            <input type="hidden" id="tm-attachments-json" value="[]">
-                        </div>
+                        <!-- Hidden inputs requeridos para guardar estado sin UI redundante -->
+                        <input type="hidden" id="tm-drive-folder-id" value="">
+                        <input type="hidden" id="tm-drive-folder-url" value="">
+                        <input type="hidden" id="tm-drive-folder-name" value="">
+                        <input type="hidden" id="tm-timeline-json" value="[]">
+                        <input type="hidden" id="tm-attachments-json" value="[]">
+                        <div id="tm-attachments-grid" style="display:none;"></div>
 
                     </div>
 
                     <!-- COLUMNA LATERAL (Derecha: Inspector de Metadatos y Propiedades) -->
                     <div class="tm-app-modal-sidebar">
                         
+                        <!-- Bloque 0: Integración Google Drive (Cloud Storage) -->
+                        <div class="tm-app-sidebar-card tm-sidebar-drive-card" id="tm-drive-bar">
+                            <div class="tm-app-sidebar-card-title">
+                                <div class="tm-drive-title-left">
+                                    <i class="ph-bold ph-google-drive-logo" style="color: #2684fc; font-size: 1.05rem;"></i>
+                                    <span>Google Drive</span>
+                                </div>
+                                <span class="tm-drive-chip">Nube · 0 Bytes</span>
+                            </div>
+
+                            <div class="tm-sidebar-drive-content">
+                                <!-- Estado Desconectado -->
+                                <button type="button" class="tm-btn-drive-connect" id="tm-btn-create-drive" onclick="TM.openDriveModal()">
+                                    <i class="ph-bold ph-folder-plus"></i> Conectar / Crear en Drive
+                                </button>
+
+                                <!-- Estado Conectado -->
+                                <div class="tm-drive-connected-group is-hidden" id="tm-drive-connected-group" style="display:none;">
+                                    <div class="tm-drive-badge-synced" id="tm-drive-badge-synced" title="Carpeta vinculada de Google Drive">
+                                        <i class="ph-fill ph-check-circle"></i>
+                                        <span id="tm-drive-folder-title" class="tm-drive-folder-truncate">Carpeta Activa</span>
+                                    </div>
+                                    <div class="tm-drive-connected-actions">
+                                        <a href="#" target="_blank" rel="noopener noreferrer" class="tm-btn-drive-open" id="tm-btn-open-drive" title="Abrir carpeta de la tarea en Google Drive">
+                                            <i class="ph-bold ph-arrow-square-out"></i> Abrir
+                                        </a>
+                                        <button type="button" class="tm-btn-drive-change" onclick="TM.openDriveModal()" title="Cambiar carpeta vinculada de Google Drive">
+                                            <i class="ph-bold ph-arrows-clockwise"></i> Cambiar
+                                        </button>
+                                        <button type="button" class="tm-btn-drive-unlink" onclick="TM.disconnectDriveFolder()" title="Desvincular carpeta de la tarea">
+                                            <i class="ph-bold ph-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <span class="tm-drive-desc" id="tm-drive-desc">Almacena archivos pesados y proyectos Adobe sin saturar el servidor</span>
+                            </div>
+                        </div>
+
                         <!-- Bloque 1: Flujo de Trabajo (Estado & Prioridad) -->
                         <div class="tm-app-sidebar-card">
                             <div class="tm-app-sidebar-card-title">
@@ -934,6 +895,7 @@ try {
             <span id="tm-iv-zoom-level" class="tm-iv-zoom-text">100%</span>
             <button type="button" class="tm-iv-btn" onclick="TM.zoomImageViewer(0.2)" title="Acercar (+)"><i class="ph-bold ph-magnifying-glass-plus"></i></button>
             <button type="button" class="tm-iv-btn" onclick="TM.resetImageViewerZoom()" title="Restablecer zoom"><i class="ph-bold ph-arrows-counter-clockwise"></i></button>
+            <a id="tm-iv-external" href="#" target="_blank" rel="noopener noreferrer" class="tm-iv-btn" title="Abrir en Google Drive" style="display:none;"><i class="ph-bold ph-google-drive-logo"></i></a>
             <a id="tm-iv-download" href="#" download class="tm-iv-btn" title="Descargar imagen"><i class="ph-bold ph-download-simple"></i></a>
             <button type="button" class="tm-iv-btn tm-iv-close" onclick="TM.closeImageViewer()" title="Cerrar visor (Esc)"><i class="ph-bold ph-x"></i></button>
         </div>
@@ -1082,5 +1044,6 @@ window.TM_USERS = [
 </script>
 <script src="modules/task_manager/app.js?v=<?php echo time(); ?>"></script>
 
+<?php require_once 'includes/custom_drive_picker.php'; ?>
 <?php require_once 'includes/footer.php'; ?>
 

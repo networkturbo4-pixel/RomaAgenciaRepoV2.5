@@ -21,6 +21,9 @@ try {
 try {
     $db->exec("ALTER TABLE tm_tasks ADD COLUMN drive_folder_url VARCHAR(500) DEFAULT NULL");
 } catch (Throwable $e) {}
+try {
+    $db->exec("ALTER TABLE tm_tasks ADD COLUMN timeline_data LONGTEXT DEFAULT NULL");
+} catch (Throwable $e) {}
 
 function sendEarlyJsonResponse($data) {
     if (function_exists('fastcgi_finish_request')) {
@@ -808,6 +811,7 @@ if ($action === 'create_task') {
     $assignedRoles = $_POST['assigned_roles'] ?? '[]';
     $tags = $_POST['tags'] ?? '[]';
     $attachments = $_POST['attachments'] ?? '[]';
+    $timelineData = $_POST['timeline_data'] ?? '[]';
     $subtasksJson = $_POST['subtasks'] ?? '[]';
     $driveFolderId = trim($_POST['drive_folder_id'] ?? '');
     $driveFolderUrl = trim($_POST['drive_folder_url'] ?? '');
@@ -828,13 +832,13 @@ if ($action === 'create_task') {
             INSERT INTO tm_tasks (
                 title, description, priority, status, frequency, area, 
                 project_id, project_month_id, brand_project_id, brand_group_id, project_service_id, whiteboard_id, is_daily_objective, is_pinned, objective_date, 
-                start_date, due_date, assigned_users, assigned_roles, tags, attachments, drive_folder_id, drive_folder_url, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                start_date, due_date, assigned_users, assigned_roles, tags, attachments, drive_folder_id, drive_folder_url, timeline_data, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $title, $desc, $priority, $status, $frequency, $area,
             $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $whiteboardId, $isDailyObjective, $isPinned, $objectiveDate,
-            $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $attachments, $driveFolderId ?: null, $driveFolderUrl ?: null, $userId
+            $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $attachments, $driveFolderId ?: null, $driveFolderUrl ?: null, $timelineData ?: null, $userId
         ]);
         $taskId = $db->lastInsertId();
 
@@ -915,6 +919,7 @@ if ($action === 'get_task') {
             $task['assigned_roles'] = json_decode($task['assigned_roles'] ?? '[]', true) ?: [];
             $task['tags'] = json_decode($task['tags'] ?? '[]', true) ?: [];
             $task['attachments'] = json_decode($task['attachments'] ?? '[]', true) ?: [];
+            $task['timeline_data'] = json_decode($task['timeline_data'] ?? '[]', true) ?: [];
             $task['is_pinned'] = (int)($task['is_pinned'] ?? 0);
             $task['whiteboard_id'] = (int)($task['whiteboard_id'] ?? 0);
             $task['whiteboard_title'] = null;
@@ -1032,6 +1037,20 @@ if ($action === 'create_task_drive_folder') {
     exit;
 }
 
+if ($action === 'update_task_drive_folder') {
+    $taskId = (int)($_POST['task_id'] ?? 0);
+    $driveFolderId = trim($_POST['drive_folder_id'] ?? '');
+    $driveFolderUrl = trim($_POST['drive_folder_url'] ?? '');
+    if ($taskId > 0) {
+        $st = $db->prepare("UPDATE tm_tasks SET drive_folder_id = ?, drive_folder_url = ? WHERE id = ?");
+        $st->execute([$driveFolderId ?: null, $driveFolderUrl ?: null, $taskId]);
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Falta task_id']);
+    }
+    exit;
+}
+
 // ══════════════════════════════════════════════════════════
 // 5. UPDATE TASK DETAILS
 // ══════════════════════════════════════════════════════════
@@ -1063,6 +1082,7 @@ if ($action === 'update_task_details') {
     $assignedRoles = $_POST['assigned_roles'] ?? '[]';
     $tags = $_POST['tags'] ?? '[]';
     $attachments = $_POST['attachments'] ?? '[]';
+    $timelineData = isset($_POST['timeline_data']) ? $_POST['timeline_data'] : null;
     $newSubtasksJson = $_POST['new_subtasks'] ?? '[]';
     $driveFolderId = isset($_POST['drive_folder_id']) ? trim($_POST['drive_folder_id']) : null;
     $driveFolderUrl = isset($_POST['drive_folder_url']) ? trim($_POST['drive_folder_url']) : null;
@@ -1089,6 +1109,7 @@ if ($action === 'update_task_details') {
                 title = ?, description = ?, priority = ?, status = ?, frequency = ?, area = ?, 
                 project_id = ?, project_month_id = ?, brand_project_id = ?, brand_group_id = ?, project_service_id = ?, whiteboard_id = ?, is_daily_objective = ?, is_pinned = ?, objective_date = ?, 
                 start_date = ?, due_date = ?, assigned_users = ?, assigned_roles = ?, tags = ?, attachments = ?,
+                timeline_data = COALESCE(?, timeline_data),
                 drive_folder_id = COALESCE(?, drive_folder_id), drive_folder_url = COALESCE(?, drive_folder_url)
             WHERE id = ?
         ");
@@ -1096,6 +1117,7 @@ if ($action === 'update_task_details') {
             $title, $desc, $priority, $status, $frequency, $area,
             $projectId, $projectMonthId, $brandProjectId, $brandGroupId, $projectServiceId, $whiteboardId, $isDailyObjective, $isPinned, $objectiveDate,
             $startDate, $dueDate, $assignedUsers, $assignedRoles, $tags, $attachments,
+            $timelineData,
             $driveFolderId ?: null, $driveFolderUrl ?: null,
             $taskId
         ]);
@@ -1198,14 +1220,18 @@ if ($action === 'upload_task_attachment') {
     $adobeMap = [
         'psd'   => ['app' => 'ps', 'name' => 'Photoshop', 'color' => '#31A8FF', 'badge' => 'Ps'],
         'psb'   => ['app' => 'ps', 'name' => 'Photoshop Big', 'color' => '#31A8FF', 'badge' => 'Ps'],
+        'abr'   => ['app' => 'ps', 'name' => 'Photoshop Brushes', 'color' => '#31A8FF', 'badge' => 'Ps'],
+        'atn'   => ['app' => 'ps', 'name' => 'Photoshop Actions', 'color' => '#31A8FF', 'badge' => 'Ps'],
+        'csh'   => ['app' => 'ps', 'name' => 'Photoshop Shapes', 'color' => '#31A8FF', 'badge' => 'Ps'],
         'ai'    => ['app' => 'ai', 'name' => 'Illustrator', 'color' => '#FF9A00', 'badge' => 'Ai'],
-        'eps'   => ['app' => 'ai', 'name' => 'Illustrator EPS', 'color' => '#FF9A00', 'badge' => 'Ai'],
         'ait'   => ['app' => 'ai', 'name' => 'Illustrator Template', 'color' => '#FF9A00', 'badge' => 'Ai'],
+        'eps'   => ['app' => 'eps', 'name' => 'Vector EPS', 'color' => '#FF7A00', 'badge' => 'EPS'],
         'indd'  => ['app' => 'id', 'name' => 'InDesign', 'color' => '#FF3366', 'badge' => 'Id'],
         'idml'  => ['app' => 'id', 'name' => 'InDesign Markup', 'color' => '#FF3366', 'badge' => 'Id'],
         'indt'  => ['app' => 'id', 'name' => 'InDesign Template', 'color' => '#FF3366', 'badge' => 'Id'],
         'prproj'=> ['app' => 'pr', 'name' => 'Premiere Pro', 'color' => '#9999FF', 'badge' => 'Pr'],
         'mogrt' => ['app' => 'pr', 'name' => 'Premiere MOGRT', 'color' => '#9999FF', 'badge' => 'Pr'],
+        'prel'  => ['app' => 'pr', 'name' => 'Premiere Elements', 'color' => '#9999FF', 'badge' => 'Pr'],
         'aep'   => ['app' => 'ae', 'name' => 'After Effects', 'color' => '#CF96FD', 'badge' => 'Ae'],
         'aepx'  => ['app' => 'ae', 'name' => 'After Effects XML', 'color' => '#CF96FD', 'badge' => 'Ae'],
         'xd'    => ['app' => 'xd', 'name' => 'Adobe XD', 'color' => '#FF61F6', 'badge' => 'Xd'],
@@ -1213,19 +1239,27 @@ if ($action === 'upload_task_attachment') {
         'dng'   => ['app' => 'lr', 'name' => 'Lightroom Raw', 'color' => '#31A8FF', 'badge' => 'Lr'],
         'lrcat' => ['app' => 'lr', 'name' => 'Lightroom Catalog', 'color' => '#31A8FF', 'badge' => 'Lr'],
         'pdf'   => ['app' => 'pdf', 'name' => 'Adobe Acrobat PDF', 'color' => '#FF2D2D', 'badge' => 'PDF'],
+        'fla'   => ['app' => 'an', 'name' => 'Adobe Animate', 'color' => '#FF5C00', 'badge' => 'An'],
+        'flad'  => ['app' => 'an', 'name' => 'Adobe Animate Doc', 'color' => '#FF5C00', 'badge' => 'An'],
+        'swf'   => ['app' => 'an', 'name' => 'Adobe Flash SWF', 'color' => '#FF5C00', 'badge' => 'An'],
+        'dn'    => ['app' => 'dn', 'name' => 'Adobe Dimension', 'color' => '#00FFAA', 'badge' => 'Dn'],
+        'sbs'   => ['app' => 'sub', 'name' => 'Substance 3D', 'color' => '#00FFAA', 'badge' => '3D'],
+        'sbsar' => ['app' => 'sub', 'name' => 'Substance Archive', 'color' => '#00FFAA', 'badge' => '3D'],
     ];
 
     $allowedExts = [
-        // Formatos Adobe
-        'psd', 'psb', 'ai', 'eps', 'ait', 'indd', 'idml', 'indt', 'prproj', 'mogrt', 'aep', 'aepx', 'xd', 'sesx', 'dng', 'lrcat', 'pdf',
+        // Formatos Adobe (Suite Completa)
+        'psd', 'psb', 'abr', 'atn', 'csh', 'ai', 'eps', 'ait', 'indd', 'idml', 'indt', 'prproj', 'mogrt', 'prel', 'aep', 'aepx', 'xd', 'sesx', 'dng', 'lrcat', 'pdf', 'fla', 'flad', 'swf', 'dn', 'sbs', 'sbsar',
         // Imágenes y Vectores
-        'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'tif', 'raw', 'cr2', 'nef', 'arw',
-        // Documentos de Oficina
-        'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv',
-        // Multimedia
-        'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'ogg', 'm4a', 'aac',
+        'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'tif', 'raw', 'cr2', 'nef', 'arw', 'cdr', 'dwg', 'dxf', 'fig',
+        // Documentos de Oficina y Texto
+        'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'rtf', 'odt', 'ods', 'odp', 'log', 'json', 'sql',
+        // Video
+        'mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'm4v', '3gp', 'ts', 'mts', 'm2ts', 'vob',
+        // Audio
+        'mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma', 'aiff', 'alac',
         // Comprimidos
-        'zip', 'rar', '7z', 'tar', 'gz'
+        'zip', 'rar', '7z', 'tar', 'gz', 'iso', 'bz2'
     ];
 
     // Detección o resolución de carpeta en Google Drive de la tarea
@@ -1276,19 +1310,29 @@ if ($action === 'upload_task_attachment') {
 
                     if ($driveRes && !empty($driveRes['id'])) {
                         $drive->makePublicViewer($driveRes['id']);
+                        $fileId = $driveRes['id'];
+                        $driveViewUrl = $driveRes['webViewLink'] ?: ('https://drive.google.com/file/d/' . $fileId . '/view');
+                        $downloadUrl = $driveRes['webContentLink'] ?: ('https://drive.google.com/uc?export=download&id=' . $fileId);
+                        $previewUrl = "https://lh3.googleusercontent.com/d/{$fileId}";
+                        $thumbUrl = "https://lh3.googleusercontent.com/d/{$fileId}=s400";
+
                         echo json_encode([
                             'success' => true,
                             'file' => [
-                                'id' => $driveRes['id'],
+                                'id' => $fileId,
                                 'name' => $fileName,
-                                'url' => $driveRes['webViewLink'] ?: ('https://drive.google.com/file/d/' . $driveRes['id'] . '/view'),
-                                'download_url' => $driveRes['webContentLink'] ?: ('https://drive.google.com/uc?export=download&id=' . $driveRes['id']),
+                                'url' => $previewUrl,
+                                'thumb_url' => $thumbUrl,
+                                'preview_url' => $previewUrl,
+                                'drive_url' => $driveViewUrl,
+                                'download_url' => $downloadUrl,
                                 'type' => 'image',
                                 'ext' => $type,
                                 'mime' => 'image/' . $type,
                                 'size' => $sizeFormatted,
                                 'bytes' => $sizeBytes,
                                 'storage' => 'drive',
+                                'drive_id' => $fileId,
                                 'drive_folder_id' => $driveFolderId
                             ]
                         ]);
@@ -1339,16 +1383,20 @@ if ($action === 'upload_task_attachment') {
         $adobeInfo = $isAdobe ? $adobeMap[$ext] : null;
         $isImage = in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
 
+        $isVideo = in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'm4v', '3gp', 'ts', 'mts', 'm2ts', 'vob']);
+        $isAudio = in_array($ext, ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma', 'aiff', 'alac']);
+        $isArchive = in_array($ext, ['zip', 'rar', '7z', 'tar', 'gz', 'iso', 'bz2']);
+
         $fileType = 'document';
         if ($isAdobe) {
             $fileType = 'adobe';
         } elseif ($isImage) {
             $fileType = 'image';
-        } elseif (in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'webm'])) {
+        } elseif ($isVideo) {
             $fileType = 'video';
-        } elseif (in_array($ext, ['mp3', 'wav', 'ogg', 'm4a', 'aac'])) {
+        } elseif ($isAudio) {
             $fileType = 'audio';
-        } elseif (in_array($ext, ['zip', 'rar', '7z', 'tar', 'gz'])) {
+        } elseif ($isArchive) {
             $fileType = 'archive';
         }
 
@@ -1359,13 +1407,22 @@ if ($action === 'upload_task_attachment') {
 
             if ($driveRes && !empty($driveRes['id'])) {
                 $drive->makePublicViewer($driveRes['id']);
+                $fileId = $driveRes['id'];
+                $driveViewUrl = $driveRes['webViewLink'] ?: ('https://drive.google.com/file/d/' . $fileId . '/view');
+                $downloadUrl = $driveRes['webContentLink'] ?: ('https://drive.google.com/uc?export=download&id=' . $fileId);
+                $previewUrl = $isImage ? "https://lh3.googleusercontent.com/d/{$fileId}" : $driveViewUrl;
+                $thumbUrl = ($isImage || $isVideo) ? "https://lh3.googleusercontent.com/d/{$fileId}=s400" : (!empty($driveRes['thumbnailLink']) ? $driveRes['thumbnailLink'] : null);
+
                 echo json_encode([
                     'success' => true,
                     'file' => [
-                        'id' => $driveRes['id'],
+                        'id' => $fileId,
                         'name' => $origName,
-                        'url' => $driveRes['webViewLink'] ?: ('https://drive.google.com/file/d/' . $driveRes['id'] . '/view'),
-                        'download_url' => $driveRes['webContentLink'] ?: ('https://drive.google.com/uc?export=download&id=' . $driveRes['id']),
+                        'url' => $previewUrl,
+                        'thumb_url' => $thumbUrl,
+                        'preview_url' => $previewUrl,
+                        'drive_url' => $driveViewUrl,
+                        'download_url' => $downloadUrl,
                         'type' => $fileType,
                         'ext' => $ext,
                         'adobe_app' => $adobeInfo ? $adobeInfo['app'] : null,
@@ -1376,7 +1433,7 @@ if ($action === 'upload_task_attachment') {
                         'size' => $sizeFormatted,
                         'bytes' => $sizeBytes,
                         'storage' => 'drive',
-                        'drive_id' => $driveRes['id'],
+                        'drive_id' => $fileId,
                         'drive_folder_id' => $driveFolderId
                     ]
                 ]);
