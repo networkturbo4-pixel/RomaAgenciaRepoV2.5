@@ -71,6 +71,16 @@ if (!empty($_GET['k']) && is_numeric($_GET['k'])) {
 if (empty($module)) $module = 'dashboard';
 if (empty($action)) $action = 'index';
 
+if ($module === 'deckcraft') {
+    $module = 'workspace';
+    $action = 'deckcraft';
+}
+
+if ($module === 'vectorcraft') {
+    $module = 'workspace';
+    $action = 'vectorcraft';
+}
+
 // Check Authentication
 if (!isset($_SESSION['user_id'])) {
     if ($module !== 'auth' 

@@ -1,6 +1,10 @@
 # 1. Prohibir el listado de directorios
 Options -Indexes
 
+# MIME types para WebAssembly
+AddType application/wasm .wasm
+AddType text/javascript .js
+
 # 2. Cabeceras de seguridad HTTP
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
@@ -57,6 +61,9 @@ Options -Indexes
     # Ruta amigable corta para notas de pago: /np/TOKEN o /nota/TOKEN
     RewriteRule ^np/([^/]+)/?$ index.php?module=admin&action=payment_note_webview&view=public&token=$1 [QSA,L]
     RewriteRule ^nota/([^/]+)/?$ index.php?module=admin&action=payment_note_webview&view=public&token=$1 [QSA,L]
+
+    # Ruta amigable corta para presentaciones: /ppt/TOKEN
+    RewriteRule ^ppt/([^/]+)/?$ index.php?module=public&action=presentation&token=$1 [QSA,L]
 
     # Ruta amigable para chat de invitados: /m/TOKEN
     RewriteRule ^m/([^/]+)/?$ index.php?module=mensajes&action=guest&token=$1 [QSA,L]

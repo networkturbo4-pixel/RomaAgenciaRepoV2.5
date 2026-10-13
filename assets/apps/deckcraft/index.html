@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>DeckCraft</title>
+  
+  <script>
+    // =========================================================================
+    // DECKCRAFT AUTO-SAVE & DRIVE SYNC HOOKS
+    // =========================================================================
+    (function() {
+      let _lastBlob = null;
+      let _lastBlobTime = 0;
+
+      // 1. Interceptar creación de ObjectURL para capturar el Blob de la presentación
+      const _origCreateObjectURL = URL.createObjectURL;
+      URL.createObjectURL = function(obj) {
+        if (obj instanceof Blob) {
+          _lastBlob = obj;
+          _lastBlobTime = Date.now();
+        }
+        return _origCreateObjectURL.apply(URL, arguments);
+      };
+
+      // 2. Interceptar clic en enlaces de descarga generados por WASM
+      const _origAnchorClick = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function() {
+        const downloadName = (this.download || '').toLowerCase();
+        const isPpt = downloadName.endsWith('.pptx') || downloadName.endsWith('.ppt') || downloadName.endsWith('.deckcraft');
+
+        if (isPpt && _lastBlob && (Date.now() - _lastBlobTime < 10000)) {
+          const blobToSync = _lastBlob;
+          const fileNameToSync = this.download;
+          
+          if (window.parent && window.parent !== window) {
+            try {
+              window.parent.postMessage({
+                type: 'DECKCRAFT_FILE_SAVED',
+                filename: fileNameToSync,
+                blob: blobToSync
+              }, '*');
+              console.log('[DeckCraft Hook] Notified parent of saved PPTX:', fileNameToSync, blobToSync.size, 'bytes');
+            } catch (err) {
+              console.warn('[DeckCraft Hook] PostMessage error:', err);
+            }
+          }
+        }
+        return _origAnchorClick.apply(this, arguments);
+      };
+
+      // 3. Responder a solicitudes de guardado y carga enviadas por el CRM
+      window.addEventListener('message', function(evt) {
+        if (!evt.data) return;
+        
+        if (evt.data.type === 'TRIGGER_SAVE') {
+          triggerSaveShortcut();
+        } else if (evt.data.type === 'LOAD_DECK_BLOB' && evt.data.blob) {
+          loadBlobIntoDeck(evt.data.blob, evt.data.filename || 'presentation.pptx');
+        }
+      });
+
+      function triggerSaveShortcut() {
+        const canvas = document.getElementById('deckcraft_canvas');
+        if (canvas) {
+          canvas.focus();
+        }
+        const keyEvt = new KeyboardEvent('keydown', {
+          key: 's',
+          code: 'KeyS',
+          keyCode: 83,
+          which: 83,
+          ctrlKey: true,
+          metaKey: true,
+          bubbles: true,
+          cancelable: true
+        });
+        if (canvas) canvas.dispatchEvent(keyEvt);
+        window.dispatchEvent(keyEvt);
+      }
+
+      function loadBlobIntoDeck(blob, filename) {
+        const file = new File([blob], filename, {
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+
+        const canvas = document.getElementById('deckcraft_canvas');
+        ['dragenter', 'dragover', 'drop'].forEach(evtName => {
+          const dEvt = new DragEvent(evtName, {
+            bubbles: true,
+            cancelable: true,
+            dataTransfer: dt
+          });
+          if (canvas) canvas.dispatchEvent(dEvt);
+          window.dispatchEvent(dEvt);
+        });
+        console.log('[DeckCraft Hook] Injected file into deck:', filename, blob.size, 'bytes');
+      }
+
+      // 4. Si se especificó ?load= en la URL, cargar automáticamente el archivo PPTX
+      const urlParams = new URLSearchParams(window.location.search);
+      const loadUrl = urlParams.get('load');
+
+      if (loadUrl) {
+        window.addEventListener('TrunkApplicationStarted', function() {
+          // Esperar que eframe inicialice completamente su canvas y listeners
+          setTimeout(async function() {
+            try {
+              console.log('[DeckCraft Hook] Fetching deck from:', loadUrl);
+              const resp = await fetch(loadUrl);
+              if (!resp.ok) throw new Error('HTTP ' + resp.status);
+              const blob = await resp.blob();
+              const filename = loadUrl.split('/').pop() || 'presentation.pptx';
+              loadBlobIntoDeck(blob, filename);
+            } catch (loadErr) {
+              console.warn('[DeckCraft Hook] Could not auto-load presentation:', loadErr);
+            }
+          }, 850);
+        });
+      }
+    })();
+  </script>
+
+<script type="module">
+import init, * as bindings from './deckcraft-web-f82c1514117fa237.js';
+const wasm = await init({ module_or_path: './deckcraft-web-f82c1514117fa237_bg.wasm' });
+
+window.wasmBindings = bindings;
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+</script>
+  <link rel="icon" href="./ai.storyteller.deckcraft-74e97653dd8dd002.png" integrity="sha384-THDce39ERZRgdnEtM/35FnmU4IExPfz9k2XrApCGWP0NUMC98NUWG1VYUMNXNCiD"/>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
+    #deckcraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #deckcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
+  </style>
+<link rel="modulepreload" href="./deckcraft-web-f82c1514117fa237.js" crossorigin="anonymous" integrity="sha384-mRs8g6Bdmp1B4kh4UqOkT73109Y2xSi0Femo0NIZSupNIFHa4E22W6clzXUevjr4"><link rel="preload" href="./deckcraft-web-f82c1514117fa237_bg.wasm" crossorigin="anonymous" integrity="sha384-VpUq8mVAQSTTnEEad53z276aBE0jd7o+kE7FOBAuonotWQnulqqzIsjT4md/fssY" as="fetch" type="application/wasm"></head>
+<body>
+  <canvas id="deckcraft_canvas"></canvas>
+  <div id="deckcraft_loading">Loading DeckCraft&hellip;</div>
+</body>
+</html>

@@ -346,8 +346,17 @@ class GoogleDriveHelper {
             $fileMetadata->setParents([$parentFolderId]);
         }
 
-        $mimeType = mime_content_type($filePath);
-        if (!$mimeType) $mimeType = 'application/octet-stream';
+        $ext = strtolower(pathinfo($fileName ?: $filePath, PATHINFO_EXTENSION));
+        if ($ext === 'pptx') {
+            $mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+        } elseif ($ext === 'ppt') {
+            $mimeType = 'application/vnd.ms-powerpoint';
+        } elseif ($ext === 'pdf') {
+            $mimeType = 'application/pdf';
+        } else {
+            $mimeType = mime_content_type($filePath);
+            if (!$mimeType) $mimeType = 'application/octet-stream';
+        }
 
         try {
             $this->client->setDefer(true);
@@ -377,7 +386,7 @@ class GoogleDriveHelper {
             fclose($handle);
 
             if ($status && isset($status['id'])) {
-                // Dar permisos de lectura general si se necesita (opcional)
+                // Dar permisos de lectura general para compartir
                 $this->makePublic($status['id']);
 
                 return [
@@ -392,6 +401,73 @@ class GoogleDriveHelper {
             error_log("Error subiendo archivo a Drive: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Sube o actualiza un archivo existente en Google Drive
+     */
+    public function uploadOrUpdateFile($filePath, $fileName, $parentFolderId = null, $existingFileId = null) {
+        if (!$this->isConfigured || !file_exists($filePath)) return false;
+
+        if (!empty($existingFileId)) {
+            $ext = strtolower(pathinfo($fileName ?: $filePath, PATHINFO_EXTENSION));
+            if ($ext === 'pptx') {
+                $mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+            } elseif ($ext === 'ppt') {
+                $mimeType = 'application/vnd.ms-powerpoint';
+            } elseif ($ext === 'pdf') {
+                $mimeType = 'application/pdf';
+            } else {
+                $mimeType = mime_content_type($filePath) ?: 'application/octet-stream';
+            }
+
+            try {
+                $fileMetadata = new \Google_Service_Drive_DriveFile([
+                    'name' => $fileName
+                ]);
+
+                $this->client->setDefer(true);
+                $request = $this->service->files->update($existingFileId, $fileMetadata, [
+                    'fields' => 'id, webViewLink, webContentLink',
+                    'supportsAllDrives' => true
+                ]);
+                $this->client->setDefer(false);
+
+                $chunkSizeBytes = 5 * 1024 * 1024;
+                $media = new \Google_Http_MediaFileUpload(
+                    $this->client,
+                    $request,
+                    $mimeType,
+                    null,
+                    true,
+                    $chunkSizeBytes
+                );
+                $media->setFileSize(filesize($filePath));
+
+                $status = false;
+                $handle = fopen($filePath, "rb");
+                while (!$status && !feof($handle)) {
+                    $chunk = fread($handle, $chunkSizeBytes);
+                    $status = $media->nextChunk($chunk);
+                }
+                fclose($handle);
+
+                if ($status && isset($status['id'])) {
+                    $this->makePublic($status['id']);
+                    return [
+                        'id' => $status['id'],
+                        'webViewLink' => $status['webViewLink'],
+                        'webContentLink' => $status['webContentLink']
+                    ];
+                }
+            } catch (Exception $e) {
+                if (isset($handle) && is_resource($handle)) fclose($handle);
+                error_log("Error actualizando archivo en Drive (intentando subida nueva): " . $e->getMessage());
+            }
+        }
+
+        // Si no existía o falló el update, subir normalmente
+        return $this->uploadFile($filePath, $fileName, $parentFolderId);
     }
 
     /**

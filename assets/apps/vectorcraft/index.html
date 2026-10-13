@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>VectorCraft</title>
+  
+  <script>
+    // Preservar buffer de dibujo en WebGL para permitir capturas y exportaciones
+    const origGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function(type, options) {
+      if (type === 'webgl2' || type === 'webgl') {
+        options = Object.assign({}, options || {}, { preserveDrawingBuffer: true });
+      }
+      return origGetContext.call(this, type, options);
+    };
+
+    window.__vcLastBlob = null;
+    window.__vcLastBlobUrl = null;
+    window.__vcLastFileName = null;
+
+    // Interceptar cualquier Blob generado por VectorCraft (SVG, vectorcraft, etc.)
+    const origCreateObjectURL = URL.createObjectURL;
+    URL.createObjectURL = function(blob) {
+      const url = origCreateObjectURL.apply(this, arguments);
+      window.__vcLastBlob = blob;
+      window.__vcLastBlobUrl = url;
+      return url;
+    };
+
+    function notifyExportToParent(downloadName, href) {
+      const fileName = downloadName || window.__vcLastFileName || 'illustration.svg';
+      const blob = window.__vcLastBlob;
+      window.__vcLastFileName = fileName;
+
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'VECTORCRAFT_FILE_EXPORTED',
+          fileName: fileName,
+          blobUrl: href || window.__vcLastBlobUrl
+        }, '*');
+      }
+    }
+
+    const origAnchorClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function() {
+      if (this.download) {
+        notifyExportToParent(this.download, this.href);
+      }
+      return origAnchorClick.apply(this, arguments);
+    };
+
+    const origElementClick = HTMLElement.prototype.click;
+    HTMLElement.prototype.click = function() {
+      if (this.download) {
+        notifyExportToParent(this.download, this.href);
+      }
+      return origElementClick.apply(this, arguments);
+    };
+
+    // Función accesible desde la ventana padre para capturar el lienzo
+    window.__vcCaptureCanvasBlob = function(callback) {
+      // 1. Si VectorCraft ya generó un archivo exportado recientemente, usarlo
+      if (window.__vcLastBlob) {
+        callback(window.__vcLastBlob, window.__vcLastFileName || 'illustration.svg');
+        return;
+      }
+
+      // 2. Si no, capturar directamente el canvas en alta resolución
+      const canvas = document.getElementById('vectorcraft_canvas');
+      if (!canvas) {
+        callback(null, null);
+        return;
+      }
+      try {
+        canvas.toBlob(function(blob) {
+          callback(blob, 'illustration.png');
+        }, 'image/png');
+      } catch (err) {
+        console.error('Error capturando canvas:', err);
+        callback(null, null);
+      }
+    };
+
+    // Escuchar mensajes de la ventana padre
+    window.addEventListener('message', function(event) {
+      if (!event.data) return;
+
+      if (event.data.action === 'REQUEST_CANVAS_EXPORT') {
+        window.__vcCaptureCanvasBlob(function(blob, fileName) {
+          if (blob) {
+            const reader = new FileReader();
+            reader.onloadend = function() {
+              window.parent.postMessage({
+                type: 'VECTORCRAFT_EXPORT_RESPONSE',
+                dataUrl: reader.result,
+                fileName: fileName
+              }, '*');
+            };
+            reader.readAsDataURL(blob);
+          } else {
+            window.parent.postMessage({
+              type: 'VECTORCRAFT_EXPORT_RESPONSE',
+              dataUrl: null,
+              fileName: null
+            }, '*');
+          }
+        });
+      }
+
+      if (event.data.action === 'TRIGGER_CTRL_S') {
+        const canvas = document.getElementById('vectorcraft_canvas');
+        if (canvas) {
+          const evt = new KeyboardEvent('keydown', {
+            key: 's',
+            code: 'KeyS',
+            keyCode: 83,
+            which: 83,
+            ctrlKey: true,
+            bubbles: true,
+            cancelable: true
+          });
+          canvas.dispatchEvent(evt);
+        }
+      }
+    });
+  </script>
+
+<script type="module">
+import init, * as bindings from './vectorcraft-web-3fe8985f713df07e.js';
+const wasm = await init({ module_or_path: './vectorcraft-web-3fe8985f713df07e_bg.wasm' });
+
+window.wasmBindings = bindings;
+window.wasmInstance = wasm;
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
+    #vectorcraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #vectorcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
+  </style>
+<link rel="modulepreload" href="./vectorcraft-web-3fe8985f713df07e.js" crossorigin="anonymous" integrity="sha384-qkHM7tkJtBruIYf5jGwNHU1axrTbfSMZYSpZwtSRjNQIElzA2LLv95+NDRqMGYA2"><link rel="preload" href="./vectorcraft-web-3fe8985f713df07e_bg.wasm" crossorigin="anonymous" integrity="sha384-sti5fuJUnFdquy+eIxA6Mm21mE+Qg8qxgtEPh4dC7vQNGkc/h3p2A7MGmuudMoov" as="fetch" type="application/wasm"></head>
+<body>
+  <canvas id="vectorcraft_canvas"></canvas>
+  <div id="vectorcraft_loading">Loading VectorCraft&hellip;</div>
+</body>
+</html>

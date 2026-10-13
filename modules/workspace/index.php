@@ -284,6 +284,14 @@ require_once 'includes/header.php';
     background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
     box-shadow: 0 8px 20px -3px rgba(245, 158, 11, 0.45);
 }
+.icon-deckcraft {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
+    box-shadow: 0 8px 20px -3px rgba(234, 88, 12, 0.45);
+}
+.icon-vectorcraft {
+    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 50%, #4338ca 100%);
+    box-shadow: 0 8px 20px -3px rgba(124, 58, 237, 0.45);
+}
 .icon-audio {
     background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
     box-shadow: 0 8px 20px -3px rgba(239, 68, 68, 0.45);
@@ -553,6 +561,7 @@ require_once 'includes/header.php';
     if (in_array('pizarras', $perms)) $active_apps_count++;
     if (in_array('herramientas', $perms)) $active_apps_count++;
     if (in_array('audiovisual', $perms)) $active_apps_count++;
+    if (in_array('workspace', $perms) || (($_SESSION['role_id'] ?? 0) == 1)) $active_apps_count++;
 ?>
 
 <div class="workspace-container">
@@ -801,6 +810,46 @@ require_once 'includes/header.php';
             </div>
             <div class="workspace-card-footer">
                 <span class="ws-app-tag">Utilidades</span>
+            </div>
+        </a>
+        <?php endif; ?>
+
+        <!-- DeckCraft Presentaciones (Activo) -->
+        <?php if (in_array('workspace', $perms) || (($_SESSION['role_id'] ?? 0) == 1)): ?>
+        <a href="index.php?module=workspace&action=deckcraft" class="workspace-card" data-title="DeckCraft Presentaciones" data-desc="Presentaciones diapositivas powerpoint pptx animaciones slides deckcraft vectoriales transiciones">
+            <div class="workspace-card-top">
+                <div class="workspace-card-icon icon-deckcraft" title="DeckCraft">
+                    <i class="ph-bold ph-projector-screen-chart"></i>
+                </div>
+                <div class="app-launch-chip">
+                    <i class="ph-bold ph-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="workspace-card-content">
+                <h3 class="workspace-card-title">DeckCraft</h3>
+                <p class="workspace-card-desc">Editor de diapositivas estilo PowerPoint, animaciones y exportación PPTX / PDF.</p>
+            </div>
+            <div class="workspace-card-footer">
+                <span class="ws-app-tag">Presentaciones</span>
+            </div>
+        </a>
+
+        <!-- VectorCraft Ilustración Vectorial (Activo) -->
+        <a href="index.php?module=workspace&action=vectorcraft" class="workspace-card" data-title="VectorCraft Ilustración" data-desc="Ilustración vectorial diseño gráfico svg dibujo pluma curvas bézier pathfinder capas adobe illustrator rust vectorcraft">
+            <div class="workspace-card-top">
+                <div class="workspace-card-icon icon-vectorcraft" title="VectorCraft">
+                    <i class="ph-bold ph-bezier-curve"></i>
+                </div>
+                <div class="app-launch-chip">
+                    <i class="ph-bold ph-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="workspace-card-content">
+                <h3 class="workspace-card-title">VectorCraft</h3>
+                <p class="workspace-card-desc">Editor vectorial profesional estilo Adobe Illustrator en Rust: pluma Bézier, Pathfinder y exportación SVG/PDF/PNG.</p>
+            </div>
+            <div class="workspace-card-footer">
+                <span class="ws-app-tag" style="color: #7c3aed; background: color-mix(in srgb, #7c3aed 10%, transparent);">Diseño Vectorial</span>
             </div>
         </a>
         <?php endif; ?>
