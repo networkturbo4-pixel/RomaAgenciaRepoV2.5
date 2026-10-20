@@ -61,14 +61,25 @@ try {
         $post_date = date('Y-m-d H:i:s');
     }
 
-    // Auto-transition logic: Do not blindly jump to Publicado without client approval.
-    // If starting from Borrador and media is added, advance to 'En Revisión' (ready for design or presentation).
-    if (empty($status) || $status === 'Borrador') {
-        if (!empty($image_link)) {
-            $status = 'En Revisión';
-        } elseif (!empty($reference_image_link)) {
-            $status = 'En Revisión';
-        }
+    // Normalize empty JSON arrays ('[]' or 'null') in media links
+    if (trim($image_link) === '[]' || trim($image_link) === 'null') {
+        $image_link = '';
+    }
+    if (trim($reference_image_link) === '[]' || trim($reference_image_link) === 'null') {
+        $reference_image_link = '';
+    }
+
+    // Respect user-selected workflow stage (allow moving backwards to Borrador or between any stage freely)
+    $validStatuses = ['Borrador', 'En Revisión', 'Aprobado', 'Publicado', 'Archivado'];
+    $status = trim($status);
+    if (empty($status) || !in_array($status, $validStatuses, true)) {
+        $status = 'Borrador';
+    }
+
+    if ($status === 'Borrador') {
+        $post_type = 'Referencia Visual';
+    } elseif (empty($post_type)) {
+        $post_type = !empty($image_link) ? 'Post Terminado' : 'Referencia Visual';
     }
 
     if ($id > 0) {

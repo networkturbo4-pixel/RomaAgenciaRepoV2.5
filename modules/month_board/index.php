@@ -2947,23 +2947,25 @@ setInterval(updateMonthBoardTimer, 1000);
                 $postDeadline = $monthData['due_date'];
             }
 
-            // Determinar fase del flujo para filtros
-            $hasFinalImg = !empty($p['image_link']);
-            $hasRefImg = !empty($p['reference_image_link']);
-            $hasBrief = !empty($p['design_brief']);
+            // Determinar fase del flujo para filtros (respetando el estado elegido por el usuario)
+            $rawFinalLink = trim($p['image_link'] ?? '');
+            $hasFinalImg = ($rawFinalLink !== '' && $rawFinalLink !== '[]' && $rawFinalLink !== 'null');
+            $rawRefLink = trim($p['reference_image_link'] ?? '');
+            $hasRefImg = ($rawRefLink !== '' && $rawRefLink !== '[]' && $rawRefLink !== 'null');
+            $hasBrief = !empty(trim(strip_tags($p['design_brief'] ?? '')));
             $pStatus = trim($p['status'] ?? 'Borrador');
             
-            if (in_array($pStatus, ['Aprobado', 'Publicado'])) {
+            if ($pStatus === 'Borrador' || $pStatus === 'Idea') {
+                $postPhase = 'ideas';
+                $phaseBadgeLabel = 'Idea / Grilla';
+                $phaseBadgeIcon = 'ph-bold ph-lightbulb';
+                $phaseBadgeColor = '#8b5cf6';
+            } elseif (in_array($pStatus, ['Aprobado', 'Publicado'])) {
                 $postPhase = 'publicados';
                 $phaseBadgeLabel = ($pStatus === 'Publicado') ? 'Publicado' : 'Aprobado';
                 $phaseBadgeIcon = 'ph-bold ph-check-circle';
                 $phaseBadgeColor = '#10b981';
-            } elseif ($hasFinalImg && $pStatus === 'En Revisión') {
-                $postPhase = 'presentacion';
-                $phaseBadgeLabel = 'En Cliente';
-                $phaseBadgeIcon = 'ph-bold ph-presentation-chart';
-                $phaseBadgeColor = '#3b82f6';
-            } elseif ($p['post_type'] === 'Post Terminado' || $pStatus === 'En Revisión' || $hasBrief || $hasRefImg) {
+            } elseif ($pStatus === 'En Revisión') {
                 if ($hasFinalImg) {
                     $postPhase = 'presentacion';
                     $phaseBadgeLabel = 'En Cliente';
@@ -3032,12 +3034,17 @@ setInterval(updateMonthBoardTimer, 1000);
                     </div>
 
                     <?php 
-                    $mediaStr = $p['post_type'] === 'Referencia Visual' ? $p['reference_image_link'] : $p['image_link'];
+                    if ($pStatus === 'Borrador' || $pStatus === 'Idea') {
+                        $mediaStr = $hasRefImg ? $p['reference_image_link'] : $p['image_link'];
+                    } else {
+                        $mediaStr = $hasFinalImg ? $p['image_link'] : $p['reference_image_link'];
+                    }
                     $mediaList = json_decode($mediaStr, true);
-                    if (!is_array($mediaList) && !empty($mediaStr)) {
+                    if (!is_array($mediaList) && !empty($mediaStr) && $mediaStr !== '[]' && $mediaStr !== 'null') {
                         $mediaList = [$mediaStr];
                     }
-                    if (empty($mediaList)) { $mediaList = []; }
+                    if (empty($mediaList) || !is_array($mediaList)) { $mediaList = []; }
+                    $mediaList = array_values(array_filter($mediaList, function($item) { return is_string($item) && trim($item) !== ''; }));
 
                     if (count($mediaList) > 1): ?>
                         <div class="swiper mySwiper-<?php echo $p['id']; ?>" style="width: 100%; height: 100%;">
@@ -5746,6 +5753,16 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                             </label>
                                         </div>
                                     </div>
+
+                                    <!-- Navegación Bidireccional de Etapa (Idea ⇄ Diseño ⇄ Aprobación) -->
+                                    <div class="workflow-next-card" style="gap: 0.75rem; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.52rem 0.9rem; border-radius: 9px; font-size: 0.78rem; font-weight: 700;" onclick="goToIdeaTab(true)">
+                                            <i class="ph-bold ph-arrow-left"></i> <span>Regresar a Idea / Borrador</span>
+                                        </button>
+                                        <button type="button" class="btn-step-next" onclick="goToAprobacionTab()">
+                                            <span>Pasar a Aprobación Cliente</span> <i class="ph-bold ph-arrow-right"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- Columna Derecha con Cabecera Fija / Sticky: Flujo Dinámico de Hitos y Avances de Diseño -->
@@ -5823,23 +5840,27 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                             Selecciona en qué fase de validación se encuentra este contenido:
                                         </div>
 
-                                        <div class="client-status-grid">
-                                            <div class="client-status-btn active" data-target-status="En Revisión" onclick="setPostStatus('En Revisión')">
-                                                <i class="ph-bold ph-clock" style="font-size: 1.35rem; color: #f59e0b;"></i>
-                                                <span>En Revisión Cliente</span>
+                                        <div class="client-status-grid" style="grid-template-columns: repeat(2, 1fr);">
+                                            <div class="client-status-btn" data-target-status="Borrador" onclick="setPostStatus('Borrador')">
+                                                <i class="ph-bold ph-lightbulb" style="font-size: 1.35rem; color: #8b5cf6;"></i>
+                                                <span>1. Idea / Borrador</span>
                                             </div>
-                                            <div class="client-status-btn" data-target-status="Aprobado" onclick="setPostStatus('Aprobado')">
+                                            <div class="client-status-btn active" data-target-status="En Revisión" onclick="setPostStatus('En Revisión', false)">
+                                                <i class="ph-bold ph-paint-brush" style="font-size: 1.35rem; color: #f59e0b;"></i>
+                                                <span>2. En Diseño / Revisión</span>
+                                            </div>
+                                            <div class="client-status-btn" data-target-status="Aprobado" onclick="setPostStatus('Aprobado', false)">
                                                 <i class="ph-bold ph-check-circle" style="font-size: 1.35rem; color: #3b82f6;"></i>
-                                                <span>Aprobado por Cliente</span>
+                                                <span>3. Aprobado Cliente</span>
                                             </div>
-                                            <div class="client-status-btn" data-target-status="Publicado" onclick="setPostStatus('Publicado')">
+                                            <div class="client-status-btn" data-target-status="Publicado" onclick="setPostStatus('Publicado', false)">
                                                 <i class="ph-bold ph-rocket-launch" style="font-size: 1.35rem; color: #10b981;"></i>
-                                                <span>Programado / Publicado</span>
+                                                <span>4. Programado / Publicado</span>
                                             </div>
                                         </div>
 
                                         <div style="font-size: 0.73rem; color: var(--text-muted); background: var(--bg-color, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-left: 3px solid var(--primary-color, #4f46e5); padding: 0.75rem 0.85rem; border-radius: 10px; margin: 1rem 0; line-height: 1.45;">
-                                            <i class="ph-bold ph-info" style="color: var(--primary-color);"></i> <strong>Ciclo de Entrega:</strong> Los diseños aprobados por el cliente pasan a estar <strong>Aprobados</strong> o <strong>Publicados/Programados</strong> en las redes sociales y ahí concluye su desarrollo.
+                                            <i class="ph-bold ph-info" style="color: var(--primary-color);"></i> <strong>Flujo Flexible:</strong> Puedes avanzar o regresar el post a cualquier etapa (Idea, Diseño, Aprobado o Publicado) en cualquier momento.
                                         </div>
 
                                         <div style="display: flex; flex-direction: column; gap: 0.6rem;">
@@ -5849,6 +5870,14 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                             <button type="button" class="btn btn-outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem; border-radius: 10px; font-weight: 700; font-size: 0.8rem;" onclick="startPresentation()">
                                                 <i class="ph-bold ph-presentation-chart"></i> Iniciar Modo Presentación
                                             </button>
+                                            <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                                                <button type="button" class="btn btn-outline" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border-radius: 9px; font-size: 0.76rem; font-weight: 700;" onclick="goToIdeaTab(true)">
+                                                    <i class="ph-bold ph-arrow-u-up-left"></i> Volver a Idea
+                                                </button>
+                                                <button type="button" class="btn btn-outline" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border-radius: 9px; font-size: 0.76rem; font-weight: 700;" onclick="goToDisenoTab(true)">
+                                                    <i class="ph-bold ph-paint-brush"></i> Volver a Diseño
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -5933,11 +5962,20 @@ function switchCrmTab(tabElement, paneId) {
     updateApprovalView();
 }
 
-function goToDisenoTab() {
+function goToIdeaTab(revertStatus = false) {
+    const tabIdea = document.getElementById('crm-tab-nav-idea');
+    if (tabIdea) switchCrmTab(tabIdea, 'tab-idea');
+    if (revertStatus) {
+        setPostStatus('Borrador', false);
+    }
+}
+
+function goToDisenoTab(revertStatus = false) {
     const tabDiseno = document.getElementById('crm-tab-nav-diseno');
     if (tabDiseno) switchCrmTab(tabDiseno, 'tab-diseno');
-    if (document.getElementById('post-status').value === 'Borrador') {
-        setPostStatus('En Revisión');
+    const currStatus = document.getElementById('post-status').value;
+    if (revertStatus || currStatus === 'Borrador' || currStatus === 'Aprobado' || currStatus === 'Publicado') {
+        setPostStatus('En Revisión', false);
     }
 }
 
@@ -5945,7 +5983,7 @@ function goToAprobacionTab() {
     const tabAprob = document.getElementById('crm-tab-nav-aprobacion');
     if (tabAprob) switchCrmTab(tabAprob, 'tab-aprobacion');
     if (document.getElementById('post-status').value === 'Borrador') {
-        setPostStatus('En Revisión');
+        setPostStatus('En Revisión', false);
     }
 }
 
@@ -6191,11 +6229,59 @@ function switchCommentSubtab(subtab) {
     }
 }
 
-function setPostStatus(status) {
+window.statusChangedInModal = false;
+
+function setPostStatus(status, autoSwitchTab = true) {
+    const prevStatus = document.getElementById('post-status').value;
     document.getElementById('post-status').value = status;
+
+    // Sincronizar post_type según la etapa elegida
+    const ptRef = document.getElementById('pt_ref');
+    const ptPost = document.getElementById('pt_post');
+    if (status === 'Borrador') {
+        if (ptRef) ptRef.checked = true;
+        if (autoSwitchTab) {
+            const tabIdea = document.getElementById('crm-tab-nav-idea');
+            if (tabIdea) switchCrmTab(tabIdea, 'tab-idea');
+        }
+    } else if (status === 'En Revisión') {
+        if (ptPost) ptPost.checked = true;
+        if (autoSwitchTab && currentActivePane !== 'tab-diseno' && currentActivePane !== 'tab-aprobacion') {
+            const tabDiseno = document.getElementById('crm-tab-nav-diseno');
+            if (tabDiseno) switchCrmTab(tabDiseno, 'tab-diseno');
+        } else if (autoSwitchTab && currentActivePane === 'tab-aprobacion') {
+            const tabDiseno = document.getElementById('crm-tab-nav-diseno');
+            if (tabDiseno) switchCrmTab(tabDiseno, 'tab-diseno');
+        }
+    } else if (status === 'Aprobado' || status === 'Publicado') {
+        if (ptPost) ptPost.checked = true;
+        if (autoSwitchTab && currentActivePane !== 'tab-aprobacion') {
+            const tabAprob = document.getElementById('crm-tab-nav-aprobacion');
+            if (tabAprob) switchCrmTab(tabAprob, 'tab-aprobacion');
+        }
+    }
+
     updatePipelineUI();
     markDirty();
     updateSaveButtonState();
+
+    // Si el post ya existe, persistir inmediatamente el cambio de etapa
+    const postId = document.getElementById('post-id') ? document.getElementById('post-id').value : '';
+    const concept = document.getElementById('post-concept') ? document.getElementById('post-concept').value.trim() : '';
+    if (postId && concept && prevStatus !== status) {
+        window.statusChangedInModal = true;
+        savePost(true);
+        const stageLabels = {
+            'Borrador': '1. Idea / Borrador',
+            'En Revisión': '2. En Diseño / Revisión',
+            'Aprobado': '3. Aprobado por Cliente',
+            'Publicado': '4. Publicado',
+            'Archivado': 'Archivado'
+        };
+        if (typeof showToast === 'function') {
+            showToast(`Etapa cambiada a: ${stageLabels[status] || status}`, 'success');
+        }
+    }
 }
 
 function updatePipelineUI() {
@@ -6376,10 +6462,16 @@ function attemptCloseModal() {
         if (confirm("¿Estás seguro de cerrar? Tienes cambios sin guardar.")) {
             document.getElementById('post-modal').classList.remove('active');
             clearInterval(autoSaveTimer);
+            if (window.statusChangedInModal) {
+                window.location.reload();
+            }
         }
     } else {
         document.getElementById('post-modal').classList.remove('active');
         clearInterval(autoSaveTimer);
+        if (window.statusChangedInModal) {
+            window.location.reload();
+        }
     }
 }
 
@@ -7422,8 +7514,18 @@ function editPost(postData) {
 
     document.getElementById('post-modal-title').innerText = 'Editar Publicación';
     
-    // Resetear pestañas y pipeline
-    switchCrmTab(document.getElementById('crm-tab-nav-idea'), 'tab-idea');
+    // Abrir la pestaña correspondiente al estado actual del post y sincronizar pipeline
+    window.statusChangedInModal = false;
+    const currentStatus = (post.status || 'Borrador').trim();
+    if (currentStatus === 'Borrador' || currentStatus === 'Idea') {
+        switchCrmTab(document.getElementById('crm-tab-nav-idea'), 'tab-idea');
+    } else if (currentStatus === 'En Revisión') {
+        switchCrmTab(document.getElementById('crm-tab-nav-diseno'), 'tab-diseno');
+    } else if (currentStatus === 'Aprobado' || currentStatus === 'Publicado') {
+        switchCrmTab(document.getElementById('crm-tab-nav-aprobacion'), 'tab-aprobacion');
+    } else {
+        switchCrmTab(document.getElementById('crm-tab-nav-idea'), 'tab-idea');
+    }
     updatePipelineUI();
     
     document.getElementById('post-modal').classList.add('active');
@@ -7798,6 +7900,10 @@ async function savePost(isAutoSave = false) {
                     const rawDate = document.getElementById('post-date').value;
                     mem.post_date = rawDate ? (rawDate.length === 16 ? rawDate.replace('T', ' ') + ':00' : rawDate.replace('T', ' ')) : null;
                     mem.concept = document.getElementById('post-concept').value;
+                    mem.status = document.getElementById('post-status').value;
+                    mem.image_link = document.getElementById('post-image-link').value;
+                    mem.reference_image_link = document.getElementById('post-reference-link').value;
+                    mem.post_type = document.querySelector('input[name="post_type"]:checked') ? document.querySelector('input[name="post_type"]:checked').value : mem.post_type;
                 }
             }
 
