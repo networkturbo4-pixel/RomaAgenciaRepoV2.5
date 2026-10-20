@@ -155,6 +155,7 @@
     }
 
     function fetchUnreadCount() {
+        if (navigator.onLine === false || document.hidden) return;
         fetch('ajax/notifications.php?action=get_unread_count')
             .then(res => res.json())
             .then(data => {
@@ -162,7 +163,7 @@
                     updateBadge(data.count);
                 }
             })
-            .catch(err => console.debug('Notif count fetch error:', err));
+            .catch(() => {});
     }
 
     function fetchNotifications() {

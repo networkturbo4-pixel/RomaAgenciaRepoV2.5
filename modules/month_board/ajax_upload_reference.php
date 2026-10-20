@@ -135,11 +135,54 @@ if ($saved) {
                     if ($jsonStr) {
                         $foldersData = json_decode($jsonStr, true);
                         if (isset($foldersData['subfolders'])) {
-                            $targetName = ($post_type === 'Post Terminado') ? 'POST TERMINADOS' : 'REFERENCIAS';
+                            $targetFolderParam = isset($_POST['target_folder']) ? trim($_POST['target_folder']) : '';
+                            if ($targetFolderParam) {
+                                $targetName = strtoupper($targetFolderParam);
+                            } else if ($post_type === 'Post Terminado') {
+                                $targetName = 'POST TERMINADOS';
+                            } else {
+                                $targetName = 'EXTRAS';
+                            }
+
                             foreach ($foldersData['subfolders'] as $sf) {
-                                if ($sf['name'] === $targetName) {
+                                if (strcasecmp($sf['name'], $targetName) === 0) {
                                     $targetFolderId = $sf['id'];
                                     break;
+                                }
+                            }
+
+                            if (!$targetFolderId && $targetName === 'EXTRAS') {
+                                foreach ($foldersData['subfolders'] as $sf) {
+                                    if (stripos($sf['name'], 'EXTRA') !== false) {
+                                        $targetFolderId = $sf['id'];
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!$targetFolderId && $targetName === 'EXTRAS') {
+                                $rootFolderId = $foldersData['main_folder']['id'] ?? ($foldersData['root_folder']['id'] ?? null);
+                                if ($rootFolderId) {
+                                    $createdId = $drive->createFolder('EXTRAS', $rootFolderId);
+                                    if ($createdId) {
+                                        $targetFolderId = $createdId;
+                                        $foldersData['subfolders'][] = [
+                                            'name' => 'EXTRAS',
+                                            'id' => $createdId,
+                                            'url' => 'https://drive.google.com/drive/folders/' . $createdId
+                                        ];
+                                        $upd = $db->prepare('UPDATE project_months SET drive_folders_json = ? WHERE id = ?');
+                                        $upd->execute([json_encode($foldersData), $month_id]);
+                                    }
+                                }
+                            }
+
+                            if (!$targetFolderId) {
+                                foreach ($foldersData['subfolders'] as $sf) {
+                                    if (strcasecmp($sf['name'], 'REFERENCIAS') === 0) {
+                                        $targetFolderId = $sf['id'];
+                                        break;
+                                    }
                                 }
                             }
                         }

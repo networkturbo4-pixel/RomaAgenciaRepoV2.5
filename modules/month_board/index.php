@@ -38,7 +38,48 @@ if (!$monthData) {
 $stmtBrand = $db->prepare("SELECT logo FROM client_brands WHERE name = ?");
 $stmtBrand->execute([$monthData['brand_name']]);
 $brand = $stmtBrand->fetch(PDO::FETCH_ASSOC);
-$logo = $brand && !empty($brand['logo']) ? $brand['logo'] : 'assets/img/default-logo.png';
+$rawBrandLogo = $brand && !empty($brand['logo']) ? trim($brand['logo']) : '';
+if ($rawBrandLogo !== '' && strpos($rawBrandLogo, 'http') !== 0 && strpos($rawBrandLogo, 'data:') !== 0) {
+    $brandLogoDisk = __DIR__ . '/../../' . ltrim(parse_url($rawBrandLogo, PHP_URL_PATH) ?: $rawBrandLogo, '/');
+    if (!file_exists($brandLogoDisk)) {
+        $rawBrandLogo = '';
+    }
+}
+$logo = $rawBrandLogo !== '' ? $rawBrandLogo : 'assets/img/default-logo.png';
+
+if (!function_exists('filterExistingLocalMedia')) {
+    function filterExistingLocalMedia($rawMediaStr) {
+        if (empty($rawMediaStr) || !is_string($rawMediaStr)) return '';
+        $decoded = json_decode($rawMediaStr, true);
+        $isJson = is_array($decoded);
+        $list = $isJson ? $decoded : [$rawMediaStr];
+        $valid = [];
+        foreach ($list as $item) {
+            if (!is_string($item) || trim($item) === '') continue;
+            $clean = trim($item);
+            if (strpos($clean, 'data:') === 0) {
+                $valid[] = $clean;
+                continue;
+            }
+            $localRel = null;
+            if (strpos($clean, 'uploads/') === 0 || strpos($clean, '/uploads/') === 0) {
+                $localRel = ltrim($clean, '/');
+            } elseif (preg_match('#(?:^https?://[^/]+)?(?:/CESARMENDOZA)?/(uploads/.+)$#i', $clean, $m)) {
+                $localRel = $m[1];
+            }
+            if ($localRel !== null) {
+                $relPathOnly = parse_url($localRel, PHP_URL_PATH) ?: $localRel;
+                $diskPath = __DIR__ . '/../../' . ltrim(rawurldecode($relPathOnly), '/');
+                if (!file_exists($diskPath)) {
+                    continue;
+                }
+            }
+            $valid[] = $clean;
+        }
+        if (empty($valid)) return $isJson ? '[]' : '';
+        return $isJson ? json_encode(array_values($valid), JSON_UNESCAPED_SLASHES) : $valid[0];
+    }
+}
 
 // Fetch posts
 $stmtPosts = $db->prepare("SELECT * FROM month_posts WHERE month_id = ? ORDER BY CASE WHEN post_date IS NULL OR post_date = '0000-00-00' OR post_date = '0000-00-00 00:00:00' THEN 1 ELSE 0 END ASC, post_date ASC, id ASC");
@@ -46,6 +87,8 @@ $stmtPosts->execute([$monthId]);
 $posts = $stmtPosts->fetchAll(PDO::FETCH_ASSOC);
 
 foreach ($posts as &$p) {
+    $p['image_link'] = filterExistingLocalMedia($p['image_link'] ?? '');
+    $p['reference_image_link'] = filterExistingLocalMedia($p['reference_image_link'] ?? '');
     $stmtC = $db->prepare("SELECT * FROM post_comments WHERE post_id = ? ORDER BY created_at DESC");
     $stmtC->execute([$p['id']]);
     $p['comments'] = $stmtC->fetchAll(PDO::FETCH_ASSOC);
@@ -253,6 +296,240 @@ require_once 'includes/header.php';
         align-items: center; 
         gap: 0.5rem;
         flex-wrap: wrap;
+    }
+
+    /* ===== BARRA DE FILTROS DE FASE (WORKFLOW) ===== */
+    .board-phase-filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: var(--bg-surface, #ffffff);
+        border: 1px solid var(--border-color, #e2e8f0);
+        padding: 0.65rem 1.15rem;
+        border-radius: 16px;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    [data-theme="dark"] .board-phase-filter-bar {
+        background: #121214;
+        border-color: #27272a;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+    .bpf-label {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--text-muted, #64748b);
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    [data-theme="dark"] .bpf-label {
+        color: #94a3b8;
+    }
+    .bpf-pills {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .bpf-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.95rem;
+        border-radius: 12px;
+        background: var(--bg-color, #f1f5f9);
+        border: 1px solid var(--border-color, #e2e8f0);
+        color: var(--text-color, #334155);
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: none;
+    }
+    [data-theme="dark"] .bpf-pill {
+        background: #18181b;
+        border-color: #27272a;
+        color: #cbd5e1;
+    }
+    .bpf-pill:hover {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: rgba(99, 102, 241, 0.35);
+        color: #6366f1;
+        transform: translateY(-1px);
+    }
+    .bpf-pill.active {
+        background: var(--primary-color, #4f46e5);
+        border-color: var(--primary-color, #4f46e5);
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    }
+    .bpf-badge {
+        font-size: 0.7rem;
+        padding: 0.12rem 0.5rem;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.08);
+        font-weight: 800;
+    }
+    [data-theme="dark"] .bpf-badge {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .bpf-pill.active .bpf-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: #ffffff;
+    }
+    .post-stage-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.68rem;
+        font-weight: 800;
+        padding: 0.2rem 0.55rem;
+        border-radius: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    /* Workflow Cards & Steps in Modal */
+    .workflow-next-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(59, 130, 246, 0.04));
+        border: 1px solid rgba(99, 102, 241, 0.22);
+        padding: 0.85rem 1.25rem;
+        border-radius: 14px;
+        margin-top: 0.75rem;
+    }
+    [data-theme="dark"] .workflow-next-card {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(30, 27, 75, 0.4));
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+    .btn-step-next {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.1rem;
+        border-radius: 10px;
+        background: var(--primary-color, #4f46e5);
+        border: none;
+        color: #ffffff;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-step-next:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    }
+    .designer-brief-card {
+        background: var(--bg-surface, #ffffff);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 16px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    [data-theme="dark"] .designer-brief-card {
+        background: #141416;
+        border-color: #27272a;
+    }
+    .brief-meta-item {
+        margin-bottom: 0.5rem;
+    }
+    .brief-meta-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--text-muted, #64748b);
+        margin-bottom: 0.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .brief-copy-box {
+        background: var(--bg-color, #f8fafc);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 10px;
+        padding: 0.75rem;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        max-height: 160px;
+        overflow-y: auto;
+        position: relative;
+    }
+    [data-theme="dark"] .brief-copy-box {
+        background: #0d0d0f;
+        border-color: #27272a;
+        color: #e2e8f0;
+    }
+    .brief-ref-box {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-color, #e2e8f0);
+        background: #000000;
+        min-height: 180px;
+        max-height: 240px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-theme="dark"] .brief-ref-box {
+        border-color: #27272a;
+    }
+    .client-status-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.65rem;
+        margin: 0.85rem 0;
+    }
+    .client-status-btn {
+        padding: 0.65rem 0.5rem;
+        border-radius: 12px;
+        border: 1.5px solid var(--border-color, #e2e8f0);
+        background: var(--bg-surface, #ffffff);
+        color: var(--text-muted, #64748b);
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        text-align: center;
+    }
+    [data-theme="dark"] .client-status-btn {
+        background: #18181b;
+        border-color: #27272a;
+        color: #94a3b8;
+    }
+    .client-status-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    .client-status-btn.active[data-target-status="En Revisión"] {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: #f59e0b;
+        color: #d97706;
+    }
+    .client-status-btn.active[data-target-status="Aprobado"] {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+    .client-status-btn.active[data-target-status="Publicado"] {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: #10b981;
+        color: #059669;
     }
 
     .toolbar {
@@ -916,6 +1193,1375 @@ require_once 'includes/header.php';
             box-sizing: border-box;
         }
     }
+
+    /* Modern Studio Loader Animation (SaaS Clean Light/Dark Design) */
+    .modern-studio-loader {
+        width: 100%;
+        height: 100%;
+        min-height: 230px;
+        background-color: #f8fafc;
+        background-image: 
+            radial-gradient(circle at 50% 38%, rgba(79, 70, 229, 0.08) 0%, transparent 65%),
+            radial-gradient(#cbd5e1 1px, transparent 1px);
+        background-size: 100% 100%, 16px 16px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 14px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.95rem;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+        padding: 1.5rem 1.25rem;
+        box-sizing: border-box;
+    }
+    [data-theme="dark"] .modern-studio-loader {
+        background-color: #0d121d;
+        background-image: 
+            radial-gradient(circle at 50% 38%, rgba(99, 102, 241, 0.14) 0%, transparent 65%),
+            radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+    .msl-top-progress-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: rgba(79, 70, 229, 0.1);
+        overflow: hidden;
+    }
+    .msl-top-progress-line::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -45%;
+        width: 45%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, #4f46e5, #0ea5e9, transparent);
+        animation: mslTopLineSlide 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes mslTopLineSlide {
+        0% { left: -45%; }
+        100% { left: 100%; }
+    }
+    .msl-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        color: #4f46e5;
+        padding: 3px 10px;
+        border-radius: 999px;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    }
+    [data-theme="dark"] .msl-badge {
+        background: #161e2e;
+        border-color: rgba(99, 102, 241, 0.3);
+        color: #818cf8;
+    }
+    .msl-badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #4f46e5;
+        animation: mslBadgePing 1.2s ease-in-out infinite alternate;
+    }
+    [data-theme="dark"] .msl-badge-dot {
+        background: #818cf8;
+    }
+    @keyframes mslBadgePing {
+        0% { transform: scale(0.85); opacity: 0.5; }
+        100% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 6px #6366f1; }
+    }
+    .msl-core {
+        position: relative;
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.35rem;
+    }
+    .msl-ripple {
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        border: 1.5px solid rgba(79, 70, 229, 0.25);
+        animation: mslSquircleRipple 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+        pointer-events: none;
+    }
+    .msl-ripple-delay {
+        animation-delay: 1.1s;
+    }
+    [data-theme="dark"] .msl-ripple {
+        border-color: rgba(129, 140, 248, 0.3);
+    }
+    @keyframes mslSquircleRipple {
+        0% { transform: scale(0.78); opacity: 0.9; }
+        100% { transform: scale(1.28); opacity: 0; }
+    }
+    .msl-squircle-card {
+        position: relative;
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.16), 0 2px 6px rgba(15, 23, 42, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        animation: mslCardFloat 2s ease-in-out infinite alternate;
+    }
+    [data-theme="dark"] .msl-squircle-card {
+        background: #161e2e;
+        border-color: rgba(99, 102, 241, 0.35);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px rgba(99, 102, 241, 0.15);
+    }
+    @keyframes mslCardFloat {
+        0% { transform: translateY(2px); }
+        100% { transform: translateY(-3px); }
+    }
+    .msl-upload-arrow {
+        font-size: 1.55rem;
+        color: #4f46e5;
+        animation: mslArrowLift 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite alternate;
+    }
+    [data-theme="dark"] .msl-upload-arrow {
+        color: #818cf8;
+    }
+    @keyframes mslArrowLift {
+        0% { transform: translateY(2px) scale(0.96); opacity: 0.85; }
+        100% { transform: translateY(-2px) scale(1.06); opacity: 1; }
+    }
+    .msl-orbit-badge {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+        z-index: 3;
+    }
+    .msl-orbit-badge i {
+        animation: mslSpin 2.4s linear infinite;
+    }
+    @keyframes mslSpin {
+        to { transform: rotate(360deg); }
+    }
+    .msl-meta {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+        z-index: 2;
+        width: 100%;
+        max-width: 240px;
+    }
+    .msl-title {
+        font-size: 0.84rem;
+        font-weight: 800;
+        color: var(--color-title, #0f172a);
+        letter-spacing: -0.01em;
+        line-height: 1.3;
+    }
+    [data-theme="dark"] .msl-title {
+        color: #f1f5f9;
+    }
+    .msl-subtitle {
+        font-size: 0.72rem;
+        color: var(--text-muted, #64748b);
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    [data-theme="dark"] .msl-subtitle {
+        color: #94a3b8;
+    }
+    .msl-bar-track {
+        width: 100%;
+        max-width: 190px;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 0.3rem;
+        position: relative;
+    }
+    [data-theme="dark"] .msl-bar-track {
+        background: #1e2638;
+    }
+    .msl-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4f46e5, #6366f1, #0ea5e9);
+        border-radius: 999px;
+        transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .msl-bar-fill::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+        animation: mslShimmerBar 1.2s linear infinite;
+    }
+    @keyframes mslShimmerBar {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    /* Spacious WYSIWYG Heights */
+    .wysiwyg-content.copy-editor-content {
+        min-height: 280px !important;
+        max-height: 520px !important;
+        font-size: 0.95rem;
+        line-height: 1.65;
+    }
+    .wysiwyg-content.brief-editor-content {
+        min-height: 180px !important;
+        max-height: 360px !important;
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }
+    .brief-copy-box {
+        background: var(--bg-color, #f8fafc);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 10px;
+        padding: 0.85rem;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        min-height: 130px;
+        max-height: 260px;
+        overflow-y: auto;
+        position: relative;
+    }
+    [data-theme="dark"] .brief-copy-box {
+        background: #0d0d0f;
+        border-color: #27272a;
+        color: #e2e8f0;
+    }
+    .btn-paste-clip {
+        padding: 0 0.65rem;
+        border-radius: 10px;
+        border: 1px solid var(--border-color, #27272a);
+        background: var(--bg-surface-elevated, rgba(255,255,255,0.06));
+        color: var(--color-title, #f8fafc);
+        font-size: 0.78rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-paste-clip:hover {
+        background: var(--primary-color, #6366f1);
+        color: #ffffff;
+        border-color: var(--primary-color, #6366f1);
+        transform: translateY(-1px);
+    }
+
+
+    /* Design Notes & Delivery WYSIWYG */
+    .wysiwyg-content.design-notes-editor {
+        min-height: 140px !important;
+        max-height: 260px !important;
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }
+
+    /* ==========================================================================
+       TARJETA DE HITO DE DISEÑO (ESTILO TASK MANAGER 1:1 CON IMAGEN 1)
+       ========================================================================== */
+    .tm-timeline-card {
+        background: rgba(15, 20, 31, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 0.95rem 1.15rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    html[data-theme="light"] .tm-timeline-card,
+    html:not([data-theme="dark"]) .tm-timeline-card {
+        background: #ffffff;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    }
+    .tm-timeline-card:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+    }
+    .tm-step-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.65rem;
+    }
+    .tm-step-title-input {
+        flex: 1;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #f8fafc;
+        background: transparent;
+        border: none;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+        padding: 0.2rem 0;
+        outline: none;
+        transition: border-color 0.2s;
+        min-width: 100px;
+    }
+    html[data-theme="light"] .tm-step-title-input,
+    html:not([data-theme="dark"]) .tm-step-title-input {
+        color: #0f172a;
+        border-bottom-color: #cbd5e1;
+    }
+    .tm-step-title-input:focus {
+        border-bottom-color: #6366f1;
+        color: #ffffff;
+    }
+    html[data-theme="light"] .tm-step-title-input:focus,
+    html:not([data-theme="dark"]) .tm-step-title-input:focus {
+        color: #0f172a;
+    }
+    .tm-step-title-input.completed {
+        color: #94a3b8;
+    }
+    .tm-step-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-shrink: 0;
+    }
+    .tm-step-complete-btn {
+        height: 28px;
+        padding: 0 0.65rem;
+        border-radius: 7px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+    }
+    .tm-step-complete-btn:hover {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.35);
+        color: #34d399;
+    }
+    .tm-step-complete-btn.completed {
+        background: rgba(16, 185, 129, 0.18) !important;
+        border-color: rgba(16, 185, 129, 0.45) !important;
+        color: #34d399 !important;
+    }
+    html[data-theme="light"] .tm-step-complete-btn,
+    html:not([data-theme="dark"]) .tm-step-complete-btn {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #64748b;
+    }
+    html[data-theme="light"] .tm-step-complete-btn:hover,
+    html:not([data-theme="dark"]) .tm-step-complete-btn:hover {
+        border-color: #10b981;
+        color: #059669;
+        background: #ecfdf5;
+    }
+    html[data-theme="light"] .tm-step-complete-btn.completed,
+    html:not([data-theme="dark"]) .tm-step-complete-btn.completed {
+        background: #ecfdf5 !important;
+        border-color: #10b981 !important;
+        color: #059669 !important;
+    }
+    .tm-step-date-badge {
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: #64748b;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    html[data-theme="light"] .tm-step-date-badge,
+    html:not([data-theme="dark"]) .tm-step-date-badge {
+        background: #f1f5f9;
+        color: #64748b;
+        border-color: #e2e8f0;
+    }
+    .tm-step-desc-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+    .tm-step-desc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    .tm-step-desc-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #e2e8f0;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0;
+    }
+    html[data-theme="light"] .tm-step-desc-label,
+    html:not([data-theme="dark"]) .tm-step-desc-label {
+        color: #1e293b;
+    }
+    .tm-step-desc-hint {
+        font-size: 0.68rem;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .tm-step-desc-hint i {
+        color: #818cf8;
+    }
+    .tm-editor-toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.2rem;
+        background: rgba(12, 17, 29, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px 8px 0 0;
+        padding: 0.35rem 0.5rem;
+        position: relative;
+        user-select: none;
+    }
+    html[data-theme="light"] .tm-editor-toolbar,
+    html:not([data-theme="dark"]) .tm-editor-toolbar {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+    .tm-tb-group {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    .tm-tb-btn {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 0.92rem;
+        transition: all 0.15s ease;
+        padding: 0;
+    }
+    .tm-tb-btn:hover {
+        background: rgba(99, 102, 241, 0.15);
+        color: #818cf8;
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+    html[data-theme="light"] .tm-tb-btn,
+    html:not([data-theme="dark"]) .tm-tb-btn {
+        color: #475569;
+    }
+    html[data-theme="light"] .tm-tb-btn:hover,
+    html:not([data-theme="dark"]) .tm-tb-btn:hover {
+        background: #eef2ff;
+        color: #4338ca;
+        border-color: #c7d2fe;
+    }
+    .tm-tb-divider {
+        width: 1px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 0 3px;
+    }
+    html[data-theme="light"] .tm-tb-divider,
+    html:not([data-theme="dark"]) .tm-tb-divider {
+        background: #cbd5e1;
+    }
+    .tm-tb-table-btn {
+        width: auto;
+        padding: 0 0.55rem;
+        gap: 0.3rem;
+        font-size: 0.76rem;
+        font-weight: 600;
+    }
+    .tm-tb-table-wrapper {
+        position: relative;
+    }
+    .tm-table-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 4px;
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        padding: 0.35rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        z-index: 100;
+        min-width: 185px;
+    }
+    html[data-theme="light"] .tm-table-menu,
+    html:not([data-theme="dark"]) .tm-table-menu {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    }
+    .tm-table-menu-title {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #64748b;
+        padding: 0.3rem 0.5rem 0.2rem;
+        letter-spacing: 0.03em;
+    }
+    .tm-table-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #e2e8f0;
+        background: transparent;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.15s, color 0.15s;
+        width: 100%;
+    }
+    .tm-table-menu-item:hover {
+        background: rgba(99, 102, 241, 0.2);
+        color: #ffffff;
+    }
+    html[data-theme="light"] .tm-table-menu-item,
+    html:not([data-theme="dark"]) .tm-table-menu-item {
+        color: #1e293b;
+    }
+    html[data-theme="light"] .tm-table-menu-item:hover,
+    html:not([data-theme="dark"]) .tm-table-menu-item:hover {
+        background: #eef2ff;
+        color: #4338ca;
+    }
+    .tm-table-context-btns {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: rgba(99, 102, 241, 0.12);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 6px;
+        padding: 2px 4px;
+        margin-left: 4px;
+    }
+    html[data-theme="light"] .tm-table-context-btns,
+    html:not([data-theme="dark"]) .tm-table-context-btns {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+    }
+    .tm-tb-btn-subtle {
+        height: 22px;
+        padding: 0 0.4rem;
+        border-radius: 4px;
+        background: transparent;
+        border: none;
+        color: #a5b4fc;
+        font-size: 0.68rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        transition: all 0.15s;
+    }
+    .tm-tb-btn-subtle:hover {
+        background: rgba(99, 102, 241, 0.25);
+        color: #ffffff;
+    }
+    .tm-tb-btn-subtle.del {
+        color: #f87171;
+    }
+    .tm-tb-btn-subtle.del:hover {
+        background: rgba(239, 68, 68, 0.25);
+        color: #ef4444;
+    }
+    html[data-theme="light"] .tm-tb-btn-subtle,
+    html:not([data-theme="dark"]) .tm-tb-btn-subtle {
+        color: #4338ca;
+    }
+    html[data-theme="light"] .tm-tb-btn-subtle:hover,
+    html:not([data-theme="dark"]) .tm-tb-btn-subtle:hover {
+        background: #e0e7ff;
+        color: #3730a3;
+    }
+    html[data-theme="light"] .tm-tb-btn-subtle.del,
+    html:not([data-theme="dark"]) .tm-tb-btn-subtle.del {
+        color: #dc2626;
+    }
+    .tm-step-editor {
+        width: 100%;
+        min-height: 95px;
+        max-height: 380px;
+        overflow-y: auto;
+        overflow-x: auto;
+        background: rgba(10, 14, 23, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        color: #f1f5f9;
+        font-size: 0.88rem;
+        font-family: inherit;
+        line-height: 1.55;
+        padding: 0.75rem 0.85rem;
+        outline: none;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+    }
+    html[data-theme="light"] .tm-step-editor,
+    html:not([data-theme="dark"]) .tm-step-editor {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+    .tm-step-editor:focus {
+        border-color: #6366f1;
+        background: rgba(10, 14, 23, 0.95);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+    }
+    html[data-theme="light"] .tm-step-editor:focus,
+    html:not([data-theme="dark"]) .tm-step-editor:focus {
+        background: #ffffff;
+    }
+    .tm-step-editor:empty::before {
+        content: attr(data-placeholder);
+        color: #64748b;
+        pointer-events: none;
+        font-style: italic;
+    }
+    .tm-step-editor table,
+    .tm-table {
+        width: 100%;
+        min-width: 280px;
+        border-collapse: collapse;
+        margin: 0.65rem 0;
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+    .tm-step-editor th,
+    .tm-table th {
+        background: rgba(99, 102, 241, 0.18);
+        color: #e0e7ff;
+        font-weight: 700;
+        text-align: left;
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        min-width: 60px;
+    }
+    html[data-theme="light"] .tm-step-editor th,
+    html:not([data-theme="dark"]) .tm-step-editor th {
+        background: #eef2ff;
+        color: #3730a3;
+        border-color: #c7d2fe;
+    }
+    .tm-step-editor td,
+    .tm-table td {
+        padding: 7px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+        color: #f1f5f9;
+        min-width: 60px;
+    }
+    html[data-theme="light"] .tm-step-editor td,
+    html:not([data-theme="dark"]) .tm-step-editor td {
+        background: #ffffff;
+        color: #1e293b;
+        border-color: #e2e8f0;
+    }
+    .tm-step-editor tr:nth-child(even) td,
+    .tm-table tr:nth-child(even) td {
+        background: rgba(255, 255, 255, 0.04);
+    }
+    html[data-theme="light"] .tm-step-editor tr:nth-child(even) td,
+    html:not([data-theme="dark"]) .tm-step-editor tr:nth-child(even) td {
+        background: #f8fafc;
+    }
+    .tm-step-editor h2 { font-size: 1.1rem; font-weight: 700; margin: 0.5rem 0 0.3rem; }
+    .tm-step-editor h3 { font-size: 0.98rem; font-weight: 600; margin: 0.4rem 0 0.2rem; }
+    .tm-step-editor p { margin: 0.25rem 0; }
+    .tm-step-editor ul, .tm-step-editor ol { margin: 0.3rem 0; padding-left: 1.4rem; }
+    .tm-step-editor li { margin-bottom: 2px; }
+    .tm-step-attachments-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-top: 0.4rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    html[data-theme="light"] .tm-step-attachments-wrap,
+    html:not([data-theme="dark"]) .tm-step-attachments-wrap {
+        border-top-color: #e2e8f0;
+    }
+    .tm-step-dropzone {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.55rem 0.85rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    html[data-theme="light"] .tm-step-dropzone,
+    html:not([data-theme="dark"]) .tm-step-dropzone {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+    .tm-step-dropzone:hover,
+    .tm-step-dropzone.drag-active {
+        background: rgba(99, 102, 241, 0.08);
+        border-color: #6366f1;
+    }
+    .tm-step-dropzone-left {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-size: 0.78rem;
+        color: #94a3b8;
+    }
+    html[data-theme="light"] .tm-step-dropzone-left,
+    html:not([data-theme="dark"]) .tm-step-dropzone-left {
+        color: #64748b;
+    }
+    .tm-step-dropzone-left i {
+        color: #818cf8;
+        font-size: 1.1rem;
+    }
+    .tm-step-dropzone-left strong {
+        color: #f1f5f9;
+    }
+    html[data-theme="light"] .tm-step-dropzone-left strong,
+    html:not([data-theme="dark"]) .tm-step-dropzone-left strong {
+        color: #0f172a;
+    }
+    .tm-dropzone-formats {
+        font-size: 0.72rem;
+        color: #818cf8;
+        font-weight: 500;
+    }
+    .tm-kbd {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 5px;
+        padding: 1px 6px;
+        font-size: 0.68rem;
+    }
+    html[data-theme="light"] .tm-kbd,
+    html:not([data-theme="dark"]) .tm-kbd {
+        background: #e2e8f0;
+        border-color: #cbd5e1;
+        color: #334155;
+    }
+    .tm-step-attach-btn {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    html[data-theme="light"] .tm-step-attach-btn,
+    html:not([data-theme="dark"]) .tm-step-attach-btn {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #334155;
+    }
+    .tm-step-attach-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+    }
+    html[data-theme="light"] .tm-step-attach-btn:hover,
+    html:not([data-theme="dark"]) .tm-step-attach-btn:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+    .tm-step-thumbs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+        gap: 0.65rem;
+    }
+    .tm-step-thumb-item {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #090d16;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.2s;
+        user-select: none;
+        box-sizing: border-box;
+    }
+    html[data-theme="light"] .tm-step-thumb-item,
+    html:not([data-theme="dark"]) .tm-step-thumb-item {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+    }
+    .tm-step-thumb-item:hover {
+        transform: translateY(-2px);
+        border-color: #6366f1;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+    .tm-step-thumb-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        background: #060911;
+    }
+    .tm-step-thumb-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 12, 22, 0.86);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: inherit;
+        z-index: 6;
+        padding: 4px;
+        box-sizing: border-box;
+        pointer-events: none;
+    }
+    .tm-step-thumb-item:hover .tm-step-thumb-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .tm-step-thumb-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        max-width: 68px;
+        width: 100%;
+    }
+    .tm-step-thumb-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        text-decoration: none;
+        flex-shrink: 0;
+        padding: 0;
+    }
+    .tm-step-thumb-btn:hover {
+        transform: scale(1.12);
+        color: #ffffff;
+    }
+    .tm-step-thumb-btn.view-btn:hover {
+        background: #6366f1;
+        border-color: #818cf8;
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+    }
+    .tm-step-thumb-btn.dl-btn:hover {
+        background: #10b981;
+        border-color: #34d399;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    }
+    .tm-step-thumb-btn.del-btn:hover {
+        background: #ef4444;
+        border-color: #f87171;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+    }
+    .tm-step-badge-tag {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        font-size: 0.58rem;
+        font-weight: 800;
+        padding: 1px 5px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        z-index: 3;
+        line-height: 1.2;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        background: #6366f1;
+        color: #ffffff;
+    }
+    .tm-step-thumb-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        gap: 6px;
+        color: #4f46e5;
+        font-size: 0.65rem;
+        font-weight: 700;
+        background: #f8fafc;
+        position: relative;
+        overflow: hidden;
+    }
+    [data-theme="dark"] .tm-step-thumb-loading {
+        background: #0d121d;
+        color: #818cf8;
+    }
+    .tm-step-thumb-loading i {
+        animation: mslArrowLift 1s ease-in-out infinite alternate;
+    }
+
+    /* ==========================================================================
+       LÍNEA DE TIEMPO / FLUJO DINÁMICO DE HITOS (TASK MANAGER 1:1)
+       ========================================================================== */
+    .tm-timeline-flow {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 1.15rem;
+        padding-left: 1.85rem;
+    }
+    .tm-timeline-flow::before {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 14px;
+        bottom: 20px;
+        width: 2px;
+        background: linear-gradient(180deg, #6366f1 0%, rgba(99, 102, 241, 0.3) 70%, rgba(255, 255, 255, 0.05) 100%);
+        border-radius: 2px;
+    }
+    html[data-theme="light"] .tm-timeline-flow::before,
+    html:not([data-theme="dark"]) .tm-timeline-flow::before {
+        background: linear-gradient(180deg, #6366f1 0%, rgba(99, 102, 241, 0.25) 70%, #cbd5e1 100%);
+    }
+
+    .tm-timeline-item {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.2s ease;
+    }
+
+    /* Nodo / Indicador numerado del Hito */
+    .tm-timeline-node {
+        position: absolute;
+        left: -1.85rem;
+        top: 10px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #0b0f17;
+        border: 2px solid #6366f1;
+        color: #a5b4fc;
+        font-size: 0.72rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+        z-index: 2;
+        transition: all 0.2s ease;
+    }
+    html[data-theme="light"] .tm-timeline-node,
+    html:not([data-theme="dark"]) .tm-timeline-node {
+        background: #ffffff;
+        border-color: #6366f1;
+        color: #4f46e5;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+    }
+    .tm-timeline-item:hover .tm-timeline-node,
+    .tm-timeline-item.active-step .tm-timeline-node {
+        border-color: #8b5cf6;
+        color: #ffffff;
+        background: #6366f1;
+        box-shadow: 0 0 14px rgba(139, 92, 246, 0.7);
+        transform: scale(1.08);
+    }
+    .tm-timeline-item.is-completed .tm-timeline-node {
+        border-color: #10b981 !important;
+        background: #064e3b !important;
+        color: #34d399 !important;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.45) !important;
+    }
+    html[data-theme="light"] .tm-timeline-item.is-completed .tm-timeline-node,
+    html:not([data-theme="dark"]) .tm-timeline-item.is-completed .tm-timeline-node {
+        background: #ecfdf5 !important;
+        border-color: #10b981 !important;
+        color: #059669 !important;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.25) !important;
+    }
+
+    .tm-timeline-item.active-step .tm-timeline-card {
+        border-color: rgba(99, 102, 241, 0.5) !important;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15) !important;
+    }
+    html[data-theme="light"] .tm-timeline-item.active-step .tm-timeline-card,
+    html:not([data-theme="dark"]) .tm-timeline-item.active-step .tm-timeline-card {
+        border-color: #6366f1 !important;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12) !important;
+    }
+
+    .tm-timeline-item.is-completed .tm-timeline-card {
+        border-color: rgba(16, 185, 129, 0.35) !important;
+    }
+    html[data-theme="light"] .tm-timeline-item.is-completed .tm-timeline-card,
+    html:not([data-theme="dark"]) .tm-timeline-item.is-completed .tm-timeline-card {
+        border-color: #a7f3d0 !important;
+    }
+
+    /* Botón Añadir Hito Header */
+    .tm-btn-add-step {
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        white-space: nowrap;
+        background: #4f46e5;
+        color: #ffffff;
+        border: 1px solid #4338ca;
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    }
+    .tm-btn-add-step:hover {
+        background: #4338ca;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+    [data-theme="dark"] .tm-btn-add-step {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.45);
+        color: #e0e7ff;
+    }
+    [data-theme="dark"] .tm-btn-add-step:hover {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%);
+        border-color: rgba(139, 92, 246, 0.7);
+        color: #ffffff;
+    }
+
+    /* Botón Dashed Inferior para Añadir Card */
+    .tm-add-step-card-btn {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1.5px dashed #6366f1;
+        background: rgba(99, 102, 241, 0.04);
+        color: #4f46e5;
+        font-size: 0.84rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 0.5rem;
+    }
+    .tm-add-step-card-btn:hover {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: #4338ca;
+        color: #3730a3;
+        transform: translateY(-1px);
+    }
+    [data-theme="dark"] .tm-add-step-card-btn {
+        background: rgba(99, 102, 241, 0.08);
+        border-color: rgba(99, 102, 241, 0.4);
+        color: #a5b4fc;
+    }
+    [data-theme="dark"] .tm-add-step-card-btn:hover {
+        background: rgba(99, 102, 241, 0.18);
+        border-color: #818cf8;
+        color: #ffffff;
+    }
+
+    .tm-step-del-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 0.95rem;
+        padding: 3px 5px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    }
+    .tm-step-del-btn:hover {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* ==========================================================================
+       ESTADOS DE TARJETA ENCOGIDA / COLAPSADA (CUANDO SE COMPLETA UN AVANCE)
+       ========================================================================== */
+    .tm-timeline-item.is-collapsed .tm-timeline-card {
+        padding: 0.55rem 0.95rem;
+        gap: 0;
+        background: rgba(15, 23, 42, 0.45);
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    html[data-theme="light"] .tm-timeline-item.is-collapsed .tm-timeline-card,
+    html:not([data-theme="dark"]) .tm-timeline-item.is-collapsed .tm-timeline-card {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+    .tm-timeline-item.is-collapsed.is-completed .tm-timeline-card {
+        border-color: rgba(16, 185, 129, 0.35) !important;
+        background: rgba(16, 185, 129, 0.05);
+    }
+    html[data-theme="light"] .tm-timeline-item.is-collapsed.is-completed .tm-timeline-card,
+    html:not([data-theme="dark"]) .tm-timeline-item.is-collapsed.is-completed .tm-timeline-card {
+        background: #f0fdf4;
+        border-color: #a7f3d0 !important;
+    }
+    .tm-timeline-item.is-collapsed .tm-step-desc-wrap,
+    .tm-timeline-item.is-collapsed .tm-step-attachments-wrap {
+        display: none !important;
+    }
+    .tm-timeline-item.is-collapsed .tm-step-title-input {
+        font-size: 0.88rem;
+    }
+    .tm-timeline-item.is-collapsed.is-completed .tm-step-title-input {
+        color: #94a3b8;
+        text-decoration: line-through;
+        text-decoration-color: rgba(16, 185, 129, 0.6);
+    }
+    html[data-theme="light"] .tm-timeline-item.is-collapsed.is-completed .tm-step-title-input,
+    html:not([data-theme="dark"]) .tm-timeline-item.is-collapsed.is-completed .tm-step-title-input {
+        color: #64748b;
+    }
+
+    .tm-step-collapse-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.15s ease;
+        padding: 0;
+        flex-shrink: 0;
+    }
+    .tm-step-collapse-btn:hover {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.35);
+        color: #818cf8;
+    }
+    html[data-theme="light"] .tm-step-collapse-btn,
+    html:not([data-theme="dark"]) .tm-step-collapse-btn {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #64748b;
+    }
+    html[data-theme="light"] .tm-step-collapse-btn:hover,
+    html:not([data-theme="dark"]) .tm-step-collapse-btn:hover {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+        color: #4338ca;
+    }
+
+    .tm-step-collapsed-summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #64748b;
+        background: rgba(255, 255, 255, 0.04);
+        padding: 0.15rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        white-space: nowrap;
+    }
+    html[data-theme="light"] .tm-step-collapsed-summary,
+    html:not([data-theme="dark"]) .tm-step-collapsed-summary {
+        background: #f1f5f9;
+        color: #475569;
+        border-color: #e2e8f0;
+    }
+
+    /* ==========================================================================
+       SPLIT SCROLL INDEPENDIENTE PARA PESTAÑA DE DISEÑO (COLUMNA IZQ Y DER)
+       ========================================================================== */
+    #tab-diseno.crm-tab-pane {
+        height: 100%;
+    }
+    #tab-diseno.crm-tab-pane.active {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
+    .crm-diseno-split-layout {
+        display: grid;
+        grid-template-columns: minmax(380px, 46%) 1fr;
+        gap: 1.5rem;
+        height: calc(100vh - 140px);
+        max-height: calc(100vh - 140px);
+        overflow: hidden;
+        min-height: 0;
+        align-items: stretch;
+    }
+    .crm-diseno-col-left {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 0.5rem;
+        padding-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-height: 0;
+    }
+    .crm-diseno-col-right {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+    }
+    .crm-diseno-col-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1rem;
+        background: var(--bg-surface, #ffffff);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 12px;
+        margin-bottom: 0.85rem;
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    [data-theme="dark"] .crm-diseno-col-header {
+        background: #111520;
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    .crm-diseno-right-scroll {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 0.5rem;
+        padding-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        min-height: 0;
+    }
+
+    /* Scrollbars delgados y modernos para las columnas independientes */
+    .crm-diseno-col-left::-webkit-scrollbar,
+    .crm-diseno-right-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+    .crm-diseno-col-left::-webkit-scrollbar-track,
+    .crm-diseno-right-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .crm-diseno-col-left::-webkit-scrollbar-thumb,
+    .crm-diseno-right-scroll::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.3);
+        border-radius: 999px;
+    }
+    .crm-diseno-col-left::-webkit-scrollbar-thumb:hover,
+    .crm-diseno-right-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.6);
+    }
+
+    @media (max-width: 992px) {
+        .crm-diseno-split-layout {
+            grid-template-columns: 1fr;
+            height: auto;
+            max-height: none;
+            overflow: visible;
+        }
+        .crm-diseno-col-left,
+        .crm-diseno-col-right {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+        }
+        .crm-diseno-col-header {
+            position: relative;
+            top: 0;
+        }
+    }
+
 </style>
 
 <div class="board-header">
@@ -1201,6 +2847,40 @@ setInterval(updateMonthBoardTimer, 1000);
 </div>
 <?php endif; ?>
 
+<!-- BARRA DE FILTROS DE FASE (WORKFLOW) -->
+<div class="board-phase-filter-bar">
+    <div class="bpf-label">
+        <i class="ph-bold ph-funnel"></i> <span>Flujo de Trabajo:</span>
+    </div>
+    <div class="bpf-pills">
+        <button type="button" class="bpf-pill active" data-phase="all" onclick="filterBoardByPhase('all', this)">
+            <i class="ph-bold ph-squares-four"></i>
+            <span>Todos los Posts</span>
+            <span class="bpf-badge" id="bpf-count-all">0</span>
+        </button>
+        <button type="button" class="bpf-pill" data-phase="ideas" onclick="filterBoardByPhase('ideas', this)">
+            <i class="ph-bold ph-lightbulb"></i>
+            <span>1. Grilla / Ideas</span>
+            <span class="bpf-badge" id="bpf-count-ideas">0</span>
+        </button>
+        <button type="button" class="bpf-pill" data-phase="diseno" onclick="filterBoardByPhase('diseno', this)">
+            <i class="ph-bold ph-paint-brush"></i>
+            <span>2. En Diseño</span>
+            <span class="bpf-badge" id="bpf-count-diseno">0</span>
+        </button>
+        <button type="button" class="bpf-pill" data-phase="presentacion" onclick="filterBoardByPhase('presentacion', this)">
+            <i class="ph-bold ph-presentation-chart"></i>
+            <span>3. Presentación al Cliente</span>
+            <span class="bpf-badge" id="bpf-count-presentacion">0</span>
+        </button>
+        <button type="button" class="bpf-pill" data-phase="publicados" onclick="filterBoardByPhase('publicados', this)">
+            <i class="ph-bold ph-rocket-launch"></i>
+            <span>4. Aprobados & Publicados</span>
+            <span class="bpf-badge" id="bpf-count-publicados">0</span>
+        </button>
+    </div>
+</div>
+
 <div class="posts-grid">
     <?php if (empty($posts)): ?>
         <div style="grid-column: 1 / -1; padding: 4rem 2rem; text-align: center; background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: var(--radius-lg); color: var(--text-muted);">
@@ -1266,13 +2946,54 @@ setInterval(updateMonthBoardTimer, 1000);
             } elseif (!empty($monthData['due_date'])) {
                 $postDeadline = $monthData['due_date'];
             }
+
+            // Determinar fase del flujo para filtros
+            $hasFinalImg = !empty($p['image_link']);
+            $hasRefImg = !empty($p['reference_image_link']);
+            $hasBrief = !empty($p['design_brief']);
+            $pStatus = trim($p['status'] ?? 'Borrador');
+            
+            if (in_array($pStatus, ['Aprobado', 'Publicado'])) {
+                $postPhase = 'publicados';
+                $phaseBadgeLabel = ($pStatus === 'Publicado') ? 'Publicado' : 'Aprobado';
+                $phaseBadgeIcon = 'ph-bold ph-check-circle';
+                $phaseBadgeColor = '#10b981';
+            } elseif ($hasFinalImg && $pStatus === 'En Revisión') {
+                $postPhase = 'presentacion';
+                $phaseBadgeLabel = 'En Cliente';
+                $phaseBadgeIcon = 'ph-bold ph-presentation-chart';
+                $phaseBadgeColor = '#3b82f6';
+            } elseif ($p['post_type'] === 'Post Terminado' || $pStatus === 'En Revisión' || $hasBrief || $hasRefImg) {
+                if ($hasFinalImg) {
+                    $postPhase = 'presentacion';
+                    $phaseBadgeLabel = 'En Cliente';
+                    $phaseBadgeIcon = 'ph-bold ph-presentation-chart';
+                    $phaseBadgeColor = '#3b82f6';
+                } else {
+                    $postPhase = 'diseno';
+                    $phaseBadgeLabel = 'En Diseño';
+                    $phaseBadgeIcon = 'ph-bold ph-paint-brush';
+                    $phaseBadgeColor = '#f59e0b';
+                }
+            } else {
+                $postPhase = 'ideas';
+                $phaseBadgeLabel = 'Idea / Grilla';
+                $phaseBadgeIcon = 'ph-bold ph-lightbulb';
+                $phaseBadgeColor = '#8b5cf6';
+            }
             ?>
-            <div class="post-card" id="post-card-<?php echo $p['id']; ?>" data-post-id="<?php echo $p['id']; ?>" style="background: <?php echo $sColor['bg']; ?>; border: 1px solid <?php echo $sColor['color']; ?>22;" onclick="editPost(<?php echo htmlspecialchars(json_encode($p) ?: '{}'); ?>)">
+            <div class="post-card" id="post-card-<?php echo $p['id']; ?>" data-post-id="<?php echo $p['id']; ?>" data-phase="<?php echo $postPhase; ?>" style="background: <?php echo $sColor['bg']; ?>; border: 1px solid <?php echo $sColor['color']; ?>22;" onclick="editPost(<?php echo htmlspecialchars(json_encode($p) ?: '{}'); ?>)">
                 <!-- Header Section -->
                 <div class="post-card-header">
-                    <div class="post-order-badge" style="color: <?php echo $sColor['color']; ?>;">
-                        Post <?php echo str_pad($postIndex, 2, '0', STR_PAD_LEFT); ?>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div class="post-order-badge" style="color: <?php echo $sColor['color']; ?>;">
+                            Post <?php echo str_pad($postIndex, 2, '0', STR_PAD_LEFT); ?>
+                        </div>
+                        <div class="post-stage-pill" style="background: <?php echo $phaseBadgeColor; ?>18; color: <?php echo $phaseBadgeColor; ?>; border: 1px solid <?php echo $phaseBadgeColor; ?>40;" title="Fase: <?php echo $phaseBadgeLabel; ?>">
+                            <i class="<?php echo $phaseBadgeIcon; ?>"></i> <?php echo $phaseBadgeLabel; ?>
+                        </div>
                     </div>
+                    
                     <div class="post-card-actions">
                         <?php
                         $exp = time() + (7 * 24 * 3600); // 7 days
@@ -1323,7 +3044,7 @@ setInterval(updateMonthBoardTimer, 1000);
                             <div class="swiper-wrapper">
                                 <?php foreach($mediaList as $mItem): ?>
                                     <div class="swiper-slide" style="display: flex; align-items: center; justify-content: center; background: #f1f5f9;">
-                                        <img src="<?php echo htmlspecialchars($mItem); ?>" style="width: 100%; height: 100%; object-fit: contain;">
+                                        <img src="<?php echo htmlspecialchars($mItem); ?>" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.style.display='none';">
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -1335,11 +3056,11 @@ setInterval(updateMonthBoardTimer, 1000);
                         <?php 
                         $singleMedia = $mediaList[0];
                         if (preg_match('/^https?:\/\/.*(jpg|jpeg|png|webp|gif)$/i', $singleMedia)): ?>
-                            <img src="<?php echo htmlspecialchars($singleMedia); ?>" style="width: 100%; height: 100%; object-fit: contain;">
+                            <img src="<?php echo htmlspecialchars($singleMedia); ?>" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.style.display='none';">
                         <?php elseif (preg_match('/^https?:\/\/.*(mp4|webm|ogg)$/i', $singleMedia) || strpos($singleMedia, 'data:video/') === 0): ?>
                             <video src="<?php echo htmlspecialchars($singleMedia); ?>" controls style="width: 100%; height: 100%; object-fit: contain;"></video>
                         <?php else: ?>
-                            <img src="<?php echo htmlspecialchars($singleMedia); ?>" style="width: 100%; height: 100%; object-fit: contain;">
+                            <img src="<?php echo htmlspecialchars($singleMedia); ?>" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.style.display='none';">
                         <?php endif; ?>
                     <?php else: ?>
                         <i class="ph ph-image" style="font-size: 3rem; color: #94a3b8; opacity: 0.5;"></i>
@@ -1410,11 +3131,11 @@ setInterval(updateMonthBoardTimer, 1000);
 </div>
 
 <style>
-/* ===== REDISEÑO MODAL APP MODERNO ===== */
+/* ===== REDISEÑO MODAL APP MODERNO (FULL 100%VH ENTERPRISE SAAS WORKSPACE) ===== */
 .modal-overlay {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    background: rgba(9, 13, 22, 0.78) !important;
     padding: 1.25rem;
     display: none;
     position: fixed;
@@ -1422,157 +3143,184 @@ setInterval(updateMonthBoardTimer, 1000);
     z-index: 1050;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    overscroll-behavior: contain;
+}
+#post-modal.modal-overlay {
+    padding: 0 !important;
 }
 .modal-overlay.active {
     display: flex;
 }
 
 .modal-content.crm-layout {
-    max-width: 1540px;
-    width: 96vw;
-    height: 93vh;
-    max-height: 94vh;
+    max-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
     display: flex;
     flex-direction: column;
     padding: 0;
     overflow: hidden;
+    overscroll-behavior: contain;
     background: var(--bg-surface, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 24px;
-    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     position: relative;
 }
+[data-theme="dark"] .modal-content.crm-layout,
 [data-theme="dark"] .crm-modal-card {
-    background: #121212;
-    border-color: #27272a;
-    box-shadow: 0 30px 90px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    background: #0b0f19;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
 }
 
-/* App Header (Full Width Top Bar) */
+/* App Header (Full Width Top Bar - SaaS Moderno) */
 .crm-app-header {
-    height: 64px;
-    padding: 0 1.5rem;
+    height: 60px;
+    padding: 0 1.25rem;
     background: var(--bg-surface, #ffffff);
-    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1.25rem;
+    gap: 0.85rem;
     flex-shrink: 0;
     z-index: 20;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 [data-theme="dark"] .crm-app-header {
-    background: #141416;
-    border-bottom-color: #27272a;
+    background: #0f1420;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 .crm-header-left {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
-    flex: 1;
+    gap: 0.65rem;
+    flex: 0 1 auto;
     min-width: 0;
 }
 .crm-header-icon {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 10px;
-    background: rgba(79, 70, 229, 0.12);
-    color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.14), rgba(99, 102, 241, 0.08));
+    color: var(--primary-color, #4f46e5);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
-    border: 1px solid rgba(79, 70, 229, 0.2);
+    font-size: 1.1rem;
+    border: 1px solid rgba(79, 70, 229, 0.22);
+    flex-shrink: 0;
 }
 .crm-header-title {
-    font-size: 1.1rem;
+    font-size: 0.96rem;
     font-weight: 800;
-    color: var(--color-title);
+    color: var(--color-title, #0f172a);
     margin: 0;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.02em;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .crm-header-subtitle {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-muted, #64748b);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Pipeline de estados (Segmented Control) */
+/* Pipeline de estados (Segmented Control Moderno) */
 .pipeline-stages {
-    display: flex;
-    background: var(--bg-color, #f1f5f9);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
     padding: 3px;
     gap: 3px;
 }
 [data-theme="dark"] .pipeline-stages {
-    background: #181818;
-    border-color: #27272a;
+    background: #141926;
+    border-color: rgba(255, 255, 255, 0.08);
 }
 .pipeline-stage {
-    padding: 0.35rem 0.9rem;
-    border-radius: 10px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-muted, #64748b);
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #64748b;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
     display: flex;
     align-items: center;
     gap: 0.35rem;
+    border: 1px solid transparent;
 }
 .pipeline-stage:hover {
-    color: var(--color-title, #0f172a);
-    background: rgba(125, 125, 125, 0.08);
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.04);
+}
+[data-theme="dark"] .pipeline-stage {
+    color: #94a3b8;
 }
 [data-theme="dark"] .pipeline-stage:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.04);
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
 }
 .pipeline-stage.active {
     background: #ffffff;
     color: #0f172a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 [data-theme="dark"] .pipeline-stage.active {
-    background: #27272a;
+    background: #1e2638;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
-.pipeline-stage.active[data-status="Borrador"] { background: rgba(100, 116, 139, 0.18); color: #475569; border: 1px solid rgba(100, 116, 139, 0.3); }
-.pipeline-stage.active[data-status="En Revisión"] { background: rgba(245, 158, 11, 0.18); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); }
-.pipeline-stage.active[data-status="Aprobado"] { background: rgba(59, 130, 246, 0.18); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); }
-.pipeline-stage.active[data-status="Publicado"] { background: rgba(16, 185, 129, 0.18); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
-.pipeline-stage.active[data-status="Archivado"] { background: rgba(147, 51, 234, 0.18); color: #7e22ce; border: 1px solid rgba(147, 51, 234, 0.3); }
+.pipeline-stage.active[data-status="Borrador"] { background: #ffffff; color: #334155; border-color: #cbd5e1; }
+.pipeline-stage.active[data-status="En Revisión"] { background: #fffbeb; color: #b45309; border-color: rgba(245, 158, 11, 0.35); }
+.pipeline-stage.active[data-status="Aprobado"] { background: #eff6ff; color: #1d4ed8; border-color: rgba(59, 130, 246, 0.35); }
+.pipeline-stage.active[data-status="Publicado"] { background: #ecfdf5; color: #047857; border-color: rgba(16, 185, 129, 0.35); }
+.pipeline-stage.active[data-status="Archivado"] { background: #faf5ff; color: #6d28d9; border-color: rgba(147, 51, 234, 0.35); }
 
-[data-theme="dark"] .pipeline-stage.active[data-status="Borrador"] { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
-[data-theme="dark"] .pipeline-stage.active[data-status="En Revisión"] { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-[data-theme="dark"] .pipeline-stage.active[data-status="Aprobado"] { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-[data-theme="dark"] .pipeline-stage.active[data-status="Publicado"] { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-[data-theme="dark"] .pipeline-stage.active[data-status="Archivado"] { background: rgba(147, 51, 234, 0.2); color: #c084fc; }
+[data-theme="dark"] .pipeline-stage.active[data-status="Borrador"] { background: rgba(148, 163, 184, 0.16); color: #f1f5f9; border-color: rgba(148, 163, 184, 0.3); }
+[data-theme="dark"] .pipeline-stage.active[data-status="En Revisión"] { background: rgba(245, 158, 11, 0.16); color: #fbbf24; border-color: rgba(245, 158, 11, 0.35); }
+[data-theme="dark"] .pipeline-stage.active[data-status="Aprobado"] { background: rgba(59, 130, 246, 0.16); color: #60a5fa; border-color: rgba(59, 130, 246, 0.35); }
+[data-theme="dark"] .pipeline-stage.active[data-status="Publicado"] { background: rgba(16, 185, 129, 0.16); color: #34d399; border-color: rgba(16, 185, 129, 0.35); }
+[data-theme="dark"] .pipeline-stage.active[data-status="Archivado"] { background: rgba(147, 51, 234, 0.16); color: #c084fc; border-color: rgba(147, 51, 234, 0.35); }
 
 /* Header Action Buttons */
 .crm-header-actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.75rem;
-    flex: 1;
+    gap: 0.55rem;
+    flex: 0 0 auto;
     min-width: 0;
 }
 .btn-header-social {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.5rem 0.95rem;
-    border-radius: 12px;
-    background: rgba(99, 102, 241, 0.15);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    color: #6366f1;
-    font-size: 0.82rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    color: #4f46e5;
+    font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1581,60 +3329,62 @@ setInterval(updateMonthBoardTimer, 1000);
     color: #818cf8;
 }
 .btn-header-social:hover {
-    background: #6366f1;
+    background: #4f46e5;
     color: #ffffff;
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .btn-header-save {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.5rem 1.2rem;
-    border-radius: 12px;
-    background: var(--color-btn-bg, var(--primary-color));
-    border: none;
+    padding: 0.48rem 1.1rem;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--color-btn-bg, var(--primary-color, #4f46e5)), #4338ca);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--color-btn-text, #ffffff);
-    font-size: 0.84rem;
+    font-size: 0.81rem;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 30%, transparent);
-    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-btn-bg, var(--primary-color, #4f46e5)) 32%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .btn-header-save:hover {
-    background: var(--color-btn-hover, var(--primary-hover, var(--primary-color)));
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 45%, transparent);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--color-btn-bg, var(--primary-color, #4f46e5)) 45%, transparent);
+    filter: brightness(1.05);
     color: var(--color-btn-text, #ffffff);
 }
 
 .btn-header-close {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: var(--bg-color, #f1f5f9);
-    border: 1px solid var(--border-color, #e2e8f0);
-    color: var(--text-muted, #64748b);
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
 }
 .btn-header-close:hover {
-    background: var(--border-color, #e2e8f0);
-    color: var(--color-title, #0f172a);
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #ef4444;
 }
 [data-theme="dark"] .btn-header-close {
-    background: #181818;
-    border-color: #27272a;
-    color: #a1a1aa;
+    background: #161b28;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
 }
 [data-theme="dark"] .btn-header-close:hover {
-    background: #27272a;
-    color: #ffffff;
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
 }
 
 /* Body Container */
@@ -1643,43 +3393,70 @@ setInterval(updateMonthBoardTimer, 1000);
     flex: 1;
     overflow: hidden;
     position: relative;
+    min-height: 0;
 }
 
-/* Sidebar Column */
+/* Sidebar Column (Panel de Propiedades SaaS) */
 .crm-sidebar {
-    width: 360px;
-    border-right: 1px solid var(--border-color, #e2e8f0);
-    background: var(--bg-surface, #ffffff);
-    padding: 1.4rem;
+    width: 330px;
+    border-right: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 1rem 1.1rem;
     display: flex;
     flex-direction: column;
-    gap: 1.15rem;
+    gap: 0.75rem;
     overflow-y: auto;
     flex-shrink: 0;
 }
 [data-theme="dark"] .crm-sidebar {
-    border-right-color: #27272a;
-    background: #141416;
+    border-right-color: rgba(255, 255, 255, 0.08);
+    background: #0d121d;
 }
+.crm-sidebar::-webkit-scrollbar,
+.crm-studio-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.crm-sidebar::-webkit-scrollbar-track,
+.crm-studio-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.crm-sidebar::-webkit-scrollbar-thumb,
+.crm-studio-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+}
+.crm-sidebar::-webkit-scrollbar-thumb:hover,
+.crm-studio-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.6);
+}
+
 .crm-sidebar-card {
-    background: var(--bg-color, #f8fafc);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 16px;
-    padding: 1rem 1.15rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.55rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.crm-sidebar-card:focus-within {
+    border-color: rgba(79, 70, 229, 0.4);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.06);
 }
 [data-theme="dark"] .crm-sidebar-card {
-    background: #181818;
-    border-color: #27272a;
+    background: #131926;
+    border-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 .crm-sidebar-label {
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: var(--text-muted, #64748b);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #475569;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -1689,8 +3466,9 @@ setInterval(updateMonthBoardTimer, 1000);
 }
 .crm-sidebar-label.required::after {
     content: '*';
-    color: var(--danger-color);
-    font-size: 0.85rem;
+    color: #ef4444;
+    font-size: 0.82rem;
+    margin-left: 1px;
 }
 
 /* Main Studio Panel */
@@ -1699,56 +3477,70 @@ setInterval(updateMonthBoardTimer, 1000);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--bg-color, #f8fafc);
+    background: #f1f5f9;
     position: relative;
+    min-height: 0;
 }
 [data-theme="dark"] .crm-main {
-    background: #0f0f11;
+    background: #090d16;
 }
 
 /* Tabs Bar */
 .crm-tabs {
     padding: 0 1.5rem;
     background: var(--bg-surface, #ffffff);
-    border-bottom: 1px solid var(--border-color, #e2e8f0);
-    display: flex;
-    gap: 1.5rem;
-    overflow-x: auto;
-    flex-shrink: 0;
-}
-[data-theme="dark"] .crm-tabs {
-    background: #141416;
-    border-bottom-color: #27272a;
-}
-.crm-tab {
-    padding: 0.85rem 0;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    font-weight: 700;
-    color: var(--text-muted, #64748b);
-    font-size: 0.88rem;
-    white-space: nowrap;
-    transition: all 0.2s;
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    overflow-x: auto;
+    flex-shrink: 0;
+    height: 48px;
+}
+[data-theme="dark"] .crm-tabs {
+    background: #0f1420;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.crm-tab {
+    height: 100%;
+    padding: 0 1rem;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    position: relative;
+}
+.crm-tab i {
+    font-size: 0.98rem;
 }
 .crm-tab:hover {
-    color: var(--color-title, #0f172a);
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.025);
 }
 [data-theme="dark"] .crm-tab:hover {
-    color: #ffffff;
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.03);
 }
 .crm-tab.active {
-    border-bottom-color: var(--primary-color);
-    color: var(--primary-color);
+    border-bottom-color: var(--primary-color, #4f46e5);
+    color: var(--primary-color, #4f46e5);
+    font-weight: 700;
+    background: linear-gradient(180deg, transparent 0%, rgba(79, 70, 229, 0.05) 100%);
 }
 [data-theme="dark"] .crm-tab.active {
-    color: #ffffff;
+    color: #818cf8;
+    border-bottom-color: #818cf8;
+    background: linear-gradient(180deg, transparent 0%, rgba(129, 140, 248, 0.08) 100%);
 }
 .crm-tab-pane {
     display: none;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.22s ease;
 }
 .crm-tab-pane.active {
     display: block;
@@ -1757,15 +3549,15 @@ setInterval(updateMonthBoardTimer, 1000);
 /* Studio Cards */
 .studio-card {
     background: var(--bg-surface, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 20px;
-    padding: 1.4rem;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 [data-theme="dark"] .studio-card {
-    background: #181818;
-    border-color: #27272a;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    background: #121723;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
 }
 
 /* ===== PILARES DE CONTENIDO (MONTH BAR & MODAL) ===== */
@@ -1840,46 +3632,58 @@ setInterval(updateMonthBoardTimer, 1000);
 .pillar-pill-group {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.45rem;
+    gap: 0.4rem;
 }
 .pillar-input { display: none; }
 .pillar-label {
-    padding: 0.45rem 0.6rem;
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 10px;
-    font-size: 0.76rem;
-    font-weight: 700;
+    padding: 0.42rem 0.65rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    font-size: 0.74rem;
+    font-weight: 600;
     cursor: pointer;
-    color: var(--text-muted, #64748b);
-    background: var(--bg-surface, #ffffff);
-    transition: all 0.2s;
+    color: #475569;
+    background: #f8fafc;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     justify-content: flex-start;
 }
-.pillar-label:hover { background: var(--bg-color, #f1f5f9); color: var(--color-title, #0f172a); }
-[data-theme="dark"] .pillar-label {
-    border-color: #27272a;
-    color: #a1a1aa;
-    background: #141416;
+.pillar-label i {
+    font-size: 0.92rem;
+    opacity: 0.85;
 }
-[data-theme="dark"] .pillar-label:hover { background: #27272a; color: #ffffff; }
+.pillar-label:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+[data-theme="dark"] .pillar-label {
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    background: #171d2c;
+}
+[data-theme="dark"] .pillar-label:hover {
+    background: #1e2638;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #f8fafc;
+}
 
-input[value="Educación"]:checked + .pillar-label.pil-edu { background: rgba(59,130,246,0.2); color: #3b82f6; border-color: rgba(59,130,246,0.4); box-shadow: 0 2px 8px rgba(59,130,246,0.25); }
-input[value="Ventas"]:checked + .pillar-label.pil-ventas { background: rgba(244,63,94,0.2); color: #e11d48; border-color: rgba(244,63,94,0.4); box-shadow: 0 2px 8px rgba(244,63,94,0.25); }
-input[value="Branding"]:checked + .pillar-label.pil-brand { background: rgba(139,92,246,0.2); color: #8b5cf6; border-color: rgba(139,92,246,0.4); box-shadow: 0 2px 8px rgba(139,92,246,0.25); }
-input[value="Entretenimiento"]:checked + .pillar-label.pil-ent { background: rgba(245,158,11,0.2); color: #d97706; border-color: rgba(245,158,11,0.4); box-shadow: 0 2px 8px rgba(245,158,11,0.25); }
-input[value="Comunidad"]:checked + .pillar-label.pil-com { background: rgba(16,185,129,0.2); color: #059669; border-color: rgba(16,185,129,0.4); box-shadow: 0 2px 8px rgba(16,185,129,0.25); }
-input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6,182,212,0.2); color: #0891b2; border-color: rgba(6,182,212,0.4); box-shadow: 0 2px 8px rgba(6,182,212,0.25); }
+input[value="Educación"]:checked + .pillar-label.pil-edu { background: rgba(59,130,246,0.12); color: #2563eb; border-color: rgba(59,130,246,0.45); font-weight: 700; box-shadow: 0 1px 4px rgba(59,130,246,0.15); }
+input[value="Ventas"]:checked + .pillar-label.pil-ventas { background: rgba(244,63,94,0.12); color: #e11d48; border-color: rgba(244,63,94,0.45); font-weight: 700; box-shadow: 0 1px 4px rgba(244,63,94,0.15); }
+input[value="Branding"]:checked + .pillar-label.pil-brand { background: rgba(139,92,246,0.12); color: #7c3aed; border-color: rgba(139,92,246,0.45); font-weight: 700; box-shadow: 0 1px 4px rgba(139,92,246,0.15); }
+input[value="Entretenimiento"]:checked + .pillar-label.pil-ent { background: rgba(245,158,11,0.12); color: #d97706; border-color: rgba(245,158,11,0.45); font-weight: 700; box-shadow: 0 1px 4px rgba(245,158,11,0.15); }
+input[value="Comunidad"]:checked + .pillar-label.pil-com { background: rgba(16,185,129,0.12); color: #059669; border-color: rgba(16,185,129,0.45); font-weight: 700; box-shadow: 0 1px 4px rgba(16,185,129,0.15); }
+input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6,182,212,0.12); color: #0891b2; border-color: rgba(6,182,212,0.45); font-weight: 700; box-shadow: 0 1px 4px rgba(6,182,212,0.15); }
 
-[data-theme="dark"] input[value="Educación"]:checked + .pillar-label.pil-edu { color: #60a5fa; }
-[data-theme="dark"] input[value="Ventas"]:checked + .pillar-label.pil-ventas { color: #fb7185; }
-[data-theme="dark"] input[value="Branding"]:checked + .pillar-label.pil-brand { color: #c084fc; }
-[data-theme="dark"] input[value="Entretenimiento"]:checked + .pillar-label.pil-ent { color: #fbbf24; }
-[data-theme="dark"] input[value="Comunidad"]:checked + .pillar-label.pil-com { color: #34d399; }
-[data-theme="dark"] input[value="Testimonial"]:checked + .pillar-label.pil-test { color: #22d3ee; }
+[data-theme="dark"] input[value="Educación"]:checked + .pillar-label.pil-edu { background: rgba(59,130,246,0.2); color: #60a5fa; }
+[data-theme="dark"] input[value="Ventas"]:checked + .pillar-label.pil-ventas { background: rgba(244,63,94,0.2); color: #fb7185; }
+[data-theme="dark"] input[value="Branding"]:checked + .pillar-label.pil-brand { background: rgba(139,92,246,0.2); color: #c084fc; }
+[data-theme="dark"] input[value="Entretenimiento"]:checked + .pillar-label.pil-ent { background: rgba(245,158,11,0.2); color: #fbbf24; }
+[data-theme="dark"] input[value="Comunidad"]:checked + .pillar-label.pil-com { background: rgba(16,185,129,0.2); color: #34d399; }
+[data-theme="dark"] input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6,182,212,0.2); color: #22d3ee; }
 
 /* Post Card Badges */
 .post-pillar-badge {
@@ -1928,17 +3732,18 @@ input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6
 /* ===== QA CHECKLIST CARD IN MODAL ===== */
 .qa-checklist-card {
     background: var(--bg-surface, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 16px;
-    padding: 1rem 1.15rem;
-    margin-top: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    margin-top: 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 [data-theme="dark"] .qa-checklist-card {
-    background: #141416;
-    border-color: #27272a;
+    background: #121723;
+    border-color: rgba(255, 255, 255, 0.08);
 }
 .qa-header {
     display: flex;
@@ -1946,39 +3751,39 @@ input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6
     justify-content: space-between;
 }
 .qa-title {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 800;
-    color: var(--color-title);
+    color: var(--color-title, #0f172a);
     display: flex;
     align-items: center;
     gap: 0.45rem;
 }
 .qa-counter-badge {
-    font-size: 0.72rem;
-    font-weight: 800;
-    padding: 0.2rem 0.6rem;
-    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.18rem 0.55rem;
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
 }
-.qa-badge-complete { background: rgba(16,185,129,0.18); color: #059669; border: 1px solid rgba(16,185,129,0.35); }
-.qa-badge-progress { background: rgba(245,158,11,0.18); color: #d97706; border: 1px solid rgba(245,158,11,0.35); }
-.qa-badge-pending { background: var(--bg-color, #f1f5f9); color: var(--text-muted, #64748b); }
+.qa-badge-complete { background: rgba(16,185,129,0.15); color: #059669; border: 1px solid rgba(16,185,129,0.35); }
+.qa-badge-progress { background: rgba(245,158,11,0.15); color: #d97706; border: 1px solid rgba(245,158,11,0.35); }
+.qa-badge-pending { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
 
 [data-theme="dark"] .qa-badge-complete { color: #34d399; background: rgba(16,185,129,0.2); }
 [data-theme="dark"] .qa-badge-progress { color: #fbbf24; background: rgba(245,158,11,0.2); }
-[data-theme="dark"] .qa-badge-pending { background: #27272a; color: #a1a1aa; }
+[data-theme="dark"] .qa-badge-pending { background: #1e2638; color: #94a3b8; border-color: rgba(255,255,255,0.08); }
 
 .qa-progress-bar-bg {
     width: 100%;
     height: 6px;
-    background: rgba(0, 0, 0, 0.08);
-    border-radius: 4px;
+    background: #f1f5f9;
+    border-radius: 999px;
     overflow: hidden;
 }
 [data-theme="dark"] .qa-progress-bar-bg {
-    background: #27272a;
+    background: #1e2638;
 }
 .qa-progress-bar-fill {
     height: 100%;
@@ -1988,7 +3793,7 @@ input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6
 .qa-items-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
+    gap: 0.55rem;
 }
 @media (max-width: 768px) {
     .qa-items-grid { grid-template-columns: 1fr; }
@@ -1996,39 +3801,48 @@ input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6
 .qa-item {
     display: flex;
     align-items: flex-start;
-    gap: 0.6rem;
-    background: var(--bg-color, #f8fafc);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 12px;
+    gap: 0.55rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
     padding: 0.6rem 0.75rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.18s ease;
 }
 .qa-item:hover {
     background: #f1f5f9;
-    border-color: var(--primary-color);
+    border-color: #cbd5e1;
+}
+.qa-item:has(.qa-checkbox:checked) {
+    background: rgba(16, 185, 129, 0.06);
+    border-color: rgba(16, 185, 129, 0.35);
 }
 [data-theme="dark"] .qa-item {
-    background: #18181a;
-    border-color: #27272a;
+    background: #161c2b;
+    border-color: rgba(255, 255, 255, 0.07);
 }
 [data-theme="dark"] .qa-item:hover {
-    background: #222226;
-    border-color: #3f3f46;
+    background: #1c2436;
+    border-color: rgba(255, 255, 255, 0.14);
+}
+[data-theme="dark"] .qa-item:has(.qa-checkbox:checked) {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.4);
 }
 .qa-checkbox {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     accent-color: #10b981;
     margin-top: 2px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .qa-item-content {
     flex: 1;
 }
 .qa-item-title {
-    font-size: 0.78rem;
-    font-weight: 800;
+    font-size: 0.76rem;
+    font-weight: 700;
     color: var(--color-title, #0f172a);
     display: flex;
     align-items: center;
@@ -2040,53 +3854,56 @@ input[value="Testimonial"]:checked + .pillar-label.pil-test { background: rgba(6
 .qa-item-desc {
     font-size: 0.68rem;
     color: var(--text-muted, #64748b);
-    line-height: 1.3;
+    line-height: 1.35;
     margin-top: 2px;
 }
 [data-theme="dark"] .qa-item-desc {
-    color: #a1a1aa;
+    color: #94a3b8;
 }
 
 /* Radio/Checkboxes estilizados como botones (Pills) */
-.pill-group { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.pill-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
 .pill-input { display: none; }
-.pill-label { padding: 0.4rem 0.75rem; border: 1px solid var(--border-color, #e2e8f0); border-radius: 10px; font-size: 0.8rem; font-weight: 700; cursor: pointer; color: var(--text-muted, #64748b); background: var(--bg-surface, #ffffff); transition: all 0.2s; user-select: none; display: flex; align-items: center; gap: 0.35rem; }
-.pill-label:hover { background: var(--bg-color, #f1f5f9); color: var(--color-title, #0f172a); }
-[data-theme="dark"] .pill-label { border-color: #27272a; color: #a1a1aa; background: #141416; }
-[data-theme="dark"] .pill-label:hover { background: #27272a; color: #ffffff; }
+.pill-label { padding: 0.38rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 9px; font-size: 0.75rem; font-weight: 600; cursor: pointer; color: #475569; background: #f8fafc; transition: all 0.18s ease; user-select: none; display: flex; align-items: center; justify-content: center; gap: 0.3rem; }
+.pill-label:hover { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+[data-theme="dark"] .pill-label { border-color: rgba(255, 255, 255, 0.08); color: #94a3b8; background: #171d2c; }
+[data-theme="dark"] .pill-label:hover { background: #1e2638; color: #ffffff; }
 
-input[value="Facebook"]:checked + .pill-label { background: #1877F2; color: white; border-color: #1877F2; box-shadow: 0 4px 12px rgba(24,119,242,0.3); }
-input[value="Instagram"]:checked + .pill-label { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(220,39,67,0.3); }
-input[value="TikTok"]:checked + .pill-label { background: #000000; color: white; border-color: #333333; box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
-input[value="LinkedIn"]:checked + .pill-label { background: #0A66C2; color: white; border-color: #0A66C2; box-shadow: 0 4px 12px rgba(10,102,194,0.3); }
-input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: white; border-color: #333333; }
+input[value="Facebook"]:checked + .pill-label { background: #1877F2; color: white; border-color: #1877F2; font-weight: 700; box-shadow: 0 2px 8px rgba(24,119,242,0.28); }
+input[value="Instagram"]:checked + .pill-label { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); color: white; border-color: transparent; font-weight: 700; box-shadow: 0 2px 8px rgba(220,39,67,0.28); }
+input[value="TikTok"]:checked + .pill-label { background: #0f172a; color: white; border-color: #334155; font-weight: 700; box-shadow: 0 2px 8px rgba(15,23,42,0.25); }
+input[value="LinkedIn"]:checked + .pill-label { background: #0A66C2; color: white; border-color: #0A66C2; font-weight: 700; box-shadow: 0 2px 8px rgba(10,102,194,0.28); }
+input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: white; border-color: #334155; font-weight: 700; }
 .pill-input:checked + .pill-label i.ph-plus { display: none; }
-.pill-input:checked + .pill-label::before { content: '\e964'; font-family: "Phosphor"; font-size: 0.95rem; }
+.pill-input:checked + .pill-label::before { content: '\e964'; font-family: "Phosphor"; font-size: 0.85rem; }
 
 /* Toggle Group */
-.toggle-group { display: flex; background: var(--bg-color, #f1f5f9); padding: 4px; border-radius: 12px; border: 1px solid var(--border-color, #e2e8f0); gap: 4px; margin-bottom: 1.25rem; }
-[data-theme="dark"] .toggle-group { background: #141416; border-color: #27272a; }
+.toggle-group { display: flex; background: #f1f5f9; padding: 3px; border-radius: 10px; border: 1px solid #e2e8f0; gap: 3px; margin-bottom: 1rem; }
+[data-theme="dark"] .toggle-group { background: #141926; border-color: rgba(255,255,255,0.08); }
 .toggle-input { display: none; }
-.toggle-label { flex: 1; text-align: center; padding: 0.45rem 0.6rem; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-.toggle-input:checked + .toggle-label { background: #ffffff; color: var(--color-title, #0f172a); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-[data-theme="dark"] .toggle-input:checked + .toggle-label { background: #27272a; color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.toggle-label { flex: 1; text-align: center; padding: 0.4rem 0.6rem; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); border-radius: 7px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.toggle-input:checked + .toggle-label { background: #ffffff; color: #0f172a; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+[data-theme="dark"] .toggle-input:checked + .toggle-label { background: #1e2638; color: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
 
-/* Vista previa adaptativa */
+/* Vista previa adaptativa (Dropzones Modernas SaaS) */
 .preview-container { display: flex; justify-content: center; margin-bottom: 0.5rem; }
-.preview-box { background: var(--bg-color, #f8fafc); border: 2px dashed var(--border-color, #e2e8f0); border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-[data-theme="dark"] .preview-box { background: #141416; border-color: #27272a; }
+.preview-box { background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; position: relative; overflow: hidden; transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.preview-box:hover { border-color: var(--primary-color, #4f46e5); background: rgba(79, 70, 229, 0.02); }
+[data-theme="dark"] .preview-box { background: #0d121d; border-color: rgba(255, 255, 255, 0.12); }
+[data-theme="dark"] .preview-box:hover { border-color: #6366f1; background: rgba(99, 102, 241, 0.05); }
 .preview-box.ratio-9-16 { width: 150px; height: 260px; }
 .preview-box.ratio-1-1 { width: 260px; height: 260px; }
 .preview-box.ratio-4-5 { width: 210px; height: 260px; }
 .preview-box.ratio-16-9 { width: 290px; height: 165px; } 
-.preview-box.ratio-auto { width: 100%; height: auto; min-height: 220px; }
-.preview-actions { display: flex; justify-content: center; gap: 0.4rem; margin-top: 1rem; flex-wrap: nowrap; }
-.preview-actions button { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.5rem 0.6rem; flex: 1; font-size: 0.74rem; font-weight: 700; color: var(--color-title, #0f172a); background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; }
-[data-theme="dark"] .preview-actions button { color: #e4e4e7; background: #141416; border-color: #27272a; }
-.preview-actions button i { font-size: 1.15rem; color: var(--primary-color); transition: transform 0.2s; }
-.preview-actions button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: var(--primary-color); color: var(--primary-color); background: var(--bg-surface, #ffffff); }
-[data-theme="dark"] .preview-actions button:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.4); color: #ffffff; background: #27272a; }
-.preview-actions button:hover i { transform: scale(1.1); }
+.preview-box.ratio-auto { width: 100%; height: auto; min-height: 230px; }
+.preview-actions { display: flex; justify-content: center; gap: 0.4rem; margin-top: 0.75rem; flex-wrap: wrap; }
+.preview-actions button { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.45rem 0.6rem; flex: 1 1 auto; min-width: 78px; font-size: 0.74rem; font-weight: 600; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; cursor: pointer; transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; white-space: nowrap; }
+[data-theme="dark"] .preview-actions button { color: #cbd5e1; background: #161c2b; border-color: rgba(255, 255, 255, 0.08); }
+.preview-actions button i { font-size: 1rem; color: var(--primary-color, #4f46e5); transition: transform 0.2s; }
+[data-theme="dark"] .preview-actions button i { color: #818cf8; }
+.preview-actions button:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06); border-color: var(--primary-color, #4f46e5); color: var(--primary-color, #4f46e5); background: #ffffff; }
+[data-theme="dark"] .preview-actions button:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.35); color: #ffffff; background: #1e2638; border-color: #6366f1; }
+.preview-actions button:hover i { transform: scale(1.08); }
 
 /* Post Image Viewer Lightbox Styles */
 .preview-interactive-img {
@@ -2316,18 +4133,20 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     transform: scale(1.05);
 }
 
-/* Native WYSIWYG */
-.custom-wysiwyg-wrapper { border: 1px solid var(--border-color, #e2e8f0); border-radius: 16px; overflow: visible; background: var(--bg-surface, #ffffff); transition: all 0.2s; position: relative; }
-.custom-wysiwyg-wrapper:focus-within { border-color: var(--primary-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent); }
-[data-theme="dark"] .custom-wysiwyg-wrapper { border-color: #27272a; background: #141416; }
-.wysiwyg-toolbar { display: flex; align-items: center; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--border-color, #e2e8f0); background: var(--bg-color, #f8fafc); border-radius: 16px 16px 0 0; flex-wrap: wrap; }
-[data-theme="dark"] .wysiwyg-toolbar { border-bottom-color: #27272a; background: #18181a; }
-.wys-btn { background: transparent; border: none; padding: 6px 8px; border-radius: 8px; cursor: pointer; color: var(--text-muted, #64748b); display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 1.1rem; }
-.wys-btn:hover { background: rgba(125, 125, 125, 0.1); color: var(--color-title, #0f172a); }
-[data-theme="dark"] .wys-btn:hover { background: #27272a; color: #ffffff; }
-.wys-divider { width: 1px; height: 20px; background: var(--border-color, #e2e8f0); margin: 0 4px; }
-[data-theme="dark"] .wys-divider { background: #27272a; }
-.wysiwyg-content { min-height: 380px; padding: 18px; outline: none; font-size: 0.95rem; line-height: 1.7; color: var(--color-title, #0f172a); max-height: 520px; overflow-y: auto; }
+/* Native WYSIWYG (SaaS Studio Editor) */
+.custom-wysiwyg-wrapper { border: 1px solid #e2e8f0; border-radius: 12px; overflow: visible; background: var(--bg-surface, #ffffff); transition: all 0.2s; position: relative; box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02); }
+.custom-wysiwyg-wrapper:focus-within { border-color: var(--primary-color, #4f46e5); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #4f46e5) 14%, transparent); }
+[data-theme="dark"] .custom-wysiwyg-wrapper { border-color: rgba(255, 255, 255, 0.08); background: #0d121d; }
+.wysiwyg-toolbar { display: flex; align-items: center; gap: 3px; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; border-radius: 12px 12px 0 0; flex-wrap: wrap; }
+[data-theme="dark"] .wysiwyg-toolbar { border-bottom-color: rgba(255, 255, 255, 0.08); background: #141926; }
+.wys-btn { background: transparent; border: 1px solid transparent; padding: 5px 7px; border-radius: 7px; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; transition: all 0.16s; font-size: 1rem; }
+.wys-btn:hover { background: #ffffff; border-color: #e2e8f0; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+[data-theme="dark"] .wys-btn { color: #94a3b8; }
+[data-theme="dark"] .wys-btn:hover { background: #1e2638; border-color: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.wys-divider { width: 1px; height: 18px; background: #e2e8f0; margin: 0 4px; }
+[data-theme="dark"] .wys-divider { background: rgba(255, 255, 255, 0.1); }
+.wysiwyg-content { min-height: 240px; padding: 14px 16px; outline: none; font-size: 0.9rem; line-height: 1.65; color: var(--color-title, #0f172a); max-height: 440px; overflow-y: auto; }
+.wysiwyg-content.brief-editor-content { min-height: 145px; max-height: 280px; }
 [data-theme="dark"] .wysiwyg-content { color: #f1f5f9; }
 .wysiwyg-content:empty:before { content: attr(placeholder); color: var(--text-muted, #94a3b8); pointer-events: none; display: block; }
 .wysiwyg-content ul { padding-left: 20px; list-style-type: disc; }
@@ -2793,16 +4612,56 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     animation: rgShimmerWave 1.8s infinite linear;
 }
 
-.form-control { border: 1px solid var(--border-color, #e2e8f0); background-color: var(--bg-surface, #ffffff); color: var(--color-title, #0f172a); border-radius: 12px; padding: 0.6rem 0.85rem; font-size: 0.88rem; transition: all 0.2s ease; }
-.form-control:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent); background: var(--bg-surface, #ffffff); }
-[data-theme="dark"] .form-control { border-color: #27272a; background-color: #141416; color: #f1f5f9; }
-[data-theme="dark"] .form-control:focus { background: #181818; }
-.form-control-sm { padding: 0.45rem 0.75rem; font-size: 0.82rem; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.form-control { border: 1px solid #e2e8f0; background-color: #f8fafc; color: var(--color-title, #0f172a); border-radius: 9px; padding: 0.5rem 0.75rem; font-size: 0.84rem; transition: all 0.18s ease; box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02); }
+.form-control:hover { border-color: #cbd5e1; }
+.form-control:focus { border-color: var(--primary-color, #4f46e5); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #4f46e5) 15%, transparent); background: #ffffff; }
+[data-theme="dark"] .form-control { border-color: rgba(255, 255, 255, 0.08); background-color: #0d121d; color: #f1f5f9; }
+[data-theme="dark"] .form-control:hover { border-color: rgba(255, 255, 255, 0.15); }
+[data-theme="dark"] .form-control:focus { background: #131926; border-color: #6366f1; }
+.form-control-sm { padding: 0.42rem 0.65rem; font-size: 0.78rem; border-radius: 8px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+
+.btn-paste-clip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.44rem 0.75rem;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s ease;
+}
+.btn-paste-clip:hover {
+    background: #ffffff;
+    border-color: var(--primary-color, #4f46e5);
+    color: var(--primary-color, #4f46e5);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+[data-theme="dark"] .btn-paste-clip {
+    background: #161c2b;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+[data-theme="dark"] .btn-paste-clip:hover {
+    background: #1e2638;
+    border-color: #6366f1;
+    color: #ffffff;
+}
 
 .comment-subtab.active {
-    color: var(--accent-primary) !important;
-    border-bottom-color: var(--accent-primary) !important;
+    color: var(--primary-color, #4f46e5) !important;
+    border-bottom-color: var(--primary-color, #4f46e5) !important;
+    background: linear-gradient(180deg, transparent 0%, rgba(79, 70, 229, 0.05) 100%) !important;
+}
+[data-theme="dark"] .comment-subtab.active {
+    color: #818cf8 !important;
+    border-bottom-color: #818cf8 !important;
+    background: linear-gradient(180deg, transparent 0%, rgba(129, 140, 248, 0.08) 100%) !important;
 }
 
 /* Dynamic rows (Referencias & Variaciones) */
@@ -2813,12 +4672,11 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     background: var(--bg-color, #f8fafc);
     border: 1px solid var(--border-color, #e2e8f0);
     border-radius: 12px;
+    padding: 0.75rem;
 }
 [data-theme="dark"] .dyn-row {
     background: #18181a;
     border-color: #27272a;
-}
-    padding: 0.75rem;
 }
 .dyn-row-content {
     flex: 1;
@@ -2850,45 +4708,223 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     width: 100%;
 }
 
+/* ==========================================================================
+   SISTEMA FLUIDO MULTI-PANTALLA (MÓVIL, LAPTOPS 15"-17" Y MONITORES 19"-24"+)
+   ========================================================================== */
+.crm-studio-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(310px, 28vw, 390px);
+    gap: clamp(0.95rem, 1.4vw, 1.5rem);
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+}
+.crm-studio-grid > * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.crm-diseno-split-layout > *,
+.crm-diseno-col-left > *,
+.crm-diseno-col-right > *,
+.crm-main,
+.crm-studio-scroll,
+.crm-tab-pane,
+.studio-card,
+.qa-checklist-card {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.crm-url-input-row {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+}
+.crm-url-input-row input.form-control {
+    flex: 1 1 160px;
+    min-width: 0;
+}
+.crm-sidebar-cards-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.crm-mobile-props-toggle {
+    display: none;
+}
+
+/* 1. Monitores Grandes 23", 24"+ Full HD / QHD (>= 1650px) */
+@media (min-width: 1650px) {
+    .crm-app-header {
+        height: 64px;
+        padding: 0 1.75rem;
+    }
+    .crm-sidebar {
+        width: clamp(325px, 19.5vw, 355px);
+        padding: 1.1rem 1.25rem;
+    }
+    .crm-sidebar-cards-wrap {
+        gap: 0.85rem;
+    }
+    .crm-studio-grid {
+        grid-template-columns: minmax(0, 1fr) clamp(370px, 25vw, 430px);
+        gap: 1.5rem;
+    }
+    .crm-diseno-split-layout {
+        grid-template-columns: minmax(390px, 45%) minmax(0, 1fr);
+        gap: 1.5rem;
+    }
+}
+
+/* 2. Laptops 15", 16", 17" y Monitores 19", 20", 21", 22" (993px a 1649px) */
+@media (min-width: 993px) and (max-width: 1649px) {
+    .crm-app-header {
+        height: 56px;
+        padding: 0 1rem;
+        gap: 0.65rem;
+    }
+    .crm-sidebar {
+        width: clamp(255px, 21.5vw, 310px);
+        padding: 0.85rem 0.9rem;
+    }
+    .crm-sidebar-cards-wrap {
+        gap: 0.65rem;
+    }
+    .crm-sidebar-card {
+        padding: 0.75rem 0.85rem;
+        gap: 0.45rem;
+    }
+    .crm-studio-scroll {
+        padding: 1.1rem 1.2rem !important;
+    }
+    .crm-studio-grid {
+        grid-template-columns: minmax(0, 1fr) clamp(285px, 28vw, 360px);
+        gap: 1.1rem;
+    }
+    .crm-diseno-split-layout {
+        grid-template-columns: minmax(290px, 44%) minmax(0, 1fr);
+        gap: 1.1rem;
+        height: calc(100dvh - 126px);
+        max-height: calc(100dvh - 126px);
+    }
+    .studio-card {
+        padding: 1rem 1.1rem;
+    }
+    .pipeline-stage {
+        padding: 0.3rem 0.65rem;
+        font-size: 0.73rem;
+    }
+    .btn-header-save {
+        padding: 0.42rem 0.9rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+}
+
+/* Ocultar subtítulo largo en laptops <= 1460px para que la cabecera quede en 1 sola línea limpia */
+@media (max-width: 1460px) {
+    .crm-header-subtitle {
+        display: none !important;
+    }
+}
+
+/* Adaptación de altura vertical para Laptops 15"-16" (ej. 1366x768, 1536x864, <= 820px alto) */
+@media (min-width: 993px) and (max-height: 820px) {
+    .crm-app-header {
+        height: 52px;
+    }
+    .crm-tabs {
+        height: 42px;
+    }
+    .wysiwyg-content.copy-editor-content {
+        min-height: 185px !important;
+        max-height: 310px !important;
+    }
+    .wysiwyg-content.brief-editor-content {
+        min-height: 115px !important;
+        max-height: 210px !important;
+    }
+    .preview-box.ratio-auto {
+        min-height: 180px;
+    }
+    .crm-diseno-split-layout {
+        height: calc(100dvh - 114px);
+        max-height: calc(100dvh - 114px);
+    }
+}
+
+/* 3. Tablets & Móviles (<= 992px) */
 @media (max-width: 992px) {
     .modal-overlay {
         padding: 0 !important;
     }
     .modal-content.crm-layout {
         width: 100vw !important;
+        max-width: 100vw !important;
         height: 100vh !important;
+        height: 100dvh !important;
         max-height: 100vh !important;
+        max-height: 100dvh !important;
         border-radius: 0 !important;
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
     }
+
+    /* Cabecera Responsive Compacta en 2 Filas Limpias */
     .crm-app-header {
         height: auto !important;
-        padding: 0.75rem 1rem !important;
+        padding: 0.55rem 0.85rem !important;
         flex-wrap: wrap !important;
         flex-direction: row !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 0.65rem !important;
+        gap: 0.45rem !important;
     }
     .crm-header-left {
-        flex: 1 !important;
+        flex: 1 1 auto !important;
         min-width: 0 !important;
         gap: 0.5rem !important;
         order: 1 !important;
     }
-    .crm-header-title {
-        font-size: 0.98rem !important;
+    .crm-header-icon {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 9px !important;
+        font-size: 1rem !important;
     }
-    .crm-header-subtitle {
-        font-size: 0.68rem !important;
+    .crm-header-title {
+        font-size: 0.92rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    .crm-header-subtitle,
+    #auto-save-indicator {
+        display: none !important;
     }
     .crm-header-actions {
         flex: 0 0 auto !important;
         order: 2 !important;
         display: flex !important;
         align-items: center !important;
+        gap: 0.4rem !important;
+    }
+    .btn-header-save {
+        padding: 0.4rem 0.75rem !important;
+        font-size: 0.76rem !important;
+        border-radius: 8px !important;
+        white-space: nowrap !important;
+    }
+    .btn-header-close {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
     }
     .pipeline-stages {
         order: 3 !important;
@@ -2897,89 +4933,178 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
         width: 100% !important;
         scrollbar-width: none !important;
         -webkit-overflow-scrolling: touch !important;
-        padding: 4px 6px !important;
+        padding: 3px !important;
         justify-content: flex-start !important;
+        border-radius: 9px !important;
     }
     .pipeline-stages::-webkit-scrollbar {
         display: none !important;
     }
     .pipeline-stage {
-        padding: 0.35rem 0.75rem !important;
-        font-size: 0.76rem !important;
+        padding: 0.3rem 0.65rem !important;
+        font-size: 0.72rem !important;
         white-space: nowrap !important;
         flex-shrink: 0 !important;
-    }
-    .btn-header-save {
-        padding: 0.4rem 0.85rem !important;
-        font-size: 0.78rem !important;
+        border-radius: 7px !important;
     }
 
-    /* Romita Popover on Responsive / Mobile */
-    @media (max-width: 600px) {
-        .romita-popover-panel {
-            width: min(390px, 92vw) !important;
-            max-width: 92vw !important;
-            right: 0 !important;
-            max-height: 68vh !important;
-            overflow-y: auto !important;
-        }
-    }
-
-    /* Unificar scroll vertical limpio sin trampas de scroll anidadas */
+    /* Unificar scroll vertical limpio y fluido */
     .crm-body-container {
         display: flex !important;
         flex-direction: column !important;
-        flex: 1 !important;
+        flex: 1 1 auto !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch !important;
         height: auto !important;
+        width: 100% !important;
     }
+
+    /* Barra Colapsable de Propiedades en Móvil/Tablet */
     .crm-sidebar {
         width: 100% !important;
         border-right: none !important;
-        border-bottom: 1px solid #27272a !important;
+        border-bottom: 1px solid #e2e8f0 !important;
         overflow: visible !important;
         height: auto !important;
         flex-shrink: 0 !important;
-        padding: 1rem !important;
-        gap: 0.85rem !important;
+        padding: 0.75rem 0.85rem !important;
+        gap: 0.65rem !important;
+        box-sizing: border-box !important;
     }
+    [data-theme="dark"] .crm-sidebar {
+        border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    .crm-mobile-props-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0.55rem 0.85rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        color: var(--color-title, #0f172a);
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+    }
+    [data-theme="dark"] .crm-mobile-props-toggle {
+        background: #131926;
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #f1f5f9;
+    }
+    .crm-mobile-props-toggle .props-toggle-chevron {
+        transition: transform 0.22s ease;
+        font-size: 0.95rem;
+        color: var(--primary-color, #4f46e5);
+    }
+    .crm-sidebar.is-collapsed-mobile .crm-sidebar-cards-wrap {
+        display: none !important;
+    }
+    .crm-sidebar.is-collapsed-mobile .crm-mobile-props-toggle .props-toggle-chevron {
+        transform: rotate(-90deg);
+    }
+
+    /* En Tablet (641px - 992px), mostrar las tarjetas del sidebar en grilla 2x2 */
+    @media (min-width: 641px) and (max-width: 992px) {
+        .crm-sidebar-cards-wrap {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.65rem !important;
+        }
+    }
+
     .crm-main {
         width: 100% !important;
+        max-width: 100% !important;
         overflow: visible !important;
         height: auto !important;
-        flex: none !important;
+        flex: 1 0 auto !important;
         display: flex !important;
         flex-direction: column !important;
     }
+
+    /* Pestañas Sticky al hacer scroll en móvil */
+    .crm-tabs {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 15 !important;
+        padding: 0 0.75rem !important;
+        gap: 0.25rem !important;
+        height: 44px !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .crm-tabs::-webkit-scrollbar {
+        display: none !important;
+    }
+    .crm-tab {
+        padding: 0 0.7rem !important;
+        font-size: 0.78rem !important;
+        flex-shrink: 0 !important;
+    }
+
     .crm-studio-scroll {
-        padding: 1rem !important;
+        padding: 0.85rem !important;
         overflow: visible !important;
         height: auto !important;
         flex: none !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
-    .crm-tabs {
-        padding: 0 1rem !important;
-        gap: 1rem !important;
-        scrollbar-width: none !important;
-    }
-    .crm-tab {
-        padding: 0.75rem 0 !important;
-        font-size: 0.82rem !important;
-    }
+
+    .crm-studio-grid,
+    .crm-diseno-split-layout,
     .grid-2 {
         grid-template-columns: 1fr !important;
-        gap: 1rem !important;
+        gap: 0.85rem !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        width: 100% !important;
     }
-    .studio-card {
-        padding: 1.1rem !important;
-        border-radius: 16px !important;
+    .crm-sidebar-card .grid-2 {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
     }
-    .wysiwyg-content {
-        min-height: 220px !important;
-        max-height: 380px !important;
+    .crm-diseno-col-left,
+    .crm-diseno-col-right,
+    .crm-diseno-right-scroll {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding-right: 0 !important;
+        width: 100% !important;
+    }
+    .crm-diseno-col-header {
+        position: relative !important;
+        top: 0 !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        padding: 0.65rem 0.85rem !important;
+    }
+    .studio-card,
+    .qa-checklist-card {
+        padding: 0.95rem !important;
+        border-radius: 13px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .wysiwyg-content,
+    .wysiwyg-content.copy-editor-content {
+        min-height: 190px !important;
+        max-height: 340px !important;
         padding: 12px !important;
+        font-size: 0.88rem !important;
+    }
+    .wysiwyg-content.brief-editor-content {
+        min-height: 130px !important;
+        max-height: 240px !important;
     }
     .preview-box.ratio-1-1, 
     .preview-box.ratio-9-16, 
@@ -2987,14 +5112,141 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     .preview-box.ratio-16-9,
     .preview-box.ratio-auto {
         max-width: 100% !important;
+        min-height: 185px !important;
+    }
+    .preview-actions {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)) !important;
+        gap: 0.4rem !important;
+        width: 100% !important;
+    }
+    .preview-actions button {
+        width: 100% !important;
+        min-width: 0 !important;
+        padding: 0.46rem 0.4rem !important;
+        font-size: 0.73rem !important;
+    }
+    .crm-url-input-row {
+        flex-wrap: wrap !important;
+    }
+    .crm-url-input-row input.form-control {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+    }
+    .crm-url-input-row .btn-paste-clip {
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+        padding: 0.45rem 0.65rem !important;
+    }
+    .qa-header {
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
     }
     .qa-items-grid {
         grid-template-columns: 1fr !important;
     }
+    .workflow-next-card {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        text-align: left !important;
+        padding: 0.85rem !important;
+        gap: 0.65rem !important;
+    }
+    .workflow-next-card .btn-step-next {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+    .client-status-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+    .client-status-btn {
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        padding: 0.65rem 0.85rem !important;
+        gap: 0.6rem !important;
+    }
+    .tm-timeline-flow {
+        padding-left: 1.5rem !important;
+    }
+    .tm-timeline-node {
+        left: -1.5rem !important;
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 0.68rem !important;
+    }
+    .tm-step-header {
+        flex-wrap: wrap !important;
+        gap: 0.45rem !important;
+    }
+    .tm-step-actions {
+        width: 100% !important;
+        justify-content: flex-end !important;
+        flex-wrap: wrap !important;
+    }
+    .tm-step-dropzone {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+    }
+    /* Barra de filtros del tablero principal deslizable en móvil */
+    .board-phase-filter-bar {
+        padding: 0.6rem 0.85rem !important;
+        gap: 0.5rem !important;
+    }
+    .bpf-pills {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        width: 100% !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 2px !important;
+    }
+    .bpf-pills::-webkit-scrollbar {
+        display: none !important;
+    }
+    .bpf-pill {
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+/* 4. Ajustes extra para móviles compactos (<= 480px) */
+@media (max-width: 480px) {
+    .romita-popover-panel {
+        width: min(390px, 92vw) !important;
+        max-width: 92vw !important;
+        right: 0 !important;
+        max-height: 68vh !important;
+        overflow-y: auto !important;
+    }
+    .crm-app-header {
+        padding: 0.45rem 0.65rem !important;
+    }
+    .crm-header-title {
+        font-size: 0.86rem !important;
+    }
+    .btn-header-save {
+        padding: 0.36rem 0.65rem !important;
+        font-size: 0.73rem !important;
+    }
+    .pillar-pill-group {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    .pill-group {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    .crm-studio-scroll {
+        padding: 0.65rem !important;
+    }
+    .studio-card,
+    .qa-checklist-card {
+        padding: 0.8rem !important;
+    }
 }
 </style>
 
-<!-- Modal Publicación (Modern App Layout) -->
+<!-- Modal Publicación (Modern App Layout - Flujo en 4 Etapas) -->
 <div class="modal-overlay" id="post-modal">
     <div class="modal-content crm-layout">
         
@@ -3002,6 +5254,13 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
             <input type="hidden" name="id" id="post-id" value="">
             <input type="hidden" name="month_id" value="<?php echo $monthId; ?>">
             <input type="hidden" name="status" id="post-status" value="Borrador">
+            <input type="radio" name="post_type" id="pt_ref" value="Referencia Visual" style="display:none;" checked onchange="updateVideoPreview()">
+            <input type="radio" name="post_type" id="pt_post" value="Post Terminado" style="display:none;" onchange="updateVideoPreview()">
+            <input type="hidden" name="image_link" id="post-image-link">
+            <input type="hidden" name="reference_image_link" id="post-reference-link">
+            <input type="hidden" name="paint_data" id="post-paint-data">
+            <input type="hidden" name="drive_images" id="post-drive">
+            <input type="file" id="post-main-image-upload" style="display:none" accept="image/*,video/mp4,video/quicktime,video/webm,video/*" multiple onchange="uploadMainImage(this)">
 
             <!-- Top App Bar -->
             <div class="crm-app-header">
@@ -3010,22 +5269,32 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                     <div class="crm-header-icon">
                         <i class="ph-bold ph-newspaper"></i>
                     </div>
-                    <div>
+                    <div style="min-width: 0;">
                         <h2 class="crm-header-title" id="post-modal-title">Añadir Publicación</h2>
-                        <div class="crm-header-subtitle">Editor de Contenido & Visuales</div>
+                        <div class="crm-header-subtitle">Flujo: Idea de Calendario ➔ Diseño ➔ Aprobación de Cliente</div>
                     </div>
-                    <span id="auto-save-indicator" style="font-size: 0.72rem; color: #10b981; font-weight: 600; opacity: 0; transition: opacity 0.3s; margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 4px;">
+                    <span id="auto-save-indicator" style="font-size: 0.72rem; color: #10b981; font-weight: 600; opacity: 0; transition: opacity 0.3s; margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
                         <i class="ph ph-check"></i> Guardado
                     </span>
                 </div>
 
                 <!-- Center: Pipeline Control -->
                 <div class="pipeline-stages">
-                    <div class="pipeline-stage active" data-status="Borrador" onclick="setPostStatus('Borrador')">Borrador</div>
-                    <div class="pipeline-stage" data-status="En Revisión" onclick="setPostStatus('En Revisión')">En Revisión</div>
-                    <div class="pipeline-stage" data-status="Aprobado" onclick="setPostStatus('Aprobado')">Aprobado</div>
-                    <div class="pipeline-stage" data-status="Publicado" onclick="setPostStatus('Publicado')">Publicado</div>
-                    <div class="pipeline-stage" data-status="Archivado" onclick="setPostStatus('Archivado')">Archivado</div>
+                    <div class="pipeline-stage active" data-status="Borrador" onclick="setPostStatus('Borrador')" title="Etapa 1: Idea y Grilla">
+                        <i class="ph-bold ph-lightbulb"></i> 1. Idea / Borrador
+                    </div>
+                    <div class="pipeline-stage" data-status="En Revisión" onclick="setPostStatus('En Revisión')" title="Etapa 2: En Proceso de Diseño o Revisión">
+                        <i class="ph-bold ph-paint-brush"></i> 2. En Diseño
+                    </div>
+                    <div class="pipeline-stage" data-status="Aprobado" onclick="setPostStatus('Aprobado')" title="Etapa 3: Diseño Aprobado por el Cliente">
+                        <i class="ph-bold ph-check-circle"></i> 3. Aprobado Cliente
+                    </div>
+                    <div class="pipeline-stage" data-status="Publicado" onclick="setPostStatus('Publicado')" title="Etapa 4: Publicado o Programado en Redes">
+                        <i class="ph-bold ph-rocket-launch"></i> 4. Publicado
+                    </div>
+                    <div class="pipeline-stage" data-status="Archivado" onclick="setPostStatus('Archivado')" title="Archivado">
+                        <i class="ph-bold ph-archive"></i> Archivado
+                    </div>
                 </div>
 
                 <!-- Right: Save & Close Buttons -->
@@ -3042,40 +5311,42 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
             <!-- Body Area -->
             <div class="crm-body-container">
                 <!-- SIDEBAR: Settings & Metadata -->
-                <div class="crm-sidebar">
+                <div class="crm-sidebar" id="crm-modal-sidebar">
+                    <button type="button" class="crm-mobile-props-toggle" onclick="document.getElementById('crm-modal-sidebar').classList.toggle('is-collapsed-mobile')">
+                        <span style="display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="ph-bold ph-sliders-horizontal" style="color: var(--primary-color, #4f46e5);"></i>
+                            <span>Propiedades del Post (Concepto, Pilar, Redes y Fechas)</span>
+                        </span>
+                        <i class="ph-bold ph-caret-down props-toggle-chevron"></i>
+                    </button>
+
+                    <div class="crm-sidebar-cards-wrap">
                     <!-- Concepto / Título -->
                     <div class="crm-sidebar-card">
                         <label class="crm-sidebar-label required"><i class="ph ph-textbox" style="color: var(--primary-color);"></i> Concepto / Título</label>
-                        <textarea name="concept" id="post-concept" class="form-control" required placeholder="Ej. Promoción Especial de Verano" style="font-size: 0.92rem; font-weight: 700; resize: none; overflow: hidden; min-height: 48px; line-height: 1.4;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
-                    </div>
-
-                    <!-- Descripción para Referencia Gráfica -->
-                    <div class="crm-sidebar-card">
-                        <label class="crm-sidebar-label"><i class="ph-bold ph-notepad" style="color: var(--primary-color);"></i> Descripción / Idea Referencial</label>
-                        <textarea name="design_brief" id="post-brief" class="form-control" placeholder="Describe la idea visual o instrucciones para la Referencia Gráfica..." style="font-size: 0.84rem; resize: vertical; min-height: 72px; line-height: 1.45;" oninput="markDirty(); updateSaveButtonState();"></textarea>
-                        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.25rem;">Instrucciones para la fase de Referencia Visual (el copy final se coloca en el editor de la derecha).</div>
+                        <textarea name="concept" id="post-concept" class="form-control" required placeholder="Ej. Promoción Especial de Verano" style="font-size: 0.92rem; font-weight: 700; resize: none; overflow: hidden; min-height: 48px; line-height: 1.4;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; markDirty(); updateSaveButtonState(); updateDesignGuide();"></textarea>
                     </div>
 
                     <!-- Pilar de Contenido -->
                     <div class="crm-sidebar-card">
                         <label class="crm-sidebar-label required"><i class="ph-bold ph-chart-pie-slice" style="color: var(--primary-color);"></i> Pilar de Contenido</label>
                         <div class="pillar-pill-group">
-                            <input type="radio" name="content_pillar" id="pil_edu" value="Educación" class="pillar-input" checked onchange="markDirty(); updateSaveButtonState();">
+                            <input type="radio" name="content_pillar" id="pil_edu" value="Educación" class="pillar-input" checked onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="pil_edu" class="pillar-label pil-edu"><i class="ph ph-graduation-cap"></i> Educación</label>
 
-                            <input type="radio" name="content_pillar" id="pil_ventas" value="Ventas" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <input type="radio" name="content_pillar" id="pil_ventas" value="Ventas" class="pillar-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="pil_ventas" class="pillar-label pil-ventas"><i class="ph ph-tag"></i> Ventas</label>
 
-                            <input type="radio" name="content_pillar" id="pil_brand" value="Branding" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <input type="radio" name="content_pillar" id="pil_brand" value="Branding" class="pillar-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="pil_brand" class="pillar-label pil-brand"><i class="ph ph-sparkle"></i> Branding</label>
 
-                            <input type="radio" name="content_pillar" id="pil_ent" value="Entretenimiento" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <input type="radio" name="content_pillar" id="pil_ent" value="Entretenimiento" class="pillar-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="pil_ent" class="pillar-label pil-ent"><i class="ph ph-mask-happy"></i> Entretenimiento</label>
 
-                            <input type="radio" name="content_pillar" id="pil_com" value="Comunidad" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <input type="radio" name="content_pillar" id="pil_com" value="Comunidad" class="pillar-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="pil_com" class="pillar-label pil-com"><i class="ph ph-users-three"></i> Comunidad</label>
 
-                            <input type="radio" name="content_pillar" id="pil_test" value="Testimonial" class="pillar-input" onchange="markDirty(); updateSaveButtonState();">
+                            <input type="radio" name="content_pillar" id="pil_test" value="Testimonial" class="pillar-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="pil_test" class="pillar-label pil-test"><i class="ph ph-star"></i> Testimonial</label>
                         </div>
                     </div>
@@ -3084,19 +5355,19 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                     <div class="crm-sidebar-card">
                         <label class="crm-sidebar-label required"><i class="ph ph-share-network" style="color: var(--primary-color);"></i> Plataformas</label>
                         <div class="pill-group">
-                            <input type="checkbox" name="platform[]" id="plat1" value="Facebook" class="pill-input">
+                            <input type="checkbox" name="platform[]" id="plat1" value="Facebook" class="pill-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="plat1" class="pill-label"><i class="ph ph-facebook-logo"></i> FB</label>
                             
-                            <input type="checkbox" name="platform[]" id="plat2" value="Instagram" class="pill-input">
+                            <input type="checkbox" name="platform[]" id="plat2" value="Instagram" class="pill-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="plat2" class="pill-label"><i class="ph ph-instagram-logo"></i> IG</label>
                             
-                            <input type="checkbox" name="platform[]" id="plat3" value="TikTok" class="pill-input">
+                            <input type="checkbox" name="platform[]" id="plat3" value="TikTok" class="pill-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="plat3" class="pill-label"><i class="ph ph-tiktok-logo"></i> TT</label>
                             
-                            <input type="checkbox" name="platform[]" id="plat4" value="LinkedIn" class="pill-input">
+                            <input type="checkbox" name="platform[]" id="plat4" value="LinkedIn" class="pill-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="plat4" class="pill-label"><i class="ph ph-linkedin-logo"></i> IN</label>
                             
-                            <input type="checkbox" name="platform[]" id="plat5" value="Twitter / X" class="pill-input">
+                            <input type="checkbox" name="platform[]" id="plat5" value="Twitter / X" class="pill-input" onchange="markDirty(); updateSaveButtonState(); updateDesignGuide();">
                             <label for="plat5" class="pill-label"><i class="ph ph-twitter-logo"></i> X</label>
                         </div>
                     </div>
@@ -3117,7 +5388,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                     <span style="font-size: 0.62rem; background: rgba(239,68,68,0.15); color: #ef4444; padding: 1px 6px; border-radius: 4px; font-weight: 800;"><i class="ph ph-lock"></i> Solo Admin</span>
                                 <?php endif; ?>
                             </label>
-                            <input type="date" name="end_date" id="post-end-date" class="form-control form-control-sm" <?php echo !$isAdmin ? 'readonly style="cursor: not-allowed; opacity: 0.85;" title="Solo el administrador puede modificar la fecha de entrega"' : ''; ?> onchange="updateSaveButtonState()">
+                            <input type="date" name="end_date" id="post-end-date" class="form-control form-control-sm" <?php echo !$isAdmin ? 'readonly style="cursor: not-allowed; opacity: 0.85;" title="Solo el administrador puede modificar la fecha de entrega"' : ''; ?> onchange="updateSaveButtonState(); updateDesignGuide();">
                         </div>
 
                         <div class="grid-2" style="margin-top: 0.25rem;">
@@ -3139,17 +5410,24 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                             </div>
                         </div>
                     </div>
+                    </div>
                 </div>
 
-                <!-- MAIN AREA: Studio Canvas -->
+                <!-- MAIN AREA: Studio Canvas (Pestañas de Flujo de Trabajo) -->
                 <div class="crm-main">
                     <!-- Tabs Navigation -->
                     <div class="crm-tabs">
-                        <div class="crm-tab active" onclick="switchCrmTab(this, 'tab-contenido')">
-                            <i class="ph-bold ph-pen-nib"></i> Contenido & QA
+                        <div class="crm-tab active" id="crm-tab-nav-idea" onclick="switchCrmTab(this, 'tab-idea')">
+                            <i class="ph-bold ph-lightbulb"></i> 1. Grilla / Idea
                         </div>
-                        <div class="crm-tab" onclick="switchCrmTab(this, 'tab-comentarios')">
-                            <i class="ph-bold ph-chat-circle-dots"></i> Comentarios
+                        <div class="crm-tab" id="crm-tab-nav-diseno" onclick="switchCrmTab(this, 'tab-diseno')">
+                            <i class="ph-bold ph-paint-brush"></i> 2. Diseño de Calendario
+                        </div>
+                        <div class="crm-tab" id="crm-tab-nav-aprobacion" onclick="switchCrmTab(this, 'tab-aprobacion')">
+                            <i class="ph-bold ph-presentation-chart"></i> 3. Aprobación & Publicación
+                        </div>
+                        <div class="crm-tab" id="crm-tab-nav-comentarios" onclick="switchCrmTab(this, 'tab-comentarios')">
+                            <i class="ph-bold ph-chat-circle-dots"></i> 4. Comentarios
                             <span id="comments-badge" style="display: none; background: #ef4444; color: white; border-radius: 12px; padding: 2px 6px; font-size: 0.6rem; font-weight: bold; line-height: 1;">Nuevo</span>
                         </div>
                     </div>
@@ -3157,11 +5435,13 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                     <!-- Content Scrollable Area -->
                     <div class="crm-studio-scroll" style="flex: 1; overflow-y: auto; padding: 1.5rem;">
                         
-                        <!-- TAB 1: CONTENIDO & QA -->
-                        <div id="tab-contenido" class="crm-tab-pane active">
-                            <div class="grid-2" style="grid-template-columns: 1fr 380px; gap: 1.5rem; align-items: stretch;">
+                        <!-- ========================================== -->
+                        <!-- PESTAÑA 1: 💡 GRILLA / IDEA DE CALENDARIO -->
+                        <!-- ========================================== -->
+                        <div id="tab-idea" class="crm-tab-pane active">
+                            <div class="crm-studio-grid">
                                 
-                                <!-- Left: Copy Studio & QA Checklist -->
+                                <!-- Columna Izquierda: Copy Studio & Briefing -->
                                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                                     <div class="studio-card" style="display: flex; flex-direction: column;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
@@ -3212,7 +5492,6 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                         </div>
 
                                                         <div class="romita-popover-body">
-                                                            <!-- Custom prompt instruction input -->
                                                             <div class="romita-prompt-input-wrap">
                                                                 <textarea id="romita-custom-prompt" class="romita-prompt-textarea" rows="2" placeholder="Dime qué deseas que redacte Romita para este post... (o pulsa una opción abajo)"></textarea>
                                                                 <button type="button" class="romita-send-prompt-btn" id="btn-romita-run-custom" onclick="executeRomitaPostAction('custom')" title="Generar con esta indicación">
@@ -3220,21 +5499,20 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                                 </button>
                                                             </div>
 
-                                                            <!-- Quick options 1-click grid -->
                                                             <div class="romita-quick-label">Acciones rápidas en 1 clic:</div>
                                                             <div class="romita-quick-options">
-                                                                <button type="button" class="romita-quick-btn rqb-img" onclick="executeRomitaPostAction('desde_imagen')">
-                                                                    <i class="ph-bold ph-image"></i>
-                                                                    <div class="rqb-text">
-                                                                        <strong>Crear desde Imagen Terminada</strong>
-                                                                        <small>Analiza visuales, concepto y genera copy completo</small>
-                                                                    </div>
-                                                                </button>
                                                                 <button type="button" class="romita-quick-btn rqb-concept" onclick="executeRomitaPostAction('desde_concepto')">
                                                                     <i class="ph-bold ph-lightbulb"></i>
                                                                     <div class="rqb-text">
                                                                         <strong>Crear desde Concepto & Referencia</strong>
                                                                         <small>Usa el título y las notas del post</small>
+                                                                    </div>
+                                                                </button>
+                                                                <button type="button" class="romita-quick-btn rqb-img" onclick="executeRomitaPostAction('desde_imagen')">
+                                                                    <i class="ph-bold ph-image"></i>
+                                                                    <div class="rqb-text">
+                                                                        <strong>Crear desde Imagen / Referencia</strong>
+                                                                        <small>Analiza visuales, concepto y genera copy completo</small>
                                                                     </div>
                                                                 </button>
                                                                 <button type="button" class="romita-quick-btn rqb-fix" onclick="executeRomitaPostAction('corregir')">
@@ -3260,7 +5538,6 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                                 </button>
                                                             </div>
 
-                                                            <!-- Loading indicator inside popover -->
                                                             <div id="romita-popover-loading" class="romita-popover-loading" style="display: none;">
                                                                 <div class="romita-popover-laser-scan"></div>
                                                                 <div class="romita-popover-loading-content">
@@ -3278,20 +5555,157 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div id="post-copy-editable" class="wysiwyg-content" contenteditable="true" placeholder="Escribe el texto de la publicación..."></div>
+                                            <div id="post-copy-editable" class="wysiwyg-content copy-editor-content" contenteditable="true" placeholder="Escribe el texto de la publicación..." oninput="updateCopyPreview(); markDirty(); updateSaveButtonState(); updateDesignGuide();"></div>
                                             <textarea name="copy_text" id="post-copy" style="display:none;"></textarea>
                                         </div>
-                                        <div style="text-align: right; margin-top: 0.65rem; font-size: 0.74rem; font-weight: 600; color: var(--text-muted);">
-                                            <span id="char-count" style="color: #f1f5f9; font-weight: 800;">0</span> caracteres
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.55rem; font-size: 0.72rem; font-weight: 600; color: var(--text-muted, #64748b);">
+                                            <span><i class="ph ph-sparkle" style="color: var(--primary-color, #4f46e5);"></i> Usa Romita IA para estructurar ganchos y CTAs</span>
+                                            <span><strong id="char-count" style="color: var(--color-title, #0f172a); font-weight: 800;">0</strong> caracteres</span>
                                         </div>
                                     </div>
 
-                                    <!-- Control de Calidad QA Checklist -->
+                                    <!-- Descripción / Idea Referencial para el Diseñador -->
+                                    <div class="studio-card" style="display: flex; flex-direction: column;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                                            <label class="crm-sidebar-label" style="margin: 0;"><i class="ph-bold ph-notepad" style="color: var(--primary-color);"></i> Indicaciones / Brief Creativo para el Diseñador</label>
+                                            <span style="font-size: 0.7rem; color: var(--text-muted, #64748b); font-weight: 600;">Composición, colores y lineamientos</span>
+                                        </div>
+                                        <div class="custom-wysiwyg-wrapper" style="display: flex; flex-direction: column;">
+                                            <div class="wysiwyg-toolbar" style="padding: 6px 10px;">
+                                                <button type="button" class="wys-btn" onclick="execBriefCmd('undo')" title="Deshacer"><i class="ph ph-arrow-u-up-left"></i></button>
+                                                <button type="button" class="wys-btn" onclick="execBriefCmd('redo')" title="Rehacer"><i class="ph ph-arrow-u-up-right"></i></button>
+                                                <div class="wys-divider"></div>
+                                                <button type="button" class="wys-btn" onclick="execBriefCmd('bold')" title="Negrita"><i class="ph ph-text-b"></i></button>
+                                                <button type="button" class="wys-btn" onclick="execBriefCmd('italic')" title="Cursiva"><i class="ph ph-text-italic"></i></button>
+                                                <button type="button" class="wys-btn" onclick="execBriefCmd('underline')" title="Subrayado"><i class="ph ph-text-underline"></i></button>
+                                                <div class="wys-divider"></div>
+                                                <button type="button" class="wys-btn" onclick="execBriefCmd('insertUnorderedList')" title="Viñetas"><i class="ph ph-list-bullets"></i></button>
+                                                <button type="button" class="wys-btn" onclick="execBriefCmd('insertOrderedList')" title="Lista numerada"><i class="ph ph-list-numbers"></i></button>
+                                                <div class="wys-divider"></div>
+                                                <div style="position: relative; display: inline-block;">
+                                                    <button type="button" class="wys-btn" onclick="toggleBriefEmojiPicker()" title="Insertar Emoji"><i class="ph ph-smiley"></i></button>
+                                                    <div id="brief-emoji-picker-container" style="display:none; position:absolute; bottom:38px; left:0; z-index:9999; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-radius: 12px;">
+                                                        <emoji-picker class="dark" id="brief-emoji-picker-elem"></emoji-picker>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="post-brief-editable" class="wysiwyg-content brief-editor-content" contenteditable="true" placeholder="Describe qué quieres transmitir, ideas de composición, colores, textos para el diseño o enfoque..." oninput="syncBriefContent(); markDirty(); updateSaveButtonState(); updateDesignGuide();"></div>
+                                            <textarea name="design_brief" id="post-brief" style="display:none;"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- Banner de Paso Siguiente -->
+                                    <div class="workflow-next-card">
+                                        <div>
+                                            <strong style="color: var(--color-title); font-size: 0.84rem;"><i class="ph-bold ph-check-circle" style="color: #10b981;"></i> ¿Idea y copy listos?</strong>
+                                            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">Avanza a la pestaña de diseño para subir el arte final o gestionar los hitos.</div>
+                                        </div>
+                                        <button type="button" class="btn-step-next" onclick="goToDisenoTab()">
+                                            <span>Pasar a Diseño</span> <i class="ph-bold ph-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Columna Derecha: Referencia Visual & Boceto -->
+                                <div class="studio-card" style="display: flex; flex-direction: column;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+                                        <label class="crm-sidebar-label" style="margin: 0;"><i class="ph-bold ph-lightbulb" style="color: #f59e0b;"></i> Referencia Visual / Boceto</label>
+                                        <span style="font-size: 0.66rem; font-weight: 700; background: rgba(245, 158, 11, 0.14); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.28); padding: 2px 8px; border-radius: 999px;">Fase 1: Idea</span>
+                                    </div>
+                                    <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
+                                        Sube imágenes de inspiración, bocetos o enlaces para orientar al diseñador.
+                                    </div>
+
+                                    <div class="preview-container" id="preview-container">
+                                        <div class="preview-box ratio-auto" id="preview-box" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="triggerRefUpload()" style="cursor: pointer;">
+                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 1.5rem; text-align: center;">
+                                                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                                                    <i class="ph-duotone ph-image"></i>
+                                                </div>
+                                                <div style="font-size: 0.78rem; font-weight: 700; color: var(--color-title, #0f172a);">Arrastra tu referencia o haz clic para subir</div>
+                                                <div style="font-size: 0.68rem; color: var(--text-muted, #64748b);">Soporta JPG, PNG, WEBP, MP4 o pega con Ctrl+V</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="preview-actions">
+                                        <button type="button" id="btn-ver-recurso" onclick="openPostImageViewer(0, 'ref')" title="Ver imagen en tamaño completo"><i class="ph ph-eye"></i> Ver</button>
+                                        <button type="button" onclick="triggerRefUpload()"><i class="ph ph-upload-simple"></i> Subir Ref.</button>
+                                        <button type="button" id="btn-dibujar" onclick="openPaintEditor()"><i class="ph ph-paint-brush"></i> Dibujar</button>
+                                        <button type="button" id="btn-eliminar-recurso" onclick="clearActiveTabImage(-1, 'Referencia Visual');"><i class="ph ph-trash"></i> Eliminar</button>
+                                    </div>
+
+                                    <div id="video-url-container" style="border-top: 1px dashed var(--border-color, #e2e8f0); padding-top: 0.9rem; margin-top: 0.9rem; text-align: left;">
+                                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 4px; margin-bottom: 0.4rem;"><i class="ph-bold ph-link"></i> Enlace Externo de Referencia</label>
+                                        <div class="crm-url-input-row">
+                                            <input type="text" id="video-url-input" class="form-control form-control-sm" placeholder="Pinterest, TikTok, Instagram, Drive o URL..." oninput="handleVideoUrlInput('ref')" onpaste="handleInputPaste(event, 'ref')">
+                                            <button type="button" class="btn-paste-clip" onclick="pasteFromClipboardBtn('ref')" title="Pegar del portapapeles (enlace o imagen)">
+                                                <i class="ph-bold ph-clipboard"></i> Pegar
+                                            </button>
+                                            <button type="button" class="btn-paste-clip" style="padding: 0.44rem 0.55rem; color: #ef4444;" onclick="clearExternalLink('ref')" title="Limpiar enlace">
+                                                <i class="ph ph-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========================================== -->
+                        <!-- PESTAÑA 2: 🎨 DISEÑO DE CALENDARIO        -->
+                        <!-- ========================================== -->
+                        <div id="tab-diseno" class="crm-tab-pane">
+                            <div class="crm-diseno-split-layout">
+                                
+                                <!-- Columna Izquierda Scrolleable: Subida de Arte Final & QA Visual -->
+                                <div class="crm-diseno-col-left">
+                                    <div class="studio-card" style="display: flex; flex-direction: column;">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+                                            <label class="crm-sidebar-label" style="margin: 0;"><i class="ph-bold ph-image-square" style="color: var(--primary-color);"></i> Arte Final Terminado</label>
+                                            <span style="font-size: 0.66rem; font-weight: 700; background: rgba(59, 130, 246, 0.14); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.28); padding: 2px 8px; border-radius: 999px;">Fase 2: Diseño</span>
+                                        </div>
+                                        <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
+                                            Sube la pieza gráfica final aprobada por el equipo (1:1, 4:5, 9:16, carrusel o video).
+                                        </div>
+
+                                        <div class="preview-container">
+                                            <div class="preview-box ratio-auto" id="final-preview-box" ondrop="handleDropFinal(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="triggerFinalUpload()" style="cursor: pointer;">
+                                                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 1.5rem; text-align: center;">
+                                                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                                                        <i class="ph-duotone ph-paint-brush"></i>
+                                                    </div>
+                                                    <div style="font-size: 0.78rem; font-weight: 700; color: var(--color-title, #0f172a);">Sube o arrastra el Arte Final aquí</div>
+                                                    <div style="font-size: 0.68rem; color: var(--text-muted, #64748b);">1:1, 4:5, 9:16, Carrusel o Video MP4</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="preview-actions">
+                                            <button type="button" onclick="openPostImageViewer(0, 'final')" title="Ver arte final en tamaño completo"><i class="ph ph-eye"></i> Ver</button>
+                                            <button type="button" onclick="triggerFinalUpload()"><i class="ph ph-upload-simple"></i> Subir Arte</button>
+                                            <button type="button" onclick="openPaintEditor()"><i class="ph ph-paint-brush"></i> Corregir</button>
+                                            <button type="button" onclick="downloadActiveResource()"><i class="ph ph-download-simple"></i> Descargar</button>
+                                            <button type="button" onclick="clearActiveTabImage(-1, 'Post Terminado');"><i class="ph ph-trash"></i> Eliminar</button>
+                                        </div>
+
+                                        <div style="border-top: 1px dashed var(--border-color, #e2e8f0); padding-top: 0.85rem; margin-top: 0.85rem;">
+                                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 4px; margin-bottom: 0.4rem;"><i class="ph-bold ph-link"></i> Enlace Externo (Google Drive, Canva, Figma o Video)</label>
+                                            <div class="crm-url-input-row">
+                                                <input type="text" id="final-video-url-input" class="form-control form-control-sm" placeholder="https://drive.google.com/..., Canva, Figma o URL..." oninput="handleVideoUrlInput('final')" onpaste="handleInputPaste(event, 'final')">
+                                                <button type="button" class="btn-paste-clip" onclick="pasteFromClipboardBtn('final')" title="Pegar del portapapeles (enlace o imagen)">
+                                                    <i class="ph-bold ph-clipboard"></i> Pegar
+                                                </button>
+                                                <button type="button" class="btn-paste-clip" style="padding: 0.44rem 0.55rem; color: #ef4444;" onclick="clearExternalLink('final')" title="Limpiar enlace">
+                                                    <i class="ph ph-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Control de Calidad QA Checklist Visual -->
                                     <div class="qa-checklist-card">
                                         <div class="qa-header">
                                             <div class="qa-title">
                                                 <i class="ph-bold ph-shield-check" style="color: #10b981;"></i>
-                                                <span>Control de Calidad (QA Pre-Publicación)</span>
+                                                <span>Control de Calidad Visual (QA Pre-Presentación)</span>
                                             </div>
                                             <div class="qa-counter-badge qa-badge-pending" id="qa-counter-badge">0/4 Pendiente</div>
                                         </div>
@@ -3303,7 +5717,7 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                                 <input type="checkbox" name="qa_checklist[spelling]" id="qa_spelling" class="qa-checkbox" onchange="updateQAUi(); markDirty();">
                                                 <div class="qa-item-content">
                                                     <div class="qa-item-title"><i class="ph-bold ph-spell-check" style="color: #60a5fa;"></i> Ortografía & Hashtags</div>
-                                                    <div class="qa-item-desc">Texto revisado, sin faltas ortográficas y hashtags optimizados.</div>
+                                                    <div class="qa-item-desc">Texto revisado en gráfica y copy, sin faltas ortográficas.</div>
                                                 </div>
                                             </label>
 
@@ -3334,71 +5748,136 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
                                     </div>
                                 </div>
 
-                                <!-- Right: Visual Asset Studio -->
-                                <div class="studio-card" style="display: flex; flex-direction: column;">
-                                    <div class="toggle-group">
-                                        <input type="radio" name="post_type" id="pt_ref" value="Referencia Visual" class="toggle-input" checked onchange="updateVideoPreview()">
-                                        <label for="pt_ref" class="toggle-label">Ref. Visual</label>
-                                        
-                                        <input type="radio" name="post_type" id="pt_post" value="Post Terminado" class="toggle-input" onchange="updateVideoPreview()">
-                                        <label for="pt_post" class="toggle-label">Terminado</label>
+                                <!-- Columna Derecha con Cabecera Fija / Sticky: Flujo Dinámico de Hitos y Avances de Diseño -->
+                                <div class="crm-diseno-col-right">
+                                    
+                                    <!-- Cabecera Fija / Sticky de la columna derecha donde está Añadir Hito -->
+                                    <div class="crm-diseno-col-header">
+                                        <label class="crm-sidebar-label" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                                            <i class="ph-bold ph-git-commit" style="color: #6366f1;"></i> Hitos & Avances de Diseño
+                                        </label>
+                                        <button type="button" class="tm-btn-add-step" onclick="addDesignMilestoneStep()" title="Añadir un nuevo hito o entrega de diseño">
+                                            <i class="ph-bold ph-plus-circle"></i> Añadir Hito / Avance
+                                        </button>
                                     </div>
 
-                                    <div class="preview-container" id="preview-container">
-                                        <div class="preview-box ratio-auto" id="preview-box" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-                                            <i class="ph ph-image" id="preview-icon" style="font-size: 3rem; opacity: 0.3; color: white;"></i>
+                                    <!-- Área de Desplazamiento Independiente de la columna derecha -->
+                                    <div class="crm-diseno-right-scroll">
+                                        <!-- Contenedor dinámico del Flujo de Línea de Tiempo -->
+                                        <div class="tm-timeline-flow" id="design-milestones-flow">
+                                            <!-- Renderizado dinámico vía renderDesignMilestones() -->
+                                        </div>
+
+                                        <!-- Botón inferior para añadir otra tarjeta de avance -->
+                                        <button type="button" class="tm-add-step-card-btn" onclick="addDesignMilestoneStep()">
+                                            <i class="ph-bold ph-plus-circle"></i>
+                                            <span>+ Añadir Nuevo Avance / Hito de Diseño</span>
+                                        </button>
+
+                                        <!-- Inputs ocultos para persistencia -->
+                                        <input type="hidden" name="variations" id="post-variations" value="[]">
+                                        <input type="hidden" name="visual_references" id="post-visual-references" value="[]">
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========================================== -->
+                        <!-- PESTAÑA 3: 👥 PRESENTACIÓN & PUBLICACIÓN   -->
+                        <!-- ========================================== -->
+                        <div id="tab-aprobacion" class="crm-tab-pane">
+                            <div class="crm-studio-grid">
+                                
+                                <!-- Columna Izquierda: Mockup en vivo de Presentación -->
+                                <div class="studio-card" style="display: flex; flex-direction: column;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                                        <label class="crm-sidebar-label" style="margin: 0;"><i class="ph-bold ph-eye" style="color: var(--primary-color);"></i> Vista Previa de Presentación al Cliente</label>
+                                        <div style="display: inline-flex; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 9px; padding: 3px; gap: 3px;">
+                                            <button type="button" class="bpf-pill active" id="btn-mockup-final" onclick="setMockupView('final')" style="font-size: 0.72rem; padding: 0.25rem 0.75rem; border-radius: 6px;">Arte Final</button>
+                                            <button type="button" class="bpf-pill" id="btn-mockup-ref" onclick="setMockupView('ref')" style="font-size: 0.72rem; padding: 0.25rem 0.75rem; border-radius: 6px;">Referencia</button>
                                         </div>
                                     </div>
-                                    <div class="preview-actions">
-                                        <button type="button" id="btn-ver-recurso" onclick="openPostImageViewer()" title="Ver imagen en tamaño completo"><i class="ph ph-eye"></i> Ver</button>
-                                        <button type="button" onclick="document.getElementById('post-main-image-upload').click()"><i class="ph ph-image-square"></i> Subir</button>
-                                        <button type="button" id="btn-dibujar" onclick="openPaintEditor()"><i class="ph ph-paint-brush"></i> Dibujar</button>
-                                        <button type="button" id="btn-eliminar-recurso" onclick="clearActiveTabImage();"><i class="ph ph-trash"></i> Eliminar</button>
-                                    </div>
-                                    <input type="file" id="post-main-image-upload" style="display:none" accept="image/*,video/mp4,video/quicktime,video/webm,video/*" multiple onchange="uploadMainImage(this)">
-                                    <input type="hidden" name="image_link" id="post-image-link">
-                                    <input type="hidden" name="reference_image_link" id="post-reference-link">
-                                    <input type="hidden" name="paint_data" id="post-paint-data">
-                                    <input type="hidden" name="drive_images" id="post-drive">
 
-                                    <div id="video-url-container" style="border-top: 1px dashed #27272a; padding-top: 1.25rem; margin-top: 1.25rem; text-align: left;">
-                                        <div id="video-url-input-group">
-                                            <label style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.4rem;"><i class="ph ph-link"></i> Enlace Externo</label>
-                                            <div style="display: flex; gap: 0.5rem;">
-                                                <input type="text" id="video-url-input" class="form-control form-control-sm" placeholder="Pegar URL aquí..." oninput="handleVideoUrlInput()">
-                                                <button type="button" class="btn btn-outline" style="padding: 0 0.6rem; border-radius: 10px; border-color: #27272a;" onclick="document.getElementById('video-url-input').value=''; handleVideoUrlInput();">
-                                                    <i class="ph ph-trash"></i>
-                                                </button>
+                                    <div class="preview-container" style="flex: 1; min-height: 390px; background: radial-gradient(circle at 50% 45%, #1e293b 0%, #090d16 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: inset 0 2px 12px rgba(0,0,0,0.4);">
+                                        <div id="presentation-preview-box" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+                                            <i class="ph-duotone ph-image" style="font-size: 3rem; opacity: 0.35; color: #94a3b8;"></i>
+                                        </div>
+                                    </div>
+
+                                    <!-- Ficha Técnica Resumen -->
+                                    <div style="margin-top: 0.9rem; padding: 0.9rem 1.05rem; background: var(--bg-color, #f8fafc); border-radius: 12px; border: 1px solid var(--border-color, #e2e8f0);">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.3rem;">
+                                            <h4 id="presentation-concept" style="margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--color-title, #0f172a);">Título del Post</h4>
+                                            <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted, #64748b);"><i class="ph-bold ph-article"></i> Resumen de Copy</span>
+                                        </div>
+                                        <div id="presentation-copy" style="font-size: 0.8rem; line-height: 1.5; color: var(--text-color, #334155); max-height: 95px; overflow-y: auto;">Copy del post...</div>
+                                    </div>
+                                </div>
+
+                                <!-- Columna Derecha: Control de Aprobación & Salida -->
+                                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                    <div class="studio-card">
+                                        <label class="crm-sidebar-label" style="margin-bottom: 0.45rem;"><i class="ph-bold ph-shield-check" style="color: #10b981;"></i> Estado de Aprobación con el Cliente</label>
+                                        <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.4;">
+                                            Selecciona en qué fase de validación se encuentra este contenido:
+                                        </div>
+
+                                        <div class="client-status-grid">
+                                            <div class="client-status-btn active" data-target-status="En Revisión" onclick="setPostStatus('En Revisión')">
+                                                <i class="ph-bold ph-clock" style="font-size: 1.35rem; color: #f59e0b;"></i>
+                                                <span>En Revisión Cliente</span>
+                                            </div>
+                                            <div class="client-status-btn" data-target-status="Aprobado" onclick="setPostStatus('Aprobado')">
+                                                <i class="ph-bold ph-check-circle" style="font-size: 1.35rem; color: #3b82f6;"></i>
+                                                <span>Aprobado por Cliente</span>
+                                            </div>
+                                            <div class="client-status-btn" data-target-status="Publicado" onclick="setPostStatus('Publicado')">
+                                                <i class="ph-bold ph-rocket-launch" style="font-size: 1.35rem; color: #10b981;"></i>
+                                                <span>Programado / Publicado</span>
                                             </div>
                                         </div>
-                                        <div id="download-btn-group" style="display: none; margin-top: 0.75rem;">
-                                            <button type="button" class="btn btn-primary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 12px; font-weight: 700; background: var(--color-btn-bg, var(--primary-color)); border: none; box-shadow: 0 4px 14px color-mix(in srgb, var(--color-btn-bg, var(--primary-color)) 30%, transparent); color: var(--color-btn-text, #ffffff);" onclick="downloadActiveResource()"><i class="ph ph-download-simple" style="font-size: 1.2rem;"></i> Descargar Archivo</button>
+
+                                        <div style="font-size: 0.73rem; color: var(--text-muted); background: var(--bg-color, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-left: 3px solid var(--primary-color, #4f46e5); padding: 0.75rem 0.85rem; border-radius: 10px; margin: 1rem 0; line-height: 1.45;">
+                                            <i class="ph-bold ph-info" style="color: var(--primary-color);"></i> <strong>Ciclo de Entrega:</strong> Los diseños aprobados por el cliente pasan a estar <strong>Aprobados</strong> o <strong>Publicados/Programados</strong> en las redes sociales y ahí concluye su desarrollo.
+                                        </div>
+
+                                        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                                            <button type="button" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.7rem; border-radius: 10px; font-weight: 700; font-size: 0.82rem; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);" onclick="copyClientLink()">
+                                                <i class="ph-bold ph-share-network"></i> Copiar Enlace Mágico para el Cliente
+                                            </button>
+                                            <button type="button" class="btn btn-outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem; border-radius: 10px; font-weight: 700; font-size: 0.8rem;" onclick="startPresentation()">
+                                                <i class="ph-bold ph-presentation-chart"></i> Iniciar Modo Presentación
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- TAB 2: COMENTARIOS -->
+                        <!-- ========================================== -->
+                        <!-- PESTAÑA 4: 💬 COMENTARIOS                  -->
+                        <!-- ========================================== -->
                         <div id="tab-comentarios" class="crm-tab-pane">
-                            <div class="studio-card" style="min-height: 440px;">
+                            <div class="studio-card" style="min-height: calc(100vh - 175px); display: flex; flex-direction: column;">
                                 <!-- Sub-tabs -->
-                                <div style="display:flex; gap:0; border-bottom: 1px solid #27272a; margin-bottom:1.25rem;">
-                                    <button type="button" class="comment-subtab active" id="subtab-contenido" onclick="switchCommentSubtab('contenido')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.85rem; font-weight:700; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-1px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px;">
-                                        <i class="ph ph-text-aa"></i> Contenido <span id="count-contenido" style="background:var(--accent-primary); color:white; border-radius:10px; padding:0.1rem 0.5rem; font-size:0.7rem; min-width:18px; text-align:center;"></span>
+                                <div style="display:flex; gap:0.5rem; border-bottom: 1px solid var(--border-color, #e2e8f0); margin-bottom:1.25rem; padding-bottom: 0;">
+                                    <button type="button" class="comment-subtab active" id="subtab-contenido" onclick="switchCommentSubtab('contenido')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.83rem; font-weight:700; cursor:pointer; color:var(--text-muted, #64748b); border-bottom:2px solid transparent; margin-bottom:-1px; border-radius: 8px 8px 0 0; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:7px;">
+                                        <i class="ph-bold ph-text-aa"></i> Contenido / Idea <span id="count-contenido" style="background:var(--primary-color, #4f46e5); color:white; border-radius:999px; padding:0.1rem 0.5rem; font-size:0.68rem; min-width:18px; text-align:center;"></span>
                                     </button>
-                                    <button type="button" class="comment-subtab" id="subtab-diseno" onclick="switchCommentSubtab('diseno')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.85rem; font-weight:700; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-1px; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px;">
-                                        <i class="ph ph-paint-brush"></i> Fase de Diseño <span id="count-diseno" style="background:var(--accent-primary); color:white; border-radius:10px; padding:0.1rem 0.5rem; font-size:0.7rem; min-width:18px; text-align:center;"></span>
+                                    <button type="button" class="comment-subtab" id="subtab-diseno" onclick="switchCommentSubtab('diseno')" style="flex:1; padding:0.75rem 1rem; border:none; background:transparent; font-family:inherit; font-size:0.83rem; font-weight:700; cursor:pointer; color:var(--text-muted, #64748b); border-bottom:2px solid transparent; margin-bottom:-1px; border-radius: 8px 8px 0 0; transition: all 0.2s; display:flex; align-items:center; justify-content:center; gap:7px;">
+                                        <i class="ph-bold ph-paint-brush"></i> Fase de Diseño <span id="count-diseno" style="background:var(--primary-color, #4f46e5); color:white; border-radius:999px; padding:0.1rem 0.5rem; font-size:0.68rem; min-width:18px; text-align:center;"></span>
                                     </button>
                                 </div>
-                                <div id="comments-container-contenido">
+                                <div id="comments-container-contenido" style="flex: 1;">
                                     <!-- Comentarios de Contenido -->
                                 </div>
-                                <div id="comments-container-diseno" style="display:none;">
+                                <div id="comments-container-diseno" style="display:none; flex: 1;">
                                     <!-- Comentarios de Fase de Diseño -->
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -3406,17 +5885,290 @@ input[value="Twitter / X"]:checked + .pill-label { background: #0F1419; color: w
     </div>
 </div>
 <script>
-// JS para las pestañas y el pipeline
+// JS para las pestañas y el pipeline en 4 etapas
+let currentActivePane = 'tab-idea';
+let activeMockupView = 'final';
+
 function switchCrmTab(tabElement, paneId) {
-    // Quitar active a todos los tabs
     document.querySelectorAll('.crm-tab').forEach(t => t.classList.remove('active'));
-    // Quitar active a todos los paneles
     document.querySelectorAll('.crm-tab-pane').forEach(p => p.classList.remove('active'));
     
-    // Activar el seleccionado
-    tabElement.classList.add('active');
-    document.getElementById(paneId).classList.add('active');
+    if (tabElement) {
+        tabElement.classList.add('active');
+    } else {
+        const matchingTab = document.querySelector(`.crm-tab[onclick*="${paneId}"]`);
+        if (matchingTab) matchingTab.classList.add('active');
+    }
+
+    const targetPane = document.getElementById(paneId);
+    if (targetPane) targetPane.classList.add('active');
+    currentActivePane = paneId;
+
+    // Control de scroll para Pestaña de Diseño split vs otras pestañas (respetando vista móvil/tablet)
+    const scrollContainer = document.querySelector('.crm-studio-scroll');
+    if (scrollContainer) {
+        if (window.innerWidth > 992 && paneId === 'tab-diseno') {
+            scrollContainer.style.overflowY = 'hidden';
+            scrollContainer.style.padding = '1.25rem 1.5rem 0.5rem 1.5rem';
+        } else if (window.innerWidth > 992) {
+            scrollContainer.style.overflowY = 'auto';
+            scrollContainer.style.padding = '1.5rem';
+        } else {
+            scrollContainer.style.overflowY = '';
+            scrollContainer.style.padding = '';
+        }
+    }
+
+    // Sincronizar radio buttons de tipo de post según la pestaña
+    const ptRef = document.getElementById('pt_ref');
+    const ptPost = document.getElementById('pt_post');
+    if (paneId === 'tab-idea') {
+        if (ptRef) ptRef.checked = true;
+    } else if (paneId === 'tab-diseno' || paneId === 'tab-aprobacion') {
+        if (ptPost) ptPost.checked = true;
+    }
+
+    updateVideoPreview();
+    updateDesignGuide();
+    updateApprovalView();
 }
+
+function goToDisenoTab() {
+    const tabDiseno = document.getElementById('crm-tab-nav-diseno');
+    if (tabDiseno) switchCrmTab(tabDiseno, 'tab-diseno');
+    if (document.getElementById('post-status').value === 'Borrador') {
+        setPostStatus('En Revisión');
+    }
+}
+
+function goToAprobacionTab() {
+    const tabAprob = document.getElementById('crm-tab-nav-aprobacion');
+    if (tabAprob) switchCrmTab(tabAprob, 'tab-aprobacion');
+    if (document.getElementById('post-status').value === 'Borrador') {
+        setPostStatus('En Revisión');
+    }
+}
+
+function copyPostCopyText() {
+    const editable = document.getElementById('post-copy-editable');
+    const hidden = document.getElementById('post-copy');
+    const text = (editable ? editable.innerText : '') || (hidden ? hidden.value : '');
+    if (!text || text.trim() === '') {
+        showToast('No hay copy escrito para copiar.');
+        return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('¡Copy copiado al portapapeles!', 'success');
+    }).catch(() => {
+        showToast('Error al copiar al portapapeles.');
+    });
+}
+
+function setMockupView(viewType) {
+    activeMockupView = viewType;
+    const btnFinal = document.getElementById('btn-mockup-final');
+    const btnRef = document.getElementById('btn-mockup-ref');
+    if (viewType === 'final') {
+        if (btnFinal) btnFinal.classList.add('active');
+        if (btnRef) btnRef.classList.remove('active');
+    } else {
+        if (btnRef) btnRef.classList.add('active');
+        if (btnFinal) btnFinal.classList.remove('active');
+    }
+    updateApprovalView();
+}
+
+function triggerRefUpload() {
+    const ptRef = document.getElementById('pt_ref');
+    if (ptRef) ptRef.checked = true;
+    const uploadInput = document.getElementById('post-main-image-upload');
+    if (uploadInput) uploadInput.click();
+}
+
+function triggerFinalUpload() {
+    const ptPost = document.getElementById('pt_post');
+    if (ptPost) ptPost.checked = true;
+    const uploadInput = document.getElementById('post-main-image-upload');
+    if (uploadInput) uploadInput.click();
+}
+
+function handleDropFinal(e) {
+    const ptPost = document.getElementById('pt_post');
+    if (ptPost) ptPost.checked = true;
+    handleDrop(e);
+}
+
+function copyPostBriefText() {
+    const editable = document.getElementById('post-brief-editable');
+    const hidden = document.getElementById('post-brief');
+    const text = (editable ? editable.innerText : '') || (hidden ? hidden.value : '');
+    if (!text || text.trim() === '') {
+        showToast('No hay indicaciones del brief para copiar.');
+        return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('¡Brief copiado al portapapeles!', 'success');
+    }).catch(() => {
+        showToast('Error al copiar al portapapeles.');
+    });
+}
+
+function syncBriefContent() {
+    const ed = document.getElementById('post-brief-editable');
+    const ta = document.getElementById('post-brief');
+    if (ed && ta) ta.value = ed.innerHTML;
+}
+
+function execBriefCmd(cmd, val = null) {
+    document.execCommand(cmd, false, val);
+    const ed = document.getElementById('post-brief-editable');
+    if (ed) {
+        ed.focus();
+        syncBriefContent();
+        markDirty();
+        updateSaveButtonState();
+        updateDesignGuide();
+    }
+}
+
+function toggleBriefEmojiPicker() {
+    const p = document.getElementById('brief-emoji-picker-container');
+    if (p) {
+        p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'block' : 'none';
+    }
+}
+
+function updateDesignGuide() {
+    const conceptEl = document.getElementById('guide-concept');
+    const copyEl = document.getElementById('guide-copy');
+    const briefEl = document.getElementById('guide-brief');
+    const refContainer = document.getElementById('guide-ref-content');
+
+    const conceptVal = (document.getElementById('post-concept') ? document.getElementById('post-concept').value : '') || 'Sin concepto definido';
+    if (conceptEl) conceptEl.innerText = conceptVal;
+
+    const copyEditable = document.getElementById('post-copy-editable');
+    const copyHidden = document.getElementById('post-copy');
+    const copyVal = (copyEditable && copyEditable.innerHTML.trim() !== '') ? copyEditable.innerHTML.trim() : (copyHidden ? copyHidden.value.trim() : '');
+    if (copyEl) {
+        if (copyVal && copyVal !== '<br>' && copyVal !== '<p><br></p>') {
+            copyEl.innerHTML = copyVal;
+        } else {
+            copyEl.innerHTML = '<span style="color:var(--text-muted); font-style:italic;">Sin texto de copy redactado aún.</span>';
+        }
+    }
+
+    const briefEditable = document.getElementById('post-brief-editable');
+    const briefHidden = document.getElementById('post-brief');
+    const briefVal = (briefEditable && briefEditable.innerHTML.trim() !== '') ? briefEditable.innerHTML.trim() : (briefHidden ? briefHidden.value.trim() : '');
+    if (briefEl) {
+        if (briefVal && briefVal !== '<br>' && briefVal !== '<p><br></p>') {
+            briefEl.innerHTML = briefVal;
+        } else {
+            briefEl.innerHTML = '<span style="color:var(--text-muted); font-style:italic;">Sin indicaciones adicionales para el brief.</span>';
+        }
+    }
+
+    // Render guide reference image
+    if (refContainer) {
+        const refVal = document.getElementById('post-reference-link') ? document.getElementById('post-reference-link').value : '';
+        let list = [];
+        try {
+            list = JSON.parse(refVal);
+            if (!Array.isArray(list)) list = refVal ? [refVal] : [];
+        } catch(e) {
+            list = refVal ? [refVal] : [];
+        }
+        if (list.length > 0 && list[0]) {
+            refContainer.innerHTML = `<img src="${list[0]}" style="width:100%; height:100%; object-fit:contain; border-radius:10px; cursor:pointer;" onclick="openPostImageViewer(0, 'ref')" title="Clic para ampliar referencia">`;
+        } else {
+            refContainer.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:0.78rem;"><i class="ph ph-image" style="font-size:2rem; opacity:0.3; display:block; margin-bottom:4px;"></i>Sin imagen de referencia adjunta</div>`;
+        }
+    }
+}
+
+function updateApprovalView() {
+    const conceptTitle = document.getElementById('presentation-concept');
+    const copyBox = document.getElementById('presentation-copy');
+    const previewBox = document.getElementById('presentation-preview-box');
+
+    if (conceptTitle) {
+        conceptTitle.innerText = (document.getElementById('post-concept') ? document.getElementById('post-concept').value : '') || 'Sin título';
+    }
+    if (copyBox) {
+        const editable = document.getElementById('post-copy-editable');
+        copyBox.innerText = (editable ? editable.innerText.trim() : '') || 'Sin texto de copy';
+    }
+
+    if (previewBox) {
+        const isFinal = (activeMockupView === 'final');
+        const targetVal = isFinal ? 
+            (document.getElementById('post-image-link') ? document.getElementById('post-image-link').value : '') : 
+            (document.getElementById('post-reference-link') ? document.getElementById('post-reference-link').value : '');
+        
+        let mediaList = [];
+        try {
+            mediaList = JSON.parse(targetVal);
+            if (!Array.isArray(mediaList)) mediaList = targetVal ? [targetVal] : [];
+        } catch(e) {
+            mediaList = targetVal ? [targetVal] : [];
+        }
+
+        if (mediaList.length > 0 && mediaList[0]) {
+            const url = mediaList[0];
+            if (url.match(/\.(mp4|webm|ogg|mov)$/i)) {
+                previewBox.innerHTML = `<video src="${url}" controls style="width:100%; height:100%; max-height:420px; object-fit:contain; border-radius:10px;"></video>`;
+            } else {
+                previewBox.innerHTML = `<img src="${url}" style="width:100%; height:100%; max-height:420px; object-fit:contain; border-radius:10px;">`;
+            }
+        } else {
+            const emptyLabel = isFinal ? 'Aún no se ha cargado el arte final terminado.' : 'Sin referencia gráfica cargada.';
+            previewBox.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:0.85rem;"><i class="ph ph-image" style="font-size:3rem; opacity:0.3; display:block; margin-bottom:0.5rem;"></i>${emptyLabel}</div>`;
+        }
+    }
+}
+
+function filterBoardByPhase(phase, btn) {
+    document.querySelectorAll('.bpf-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    
+    const cards = document.querySelectorAll('.posts-grid .post-card');
+    cards.forEach(card => {
+        const cardPhase = card.getAttribute('data-phase');
+        if (phase === 'all') {
+            card.style.display = 'flex';
+        } else if (cardPhase === phase) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function updateBoardPhaseCounts() {
+    let counts = { all: 0, ideas: 0, diseno: 0, presentacion: 0, publicados: 0 };
+    document.querySelectorAll('.posts-grid .post-card').forEach(card => {
+        if (card.closest('#archived-section')) return;
+        counts.all++;
+        const ph = card.getAttribute('data-phase');
+        if (counts[ph] !== undefined) {
+            counts[ph]++;
+        }
+    });
+    
+    const cAll = document.getElementById('bpf-count-all');
+    const cIdeas = document.getElementById('bpf-count-ideas');
+    const cDiseno = document.getElementById('bpf-count-diseno');
+    const cPres = document.getElementById('bpf-count-presentacion');
+    const cPub = document.getElementById('bpf-count-publicados');
+    
+    if (cAll) cAll.innerText = counts.all;
+    if (cIdeas) cIdeas.innerText = counts.ideas;
+    if (cDiseno) cDiseno.innerText = counts.diseno;
+    if (cPres) cPres.innerText = counts.presentacion;
+    if (cPub) cPub.innerText = counts.publicados;
+}
+document.addEventListener('DOMContentLoaded', updateBoardPhaseCounts);
 
 function switchCommentSubtab(subtab) {
     const btnContenido = document.getElementById('subtab-contenido');
@@ -3451,6 +6203,13 @@ function updatePipelineUI() {
     document.querySelectorAll('.pipeline-stage').forEach(el => {
         el.classList.remove('active');
         if (el.getAttribute('data-status') === status) {
+            el.classList.add('active');
+        }
+    });
+
+    document.querySelectorAll('.client-status-btn').forEach(el => {
+        el.classList.remove('active');
+        if (el.getAttribute('data-target-status') === status) {
             el.classList.add('active');
         }
     });
@@ -3691,6 +6450,22 @@ function openPostModal() {
     if (wysiwygEditable) wysiwygEditable.innerHTML = '';
     if (hiddenTextarea) hiddenTextarea.value = '';
     if (document.getElementById('post-brief')) document.getElementById('post-brief').value = '';
+    if (document.getElementById('post-brief-editable')) document.getElementById('post-brief-editable').innerHTML = '';
+    if (document.getElementById('post-variations-editable')) document.getElementById('post-variations-editable').innerHTML = '';
+    if (document.getElementById('post-variations')) document.getElementById('post-variations').value = '[]';
+    if (document.getElementById('post-visual-references')) document.getElementById('post-visual-references').value = '[]';
+    designMilestones = [{
+        id: 'step_1',
+        title: 'Avance #1: Boceto / Arte Inicial',
+        phase: 'Fase de Diseño',
+        description: '',
+        completed: false,
+        attachments: []
+    }];
+    activeDesignStepId = 'step_1';
+    if (typeof renderDesignMilestones === 'function') renderDesignMilestones();
+    compThumbnailsList = [];
+    if (typeof renderCompThumbnails === 'function') renderCompThumbnails();
     
     // 5. Clear dynamic containers
     if(document.getElementById('refs-container')) document.getElementById('refs-container').innerHTML = '';
@@ -3702,10 +6477,18 @@ function openPostModal() {
     if(document.getElementById('post-end-date')) document.getElementById('post-end-date').value = '<?php echo htmlspecialchars($monthData['due_date'] ?? date('Y-m-t')); ?>';
     
     // 7. Clear comments
-    const commentsContainer = document.getElementById('comments-container');
-    if (commentsContainer) {
-        commentsContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">No hay comentarios para esta publicación.</p>';
-    }
+    const emptyCommentBlock = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3.5rem 1.5rem; text-align:center; gap:8px;">
+        <div style="width:48px; height:48px; border-radius:14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.18); color:#6366f1; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+            <i class="ph-duotone ph-chats-circle"></i>
+        </div>
+        <div style="font-size:0.86rem; font-weight:700; color:var(--color-title, #0f172a);">No hay comentarios para esta publicación</div>
+        <div style="font-size:0.74rem; color:var(--text-muted, #64748b); max-width:300px; line-height:1.4;">Cuando el cliente o el equipo dejen observaciones en esta etapa, aparecerán aquí.</div>
+    </div>`;
+    if (document.getElementById('comments-container-contenido')) document.getElementById('comments-container-contenido').innerHTML = emptyCommentBlock;
+    if (document.getElementById('comments-container-diseno')) document.getElementById('comments-container-diseno').innerHTML = emptyCommentBlock;
+    if (document.getElementById('comments-badge')) document.getElementById('comments-badge').style.display = 'none';
+    if (document.getElementById('count-contenido')) document.getElementById('count-contenido').style.display = 'none';
+    if (document.getElementById('count-diseno')) document.getElementById('count-diseno').style.display = 'none';
     
     // 8. Uncheck all platform checkboxes explicitly
     document.querySelectorAll('input[name="platform[]"]').forEach(chk => chk.checked = false);
@@ -3726,7 +6509,7 @@ function openPostModal() {
     document.getElementById('post-modal-title').innerText = 'Añadir Publicación';
     
     // Resetear pestañas y pipeline
-    switchCrmTab(document.querySelector('.crm-tab:first-child'), 'tab-contenido');
+    switchCrmTab(document.getElementById('crm-tab-nav-idea'), 'tab-idea');
     updatePipelineUI();
     
     document.getElementById('post-modal').classList.add('active');
@@ -3738,20 +6521,115 @@ function openPostModal() {
     startAutoSave();
 }
 
-function handleVideoUrlInput() {
-    const url = document.getElementById('video-url-input').value;
-    const isRef = document.querySelector('input[name="post_type"]:checked').value === 'Referencia Visual';
-    if (isRef) {
-        document.getElementById('post-reference-link').value = url;
-    } else {
-        document.getElementById('post-image-link').value = url;
-        if (url.trim() !== '') {
-            document.getElementById('post-status').value = 'Publicado';
+function handleVideoUrlInput(type = 'ref') {
+    const isRef = (type === 'ref');
+    const inputEl = isRef ? document.getElementById('video-url-input') : document.getElementById('final-video-url-input');
+    const targetHidden = isRef ? document.getElementById('post-reference-link') : document.getElementById('post-image-link');
+    
+    if (!inputEl || !targetHidden) return;
+    
+    let url = inputEl.value.trim();
+    targetHidden.value = url;
+    
+    if (!isRef && url !== '') {
+        const statusEl = document.getElementById('post-status');
+        if (statusEl && (statusEl.value === 'Idea' || statusEl.value === 'Borrador')) {
+            statusEl.value = 'En Revisión';
             if (typeof updatePipelineUI === 'function') updatePipelineUI();
             if (typeof updateSaveButtonState === 'function') updateSaveButtonState();
         }
     }
+    
     updateVideoPreview();
+    markDirty();
+    savePost(true);
+}
+
+function clearExternalLink(type = 'ref') {
+    const isRef = (type === 'ref');
+    const inputEl = isRef ? document.getElementById('video-url-input') : document.getElementById('final-video-url-input');
+    const targetHidden = isRef ? document.getElementById('post-reference-link') : document.getElementById('post-image-link');
+    if (inputEl) inputEl.value = '';
+    if (targetHidden) targetHidden.value = '';
+    updateVideoPreview();
+    markDirty();
+    savePost(true);
+}
+
+async function pasteFromClipboardBtn(type = 'ref') {
+    try {
+        if (navigator.clipboard && navigator.clipboard.read) {
+            try {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    const imageType = item.types.find(t => t.startsWith('image/'));
+                    if (imageType) {
+                        const blob = await item.getType(imageType);
+                        const file = new File([blob], "clipboard_image_" + Date.now() + ".png", { type: imageType });
+                        showToast('Imagen del portapapeles detectada. Subiendo...', 'info');
+                        await uploadMainImageFromFile(file, type);
+                        return;
+                    }
+                }
+            } catch(clipErr) {
+                console.log('Clipboard.read() skipped/denied, falling back to readText()', clipErr);
+            }
+        }
+        
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            if (text && text.trim()) {
+                const cleanText = text.trim();
+                const targetInput = document.getElementById(type === 'ref' ? 'video-url-input' : 'final-video-url-input');
+                if (targetInput) {
+                    targetInput.value = cleanText;
+                }
+                handleVideoUrlInput(type);
+                showToast('¡Enlace pegado y guardado!', 'success');
+                return;
+            }
+        }
+        
+        showToast('El portapapeles está vacío o denegado. Presiona Ctrl + V dentro del campo.');
+        const targetInput = document.getElementById(type === 'ref' ? 'video-url-input' : 'final-video-url-input');
+        if (targetInput) {
+            targetInput.focus();
+            targetInput.select();
+        }
+    } catch(err) {
+        console.error('Error in pasteFromClipboardBtn:', err);
+        showToast('Presiona Ctrl + V directamente en el campo para pegar.');
+        const targetInput = document.getElementById(type === 'ref' ? 'video-url-input' : 'final-video-url-input');
+        if (targetInput) {
+            targetInput.focus();
+            targetInput.select();
+        }
+    }
+}
+
+function handleInputPaste(e, type = 'ref') {
+    const cd = e.clipboardData || window.clipboardData;
+    if (!cd) return;
+
+    if (cd.items) {
+        for (let i = 0; i < cd.items.length; i++) {
+            const item = cd.items[i];
+            if (item.kind === 'file' && item.type.startsWith('image/')) {
+                e.preventDefault();
+                const blob = item.getAsFile();
+                if (blob) {
+                    const file = new File([blob], "clipboard_image_" + Date.now() + ".png", { type: blob.type });
+                    showToast('Imagen del portapapeles detectada. Subiendo...', 'info');
+                    uploadMainImageFromFile(file, type);
+                    return;
+                }
+            }
+        }
+    }
+
+    setTimeout(() => {
+        handleVideoUrlInput(type);
+    }, 60);
 }
 
 function clearActiveTabImage(indexToRemove = -1) {
@@ -3801,19 +6679,12 @@ function clearActiveTabImage(indexToRemove = -1) {
     savePost(true); // Save the post immediately so the UI removal persists
 }
 
-function updateVideoPreview() {
-    const box = document.getElementById('preview-box');
-    
-    // Type check to differentiate reference vs final post
-    let pTypeObj = document.querySelector('input[name="post_type"]:checked');
-    let pType = pTypeObj ? pTypeObj.value : 'Post Terminado';
-    let isRef = (pType === 'Referencia Visual');
+function renderSinglePreviewBox(box, val, isRef) {
+    if (!box) return;
     
     let overlayHtml = '';
+    let refBadge = isRef ? '<div style="position: absolute; top: 10px; left: 10px; background: rgba(245, 158, 11, 0.92); color: white; padding: 3px 9px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; gap: 4px; z-index: 10; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);"><i class="ph-bold ph-lightbulb"></i> Referencia</div>' : '';
     
-    let refBadge = isRef ? '<div style="position: absolute; top: 10px; left: 10px; background: rgba(245, 158, 11, 0.9); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; gap: 4px; z-index: 10;"><i class="ph ph-lightbulb"></i> Referencia</div>' : '';
-    
-    let val = isRef ? document.getElementById('post-reference-link').value : document.getElementById('post-image-link').value;
     let mediaList = [];
     try {
         mediaList = JSON.parse(val);
@@ -3822,28 +6693,24 @@ function updateVideoPreview() {
         mediaList = val ? [val] : [];
     }
     
-    // Sync URL input
-    document.getElementById('video-url-input').value = mediaList.length === 1 ? mediaList[0] : (mediaList.length > 1 ? val : '');
-    
-    // Toggle buttons based on isRef
-    if (isRef) {
-        document.getElementById('video-url-input-group').style.display = 'block';
-        document.getElementById('download-btn-group').style.display = 'none';
-        const btnD = document.getElementById('btn-dibujar');
-        if (btnD) btnD.style.display = 'inline-flex';
-    } else {
-        document.getElementById('video-url-input-group').style.display = 'none';
-        document.getElementById('download-btn-group').style.display = 'block';
-        const btnD = document.getElementById('btn-dibujar');
-        if (btnD) btnD.style.display = 'none';
-    }
-    
     // Si no hay URL
-    if (mediaList.length === 0) {
+    if (mediaList.length === 0 || !mediaList[0] || mediaList[0].trim() === '') {
         box.className = 'preview-box ratio-auto';
         box.style.width = ''; box.style.height = ''; box.style.maxWidth = '';
         box.style.display = 'flex'; box.style.padding = '0'; box.style.gridTemplateColumns = ''; box.style.gap = '';
-        box.innerHTML = `${refBadge}<i class="ph ph-image" id="preview-icon" style="font-size: 3rem; opacity: 0.3; color: white;"></i>${overlayHtml}`;
+        const iconClass = isRef ? 'ph-duotone ph-image' : 'ph-duotone ph-paint-brush';
+        const iconBg = isRef ? 'rgba(245, 158, 11, 0.12)' : 'rgba(59, 130, 246, 0.12)';
+        const iconColor = isRef ? '#f59e0b' : '#3b82f6';
+        const emptyTitle = isRef ? 'Arrastra tu referencia o haz clic para subir' : 'Sube o arrastra el Arte Final aquí';
+        const emptySub = isRef ? 'Soporta JPG, PNG, WEBP, MP4 o pega con Ctrl+V' : 'Formatos 1:1, 4:5, 9:16, Carrusel o Video MP4';
+        box.innerHTML = `${refBadge}
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 1.75rem 1.25rem; text-align: center;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: ${iconBg}; color: ${iconColor}; display: flex; align-items: center; justify-content: center; font-size: 1.55rem; border: 1px solid ${iconColor}28;">
+                    <i class="${iconClass}"></i>
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--color-title, #0f172a);">${emptyTitle}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted, #64748b); max-width: 240px; line-height: 1.35;">${emptySub}</div>
+            </div>${overlayHtml}`;
         return;
     }
 
@@ -3863,47 +6730,67 @@ function updateVideoPreview() {
         const carouselId = 'edit-carousel-' + Math.random().toString(36).substr(2, 9);
         let html = refBadge + `<div class="carousel-track" id="${carouselId}-track" style="display:flex; overflow-x:auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; width:100%; height:100%; scrollbar-width: none;">`;
         
+        const typeParam = isRef ? "'ref'" : "'final'";
+        const clearTypeParam = isRef ? "'Referencia Visual'" : "'Post Terminado'";
         mediaList.forEach((url, i) => {
-            html += `<div class="sortable-item" style="flex: 0 0 100%; scroll-snap-align: center; position:relative; width: 100%; height: 100%; overflow: hidden; background: #0f172a; cursor: grab;">
-                        <img src="${url}" class="preview-interactive-img" onclick="openPostImageViewer(${i})" style="width:100%; height:100%; object-fit:contain;" title="Click para ver en el visor de imágenes">
-                        <button type="button" onclick="event.stopPropagation(); clearActiveTabImage(${i});" style="position:absolute; top:10px; right:10px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; z-index: 20;" title="Eliminar"><i class="ph ph-x"></i></button>
-                        <button type="button" onclick="event.stopPropagation(); openPostImageViewer(${i});" style="position:absolute; top:10px; left:10px; background:rgba(15,23,42,0.8); color:white; border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; z-index: 20;" title="Ver imagen en tamaño completo"><i class="ph ph-eye"></i></button>
-                        <div style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.6); color:white; font-size:0.7rem; padding:3px 8px; border-radius:12px; pointer-events:none;">${i + 1} / ${mediaList.length}</div>
-                     </div>`;
+            html += `<div style="min-width:100%; height:100%; scroll-snap-align:start; position:relative; display:flex; align-items:center; justify-content:center; background:#000;">
+                <img src="${url}" class="preview-interactive-img" style="width:100%; height:100%; object-fit:contain; cursor:pointer;" onclick="openPostImageViewer(${i}, ${typeParam})" title="Click para ver en el visor">
+                <button type="button" class="btn btn-sm btn-danger" style="position:absolute; top:10px; right:10px; z-index:10; border-radius:50%; width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center;" onclick="clearActiveTabImage(${i}, ${clearTypeParam})" title="Eliminar esta imagen"><i class="ph ph-x"></i></button>
+            </div>`;
         });
+        html += `</div>`;
         
-        html += `</div>
-        <button type="button" onclick="event.stopPropagation(); document.getElementById('${carouselId}-track').scrollBy({left: -300, behavior: 'smooth'});" style="position:absolute; top:50%; left:5px; transform:translateY(-50%); background:rgba(255,255,255,0.8); color:#333; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.2); z-index:10;"><i class="ph ph-caret-left" style="font-weight:bold;"></i></button>
-        <button type="button" onclick="event.stopPropagation(); document.getElementById('${carouselId}-track').scrollBy({left: 300, behavior: 'smooth'});" style="position:absolute; top:50%; right:5px; transform:translateY(-50%); background:rgba(255,255,255,0.8); color:#333; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.2); z-index:10;"><i class="ph ph-caret-right" style="font-weight:bold;"></i></button>
-        <style>#${carouselId}-track::-webkit-scrollbar { display: none; }</style>`;
+        html += `<button type="button" onclick="document.getElementById('${carouselId}-track').scrollBy({left:-250, behavior:'smooth'})" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); background:rgba(0,0,0,0.6); color:white; border:none; border-radius:50%; width:32px; height:32px; cursor:pointer; z-index:5;"><i class="ph ph-caret-left"></i></button>`;
+        html += `<button type="button" onclick="document.getElementById('${carouselId}-track').scrollBy({left:250, behavior:'smooth'})" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:rgba(0,0,0,0.6); color:white; border:none; border-radius:50%; width:32px; height:32px; cursor:pointer; z-index:5;"><i class="ph ph-caret-right"></i></button>`;
+        html += `<div style="position:absolute; bottom:8px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:12px; font-size:0.75rem; color:white; z-index:5;">1 / ${mediaList.length}</div>`;
         
         box.innerHTML = html + overlayHtml;
         
-        if (typeof Sortable !== 'undefined') {
-            new Sortable(box, {
+        const track = document.getElementById(`${carouselId}-track`);
+        if(track) {
+            new Sortable(track, {
                 animation: 150,
-                draggable: '.sortable-item',
-                onEnd: function () {
-                    const newUrls = [];
-                    box.querySelectorAll('.sortable-item img').forEach(img => {
-                        newUrls.push(img.getAttribute('src'));
-                    });
-                    
-                    const isRef = document.querySelector('input[name="post_type"]:checked').value === 'Referencia Visual';
+                onEnd: function() {
+                    const imgs = track.querySelectorAll('img');
+                    const newUrls = Array.from(imgs).map(img => img.src);
                     const inputEl = isRef ? document.getElementById('post-reference-link') : document.getElementById('post-image-link');
-                    
                     inputEl.value = JSON.stringify(newUrls);
-                    updateVideoPreview(); // Re-render to update the clearActiveTabImage indices
+                    updateVideoPreview();
                     markDirty();
                 }
             });
         }
-        
         return;
     }
 
     let url = mediaList[0];
     box.style.display = 'flex'; box.style.padding = '0'; box.style.gridTemplateColumns = ''; box.style.gap = '';
+
+    // Canva & Figma Links
+    if (url.match(/(canva\.com\/design|figma\.com\/(file|design))/i)) {
+        const isCanva = url.includes('canva.com');
+        const brandName = isCanva ? 'Canva' : 'Figma';
+        const brandColor = isCanva ? '#00c4cc' : '#f24e1e';
+        const brandIcon = isCanva ? 'ph-palette' : 'ph-figma-logo';
+        box.className = 'preview-box';
+        box.style.width = '100%';
+        box.style.height = '340px';
+        box.style.maxWidth = 'none';
+        box.innerHTML = `${refBadge}
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; width:100%; background:radial-gradient(circle at 50% 50%, rgba(30,41,59,0.9), #0b0f19); border-radius:12px; border:1px solid #334155; padding:1.5rem; text-align:center; gap:0.75rem; box-sizing:border-box;">
+                <div style="width:62px; height:62px; border-radius:16px; background:color-mix(in srgb, ${brandColor} 20%, transparent); border:1px solid ${brandColor}; display:flex; align-items:center; justify-content:center; color:${brandColor}; font-size:2rem; box-shadow:0 0 16px color-mix(in srgb, ${brandColor} 30%, transparent);">
+                    <i class="ph-bold ${brandIcon}"></i>
+                </div>
+                <div style="font-weight:800; color:#fff; font-size:1rem; letter-spacing:0.2px;">Recurso enlazado en ${brandName}</div>
+                <div style="font-size:0.75rem; color:#94a3b8; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${url}</div>
+                <div style="display:flex; gap:0.5rem; margin-top:0.4rem;">
+                    <a href="${url}" target="_blank" class="btn btn-primary btn-sm" style="display:inline-flex; align-items:center; gap:6px; border-radius:8px; font-weight:700; padding:6px 14px;">
+                        <i class="ph-bold ph-arrow-square-out"></i> Abrir en ${brandName}
+                    </a>
+                </div>
+            </div>${overlayHtml}`;
+        return;
+    }
 
     const isDriveImage = url.match(/drive\.google\.com\/(uc\?export=view&id=|thumbnail\?id=)([\w-]+)/i);
     const isVideoLink = !isDriveImage && url.match(/(youtu\.be|youtube\.com|tiktok\.com|\.mp4|\.mov|\.webm|\.m4v|drive\.google\.com|instagram\.com|facebook\.com|fb\.watch|pinterest\.com|pin\.it)/i);
@@ -3912,10 +6799,10 @@ function updateVideoPreview() {
         if (isRef) {
             box.className = 'preview-box';
             box.style.width = '100%';
-            box.style.height = '500px';
+            box.style.height = '340px';
             box.style.maxWidth = 'none';
         } else {
-            box.className = 'preview-box ratio-9-16'; // Force Reels ratio
+            box.className = 'preview-box ratio-9-16';
             box.style.width = ''; box.style.height = ''; box.style.maxWidth = '';
         }
         
@@ -3923,113 +6810,86 @@ function updateVideoPreview() {
             const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
             box.innerHTML = `${refBadge}<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1" frameborder="0" allowfullscreen style="border:none; border-radius:12px;"></iframe>${overlayHtml}`;
         } else if (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov') || url.toLowerCase().endsWith('.webm') || url.toLowerCase().endsWith('.m4v')) {
-            // Override container constraints for video
             box.className = 'preview-box';
             box.style.width = '100%';
             box.style.height = 'auto';
             box.style.maxWidth = 'none';
             box.innerHTML = `${refBadge}
                 <div style="position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000;">
-                    <video id="post-main-video-player" src="${url}" controls playsinline preload="metadata" style="width: 100%; max-height: 520px; object-fit: contain; display: block; border-radius: 12px;">
+                    <video id="post-main-video-player-${isRef ? 'ref' : 'final'}" src="${url}" controls playsinline preload="metadata" style="width: 100%; max-height: 480px; object-fit: contain; display: block; border-radius: 12px;">
                         <source src="${url}" type="video/mp4">
                         <source src="${url}">
                         Tu navegador no soporta la reproducción directa de este video.
                     </video>
-                    <div id="video-unsupported-msg" style="display: none; padding: 1.5rem; text-align: center; color: #cbd5e1; background: #0f172a; border-radius: 12px;">
-                        <i class="ph ph-video-camera-slash" style="font-size: 2.2rem; color: #f59e0b; margin-bottom: 0.5rem; display: block;"></i>
-                        <div style="font-weight: 700; margin-bottom: 0.35rem; color: #fff;">Códec no compatible directamente en este navegador</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 1rem;">El archivo se guardó correctamente. Puedes reproducirlo descargándolo o usando el botón Ver.</div>
-                        <a href="${url}" download class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600;">
-                            <i class="ph ph-download-simple"></i> Descargar Video
-                        </a>
-                    </div>
                 </div>${overlayHtml}`;
-            
-            const vidEl = document.getElementById('post-main-video-player');
-            if (vidEl) {
-                vidEl.addEventListener('error', function() {
-                    const msg = document.getElementById('video-unsupported-msg');
-                    if (msg) {
-                        vidEl.style.display = 'none';
-                        msg.style.display = 'block';
-                    }
-                });
-            }
-        } else if (url.match(/tiktok\.com\/(?:@[\w.-]+\/video\/|v\/)?(\d+)/)) {
-            const tiktokMatch = url.match(/tiktok\.com\/(?:@[\w.-]+\/video\/|v\/)?(\d+)/);
-            box.innerHTML = `${refBadge}<iframe width="100%" height="100%" src="https://www.tiktok.com/embed/v2/${tiktokMatch[1]}" frameborder="0" allowfullscreen style="border:none; border-radius:12px;"></iframe>${overlayHtml}`;
-        } else if (url.match(/instagram\.com\/(?:p|reel)\/([\w-]+)/)) {
-            const igMatch = url.match(/instagram\.com\/(?:p|reel)\/([\w-]+)/);
-            box.innerHTML = `${refBadge}<iframe width="100%" height="100%" src="https://www.instagram.com/p/${igMatch[1]}/embed/captioned" frameborder="0" scrolling="no" allowtransparency="true" style="border:none; border-radius:12px; background:white;"></iframe>${overlayHtml}`;
-        } else if (url.match(/facebook\.com|fb\.watch/i)) {
-            // Facebook: Meta blocks iframe embedding ?" show a styled preview card
-            const shortFbUrl = url.length > 60 ? url.slice(0, 57) + '...' : url;
-            box.className = 'preview-box';
-            box.style.width = '100%'; box.style.height = 'auto'; box.style.maxWidth = 'none';
-            box.innerHTML = `
-                <div style="width:100%; min-height:220px; background:linear-gradient(135deg,#0d1b3e,#1a2a5e,#0a1628); border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem; padding:2rem; box-sizing:border-box; border:1px solid rgba(24,119,242,0.25); position:relative; overflow:hidden;">
-                    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(24,119,242,0.15),transparent 70%);pointer-events:none;"></div>
-                    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(24,119,242,0.15);border:1px solid rgba(24,119,242,0.3);padding:5px 14px;border-radius:30px;font-size:0.75rem;font-weight:800;letter-spacing:0.5px;color:#60a5fa;text-transform:uppercase;">
-                        <i class="ph ph-facebook-logo" style="font-size:1rem;"></i> Facebook
-                    </div>
-                    <div style="width:64px;height:64px;border-radius:50%;background:rgba(24,119,242,0.12);border:2px solid rgba(24,119,242,0.25);display:flex;align-items:center;justify-content:center;">
-                        <i class="ph ph-play" style="font-size:1.8rem;color:#1877F2;margin-left:3px;"></i>
-                    </div>
-                    <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);word-break:break-all;text-align:center;max-width:240px;background:rgba(255,255,255,0.04);border-radius:6px;padding:4px 8px;border:1px solid rgba(255,255,255,0.07);">${shortFbUrl}</div>
-                    <a href="${url}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#1877F2;color:white;padding:10px 22px;border-radius:25px;text-decoration:none;font-weight:700;font-size:0.85rem;font-family:inherit;box-shadow:0 4px 15px rgba(24,119,242,0.4);transition:all 0.2s;" onmouseover="this.style.background='#0a5fd8';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#1877F2';this.style.transform=''">
-                        <i class="ph ph-play-circle"></i> Ver en Facebook <i class="ph ph-arrow-square-out" style="font-size:0.75rem;opacity:0.7;"></i>
-                    </a>
-                </div>
-                ${refBadge}${overlayHtml}`;
-        } else if (url.match(/pinterest\.com|pin\.it/i)) {
-            const shortPinUrl = url.length > 60 ? url.slice(0, 57) + '...' : url;
-            box.className = 'preview-box';
-            box.style.width = '100%'; box.style.height = 'auto'; box.style.maxWidth = 'none';
-            box.innerHTML = `
-                <div style="width:100%; min-height:220px; background:linear-gradient(135deg,#e60023,#cc001b,#b30018); border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem; padding:2rem; box-sizing:border-box; border:1px solid rgba(230,0,35,0.25); position:relative; overflow:hidden;">
-                    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(230,0,35,0.15),transparent 70%);pointer-events:none;"></div>
-                    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);padding:5px 14px;border-radius:30px;font-size:0.75rem;font-weight:800;letter-spacing:0.5px;color:#fff;text-transform:uppercase;">
-                        <i class="ph ph-pinterest-logo" style="font-size:1rem;"></i> Pinterest
-                    </div>
-                    <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;">
-                        <i class="ph ph-play" style="font-size:1.8rem;color:#fff;margin-left:3px;"></i>
-                    </div>
-                    <div style="font-size:0.7rem;color:rgba(255,255,255,0.8);word-break:break-all;text-align:center;max-width:240px;background:rgba(0,0,0,0.1);border-radius:6px;padding:4px 8px;border:1px solid rgba(255,255,255,0.1);">${shortPinUrl}</div>
-                    <a href="${url}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#e60023;padding:10px 22px;border-radius:25px;text-decoration:none;font-weight:700;font-size:0.85rem;font-family:inherit;box-shadow:0 4px 15px rgba(230,0,35,0.4);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                        <i class="ph ph-play-circle"></i> Ver en Pinterest <i class="ph ph-arrow-square-out" style="font-size:0.75rem;opacity:0.7;"></i>
-                    </a>
-                </div>
-                ${refBadge}${overlayHtml}`;
         } else if (url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/)) {
             const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/);
-            box.innerHTML = `${refBadge}<iframe width="100%" height="100%" src="https://drive.google.com/file/d/${driveMatch[1]}/preview" frameborder="0" allowfullscreen style="border:none; border-radius:12px;"></iframe>${overlayHtml}`;
+            box.innerHTML = `${refBadge}
+                <div style="position:relative; width:100%; height:340px; border-radius:12px; overflow:hidden; background:#0f172a;">
+                    <iframe width="100%" height="100%" src="https://drive.google.com/file/d/${driveMatch[1]}/preview" frameborder="0" allowfullscreen style="border:none; border-radius:12px;"></iframe>
+                    <div style="position:absolute; bottom:8px; right:8px; z-index:5;">
+                        <a href="${url}" target="_blank" class="btn btn-sm btn-dark" style="font-size:0.72rem; padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.75); color:#fff; text-decoration:none;"><i class="ph ph-arrow-square-out"></i> Abrir Drive</a>
+                    </div>
+                </div>${overlayHtml}`;
         } else {
-            box.innerHTML = `
-                <div style="text-align: center; color: white; padding: 1rem; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #1e293b; border-radius: 12px;">
-                    <i class="ph ph-video-camera" style="font-size: 3rem; color: #3b82f6;"></i>
-                    <p style="font-size: 0.75rem; margin-top: 0.5rem; word-break: normal; opacity: 0.8; line-height: 1.4;">Video Adjunto<br>Reels Ratio (9:16)</p>
-                </div>
-                </div>
-                ${refBadge}${overlayHtml}
-            `;
+            box.innerHTML = `<div style="text-align: center; color: white; padding: 1rem; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #1e293b; border-radius: 12px;">
+                <i class="ph ph-video-camera" style="font-size: 3rem; color: #3b82f6;"></i>
+                <p style="font-size: 0.75rem; margin-top: 0.5rem; word-break: normal; opacity: 0.8; line-height: 1.4;">Video Adjunto</p>
+            </div>${refBadge}${overlayHtml}`;
         }
     } else {
-        // Intelligent image ratio
+        // Image preview
         box.className = 'preview-box';
-        if (isRef) {
-            box.style.width = '100%';
-            box.style.height = '340px';
-            box.style.maxWidth = 'none';
-            box.style.overflow = 'hidden';
-            box.style.position = 'relative';
-            box.innerHTML = `${refBadge}<div style="position:relative; width:100%; height:100%; cursor:pointer;" onclick="openPostImageViewer(0)" title="Click para ver en el visor de imágenes"><img src="${url}" class="preview-interactive-img" style="width: 100%; height: 100%; display: block; border-radius: 12px; object-fit: contain;"><div class="preview-zoom-badge"><i class="ph ph-arrows-out"></i> Ver</div></div>${overlayHtml}`;
-        } else {
-            box.style.width = 'auto';
-            box.style.height = 'auto';
-            box.style.maxWidth = '280px';
-            box.innerHTML = `${refBadge}<div style="position:relative; width:100%; cursor:pointer;" onclick="openPostImageViewer(0)" title="Click para ver en el visor de imágenes"><img src="${url}" class="preview-interactive-img" style="width: 100%; height: auto; max-height: 400px; display: block; border-radius: 12px; object-fit: contain;"><div class="preview-zoom-badge"><i class="ph ph-arrows-out"></i> Ver</div></div>${overlayHtml}`;
+        const typeParam = isRef ? "'ref'" : "'final'";
+        box.style.width = '100%';
+        box.style.height = '340px';
+        box.style.maxWidth = 'none';
+        box.style.overflow = 'hidden';
+        box.style.position = 'relative';
+        box.innerHTML = `${refBadge}<div style="position:relative; width:100%; height:100%; cursor:pointer;" onclick="openPostImageViewer(0, ${typeParam})" title="Click para ver en el visor de imágenes"><img src="${url}" class="preview-interactive-img" style="width: 100%; height: 100%; display: block; border-radius: 12px; object-fit: contain;"><div class="preview-zoom-badge"><i class="ph ph-arrows-out"></i> Ver</div></div>${overlayHtml}`;
+    }
+}
+
+function updateVideoPreview() {
+    const refVal = document.getElementById('post-reference-link') ? document.getElementById('post-reference-link').value : '';
+    const finalVal = document.getElementById('post-image-link') ? document.getElementById('post-image-link').value : '';
+
+    // Render Tab 1 (Reference box)
+    const refBox = document.getElementById('preview-box');
+    if (refBox) {
+        renderSinglePreviewBox(refBox, refVal, true);
+    }
+
+    // Render Tab 2 (Final design box)
+    const finalBox = document.getElementById('final-preview-box');
+    if (finalBox) {
+        renderSinglePreviewBox(finalBox, finalVal, false);
+    }
+
+    // Sync input fields
+    const refInput = document.getElementById('video-url-input');
+    if (refInput && !refInput.matches(':focus')) {
+        try {
+            const arr = JSON.parse(refVal);
+            refInput.value = Array.isArray(arr) && arr.length === 1 ? arr[0] : (Array.isArray(arr) ? refVal : refVal);
+        } catch(e) {
+            refInput.value = refVal;
         }
     }
+
+    const finalInput = document.getElementById('final-video-url-input');
+    if (finalInput && !finalInput.matches(':focus')) {
+        try {
+            const arr = JSON.parse(finalVal);
+            finalInput.value = Array.isArray(arr) && arr.length === 1 ? arr[0] : (Array.isArray(arr) ? finalVal : finalVal);
+        } catch(e) {
+            finalInput.value = finalVal;
+        }
+    }
+
+    // Sync guide & presentation
+    updateDesignGuide();
+    updateApprovalView();
 }
 
 // ==========================================
@@ -4394,9 +7254,12 @@ function editPost(postData) {
     if (post.end_date) document.getElementById('post-end-date').value = post.end_date.split(' ')[0]; // just date part if it has time
     if (post.periodicity) document.getElementById('post-periodicity').value = post.periodicity;
     if (post.reminder) document.getElementById('post-reminder').value = post.reminder;
-    if (post.design_brief && document.getElementById('post-brief')) {
-        document.getElementById('post-brief').value = post.design_brief;
-
+    if (document.getElementById('post-brief')) {
+        document.getElementById('post-brief').value = post.design_brief || '';
+    }
+    const briefEd = document.getElementById('post-brief-editable');
+    if (briefEd) {
+        briefEd.innerHTML = post.design_brief || '';
     }
     if (post.drive_images && document.getElementById('post-drive')) {
         document.getElementById('post-drive').value = post.drive_images;
@@ -4430,13 +7293,53 @@ function editPost(postData) {
     if (document.getElementById('qa_cta')) document.getElementById('qa_cta').checked = !!(qaObj && qaObj.cta);
     updateQAUi();
 
-    // Referencias
-    let refs = [];
-    try { refs = JSON.parse(post.visual_references || '[]'); } catch(e){}
+    // Referencias y Variaciones (Hitos de Diseño)
+    let legacyAtts = [];
+    try { 
+        legacyAtts = JSON.parse(post.visual_references || '[]'); 
+        if (!Array.isArray(legacyAtts)) legacyAtts = post.visual_references ? [post.visual_references] : [];
+    } catch(e){
+        legacyAtts = post.visual_references ? [post.visual_references] : [];
+    }
+    compThumbnailsList = legacyAtts;
+
+    const isDesignDone = (post.status && post.status !== 'Borrador' && post.status !== 'Idea') || (post.image_link && post.image_link.trim() !== '');
+
+    let parsedMilestones = null;
+    try {
+        if (post.variations && post.variations.trim().startsWith('[')) {
+            const arr = JSON.parse(post.variations);
+            if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'object' && ('title' in arr[0] || 'description' in arr[0] || 'id' in arr[0])) {
+                parsedMilestones = arr;
+            }
+        }
+    } catch(e){}
+
+    if (parsedMilestones && parsedMilestones.length > 0) {
+        designMilestones = parsedMilestones;
+    } else {
+        // Fallback / Migración de datos existentes
+        designMilestones = [{
+            id: 'step_1',
+            title: 'Avance #1: Entrega de Diseño',
+            phase: 'Fase de Diseño',
+            description: post.variations || '',
+            completed: isDesignDone,
+            attachments: legacyAtts
+        }];
+    }
+    activeDesignStepId = designMilestones[0] ? designMilestones[0].id : 'step_1';
+    if (typeof renderDesignMilestones === 'function') renderDesignMilestones();
+    if (typeof renderCompThumbnails === 'function') renderCompThumbnails();
+
+    const designNotesEd = document.getElementById('post-variations-editable');
+    const designNotesHidden = document.getElementById('post-variations');
+    if (designNotesEd) designNotesEd.innerHTML = post.variations || '';
+    if (designNotesHidden) designNotesHidden.value = post.variations || '';
     let refsContainer = document.getElementById('refs-container');
     if (refsContainer) {
         refsContainer.innerHTML = '';
-        refs.forEach(r => addRefRow(r));
+        (post.reference_image_link ? [post.reference_image_link] : []).forEach(r => addRefRow(r));
     }
 
     // Variaciones
@@ -4485,15 +7388,28 @@ function editPost(postData) {
             if (countDisEl) countDisEl.style.display = countDiseno > 0 ? 'inline-block' : 'none';
             
             // Show empty states
+            const emptyStateTpl = (label) => `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3.5rem 1.5rem; text-align:center; gap:8px;">
+                <div style="width:48px; height:48px; border-radius:14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.18); color:#6366f1; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                    <i class="ph-duotone ph-chats-circle"></i>
+                </div>
+                <div style="font-size:0.86rem; font-weight:700; color:var(--color-title, #0f172a);">${label}</div>
+                <div style="font-size:0.74rem; color:var(--text-muted, #64748b); max-width:300px; line-height:1.4;">Cuando el cliente o el equipo dejen observaciones en esta etapa, aparecerán aquí.</div>
+            </div>`;
             if (!containerContenido.innerHTML.trim()) {
-                containerContenido.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Sin comentarios de contenido.</p>';
+                containerContenido.innerHTML = emptyStateTpl('Sin comentarios de contenido');
             }
             if (!containerDiseno.innerHTML.trim()) {
-                containerDiseno.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Sin comentarios de diseño.</p>';
+                containerDiseno.innerHTML = emptyStateTpl('Sin comentarios de diseño');
             }
         } else {
             if (commentsBadge) commentsBadge.style.display = 'none';
-            const emptyMsg = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">No hay comentarios para esta publicación.</p>';
+            const emptyMsg = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3.5rem 1.5rem; text-align:center; gap:8px;">
+                <div style="width:48px; height:48px; border-radius:14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.18); color:#6366f1; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                    <i class="ph-duotone ph-chats-circle"></i>
+                </div>
+                <div style="font-size:0.86rem; font-weight:700; color:var(--color-title, #0f172a);">No hay comentarios para esta publicación</div>
+                <div style="font-size:0.74rem; color:var(--text-muted, #64748b); max-width:300px; line-height:1.4;">Cuando el cliente o el equipo dejen observaciones en esta etapa, aparecerán aquí.</div>
+            </div>`;
             containerContenido.innerHTML = emptyMsg;
             containerDiseno.innerHTML = emptyMsg;
             document.getElementById('count-contenido').style.display = 'none';
@@ -4507,7 +7423,7 @@ function editPost(postData) {
     document.getElementById('post-modal-title').innerText = 'Editar Publicación';
     
     // Resetear pestañas y pipeline
-    switchCrmTab(document.querySelector('.crm-tab:first-child'), 'tab-contenido');
+    switchCrmTab(document.getElementById('crm-tab-nav-idea'), 'tab-idea');
     updatePipelineUI();
     
     document.getElementById('post-modal').classList.add('active');
@@ -4692,27 +7608,95 @@ function addVarRow(title = '', instructions = '') {
     document.getElementById('vars-container').appendChild(div);
 }
 
+function renderModernStudioLoader(badgeText = 'Procesando') {
+    return `
+        <div class="modern-studio-loader">
+            <div class="msl-top-progress-line"></div>
+            <div class="msl-badge"><span class="msl-badge-dot"></span> ${badgeText}</div>
+            <div class="msl-core">
+                <div class="msl-ripple"></div>
+                <div class="msl-ripple msl-ripple-delay"></div>
+                <div class="msl-squircle-card">
+                    <i class="ph-duotone ph-cloud-arrow-up msl-upload-arrow"></i>
+                    <span class="msl-orbit-badge"><i class="ph-bold ph-arrows-clockwise"></i></span>
+                </div>
+            </div>
+            <div class="msl-meta">
+                <div class="msl-title">Subiendo y optimizando recurso</div>
+                <div class="msl-subtitle" id="upload-progress-text">Iniciando transferencia • 0%</div>
+                <div class="msl-bar-track">
+                    <div class="msl-bar-fill" id="upload-progress-fill" style="width: 12%;"></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function uploadMainImageFromFile(originalFile, type = 'ref') {
+    if (!originalFile) return;
+    const isRef = (type === 'ref');
+    
+    // Set radio
+    if (isRef) {
+        const ptRef = document.getElementById('pt_ref');
+        if (ptRef) ptRef.checked = true;
+    } else {
+        const ptPost = document.getElementById('pt_post');
+        if (ptPost) ptPost.checked = true;
+    }
+    
+    const box = isRef ? document.getElementById('preview-box') : document.getElementById('final-preview-box');
+    const oldHtml = box ? box.innerHTML : '';
+    
+    if (box) {
+        box.style.display = 'flex'; box.style.padding = '0'; box.style.gridTemplateColumns = ''; box.style.gap = '';
+        box.innerHTML = renderModernStudioLoader(isRef ? 'Fase 1: Referencia' : 'Fase 2: Arte Final');
+    }
+    
+    const url = await performMainImageUpload(originalFile);
+    if (url) {
+        const inputEl = isRef ? document.getElementById('post-reference-link') : document.getElementById('post-image-link');
+        let currentList = [];
+        try {
+            currentList = JSON.parse(inputEl.value);
+            if (!Array.isArray(currentList)) currentList = inputEl.value ? [inputEl.value] : [];
+        } catch(e) {
+            currentList = inputEl.value ? [inputEl.value] : [];
+        }
+        currentList.push(url);
+        inputEl.value = JSON.stringify(currentList);
+        
+        if (!isRef) {
+            const statusEl = document.getElementById('post-status');
+            if (statusEl && (statusEl.value === 'Idea' || statusEl.value === 'Borrador')) {
+                statusEl.value = 'En Revisión';
+                if (typeof updatePipelineUI === 'function') updatePipelineUI();
+            }
+        }
+        
+        updateVideoPreview();
+        markDirty();
+        savePost(true);
+        showToast('¡Recurso subido y guardado exitosamente!', 'success');
+    } else {
+        if (box) box.innerHTML = oldHtml;
+        updateVideoPreview();
+    }
+}
+
 async function uploadMainImage(input) {
     if(!input.files || input.files.length === 0) return;
     
-    const box = document.getElementById('preview-box');
-    const oldHtml = box.innerHTML;
-    box.style.display = 'flex'; box.style.padding = '0'; box.style.gridTemplateColumns = ''; box.style.gap = '';
-    box.innerHTML = `
-        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; width:100%; padding: 1.5rem; box-sizing: border-box; background: var(--bg-surface-elevated, #f8fafc); border-radius: 12px; border: 1.5px dashed color-mix(in srgb, var(--primary-color) 40%, transparent);">
-            <div style="width: 48px; height: 48px; border-radius: 50%; background: color-mix(in srgb, var(--primary-color) 12%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
-                <i class="ph ph-cloud-arrow-up" style="font-size: 1.75rem; color: var(--primary-color);"></i>
-            </div>
-            <div style="width: 82%; height: 8px; background: rgba(100, 116, 139, 0.2); border-radius: 4px; overflow: hidden;">
-                <div id="upload-progress-fill" style="height: 100%; width: 0%; background: var(--primary-color); border-radius: 4px; transition: width 0.2s ease;"></div>
-            </div>
-            <div id="upload-progress-text" style="font-size: 0.85rem; margin-top: 0.65rem; font-weight: 700; color: var(--text-main, #0f172a); letter-spacing: 0.2px;">Subiendo 0%</div>
-        </div>
-    `;
+    const isRef = document.querySelector('input[name="post_type"]:checked') ? (document.querySelector('input[name="post_type"]:checked').value === 'Referencia Visual') : (typeof currentActivePane !== 'undefined' && currentActivePane === 'tab-idea');
+    const box = isRef ? document.getElementById('preview-box') : document.getElementById('final-preview-box');
+    const oldHtml = box ? box.innerHTML : '';
+    
+    if (box) {
+        box.style.display = 'flex'; box.style.padding = '0'; box.style.gridTemplateColumns = ''; box.style.gap = '';
+        box.innerHTML = renderModernStudioLoader(isRef ? 'Fase 1: Referencia' : 'Fase 2: Arte Final');
+    }
     
     let uploadedUrls = [];
-    
-    // Subida concurrente/paralela cuando se seleccionan múltiples archivos para mayor velocidad
     if (input.files.length > 1) {
         const uploadPromises = Array.from(input.files).map(f => performMainImageUpload(f));
         const results = await Promise.all(uploadPromises);
@@ -4723,9 +7707,7 @@ async function uploadMainImage(input) {
     }
     
     if (uploadedUrls.length > 0) {
-        const isRef = document.querySelector('input[name="post_type"]:checked').value === 'Referencia Visual';
         const inputEl = isRef ? document.getElementById('post-reference-link') : document.getElementById('post-image-link');
-        
         let currentList = [];
         try {
             currentList = JSON.parse(inputEl.value);
@@ -4737,21 +7719,25 @@ async function uploadMainImage(input) {
         currentList = currentList.concat(uploadedUrls);
         inputEl.value = JSON.stringify(currentList);
         
-        // Auto-change status to Publicado if image uploaded in Terminado
         if (!isRef) {
-            document.getElementById('post-status').value = 'Publicado';
-            if (typeof updatePipelineUI === 'function') updatePipelineUI();
-            if (typeof updateSaveButtonState === 'function') updateSaveButtonState();
+            const statusEl = document.getElementById('post-status');
+            if (statusEl && (statusEl.value === 'Idea' || statusEl.value === 'Borrador')) {
+                statusEl.value = 'En Revisión';
+                if (typeof updatePipelineUI === 'function') updatePipelineUI();
+                if (typeof updateSaveButtonState === 'function') updateSaveButtonState();
+            }
         }
         
         updateVideoPreview();
         markDirty();
+        savePost(true);
+        showToast('¡Recurso subido correctamente!', 'success');
     } else {
-        box.innerHTML = oldHtml;
+        if (box) box.innerHTML = oldHtml;
         updateVideoPreview();
     }
     
-    input.value = ''; // Reset input
+    input.value = '';
 }
 
 async function savePost(isAutoSave = false) {
@@ -4761,6 +7747,8 @@ async function savePost(isAutoSave = false) {
     // Sync WYSIWYG to textarea
     const wysiwyg = document.getElementById('post-copy-editable');
     if (wysiwyg) document.getElementById('post-copy').value = wysiwyg.innerHTML;
+    const briefEd = document.getElementById('post-brief-editable');
+    if (briefEd) document.getElementById('post-brief').value = briefEd.innerHTML;
     
     const form = document.getElementById('post-form');
     if (!isAutoSave && !form.checkValidity()) {
@@ -4781,17 +7769,18 @@ async function savePost(isAutoSave = false) {
     };
     formData.set('qa_checklist', JSON.stringify(qaObj));
 
-    let variationsArr = [];
-    let titles = formData.getAll('variations[title][]');
-    let insts = formData.getAll('variations[instructions][]');
-    for (let i = 0; i < titles.length; i++) {
-        if (titles[i] || insts[i]) {
-            variationsArr.push({ title: titles[i], instructions: insts[i] });
-        }
+    if (typeof syncDesignTimelineFromDOM === 'function') {
+        syncDesignTimelineFromDOM();
     }
-    formData.delete('variations[title][]');
-    formData.delete('variations[instructions][]');
-    formData.append('variations', JSON.stringify(variationsArr));
+    formData.set('variations', JSON.stringify(designMilestones || []));
+    const allStepAtts = (designMilestones || []).flatMap(s => (s.attachments || []).map(a => typeof a === 'string' ? a : (a.url || ''))).filter(Boolean);
+    formData.set('visual_references', JSON.stringify(allStepAtts.length > 0 ? allStepAtts : (compThumbnailsList || [])));
+    if (document.getElementById('post-variations')) {
+        document.getElementById('post-variations').value = JSON.stringify(designMilestones || []);
+    }
+    if (document.getElementById('post-visual-references')) {
+        document.getElementById('post-visual-references').value = JSON.stringify(allStepAtts.length > 0 ? allStepAtts : (compThumbnailsList || []));
+    }
 
     try {
         const response = await fetch('modules/month_board/ajax_save_post.php', {
@@ -5592,6 +8581,856 @@ input:checked + .slider:before { transform: translateX(22px); }
         document.getElementById('slideEditorIframe').src = editUrl;
         document.getElementById('slideEditorModal').classList.add('active');
     }
+
+    /* ==========================================================================
+       HITOS Y AVANCES DE DISEÑO - CONTROLADOR MULTI-CARD (ESTILO TASK MANAGER)
+       ========================================================================== */
+    let designMilestones = [
+        {
+            id: 'step_1',
+            title: 'Avance #1: Boceto / Arte Inicial',
+            phase: 'Fase de Diseño',
+            description: '',
+            completed: false,
+            attachments: []
+        }
+    ];
+    let activeDesignStepId = 'step_1';
+
+    function escapeDesignHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function syncDesignTimelineFromDOM() {
+        if (!designMilestones || !Array.isArray(designMilestones)) return;
+        designMilestones.forEach(step => {
+            const titleEl = document.getElementById(`tm-step-title-${step.id}`);
+            if (titleEl) step.title = titleEl.value;
+            const editorEl = document.getElementById(`step-editor-${step.id}`);
+            if (editorEl) step.description = editorEl.innerHTML;
+        });
+        const hiddenVars = document.getElementById('post-variations');
+        if (hiddenVars) hiddenVars.value = JSON.stringify(designMilestones);
+        const allAtts = designMilestones.flatMap(s => (s.attachments || []).map(a => typeof a === 'string' ? a : (a.url || ''))).filter(Boolean);
+        const hiddenRefs = document.getElementById('post-visual-references');
+        if (hiddenRefs) hiddenRefs.value = JSON.stringify(allAtts);
+        compThumbnailsList = allAtts;
+    }
+
+    function setActiveDesignStep(stepId) {
+        activeDesignStepId = stepId;
+        document.querySelectorAll('.tm-timeline-item').forEach(el => {
+            el.classList.toggle('active-step', el.id === `tm-step-item-${stepId}`);
+        });
+    }
+
+    function renderDesignMilestones() {
+        const container = document.getElementById('design-milestones-flow');
+        if (!container) return;
+
+        if (!designMilestones || designMilestones.length === 0) {
+            designMilestones = [{
+                id: 'step_1',
+                title: 'Avance #1: Boceto / Arte Inicial',
+                phase: 'Fase de Diseño',
+                description: '',
+                completed: false,
+                attachments: []
+            }];
+            activeDesignStepId = 'step_1';
+        }
+
+        const count = designMilestones.length;
+        const allAtts = designMilestones.flatMap(s => (s.attachments || []).map(a => typeof a === 'string' ? a : (a.url || ''))).filter(Boolean);
+        compThumbnailsList = allAtts;
+        
+        const hiddenVars = document.getElementById('post-variations');
+        if (hiddenVars) hiddenVars.value = JSON.stringify(designMilestones);
+        const hiddenRefs = document.getElementById('post-visual-references');
+        if (hiddenRefs) hiddenRefs.value = JSON.stringify(allAtts);
+
+        container.innerHTML = designMilestones.map((step, idx) => {
+            const stepNum = idx + 1;
+            const isActive = (step.id === activeDesignStepId) || (idx === 0 && !activeDesignStepId);
+            const isDone = Boolean(step.completed);
+            const isCollapsed = (step.collapsed !== undefined) ? Boolean(step.collapsed) : isDone;
+            const safeTitle = escapeDesignHtml(step.title || `Avance #${stepNum}: Entrega de Diseño`);
+            const atts = step.attachments || [];
+
+            // Miniaturas HTML del Hito
+            let thumbsHtml = '';
+            if (atts.length > 0) {
+                thumbsHtml = atts.map((att, attIdx) => {
+                    const url = (typeof att === 'string') ? att.trim() : ((att && att.url) ? att.url.trim() : '');
+                    const name = (typeof att === 'object' && att && att.name) ? att.name : (url ? url.split('/').pop().split('?')[0] : 'Archivo');
+                    const ext = (typeof att === 'object' && att && att.ext) ? att.ext.toLowerCase() : (url ? url.split('.').pop().split('?')[0].toLowerCase() : 'img');
+                    const isUploading = Boolean(typeof att === 'object' && att && att.isUploading);
+                    const attKey = (typeof att === 'object' && att && att.id) ? att.id : attIdx;
+
+                    if (isUploading) {
+                        return `
+                            <div class="tm-step-thumb-item is-uploading" title="Subiendo archivo...">
+                                <div class="tm-step-thumb-loading">
+                                    <div class="msl-top-progress-line"></div>
+                                    <i class="ph-duotone ph-cloud-arrow-up" style="font-size: 1.45rem;"></i>
+                                    <span>Subiendo...</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (!url) return '';
+
+                    const isVideo = ['mp4', 'mov', 'webm', 'ogg'].includes(ext);
+                    const isDoc = ['pdf', 'doc', 'docx', 'ai', 'psd', 'eps', 'svg'].includes(ext);
+                    let badgeTag = ext.toUpperCase();
+                    if (badgeTag.length > 4) badgeTag = badgeTag.substring(0, 4);
+
+                    let mediaPreviewHtml = '';
+                    if (isVideo) {
+                        mediaPreviewHtml = `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:#0f172a; color:#818cf8;"><i class="ph-bold ph-film-strip" style="font-size:1.8rem;"></i></div>`;
+                    } else if (isDoc) {
+                        mediaPreviewHtml = `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:#1e293b; color:#38bdf8;"><i class="ph-bold ph-file-text" style="font-size:1.8rem;"></i></div>`;
+                    } else {
+                        mediaPreviewHtml = `<img src="${url}" class="tm-step-thumb-img" alt="${escapeDesignHtml(name)}" loading="lazy" onerror="this.onerror=null; this.src='assets/img/placeholder-image.png';">`;
+                    }
+
+                    return `
+                        <div class="tm-step-thumb-item" title="${escapeDesignHtml(name)}" onclick="event.stopPropagation(); window.open('${url}', '_blank')">
+                            ${mediaPreviewHtml}
+                            <span class="tm-step-badge-tag">${badgeTag}</span>
+                            <div class="tm-step-thumb-overlay" onclick="event.stopPropagation()">
+                                <div class="tm-step-thumb-actions">
+                                    <button type="button" class="tm-step-thumb-btn view-btn" onclick="event.stopPropagation(); window.open('${url}', '_blank')" title="Ver recurso">
+                                        <i class="ph-bold ph-eye"></i>
+                                    </button>
+                                    <a href="${url}" download="${escapeDesignHtml(name)}" class="tm-step-thumb-btn dl-btn" onclick="event.stopPropagation()" title="Descargar recurso">
+                                        <i class="ph-bold ph-download-simple"></i>
+                                    </a>
+                                    <button type="button" class="tm-step-thumb-btn del-btn" onclick="removeStepAttachment('${step.id}', '${attKey}', event)" title="Eliminar miniatura">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                thumbsHtml = `
+                    <div class="comp-empty-hint" style="grid-column: 1 / -1; padding: 0.65rem; color: #64748b; font-size: 0.74rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="ph ph-image" style="font-size: 1.15rem; opacity: 0.4;"></i>
+                        <span>Sin miniaturas adjuntas en este avance. Pega capturas con <kbd class="tm-kbd">Ctrl + V</kbd> o adjunta arriba.</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="tm-timeline-item ${isActive ? 'active-step' : ''} ${isDone ? 'is-completed' : ''} ${isCollapsed ? 'is-collapsed' : ''}" id="tm-step-item-${step.id}" onclick="setActiveDesignStep('${step.id}')">
+                    <!-- Nodo lateral en riel vertical -->
+                    <div class="tm-timeline-node" title="${isDone ? 'Hito completado' : 'Avance #' + stepNum}">
+                        ${isDone ? '<i class="ph-bold ph-check"></i>' : stepNum}
+                    </div>
+
+                    <div class="tm-timeline-card" onclick="if (${isCollapsed}) { toggleStepCollapse('${step.id}', event); }">
+                        <!-- Cabecera de la tarjeta del hito -->
+                        <div class="tm-step-header">
+                            <span class="tm-step-phase-badge">
+                                <i class="ph-bold ph-paint-brush"></i> Hito de Diseño
+                            </span>
+
+                            <input type="text" 
+                                   class="tm-step-title-input ${isDone ? 'completed' : ''}" 
+                                   id="tm-step-title-${step.id}" 
+                                   value="${safeTitle}" 
+                                   placeholder="Nombre del avance o hito..." 
+                                   onchange="onStepTitleChange('${step.id}', this.value)"
+                                   onfocus="setActiveDesignStep('${step.id}')">
+
+                            ${(isCollapsed && atts.length > 0) ? `
+                                <span class="tm-step-collapsed-summary" title="${atts.length} miniatura(s) adjunta(s)">
+                                    <i class="ph-bold ph-paperclip"></i> ${atts.length}
+                                </span>
+                            ` : ''}
+
+                            <div class="tm-step-actions">
+                                <button type="button" 
+                                        class="tm-step-complete-btn ${isDone ? 'completed' : ''}" 
+                                        onclick="event.stopPropagation(); toggleDesignMilestoneCompleted('${step.id}', event)" 
+                                        title="${isDone ? 'Hito completado. Clic para marcar pendiente y desplegar' : 'Marcar como completado y encoger'}">
+                                    <i class="${isDone ? 'ph-fill ph-check-circle' : 'ph-bold ph-circle'}"></i>
+                                    <span>${isDone ? 'Completado' : 'Completar'}</span>
+                                </button>
+
+                                ${count > 1 ? `
+                                    <button type="button" class="tm-step-del-btn" onclick="event.stopPropagation(); removeDesignMilestoneStep('${step.id}', event)" title="Eliminar este avance">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
+                                ` : ''}
+
+                                <button type="button" 
+                                        class="tm-step-collapse-btn" 
+                                        onclick="event.stopPropagation(); toggleStepCollapse('${step.id}', event)" 
+                                        title="${isCollapsed ? 'Desplegar contenido del avance' : 'Encoger / Plegar avance'}">
+                                    <i class="ph-bold ${isCollapsed ? 'ph-caret-down' : 'ph-caret-up'}"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Editor de Descripción con Toolbar WYSIWYG & Tablas -->
+                        <div class="tm-step-desc-wrap">
+                            <div class="tm-step-desc-header">
+                                <label class="tm-step-desc-label">
+                                    <i class="ph-bold ph-article"></i> Descripción & Criterios del Avance
+                                </label>
+                                <span class="tm-step-desc-hint"><i class="ph-bold ph-table"></i> Soporta tablas, listas y formato</span>
+                            </div>
+
+                            <div class="tm-editor-toolbar" onclick="event.stopPropagation()">
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorCmd('${step.id}', 'bold')" title="Negrita (Ctrl+B)">
+                                        <i class="ph-bold ph-text-b"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorCmd('${step.id}', 'italic')" title="Cursiva (Ctrl+I)">
+                                        <i class="ph-bold ph-text-italic"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorCmd('${step.id}', 'underline')" title="Subrayado (Ctrl+U)">
+                                        <i class="ph-bold ph-text-underline"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorCmd('${step.id}', 'strikeThrough')" title="Tachado">
+                                        <i class="ph-bold ph-text-strikethrough"></i>
+                                    </button>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorFormatBlock('${step.id}', 'H2')" title="Título H2">
+                                        <i class="ph-bold ph-text-h-two"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorFormatBlock('${step.id}', 'H3')" title="Subtítulo H3">
+                                        <i class="ph-bold ph-text-h-three"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorFormatBlock('${step.id}', 'P')" title="Párrafo normal">
+                                        <i class="ph-bold ph-paragraph"></i>
+                                    </button>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorCmd('${step.id}', 'insertUnorderedList')" title="Lista con viñetas">
+                                        <i class="ph-bold ph-list-bullets"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorCmd('${step.id}', 'insertOrderedList')" title="Lista numerada">
+                                        <i class="ph-bold ph-list-numbers"></i>
+                                    </button>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <div class="tm-tb-group tm-tb-table-wrapper" style="position: relative;">
+                                    <button type="button" class="tm-tb-btn tm-tb-table-btn" onclick="toggleStepTableMenu('${step.id}', event)" title="Insertar tabla">
+                                        <i class="ph-bold ph-table"></i> <span class="tm-tb-btn-text">Tabla</span> <i class="ph-bold ph-caret-down" style="font-size:0.6rem;"></i>
+                                    </button>
+                                    <div class="tm-table-menu" id="step-table-menu-${step.id}" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:150;">
+                                        <div class="tm-table-menu-title">Insertar Tabla</div>
+                                        <button type="button" class="tm-table-menu-item" onclick="insertStepTable('${step.id}', 2, 2)"><i class="ph-bold ph-table"></i> Tabla 2 × 2</button>
+                                        <button type="button" class="tm-table-menu-item" onclick="insertStepTable('${step.id}', 3, 3)"><i class="ph-bold ph-table"></i> Tabla 3 × 3</button>
+                                        <button type="button" class="tm-table-menu-item" onclick="insertStepTable('${step.id}', 4, 3)"><i class="ph-bold ph-table"></i> Tabla 4 × 3</button>
+                                        <button type="button" class="tm-table-menu-item" onclick="promptStepCustomTable('${step.id}')"><i class="ph-bold ph-faders"></i> Personalizada...</button>
+                                    </div>
+                                    <div class="tm-table-context-btns" id="step-table-tools-${step.id}" style="display:none;">
+                                        <button type="button" class="tm-tb-btn-subtle" onclick="stepTableAction('${step.id}', 'add-row-below')" title="Insertar fila debajo"><i class="ph-bold ph-rows"></i> +Fila</button>
+                                        <button type="button" class="tm-tb-btn-subtle" onclick="stepTableAction('${step.id}', 'add-col-right')" title="Insertar columna a la derecha"><i class="ph-bold ph-columns"></i> +Col</button>
+                                        <button type="button" class="tm-tb-btn-subtle del" onclick="stepTableAction('${step.id}', 'del-row')" title="Eliminar fila actual"><i class="ph-bold ph-minus"></i> Fila</button>
+                                        <button type="button" class="tm-tb-btn-subtle del" onclick="stepTableAction('${step.id}', 'del-col')" title="Eliminar columna actual"><i class="ph-bold ph-minus"></i> Col</button>
+                                        <button type="button" class="tm-tb-btn-subtle del" onclick="stepTableAction('${step.id}', 'del-table')" title="Eliminar tabla"><i class="ph-bold ph-trash"></i></button>
+                                    </div>
+                                </div>
+
+                                <div class="tm-tb-divider"></div>
+
+                                <div class="tm-tb-group">
+                                    <button type="button" class="tm-tb-btn" onclick="promptStepEmoji('${step.id}')" title="Insertar emoji">
+                                        <i class="ph-bold ph-smiley"></i>
+                                    </button>
+                                    <button type="button" class="tm-tb-btn" onclick="execStepEditorCmd('${step.id}', 'removeFormat')" title="Limpiar formato">
+                                        <i class="ph-bold ph-paint-brush"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="tm-step-editor" 
+                                 id="step-editor-${step.id}" 
+                                 contenteditable="true" 
+                                 data-placeholder="Añade notas, especificaciones o criterios para esta etapa de diseño..."
+                                 oninput="onStepEditorInput('${step.id}', this)"
+                                 onkeyup="checkStepTableContext('${step.id}')"
+                                 onclick="checkStepTableContext('${step.id}')"
+                                 onfocus="setActiveDesignStep('${step.id}')">${step.description || ''}</div>
+                        </div>
+
+                        <!-- Dropzone de Adjuntos & Grid de Miniaturas en el mismo Card -->
+                        <div class="tm-step-attachments-wrap">
+                            <div class="tm-step-dropzone" 
+                                 id="step-dropzone-${step.id}" 
+                                 data-step-id="${step.id}"
+                                 onclick="setActiveDesignStep('${step.id}')"
+                                 ondragover="handleStepDragOver('${step.id}', event)"
+                                 ondragleave="handleStepDragLeave('${step.id}', event)"
+                                 ondrop="handleStepDrop('${step.id}', event)">
+                                <div class="tm-step-dropzone-left">
+                                    <i class="ph-bold ph-paperclip"></i>
+                                    <span>Pega capturas con <kbd class="tm-kbd">Ctrl + V</kbd> o arrastra archivos aquí</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <button type="button" class="tm-step-attach-btn" onclick="event.stopPropagation(); promptStepUrl('${step.id}')" title="Pegar URL de imagen o recurso externo">
+                                        <i class="ph-bold ph-link"></i> + URL
+                                    </button>
+                                    <button type="button" class="tm-step-attach-btn" onclick="event.stopPropagation(); triggerStepFileInput('${step.id}')" title="Subir archivo o imagen">
+                                        <i class="ph-bold ph-upload-simple"></i> + Adjuntar
+                                    </button>
+                                </div>
+                                <input type="file" multiple id="tm-step-file-${step.id}" style="display:none;" onchange="handleStepFileInput('${step.id}', event)">
+                            </div>
+
+                            <div class="tm-step-thumbs-grid" id="tm-step-thumbs-${step.id}">
+                                ${thumbsHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function toggleStepCollapse(stepId, event) {
+        if (event) event.stopPropagation();
+        syncDesignTimelineFromDOM();
+        const step = designMilestones.find(s => s.id === stepId);
+        if (!step) return;
+        const curCollapsed = (step.collapsed !== undefined) ? Boolean(step.collapsed) : Boolean(step.completed);
+        step.collapsed = !curCollapsed;
+        renderDesignMilestones();
+    }
+
+    function addDesignMilestoneStep(customTitle = '') {
+        syncDesignTimelineFromDOM();
+        const nextNum = (designMilestones ? designMilestones.length : 0) + 1;
+        const newStep = {
+            id: 'step_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            title: customTitle || `Avance #${nextNum}: Entrega de Diseño`,
+            phase: 'Fase de Diseño',
+            description: '',
+            completed: false,
+            collapsed: false,
+            attachments: []
+        };
+        designMilestones.push(newStep);
+        activeDesignStepId = newStep.id;
+        renderDesignMilestones();
+        markDirty();
+        updateSaveButtonState();
+
+        setTimeout(() => {
+            const newTitleInput = document.getElementById(`tm-step-title-${newStep.id}`);
+            if (newTitleInput) {
+                newTitleInput.focus();
+                newTitleInput.select();
+                newTitleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 80);
+
+        if (typeof showToast === 'function') {
+            showToast(`Nuevo avance #${nextNum} añadido`, 'success');
+        }
+    }
+
+    function removeDesignMilestoneStep(stepId, event) {
+        if (event) event.stopPropagation();
+        if (designMilestones.length <= 1) {
+            if (typeof showToast === 'function') showToast('Debe haber al menos un avance de diseño.', 'info');
+            return;
+        }
+        if (!confirm('¿Eliminar este avance de diseño y sus miniaturas?')) return;
+
+        syncDesignTimelineFromDOM();
+        designMilestones = designMilestones.filter(s => s.id !== stepId);
+        if (activeDesignStepId === stepId) {
+            activeDesignStepId = designMilestones[designMilestones.length - 1].id;
+        }
+        renderDesignMilestones();
+        markDirty();
+        updateSaveButtonState();
+        if (typeof showToast === 'function') showToast('Avance eliminado', 'info');
+    }
+
+    function toggleDesignMilestoneCompleted(stepId, event) {
+        if (event) event.stopPropagation();
+        syncDesignTimelineFromDOM();
+        const step = designMilestones.find(s => s.id === stepId);
+        if (!step) return;
+
+        step.completed = !step.completed;
+        if (step.completed) {
+            step.collapsed = true; // Se encoje automáticamente para que se vean los demás
+            const statusEl = document.getElementById('post-status');
+            if (statusEl && (statusEl.value === 'Borrador' || statusEl.value === 'Idea')) {
+                setPostStatus('En Revisión');
+            }
+            if (typeof showToast === 'function') showToast('Hito de diseño completado y minimizado', 'success');
+        } else {
+            step.collapsed = false; // Se expande de nuevo al desmarcar
+            if (typeof showToast === 'function') showToast('Hito marcado como pendiente', 'info');
+        }
+
+        renderDesignMilestones();
+        markDirty();
+        updateSaveButtonState();
+    }
+
+    function onStepTitleChange(stepId, val) {
+        const step = designMilestones.find(s => s.id === stepId);
+        if (step) step.title = val;
+        markDirty();
+        updateSaveButtonState();
+    }
+
+    function onStepEditorInput(stepId, el) {
+        const step = designMilestones.find(s => s.id === stepId);
+        if (step) step.description = el.innerHTML;
+        markDirty();
+        updateSaveButtonState();
+    }
+
+    function execStepEditorCmd(stepId, cmd, val = null) {
+        const editor = document.getElementById(`step-editor-${stepId}`);
+        if (editor) editor.focus();
+        document.execCommand(cmd, false, val);
+        const step = designMilestones.find(s => s.id === stepId);
+        if (step && editor) step.description = editor.innerHTML;
+        markDirty();
+        updateSaveButtonState();
+    }
+
+    function execStepEditorFormatBlock(stepId, tag) {
+        const editor = document.getElementById(`step-editor-${stepId}`);
+        if (editor) editor.focus();
+        document.execCommand('formatBlock', false, `<${tag}>`);
+        const step = designMilestones.find(s => s.id === stepId);
+        if (step && editor) step.description = editor.innerHTML;
+        markDirty();
+        updateSaveButtonState();
+    }
+
+    function promptStepEmoji(stepId) {
+        const emojis = ['✨', '🎨', '🚀', '💡', '📌', '🎯', '🔥', '✅', '⚠️', '👀', '📱', '🖼️'];
+        const chosen = prompt('Selecciona o escribe un emoji:\n' + emojis.join('  '), '🎨');
+        if (chosen) {
+            const editor = document.getElementById(`step-editor-${stepId}`);
+            if (editor) {
+                editor.focus();
+                document.execCommand('insertText', false, chosen);
+                const step = designMilestones.find(s => s.id === stepId);
+                if (step) step.description = editor.innerHTML;
+                markDirty();
+                updateSaveButtonState();
+            }
+        }
+    }
+
+    function toggleStepTableMenu(stepId, event) {
+        if (event) event.stopPropagation();
+        const menu = document.getElementById(`step-table-menu-${stepId}`);
+        if (!menu) return;
+        const isHidden = menu.style.display === 'none';
+        document.querySelectorAll('.tm-table-menu').forEach(m => m.style.display = 'none');
+        menu.style.display = isHidden ? 'flex' : 'none';
+    }
+
+    function insertStepTable(stepId, rows = 3, cols = 3) {
+        const menu = document.getElementById(`step-table-menu-${stepId}`);
+        if (menu) menu.style.display = 'none';
+
+        const editor = document.getElementById(`step-editor-${stepId}`);
+        if (!editor) return;
+        editor.focus();
+
+        let tableHtml = '<table class="tm-table"><thead><tr>';
+        for (let c = 1; c <= cols; c++) {
+            tableHtml += `<th>Columna ${c}</th>`;
+        }
+        tableHtml += '</tr></thead><tbody>';
+        for (let r = 1; r <= rows - 1; r++) {
+            tableHtml += '<tr>';
+            for (let c = 1; c <= cols; c++) {
+                tableHtml += '<td>Dato</td>';
+            }
+            tableHtml += '</tr>';
+        }
+        tableHtml += '</tbody></table><p><br></p>';
+
+        document.execCommand('insertHTML', false, tableHtml);
+        const step = designMilestones.find(s => s.id === stepId);
+        if (step) step.description = editor.innerHTML;
+        checkStepTableContext(stepId);
+        markDirty();
+        updateSaveButtonState();
+        if (typeof showToast === 'function') showToast(`Tabla de ${rows}×${cols} insertada`, 'info');
+    }
+
+    function promptStepCustomTable(stepId) {
+        const menu = document.getElementById(`step-table-menu-${stepId}`);
+        if (menu) menu.style.display = 'none';
+
+        const rowsStr = prompt('Número de filas (incluyendo encabezado):', '4');
+        if (!rowsStr) return;
+        const colsStr = prompt('Número de columnas:', '3');
+        if (!colsStr) return;
+
+        const rows = Math.min(Math.max(parseInt(rowsStr, 10) || 3, 2), 20);
+        const cols = Math.min(Math.max(parseInt(colsStr, 10) || 3, 1), 12);
+        insertStepTable(stepId, rows, cols);
+    }
+
+    function getStepTableCell() {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return null;
+        let node = sel.anchorNode;
+        while (node && node !== document.body) {
+            if (node.nodeName === 'TD' || node.nodeName === 'TH') return node;
+            node = node.parentNode;
+        }
+        return null;
+    }
+
+    function getStepTable() {
+        const cell = getStepTableCell();
+        if (cell) {
+            let node = cell;
+            while (node && node !== document.body) {
+                if (node.nodeName === 'TABLE') return node;
+                node = node.parentNode;
+            }
+        }
+        return null;
+    }
+
+    function checkStepTableContext(stepId) {
+        const tools = document.getElementById(`step-table-tools-${stepId}`);
+        if (!tools) return;
+        const table = getStepTable();
+        const editor = document.getElementById(`step-editor-${stepId}`);
+        if (table && editor && editor.contains(table)) {
+            tools.style.display = 'inline-flex';
+        } else {
+            tools.style.display = 'none';
+        }
+    }
+
+    function stepTableAction(stepId, action) {
+        const cell = getStepTableCell();
+        const table = getStepTable();
+        if (!cell || !table) {
+            if (typeof showToast === 'function') showToast('Haz clic dentro de una celda de la tabla para modificarla', 'info');
+            return;
+        }
+
+        const tr = cell.parentElement;
+        const isHeader = cell.nodeName === 'TH';
+        const colIdx = Array.from(tr.children).indexOf(cell);
+
+        if (action === 'add-row-below') {
+            const numCols = tr.children.length;
+            const newTr = document.createElement('tr');
+            for (let i = 0; i < numCols; i++) {
+                const td = document.createElement('td');
+                td.innerHTML = '&nbsp;';
+                newTr.appendChild(td);
+            }
+            if (isHeader) {
+                const tbody = table.querySelector('tbody') || table;
+                tbody.insertBefore(newTr, tbody.firstChild);
+            } else {
+                tr.parentNode.insertBefore(newTr, tr.nextSibling);
+            }
+            const editor = document.getElementById(`step-editor-${stepId}`);
+            const step = designMilestones.find(s => s.id === stepId);
+            if (step && editor) step.description = editor.innerHTML;
+            markDirty();
+            updateSaveButtonState();
+            if (newTr.firstElementChild) newTr.firstElementChild.focus();
+            if (typeof showToast === 'function') showToast('Fila añadida', 'success');
+        } else if (action === 'add-col-right') {
+            const allRows = table.querySelectorAll('tr');
+            allRows.forEach(row => {
+                const targetCell = row.children[colIdx];
+                const isHeadRow = row.parentElement.nodeName === 'THEAD' || row.firstElementChild?.nodeName === 'TH';
+                const newCell = document.createElement(isHeadRow ? 'th' : 'td');
+                newCell.innerHTML = isHeadRow ? 'Columna' : '&nbsp;';
+                if (targetCell) {
+                    row.insertBefore(newCell, targetCell.nextSibling);
+                } else {
+                    row.appendChild(newCell);
+                }
+            });
+            const editor = document.getElementById(`step-editor-${stepId}`);
+            const step = designMilestones.find(s => s.id === stepId);
+            if (step && editor) step.description = editor.innerHTML;
+            markDirty();
+            updateSaveButtonState();
+            if (typeof showToast === 'function') showToast('Columna añadida', 'success');
+        } else if (action === 'del-row') {
+            const tbody = table.querySelector('tbody');
+            const totalRows = table.querySelectorAll('tr').length;
+            if (totalRows <= 1 || (tbody && tbody.children.length <= 1 && !isHeader)) {
+                if (confirm('¿Eliminar la tabla completa?')) {
+                    table.remove();
+                    checkStepTableContext(stepId);
+                    const editor = document.getElementById(`step-editor-${stepId}`);
+                    const step = designMilestones.find(s => s.id === stepId);
+                    if (step && editor) step.description = editor.innerHTML;
+                    markDirty();
+                    updateSaveButtonState();
+                }
+                return;
+            }
+            tr.remove();
+            checkStepTableContext(stepId);
+            const editor = document.getElementById(`step-editor-${stepId}`);
+            const step = designMilestones.find(s => s.id === stepId);
+            if (step && editor) step.description = editor.innerHTML;
+            markDirty();
+            updateSaveButtonState();
+            if (typeof showToast === 'function') showToast('Fila eliminada', 'info');
+        } else if (action === 'del-col') {
+            const allRows = table.querySelectorAll('tr');
+            const totalCols = tr.children.length;
+            if (totalCols <= 1) {
+                if (confirm('¿Eliminar la tabla completa?')) {
+                    table.remove();
+                    checkStepTableContext(stepId);
+                    const editor = document.getElementById(`step-editor-${stepId}`);
+                    const step = designMilestones.find(s => s.id === stepId);
+                    if (step && editor) step.description = editor.innerHTML;
+                    markDirty();
+                    updateSaveButtonState();
+                }
+                return;
+            }
+            allRows.forEach(row => {
+                if (row.children[colIdx]) row.children[colIdx].remove();
+            });
+            checkStepTableContext(stepId);
+            const editor = document.getElementById(`step-editor-${stepId}`);
+            const step = designMilestones.find(s => s.id === stepId);
+            if (step && editor) step.description = editor.innerHTML;
+            markDirty();
+            updateSaveButtonState();
+            if (typeof showToast === 'function') showToast('Columna eliminada', 'info');
+        } else if (action === 'del-table') {
+            if (confirm('¿Eliminar esta tabla?')) {
+                table.remove();
+                checkStepTableContext(stepId);
+                const editor = document.getElementById(`step-editor-${stepId}`);
+                const step = designMilestones.find(s => s.id === stepId);
+                if (step && editor) step.description = editor.innerHTML;
+                markDirty();
+                updateSaveButtonState();
+                if (typeof showToast === 'function') showToast('Tabla eliminada', 'info');
+            }
+        }
+    }
+
+    /* --- Miniaturas y Archivos Adjuntos por Hito --- */
+    function triggerStepFileInput(stepId) {
+        setActiveDesignStep(stepId);
+        const input = document.getElementById(`tm-step-file-${stepId}`);
+        if (input) input.click();
+    }
+
+    function handleStepFileInput(stepId, event) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+        Array.from(files).forEach(f => uploadStepFile(stepId, f));
+        event.target.value = '';
+    }
+
+    async function uploadStepFile(stepId, file) {
+        if (!file) return;
+        setActiveDesignStep(stepId);
+        syncDesignTimelineFromDOM();
+        const step = designMilestones.find(s => s.id === stepId);
+        if (!step) return;
+        if (!step.attachments) step.attachments = [];
+
+        const tempId = 'comp_load_' + Date.now() + Math.random().toString(36).substr(2, 4);
+        const fileName = file.name || 'Captura de pantalla';
+        const fileExt = fileName.split('.').pop().toLowerCase() || 'png';
+
+        step.attachments.push({
+            id: tempId,
+            url: '',
+            name: fileName,
+            ext: fileExt,
+            isUploading: true
+        });
+        renderDesignMilestones();
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('month_id', document.querySelector('input[name="month_id"]')?.value || '<?php echo $monthId; ?>');
+        formData.append('target_folder', 'EXTRAS');
+        formData.append('post_type', 'EXTRAS');
+
+        try {
+            const res = await fetch('modules/month_board/ajax_upload_reference.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            const curStep = designMilestones.find(s => s.id === stepId);
+            if (!curStep) return;
+            const idx = (curStep.attachments || []).findIndex(a => (typeof a === 'object' && a.id === tempId));
+
+            if (data.success && data.url) {
+                const finalAtt = {
+                    id: 'att_' + Date.now(),
+                    url: data.url,
+                    name: fileName,
+                    ext: data.url.split('.').pop().split('?')[0].toLowerCase() || fileExt,
+                    isUploading: false
+                };
+                if (idx !== -1) {
+                    curStep.attachments[idx] = finalAtt;
+                } else {
+                    curStep.attachments.push(finalAtt);
+                }
+                renderDesignMilestones();
+                markDirty();
+                updateSaveButtonState();
+                if (typeof showToast === 'function') showToast('Miniatura adjuntada con éxito al avance', 'success');
+            } else {
+                if (idx !== -1) curStep.attachments.splice(idx, 1);
+                renderDesignMilestones();
+                if (typeof showToast === 'function') showToast(data.error || 'Error al subir archivo', 'error');
+            }
+        } catch (err) {
+            console.error('Error uploading milestone attachment:', err);
+            const curStep = designMilestones.find(s => s.id === stepId);
+            if (curStep) {
+                const idx = (curStep.attachments || []).findIndex(a => (typeof a === 'object' && a.id === tempId));
+                if (idx !== -1) curStep.attachments.splice(idx, 1);
+                renderDesignMilestones();
+            }
+            if (typeof showToast === 'function') showToast('Error de conexión al subir miniatura', 'error');
+        }
+    }
+
+    function addStepAttachmentUrl(stepId, url) {
+        if (!url || !url.trim()) return;
+        setActiveDesignStep(stepId);
+        syncDesignTimelineFromDOM();
+        const step = designMilestones.find(s => s.id === stepId);
+        if (!step) return;
+        if (!step.attachments) step.attachments = [];
+
+        const cleanUrl = url.trim();
+        const cleanName = cleanUrl.split('/').pop().split('?')[0] || 'Enlace';
+        const cleanExt = cleanName.includes('.') ? cleanName.split('.').pop().toLowerCase() : 'url';
+
+        step.attachments.push({
+            id: 'att_' + Date.now() + Math.random().toString(36).substr(2, 4),
+            url: cleanUrl,
+            name: cleanName,
+            ext: cleanExt,
+            isUploading: false
+        });
+        renderDesignMilestones();
+        markDirty();
+        updateSaveButtonState();
+    }
+
+    function promptStepUrl(stepId) {
+        const url = prompt('Ingresa la URL de la imagen o recurso (Google Drive, Canva, Web):');
+        if (url && url.trim()) {
+            addStepAttachmentUrl(stepId, url.trim());
+            if (typeof showToast === 'function') showToast('Recurso añadido a miniaturas del avance', 'success');
+        }
+    }
+
+    function removeStepAttachment(stepId, attKey, event) {
+        if (event) event.stopPropagation();
+        syncDesignTimelineFromDOM();
+        const step = designMilestones.find(s => s.id === stepId);
+        if (!step || !step.attachments) return;
+
+        if (typeof attKey === 'number' || !isNaN(Number(attKey))) {
+            const numIdx = parseInt(attKey, 10);
+            if (numIdx >= 0 && numIdx < step.attachments.length) {
+                step.attachments.splice(numIdx, 1);
+            }
+        } else {
+            step.attachments = step.attachments.filter(a => (typeof a === 'object' ? a.id !== attKey : a !== attKey));
+        }
+
+        renderDesignMilestones();
+        markDirty();
+        updateSaveButtonState();
+        if (typeof showToast === 'function') showToast('Miniatura eliminada', 'info');
+    }
+
+    function handleStepDragOver(stepId, e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dz = document.getElementById(`step-dropzone-${stepId}`);
+        if (dz) dz.classList.add('drag-active');
+    }
+
+    function handleStepDragLeave(stepId, e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dz = document.getElementById(`step-dropzone-${stepId}`);
+        if (dz) dz.classList.remove('drag-active');
+    }
+
+    function handleStepDrop(stepId, e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dz = document.getElementById(`step-dropzone-${stepId}`);
+        if (dz) dz.classList.remove('drag-active');
+
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length > 0) {
+            Array.from(dt.files).forEach(f => uploadStepFile(stepId, f));
+        }
+    }
+
+    // Alias de compatibilidad
+    function toggleDesignStepCompleted(forceState = null) {
+        const targetStepId = activeDesignStepId || (designMilestones[0] ? designMilestones[0].id : null);
+        if (targetStepId) toggleDesignMilestoneCompleted(targetStepId);
+    }
+
+    function renderCompThumbnails() {
+        if (typeof renderDesignMilestones === 'function') {
+            renderDesignMilestones();
+        }
+    }
+
+    document.addEventListener('click', (e) => {
+        const tableMenus = document.querySelectorAll('.tm-table-menu');
+        const isTableBtn = e.target.closest('.tm-tb-table-btn');
+        if (!isTableBtn) {
+            tableMenus.forEach(m => m.style.display = 'none');
+        }
+    });
 </script>
 
 <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
@@ -11733,3 +15572,143 @@ async function saveMediaEditor() {
 <?php include 'social_profiles_modal.php'; ?>
 
 <?php require_once 'includes/footer.php'; ?>
+
+<script>
+
+// Post Modal Global Paste Listener
+document.addEventListener('DOMContentLoaded', function() {
+    const postModalElem = document.getElementById('post-modal');
+    if (postModalElem) {
+        postModalElem.addEventListener('paste', async function(e) {
+            const target = e.target;
+            if (target && (target.id === 'video-url-input' || target.id === 'final-video-url-input')) {
+                return;
+            }
+            
+            const isEditingText = target && (
+                target.isContentEditable || 
+                target.tagName === 'INPUT' || 
+                target.tagName === 'TEXTAREA'
+            );
+
+            const cd = e.clipboardData || window.clipboardData;
+            if (!cd) return;
+
+            let hasImage = false;
+            let imageFile = null;
+            if (cd.items) {
+                for (let i = 0; i < cd.items.length; i++) {
+                    const item = cd.items[i];
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                        hasImage = true;
+                        imageFile = item.getAsFile();
+                        break;
+                    }
+                }
+            }
+
+            if (isEditingText && !hasImage) {
+                return;
+            }
+
+            // CASO 1: Estamos en Pestaña DISEÑO (tab-diseno)
+            if (typeof currentActivePane !== 'undefined' && currentActivePane === 'tab-diseno') {
+                const isExplicitFinalTarget = target && (
+                    target.id === 'final-preview-box' || 
+                    target.id === 'final-video-url-input' || 
+                    target.closest('#final-preview-box')
+                );
+
+                if (!isExplicitFinalTarget) {
+                    if (imageFile) {
+                        e.preventDefault();
+                        showToast('Subiendo miniatura adjunta al avance de diseño...', 'info');
+                        const targetStepId = activeDesignStepId || (designMilestones[0] ? designMilestones[0].id : null);
+                        if (targetStepId) {
+                            await uploadStepFile(targetStepId, imageFile);
+                        }
+                        return;
+                    }
+
+                    const pastedText = cd.getData('text');
+                    if (pastedText && pastedText.trim().match(/^https?:\/\/.+/i)) {
+                        const inDropzone = target && (target.closest('.tm-step-dropzone') || target.closest('.tm-step-thumbs-grid'));
+                        if (inDropzone || !isEditingText) {
+                            e.preventDefault();
+                            const targetStepId = activeDesignStepId || (designMilestones[0] ? designMilestones[0].id : null);
+                            if (targetStepId) {
+                                addStepAttachmentUrl(targetStepId, pastedText.trim());
+                                showToast('Enlace agregado a miniaturas del avance', 'success');
+                            }
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (imageFile) {
+                e.preventDefault();
+                const activeType = (typeof currentActivePane !== 'undefined' && currentActivePane === 'tab-idea') ? 'ref' : 'final';
+                showToast(`Pegando imagen en ${activeType === 'ref' ? 'Referencia Visual' : 'Arte Final'}...`, 'info');
+                const file = new File([imageFile], "clipboard_modal_" + Date.now() + ".png", { type: imageFile.type });
+                await uploadMainImageFromFile(file, activeType);
+            } else if (target && (target.closest('#design-comp-dropzone') || target.closest('#comp-thumbnails-grid'))) {
+                const text = cd.getData('text');
+                if (text && text.trim().match(/^https?:\/\/.+/i)) {
+                    e.preventDefault();
+                    compThumbnailsList.push(text.trim());
+                    renderCompThumbnails();
+                    markDirty();
+                    updateSaveButtonState();
+                    showToast('Enlace agregado a miniaturas', 'success');
+                }
+            }
+        });
+    }
+
+    const briefEmojiPicker = document.getElementById('brief-emoji-picker-elem');
+    if (briefEmojiPicker) {
+        briefEmojiPicker.addEventListener('emoji-click', event => {
+            const ed = document.getElementById('post-brief-editable');
+            if (ed) {
+                ed.focus();
+                document.execCommand('insertText', false, event.detail.unicode);
+                syncBriefContent();
+                markDirty();
+                updateSaveButtonState();
+                updateDesignGuide();
+            }
+            toggleBriefEmojiPicker();
+        });
+    }
+
+    const designEmojiPicker = document.getElementById('design-notes-emoji-picker-elem');
+    if (designEmojiPicker) {
+        designEmojiPicker.addEventListener('emoji-click', event => {
+            const ed = document.getElementById('post-variations-editable');
+            if (ed) {
+                ed.focus();
+                document.execCommand('insertText', false, event.detail.unicode);
+                syncDesignNotes();
+                markDirty();
+                updateSaveButtonState();
+            }
+            toggleDesignNotesEmojiPicker();
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const picker = document.getElementById('design-notes-emoji-picker-container');
+        const btn = e.target.closest('.tm-tb-btn');
+        if (picker && !picker.contains(e.target) && (!btn || !btn.getAttribute('onclick')?.includes('toggleDesignNotesEmojiPicker'))) {
+            picker.style.display = 'none';
+        }
+        const tableMenu = document.getElementById('design-table-menu');
+        const tableBtn = e.target.closest('.tm-tb-table-btn');
+        if (tableMenu && !tableMenu.contains(e.target) && !tableBtn) {
+            tableMenu.style.display = 'none';
+        }
+    });
+});
+
+</script>

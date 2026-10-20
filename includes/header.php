@@ -145,6 +145,14 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             const originalFetch = window.fetch;
             window.fetch = function(url, config) {
                 config = config || {};
+                const urlStr = typeof url === 'string' ? url : (url && url.url ? url.url : '');
+                // Evitar errores de consola en segundo plano cuando el navegador está sin conexión (ej. modo offline en DevTools)
+                if (navigator.onLine === false && /check_meetings\.php|get_unread_count|get_global_unread_count/i.test(urlStr)) {
+                    return Promise.resolve(new Response(JSON.stringify({ success: false, offline: true, count: 0, meetings: [] }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    }));
+                }
                 const method = (config.method || 'GET').toUpperCase();
                 if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
                     config.headers = config.headers || {};

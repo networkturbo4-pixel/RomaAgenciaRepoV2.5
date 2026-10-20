@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const globalMsgBadge = document.getElementById('globalMsgBadge');
     if (globalMsgBadge) {
         function fetchGlobalUnreadCount() {
+            if (navigator.onLine === false || document.hidden) return;
             fetch('modules/mensajes/ajax.php?action=get_global_unread_count')
                 .then(r => r.json())
                 .then(data => {

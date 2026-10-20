@@ -32,8 +32,8 @@ try {
     $reminder = $_POST['reminder'] ?? '';
     $formats = isset($_POST['formats']) ? json_encode($_POST['formats']) : null;
     $design_brief = $_POST['design_brief'] ?? '';
-    $visual_references = isset($_POST['visual_references']) ? json_encode($_POST['visual_references']) : null;
-    $variations = isset($_POST['variations']) ? $_POST['variations'] : null;
+    $visual_references = isset($_POST['visual_references']) ? (is_array($_POST['visual_references']) ? json_encode($_POST['visual_references']) : $_POST['visual_references']) : null;
+    $variations = isset($_POST['variations']) ? (is_array($_POST['variations']) ? json_encode($_POST['variations']) : $_POST['variations']) : null;
     $drive_images = !empty($_POST['drive_images']) ? $_POST['drive_images'] : null;
     $paint_data = !empty($_POST['paint_data']) ? $_POST['paint_data'] : null;
 
@@ -61,11 +61,14 @@ try {
         $post_date = date('Y-m-d H:i:s');
     }
 
-    // Auto-transition: If an image is added in "Post Terminado", status becomes 'Publicado'
-    if (!empty($image_link) && $post_type === 'Post Terminado') {
-        $status = 'Publicado';
-    } elseif (!empty($reference_image_link) && $status === 'Borrador') {
-        $status = 'En Revisión';
+    // Auto-transition logic: Do not blindly jump to Publicado without client approval.
+    // If starting from Borrador and media is added, advance to 'En Revisión' (ready for design or presentation).
+    if (empty($status) || $status === 'Borrador') {
+        if (!empty($image_link)) {
+            $status = 'En Revisión';
+        } elseif (!empty($reference_image_link)) {
+            $status = 'En Revisión';
+        }
     }
 
     if ($id > 0) {

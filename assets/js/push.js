@@ -78,9 +78,11 @@ window.subscribeToPush = initPushNotifications;
 function startMeetingAlarm() {
     const checkMeetings = async () => {
         if (Notification.permission !== 'granted') return;
+        if (navigator.onLine === false || document.hidden) return;
         
         try {
             const res = await fetch('ajax/check_meetings.php');
+            if (!res || !res.ok) return;
             const data = await res.json();
             
             if (data.success && data.meetings && data.meetings.length > 0) {
@@ -112,7 +114,7 @@ function startMeetingAlarm() {
                 });
             }
         } catch (error) {
-            console.error('Error verificando reuniones:', error);
+            // Silenciar errores transitorios de red en polling de segundo plano
         }
     };
 
