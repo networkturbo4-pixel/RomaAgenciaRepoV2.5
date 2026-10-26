@@ -1,6 +1,8 @@
 <?php
 require_once 'includes/header.php';
 ?>
+<!-- Font Awesome 6 for High-Fidelity Brand & Social Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 <?php 
     $css_path = __DIR__ . '/../../assets/css/herramientas.css';
@@ -18,15 +20,17 @@ require_once 'includes/header.php';
     to { opacity: 1; transform: translateY(0); }
 }
 .herr-tab-content[data-tool-content="linktree"].active {
-    animation: fadeInOnly 0.25s ease-out;
+    animation: fadeInOnly 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Editor Layout: Sticky right preview, scrollable left controls */
+/* ==========================================================================
+   Biolink Pro SaaS Design System
+   ========================================================================== */
 .biolink-editor-layout {
     display: flex;
     gap: 2rem;
-    min-height: 600px;
-    padding: 0.5rem 0 2rem;
+    min-height: 650px;
+    padding: 0.5rem 0 2.5rem;
     align-items: flex-start;
 }
 .biolink-editor-left {
@@ -47,69 +51,99 @@ require_once 'includes/header.php';
     z-index: 10;
 }
 
-/* App-Style Card Containers */
-.biolink-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 20px;
-    padding: 1.5rem 1.75rem;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
-}
-[data-theme="dark"] .biolink-card {
-    background: #16161a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-.biolink-card:hover {
-    box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.08);
-}
-[data-theme="dark"] .biolink-card:hover {
-    box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.12);
+@media (max-width: 1080px) {
+    .biolink-editor-layout {
+        flex-direction: column-reverse;
+        align-items: center;
+    }
+    .biolink-editor-left,
+    .biolink-editor-right {
+        width: 100%;
+        max-width: 580px;
+    }
+    .biolink-editor-right {
+        position: static;
+        margin-bottom: 2rem;
+    }
 }
 
-/* Card Header */
+/* Pro SaaS Cards */
+.biolink-card {
+    background: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    border-radius: 20px;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    backdrop-filter: blur(8px);
+}
+[data-theme="dark"] .biolink-card {
+    background: #111116;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 14px 35px -8px rgba(0, 0, 0, 0.55);
+}
+.biolink-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 16px 36px -6px rgba(99, 102, 241, 0.08);
+}
+[data-theme="dark"] .biolink-card:hover {
+    border-color: rgba(129, 140, 248, 0.25);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), 0 18px 40px -8px rgba(0, 0, 0, 0.7);
+}
+
+/* Header & Section Badges */
 .biolink-card-header {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.95rem;
     margin-bottom: 1.5rem;
 }
 .biolink-card-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.35rem;
     flex-shrink: 0;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1));
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.1));
     color: #6366f1;
     border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
 }
 [data-theme="dark"] .biolink-card-icon {
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.15));
     color: #818cf8;
-    border: 1px solid rgba(129, 140, 248, 0.25);
-    box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
+    border-color: rgba(129, 140, 248, 0.3);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
 }
 .biolink-card-title-group h4 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.08rem;
     font-weight: 700;
     color: var(--text-main);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 .biolink-card-title-group p {
-    margin: 0.2rem 0 0;
-    font-size: 0.8rem;
+    margin: 0.25rem 0 0;
+    font-size: 0.81rem;
     color: var(--text-muted);
 }
+.biolink-badge-counter {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
 
-/* Form Controls & Inputs (High Contrast) */
+/* Form Controls */
 .biolink-field {
     display: flex;
     flex-direction: column;
@@ -121,20 +155,20 @@ require_once 'includes/header.php';
 }
 .biolink-label {
     font-weight: 600;
-    font-size: 0.84rem;
+    font-size: 0.83rem;
     color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 [data-theme="dark"] .biolink-label {
-    color: #cbd5e1;
+    color: #94a3b8;
 }
 .biolink-input,
 .biolink-select,
 .biolink-textarea {
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.72rem 1rem;
     border-radius: 12px;
     border: 1.5px solid #e2e8f0;
     background: #f8fafc;
@@ -142,13 +176,13 @@ require_once 'includes/header.php';
     font-size: 0.92rem;
     font-family: inherit;
     outline: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     box-sizing: border-box;
 }
 [data-theme="dark"] .biolink-input,
 [data-theme="dark"] .biolink-select,
 [data-theme="dark"] .biolink-textarea {
-    background: #09090b;
+    background: #09090c;
     border-color: #27272a;
     color: #f8fafc;
 }
@@ -157,41 +191,19 @@ require_once 'includes/header.php';
 .biolink-textarea:focus {
     border-color: #6366f1;
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.18);
 }
 [data-theme="dark"] .biolink-input:focus,
 [data-theme="dark"] .biolink-select:focus,
 [data-theme="dark"] .biolink-textarea:focus {
-    background: #111115;
+    background: #111116;
     border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+    box-shadow: 0 0 0 3.5px rgba(129, 140, 248, 0.25);
 }
 .biolink-input::placeholder,
 .biolink-textarea::placeholder {
     color: var(--text-muted);
-    opacity: 0.7;
-}
-
-/* Custom Select Chevron */
-.biolink-select {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    padding-right: 2.5rem;
-    cursor: pointer;
-}
-[data-theme="dark"] .biolink-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-}
-.biolink-select option {
-    background: #ffffff;
-    color: #0f172a;
-}
-[data-theme="dark"] .biolink-select option {
-    background: #18181b;
-    color: #f8fafc;
+    opacity: 0.65;
 }
 
 /* Slug URL Input Group */
@@ -202,24 +214,25 @@ require_once 'includes/header.php';
     border-radius: 12px;
     overflow: hidden;
     background: #f8fafc;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 [data-theme="dark"] .biolink-input-group {
-    background: #09090b;
+    background: #09090c;
     border-color: #27272a;
 }
 .biolink-input-group:focus-within {
     border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.18);
+    background: #ffffff;
 }
 [data-theme="dark"] .biolink-input-group:focus-within {
     border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
-    background: #111115;
+    box-shadow: 0 0 0 3.5px rgba(129, 140, 248, 0.25);
+    background: #111116;
 }
 .biolink-input-group span.prefix {
     padding: 0 1rem;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 700;
     font-family: 'SF Mono', 'Fira Code', monospace;
     color: #6366f1;
@@ -236,7 +249,7 @@ require_once 'includes/header.php';
 .biolink-input-group input {
     flex: 1;
     border: none;
-    padding: 0.75rem 1rem;
+    padding: 0.72rem 1rem;
     background: transparent;
     color: #0f172a;
     font-size: 0.92rem;
@@ -251,7 +264,7 @@ require_once 'includes/header.php';
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    padding: 1rem;
+    padding: 1rem 1.15rem;
     background: #f8fafc;
     border: 1.5px dashed #cbd5e1;
     border-radius: 16px;
@@ -264,7 +277,7 @@ require_once 'includes/header.php';
 }
 .biolink-avatar-uploader:hover {
     border-color: #6366f1;
-    background: rgba(99, 102, 241, 0.03);
+    background: rgba(99, 102, 241, 0.04);
 }
 [data-theme="dark"] .biolink-avatar-uploader:hover {
     border-color: #818cf8;
@@ -272,8 +285,8 @@ require_once 'includes/header.php';
 }
 .biolink-avatar-preview-wrap {
     position: relative;
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     flex-shrink: 0;
 }
 .biolink-avatar-preview-img {
@@ -281,49 +294,303 @@ require_once 'includes/header.php';
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #6366f1;
+    border: 2.5px solid #6366f1;
     background: #e2e8f0;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 .biolink-avatar-badge {
     position: absolute;
     bottom: -2px;
     right: -2px;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: #6366f1;
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     border: 2px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 [data-theme="dark"] .biolink-avatar-badge {
-    border-color: #16161a;
+    border-color: #111116;
 }
 .biolink-avatar-info {
     flex: 1;
     min-width: 0;
 }
 .biolink-avatar-info-title {
-    font-size: 0.9rem;
+    font-size: 0.92rem;
     font-weight: 600;
     color: var(--text-main);
     margin: 0 0 2px;
 }
 .biolink-avatar-info-sub {
-    font-size: 0.78rem;
+    font-size: 0.77rem;
     color: var(--text-muted);
     margin: 0;
+}
+
+/* ==========================================================================
+   Real Social Networks & Official Brand Styling
+   ========================================================================== */
+.social-brand-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+/* Header Social Quick Add Grid */
+.biolink-social-picker-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+.biolink-social-chip-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    color: var(--text-main);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+[data-theme="dark"] .biolink-social-chip-btn {
+    background: #18181b;
+    border-color: #27272a;
+    color: #f4f4f5;
+}
+.biolink-social-chip-btn:hover {
+    transform: translateY(-2px);
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+.biolink-social-chip-btn .mini-logo {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Active Social Networks List */
+.biolink-social-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.biolink-social-row-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+}
+[data-theme="dark"] .biolink-social-row-item {
+    background: #16161b;
+    border-color: #27272a;
+}
+.biolink-social-row-item:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+}
+.biolink-social-row-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.biolink-social-row-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.86rem;
+    background: #ffffff;
+    color: var(--text-main);
+    outline: none;
+    transition: border 0.15s ease;
+}
+[data-theme="dark"] .biolink-social-row-input {
+    background: #09090c;
+    border-color: #3f3f46;
+    color: #f8fafc;
+}
+.biolink-social-row-input:focus {
+    border-color: #6366f1;
+}
+.biolink-social-row-del {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.15s ease;
+}
+.biolink-social-row-del:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* ==========================================================================
+   Visual Theme Selector Cards
+   ========================================================================== */
+.biolink-themes-gallery {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+@media (max-width: 640px) {
+    .biolink-themes-gallery {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+.biolink-theme-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.7rem 0.6rem;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    position: relative;
+    user-select: none;
+}
+[data-theme="dark"] .biolink-theme-card {
+    background: #16161b;
+    border-color: #27272a;
+}
+.biolink-theme-card:hover {
+    transform: translateY(-2px);
+    border-color: #94a3b8;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.biolink-theme-card.active {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.04);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+[data-theme="dark"] .biolink-theme-card.active {
+    border-color: #818cf8;
+    background: rgba(129, 140, 248, 0.08);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+}
+.biolink-theme-card-preview {
+    width: 100%;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+}
+.biolink-theme-card-mini-btn {
+    width: 60%;
+    height: 14px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+.biolink-theme-card-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-main);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+.biolink-theme-check-icon {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #6366f1;
+    color: #ffffff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+}
+.biolink-theme-card.active .biolink-theme-check-icon {
+    display: flex;
+}
+
+/* Button Shape Pills */
+.biolink-shape-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+.biolink-shape-btn {
+    padding: 0.6rem 0.5rem;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    color: var(--text-main);
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+[data-theme="dark"] .biolink-shape-btn {
+    background: #18181b;
+    border-color: #27272a;
+    color: #f4f4f5;
+}
+.biolink-shape-btn.active {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.08);
+    color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+[data-theme="dark"] .biolink-shape-btn.active {
+    border-color: #818cf8;
+    background: rgba(129, 140, 248, 0.12);
+    color: #a5b4fc;
 }
 
 /* Color Controls Modern Grid */
 .biolink-colors-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: 0.85rem;
     margin-bottom: 1.25rem;
 }
 @media (max-width: 640px) {
@@ -340,28 +607,23 @@ require_once 'includes/header.php';
     background: #f8fafc;
     border: 1.5px solid #e2e8f0;
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 [data-theme="dark"] .biolink-color-card {
-    background: #09090b;
+    background: #09090c;
     border-color: #27272a;
 }
-.biolink-color-card:focus-within,
 .biolink-color-card:hover {
     border-color: #6366f1;
 }
-[data-theme="dark"] .biolink-color-card:focus-within,
-[data-theme="dark"] .biolink-color-card:hover {
-    border-color: #818cf8;
-}
 .biolink-color-circle-wrap {
     position: relative;
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(0, 0, 0, 0.1);
     flex-shrink: 0;
-    cursor: pointer;
 }
 .biolink-color-circle-wrap input[type="color"] {
     position: absolute;
@@ -387,13 +649,10 @@ require_once 'includes/header.php';
     min-width: 0;
 }
 .biolink-color-name {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-muted);
     margin: 0;
-}
-[data-theme="dark"] .biolink-color-name {
-    color: #94a3b8;
 }
 .biolink-color-hex-tag {
     font-size: 0.85rem;
@@ -401,19 +660,19 @@ require_once 'includes/header.php';
     font-family: 'SF Mono', 'Fira Code', monospace;
     color: var(--text-main);
     margin: 2px 0 0;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
 }
 
-/* Watermark Toggle Row */
+/* Watermark & Verified Toggle Rows */
 .biolink-toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
+    padding: 0.9rem 1.15rem;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 14px;
-    margin-top: 1.25rem;
+    margin-top: 0.85rem;
 }
 [data-theme="dark"] .biolink-toggle-row {
     background: rgba(255, 255, 255, 0.02);
@@ -421,20 +680,23 @@ require_once 'includes/header.php';
 }
 .biolink-toggle-row h5 {
     font-weight: 600;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     margin: 0;
     color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 .biolink-toggle-row p {
-    font-size: 0.78rem;
+    font-size: 0.77rem;
     color: var(--text-muted);
     margin: 0.2rem 0 0;
 }
 
-/* Block Action Buttons (App Chips with Brands) */
+/* Block Action Buttons (Branded Chips) */
 .biolink-block-chips-row {
     display: flex;
-    gap: 0.6rem;
+    gap: 0.55rem;
     flex-wrap: wrap;
     margin-bottom: 1.5rem;
 }
@@ -442,121 +704,92 @@ require_once 'includes/header.php';
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.55rem 0.95rem;
+    padding: 0.52rem 0.9rem;
     border-radius: 12px;
-    font-size: 0.85rem;
+    font-size: 0.83rem;
     font-weight: 600;
-    border: 1px solid transparent;
+    border: 1.5px solid transparent;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .biolink-chip-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 .biolink-chip-btn:active {
-    transform: scale(0.96);
+    transform: scale(0.97);
 }
-.biolink-chip-btn i {
-    font-size: 1.1rem;
+.biolink-chip-btn .chip-logo {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
-/* Block Button Brand Colors */
-.chip-btn-link {
-    background: rgba(99, 102, 241, 0.1);
-    color: #4f46e5;
-    border-color: rgba(99, 102, 241, 0.25);
-}
-[data-theme="dark"] .chip-btn-link {
-    background: rgba(99, 102, 241, 0.18);
-    color: #a5b4fc;
-    border-color: rgba(99, 102, 241, 0.35);
-}
-.chip-btn-whatsapp {
-    background: rgba(34, 197, 94, 0.1);
-    color: #16a34a;
-    border-color: rgba(34, 197, 94, 0.25);
-}
-[data-theme="dark"] .chip-btn-whatsapp {
-    background: rgba(34, 197, 94, 0.18);
-    color: #4ade80;
-    border-color: rgba(34, 197, 94, 0.35);
-}
-.chip-btn-youtube {
-    background: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
-    border-color: rgba(239, 68, 68, 0.25);
-}
-[data-theme="dark"] .chip-btn-youtube {
-    background: rgba(239, 68, 68, 0.18);
-    color: #f87171;
-    border-color: rgba(239, 68, 68, 0.35);
-}
-.chip-btn-spotify {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    border-color: rgba(16, 185, 129, 0.25);
-}
-[data-theme="dark"] .chip-btn-spotify {
-    background: rgba(16, 185, 129, 0.18);
-    color: #34d399;
-    border-color: rgba(16, 185, 129, 0.35);
-}
-.chip-btn-map {
-    background: rgba(245, 158, 11, 0.1);
-    color: #d97706;
-    border-color: rgba(245, 158, 11, 0.25);
-}
-[data-theme="dark"] .chip-btn-map {
-    background: rgba(245, 158, 11, 0.18);
-    color: #fbbf24;
-    border-color: rgba(245, 158, 11, 0.35);
-}
-.chip-btn-text {
-    background: rgba(59, 130, 246, 0.1);
-    color: #2563eb;
-    border-color: rgba(59, 130, 246, 0.25);
-}
-[data-theme="dark"] .chip-btn-text {
-    background: rgba(59, 130, 246, 0.18);
-    color: #60a5fa;
-    border-color: rgba(59, 130, 246, 0.35);
-}
-.chip-btn-faq {
-    background: rgba(168, 85, 247, 0.1);
-    color: #9333ea;
-    border-color: rgba(168, 85, 247, 0.25);
-}
-[data-theme="dark"] .chip-btn-faq {
-    background: rgba(168, 85, 247, 0.18);
-    color: #c084fc;
-    border-color: rgba(168, 85, 247, 0.35);
-}
+/* Brand Specific Chips */
+.chip-btn-instagram { background: #fdf2f8; color: #db2777; border-color: #fbcfe8; }
+[data-theme="dark"] .chip-btn-instagram { background: #83184322; color: #f472b6; border-color: #be185d44; }
+
+.chip-btn-tiktok { background: #f4f4f5; color: #18181b; border-color: #e4e4e7; }
+[data-theme="dark"] .chip-btn-tiktok { background: #27272a; color: #ffffff; border-color: #3f3f46; }
+
+.chip-btn-whatsapp { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+[data-theme="dark"] .chip-btn-whatsapp { background: #14532d22; color: #4ade80; border-color: #15803d44; }
+
+.chip-btn-youtube { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+[data-theme="dark"] .chip-btn-youtube { background: #7f1d1d22; color: #f87171; border-color: #b91c1c44; }
+
+.chip-btn-spotify { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+[data-theme="dark"] .chip-btn-spotify { background: #064e3b22; color: #34d399; border-color: #04785744; }
+
+.chip-btn-facebook { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+[data-theme="dark"] .chip-btn-facebook { background: #1e3a8a22; color: #60a5fa; border-color: #1d4ed844; }
+
+.chip-btn-x { background: #f4f4f5; color: #09090b; border-color: #e4e4e7; }
+[data-theme="dark"] .chip-btn-x { background: #18181b; color: #ffffff; border-color: #3f3f46; }
+
+.chip-btn-linkedin { background: #f0f9ff; color: #0284c7; border-color: #bae6fd; }
+[data-theme="dark"] .chip-btn-linkedin { background: #0c4a6e22; color: #38bdf8; border-color: #0369a144; }
+
+.chip-btn-link { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
+[data-theme="dark"] .chip-btn-link { background: #312e8122; color: #818cf8; border-color: #4338ca44; }
+
+.chip-btn-map { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+[data-theme="dark"] .chip-btn-map { background: #78350f22; color: #fbbf24; border-color: #b4530944; }
+
+.chip-btn-text { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+[data-theme="dark"] .chip-btn-text { background: #33415522; color: #94a3b8; border-color: #47556944; }
+
+.chip-btn-faq { background: #faf5ff; color: #9333ea; border-color: #e9d5ff; }
+[data-theme="dark"] .chip-btn-faq { background: #581c8722; color: #c084fc; border-color: #7e22ce44; }
 
 /* Block Item Cards */
 .biolink-block-item {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
     border-radius: 16px;
-    padding: 1rem 1.15rem;
-    transition: all 0.2s ease;
+    padding: 0.95rem 1.15rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     gap: 0.85rem;
     align-items: flex-start;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 [data-theme="dark"] .biolink-block-item {
-    background: #111115;
+    background: #141419;
     border-color: #27272a;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 .biolink-block-item:hover {
     border-color: rgba(99, 102, 241, 0.4);
-    box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.08);
 }
 [data-theme="dark"] .biolink-block-item:hover {
-    border-color: rgba(129, 140, 248, 0.4);
-    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+    border-color: rgba(129, 140, 248, 0.35);
+    box-shadow: 0 8px 25px -4px rgba(0, 0, 0, 0.4);
 }
 
 .biolink-block-handle {
@@ -568,6 +801,12 @@ require_once 'includes/header.php';
     gap: 0.35rem;
     padding: 0.25rem 0.2rem;
     user-select: none;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+.biolink-block-handle:hover {
+    opacity: 1;
+    color: #6366f1;
 }
 .biolink-block-handle:active {
     cursor: grabbing;
@@ -584,7 +823,7 @@ require_once 'includes/header.php';
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.25rem 0;
+    padding: 0.2rem 0;
 }
 .biolink-block-summary::-webkit-details-marker {
     display: none;
@@ -592,38 +831,37 @@ require_once 'includes/header.php';
 .biolink-block-summary-left {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.75rem;
     min-width: 0;
+}
+.biolink-block-icon-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.12);
 }
 .biolink-block-summary-title {
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.94rem;
     color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.biolink-block-pill {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    flex-shrink: 0;
-}
 .biolink-block-chevron {
     color: var(--text-muted);
     font-size: 1.1rem;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 details[open] > .biolink-block-summary .biolink-block-chevron {
     transform: rotate(180deg);
     color: var(--primary-color);
 }
 .biolink-block-body {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
     border-top: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
@@ -636,8 +874,8 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     background: rgba(239, 68, 68, 0.08);
     color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.15);
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -654,39 +892,116 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     transform: scale(1.05);
 }
 
-/* Smartphone Mockup (Titanium Edition with Dynamic Island) */
+/* ==========================================================================
+   Ultra-Realistic Titanium iPhone Mockup
+   ========================================================================== */
+.biolink-preview-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 340px;
+    margin-bottom: 0.9rem;
+}
+.biolink-preview-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.biolink-preview-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: pulseGlow 1.8s infinite;
+}
+@keyframes pulseGlow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+.biolink-preview-actions-group {
+    display: flex;
+    gap: 6px;
+}
+.biolink-preview-tool-btn {
+    padding: 0.38rem 0.75rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .biolink-preview-tool-btn {
+    background: #18181b;
+    border-color: #27272a;
+    color: #f4f4f5;
+}
+.biolink-preview-tool-btn:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
 .biolink-phone-mockup {
     width: 340px;
     height: 700px;
     background: #0f172a;
-    border: 12px solid #1e1e24;
-    border-radius: 46px;
+    border: 11px solid #1c1c21;
+    border-radius: 50px;
     position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     box-shadow: 
+        0 0 0 1.5px rgba(255, 255, 255, 0.15),
         0 25px 60px -12px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.1),
-        inset 0 0 0 2px rgba(0, 0, 0, 0.8);
-    transition: all 0.3s ease;
+        inset 0 0 0 2px rgba(0, 0, 0, 0.85);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 [data-theme="dark"] .biolink-phone-mockup {
-    border-color: #222228;
+    border-color: #202027;
     box-shadow: 
-        0 30px 70px -15px rgba(0, 0, 0, 0.8),
-        0 0 0 1px rgba(255, 255, 255, 0.12),
+        0 0 0 1.5px rgba(255, 255, 255, 0.1),
+        0 30px 75px -15px rgba(0, 0, 0, 0.8),
         inset 0 0 0 2px rgba(0, 0, 0, 0.9);
 }
 
-/* Dynamic Island & Hardware Buttons */
+/* Glass glare reflection across screen */
+.biolink-phone-glare {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 40%, transparent 40%);
+    pointer-events: none;
+    z-index: 45;
+}
+
+/* Dynamic Island */
 .biolink-phone-island {
     position: absolute;
     top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    width: 105px;
-    height: 28px;
+    width: 106px;
+    height: 29px;
     background: #000000;
     border-radius: 20px;
     z-index: 50;
@@ -694,14 +1009,14 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     align-items: center;
     justify-content: flex-end;
     padding: 0 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 .biolink-phone-camera-lens {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #1e3a8a, #030712);
-    box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.4);
+    background: radial-gradient(circle at 35% 35%, #1d4ed8, #020617);
+    box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 /* Phone Status Bar */
@@ -714,7 +1029,7 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 1.5rem;
+    padding: 0 1.6rem;
     font-size: 0.78rem;
     font-weight: 700;
     z-index: 40;
@@ -724,7 +1039,7 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
 .biolink-phone-status-icons {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     font-size: 0.85rem;
 }
 
@@ -738,9 +1053,47 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     align-items: center;
     position: relative;
     scrollbar-width: none;
+    box-sizing: border-box;
 }
 .biolink-phone-screen::-webkit-scrollbar {
     display: none;
+}
+
+/* Social Bar in Phone Preview */
+.biolink-preview-social-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin: 0.85rem 0 1.25rem;
+    width: 100%;
+}
+.biolink-preview-social-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+.biolink-preview-social-icon:hover {
+    transform: translateY(-3px) scale(1.1);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+/* Verified Badge */
+.biolink-verified-badge {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 4px;
+    color: #0284c7;
+    filter: drop-shadow(0 1px 2px rgba(2, 132, 199, 0.3));
 }
 
 /* Home Indicator Bar */
@@ -750,43 +1103,12 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     left: 50%;
     transform: translateX(-50%);
     width: 130px;
-    height: 4px;
+    height: 4.5px;
     background: currentColor;
-    opacity: 0.4;
+    opacity: 0.45;
     border-radius: 999px;
     z-index: 40;
     pointer-events: none;
-}
-
-/* Mockup Action Tools */
-.biolink-preview-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.85rem;
-    width: 340px;
-    justify-content: center;
-}
-.biolink-preview-tool-btn {
-    padding: 0.45rem 0.85rem;
-    border-radius: 10px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-decoration: none;
-}
-.biolink-preview-tool-btn:hover {
-    background: var(--primary-color);
-    color: #ffffff;
-    border-color: var(--primary-color);
-    transform: translateY(-1px);
 }
 
 /* Profile List Card */
@@ -795,26 +1117,27 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     border: 1px solid #e2e8f0;
     border-radius: 20px;
     padding: 1.5rem;
-    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
     position: relative;
     overflow: hidden;
-    transition: all 0.25s ease;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 [data-theme="dark"] .biolink-profile-card {
-    background: #16161a;
+    background: #111116;
     border-color: rgba(255, 255, 255, 0.08);
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
 }
 .biolink-profile-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
 }
 [data-theme="dark"] .biolink-profile-card:hover {
     box-shadow: 0 18px 36px -8px rgba(0, 0, 0, 0.6);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(129, 140, 248, 0.3);
 }
 .biolink-profile-card-accent {
     position: absolute;
@@ -822,7 +1145,7 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, #6366f1, #3b82f6, #10b981);
+    background: linear-gradient(90deg, #6366f1, #ec4899, #10b981);
 }
 
 </style>
@@ -1856,31 +2179,39 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
 
         <!-- Editor de perfil -->
         <div class="paleta-main" style="flex:2; display:none;" id="linktreeEditorSection">
-            <div class="paleta-saved-header" style="justify-content:space-between; margin-bottom:1.25rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,0.3);"><i class="ph ph-pencil-simple" style="font-size:1.15rem;"></i></div>
+            <!-- SaaS Top Action Bar -->
+            <div class="paleta-saved-header" style="justify-content:space-between; margin-bottom:1.25rem; flex-wrap:wrap; gap:0.75rem;">
+                <div style="display:flex;align-items:center;gap:0.85rem;">
+                    <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(99,102,241,0.35);"><i class="ph ph-sparkle" style="font-size:1.2rem;"></i></div>
                     <div>
-                        <div style="font-weight:700;font-size:1.15rem;color:var(--text-main);line-height:1.2;">Editor de BioLink</div>
-                        <div style="font-size:0.78rem;color:var(--text-muted);">Personaliza tu página pública y enlaces</div>
+                        <div style="font-weight:700;font-size:1.15rem;color:var(--text-main);line-height:1.2; display:flex; align-items:center; gap:8px;">
+                            <span>Editor de BioLink</span>
+                            <span class="biolink-preview-status-pill" style="font-size:0.7rem; padding:0.2rem 0.5rem;"><span class="biolink-preview-status-dot"></span> Modo Editor</span>
+                        </div>
+                        <div style="font-size:0.78rem;color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                            <span>Diseño profesional para creadores y marcas</span>
+                            <span style="opacity:0.4;">•</span>
+                            <span id="lt_top_slug_hint" style="font-family:'SF Mono',monospace; color:#6366f1; font-weight:600;">/l/mi-marca</span>
+                        </div>
                     </div>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
-                    <button class="btn btn-outline" style="border-radius:12px;padding:0.6rem 1.1rem;font-weight:600;display:flex;align-items:center;gap:6px;" onclick="linktreeCancel()"><i class="ph ph-arrow-left"></i> Volver</button>
-                    <button class="btn btn-primary" id="btnSaveBioLink" style="border-radius:12px;padding:0.6rem 1.35rem;font-weight:600;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(79,70,229,0.35);display:flex;align-items:center;gap:6px;" onclick="linktreeSave()"><i class="ph ph-floppy-disk"></i> Guardar</button>
+                    <button class="btn btn-outline" style="border-radius:12px;padding:0.6rem 1.15rem;font-weight:600;display:flex;align-items:center;gap:6px;" onclick="linktreeCancel()"><i class="ph ph-arrow-left"></i> Volver</button>
+                    <button class="btn btn-primary" id="btnSaveBioLink" style="border-radius:12px;padding:0.6rem 1.45rem;font-weight:600;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 16px rgba(79,70,229,0.4);display:flex;align-items:center;gap:6px;" onclick="linktreeSave()"><i class="ph ph-floppy-disk"></i> Guardar BioLink</button>
                 </div>
             </div>
 
             <div class="biolink-editor-layout">
                 <div class="biolink-editor-left">
-                    <!-- Campos del perfil -->
+                    <!-- 1. Campos de Identidad -->
                     <div class="biolink-card">
                         <div class="biolink-card-header">
                             <div class="biolink-card-icon">
                                 <i class="ph ph-user-circle"></i>
                             </div>
                             <div class="biolink-card-title-group">
-                                <h4>Información Básica</h4>
-                                <p>Configura tu identidad, dirección web y presentación.</p>
+                                <h4>1. Información Básica e Identidad</h4>
+                                <p>Configura tu enlace único, nombre público y presentación.</p>
                             </div>
                         </div>
 
@@ -1889,7 +2220,7 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                         <div class="biolink-field">
                             <label class="biolink-label">
                                 <span>Slug (URL Corta) <span style="color:#ef4444">*</span></span>
-                                <span style="font-size:0.75rem;font-weight:normal;opacity:0.8;">Tu link público único</span>
+                                <span style="font-size:0.75rem;font-weight:normal;opacity:0.8;">Tu link público único en internet</span>
                             </label>
                             <div class="biolink-input-group">
                                 <span class="prefix">/l/</span>
@@ -1902,82 +2233,115 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                             <input type="text" id="lt_title" class="biolink-input" placeholder="Ej: Roma Agencia Creativa">
                         </div>
 
+                        <!-- Insignia de Verificado -->
+                        <div class="biolink-toggle-row" style="margin-bottom:1.25rem; margin-top:0;">
+                            <div>
+                                <h5>
+                                    <span>Insignia de Cuenta Verificada</span>
+                                    <svg viewBox="0 0 24 24" width="16" height="16" style="vertical-align:middle; color:#0284c7;"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z"/></svg>
+                                </h5>
+                                <p>Muestra el check azul oficial de verificación junto a tu nombre.</p>
+                            </div>
+                            <label class="app-switch" style="margin:0;">
+                                <input type="checkbox" id="lt_verified_badge">
+                                <span class="app-switch-slider"></span>
+                            </label>
+                        </div>
+
                         <div class="biolink-field">
                             <label class="biolink-label">Biografía o Descripción</label>
-                            <textarea id="lt_bio" class="biolink-textarea" rows="3" placeholder="Escribe una breve presentación atractiva..."></textarea>
+                            <textarea id="lt_bio" class="biolink-textarea" rows="3" placeholder="Escribe una breve presentación atractiva o eslogan de tu marca..."></textarea>
                         </div>
 
                         <div class="biolink-field">
                             <label class="biolink-label">Foto de Perfil</label>
                             <div class="biolink-avatar-uploader" onclick="document.getElementById('lt_image').click()">
                                 <div class="biolink-avatar-preview-wrap">
-                                    <img id="lt_avatar_preview_img" src="assets/images/default-avatar.png" class="biolink-avatar-preview-img" alt="Avatar">
+                                    <img id="lt_avatar_preview_img" src="https://ui-avatars.com/api/?name=BioLink&background=6366f1&color=fff&bold=true&size=200" class="biolink-avatar-preview-img" alt="Avatar" onerror="this.src='https://ui-avatars.com/api/?name=BioLink&background=6366f1&color=fff&bold=true&size=200'">
                                     <div class="biolink-avatar-badge"><i class="ph ph-camera"></i></div>
                                 </div>
                                 <div class="biolink-avatar-info">
                                     <div class="biolink-avatar-info-title">Subir foto de perfil</div>
-                                    <p class="biolink-avatar-info-sub">Haz clic para elegir un archivo (JPG, PNG o WebP, máx. 5MB)</p>
+                                    <p class="biolink-avatar-info-sub">Haz clic para elegir un archivo (JPG, PNG o WebP, recomendado 400x400)</p>
                                 </div>
                                 <input type="file" id="lt_image" style="display:none;" accept="image/*">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Personalización -->
+                    <!-- 2. Barra de Redes Sociales Rápidas (Iconos Reales) -->
+                    <div class="biolink-card">
+                        <div class="biolink-card-header">
+                            <div class="biolink-card-icon" style="color:#0ea5e9; background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(56,189,248,0.1)); border-color:rgba(14,165,233,0.25);">
+                                <i class="ph ph-share-network"></i>
+                            </div>
+                            <div class="biolink-card-title-group">
+                                <h4>2. Redes Sociales Rápidas <span class="biolink-badge-counter" id="lt_social_bar_count">0</span></h4>
+                                <p>Iconos oficiales en alta definición que aparecen en la cabecera bajo tu bio.</p>
+                            </div>
+                        </div>
+
+                        <label class="biolink-label" style="margin-bottom:0.6rem;">Añadir Red Social con 1 Clic:</label>
+                        <div class="biolink-social-picker-chips" id="lt_social_picker_chips">
+                            <!-- Inyectado por JS con logos oficiales -->
+                        </div>
+
+                        <div id="lt_social_bar_container" class="biolink-social-list">
+                            <!-- Redes activas añadidas -->
+                        </div>
+                    </div>
+
+                    <!-- 3. Tema y Estilo Visual SaaS -->
                     <div class="biolink-card">
                         <div class="biolink-card-header">
                             <div class="biolink-card-icon" style="color:#ec4899; background:linear-gradient(135deg,rgba(236,72,153,0.15),rgba(244,114,182,0.1)); border-color:rgba(236,72,153,0.25);">
                                 <i class="ph ph-paint-brush-broad"></i>
                             </div>
                             <div class="biolink-card-title-group">
-                                <h4>Tema y Diseño</h4>
-                                <p>Personaliza colores, tipografía y estilo visual de tu página.</p>
+                                <h4>3. Tema y Estilo Visual</h4>
+                                <p>Selecciona una plantilla SaaS prediseñada o personaliza cada detalle cromático.</p>
                             </div>
                         </div>
                         
-                        <div class="biolink-field">
-                            <label class="biolink-label">Estilo Predefinido</label>
-                            <select id="lt_theme_preset" class="biolink-select" onchange="linktreeApplyTheme(this.value)">
-                                <option value="custom">Personalizado (Manual)</option>
-                                <option value="cyberpunk">Neón Oscuro (Cyberpunk)</option>
-                                <option value="minimal">Minimalista Blanco</option>
-                                <option value="pastel">Pastel Elegante</option>
-                                <option value="corporate">Corporativo Azul</option>
-                            </select>
+                        <input type="hidden" id="lt_theme_preset" value="minimal">
+                        <label class="biolink-label" style="margin-bottom:0.6rem;">Estilos Prediseñados (SaaS Presets)</label>
+                        <div class="biolink-themes-gallery" id="lt_themes_gallery">
+                            <!-- Tarjetas de temas inyectadas por JS -->
                         </div>
 
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
                             <div class="biolink-field" style="margin-bottom:0;">
                                 <label class="biolink-label">Tipografía</label>
                                 <select id="lt_font_family" class="biolink-select">
-                                    <option value="Inter">Inter (Moderna)</option>
-                                    <option value="Roboto">Roboto (Clásica)</option>
-                                    <option value="Playfair Display">Playfair (Elegante)</option>
-                                    <option value="Space Grotesk">Space Grotesk (Tech)</option>
-                                    <option value="Comic Neue">Comic Neue (Divertida)</option>
+                                    <option value="Inter">Inter (SaaS Moderna)</option>
+                                    <option value="Plus Jakarta Sans">Plus Jakarta Sans (Geométrica)</option>
+                                    <option value="Outfit">Outfit (Tech Startup)</option>
+                                    <option value="Roboto">Roboto (Clásica y Legible)</option>
+                                    <option value="Playfair Display">Playfair (Elegante & Editorial)</option>
+                                    <option value="Space Grotesk">Space Grotesk (Brutalista / Tech)</option>
                                 </select>
                             </div>
                             <div class="biolink-field" style="margin-bottom:0;">
                                 <label class="biolink-label">Formato de Botones</label>
                                 <select id="lt_btn_style" class="biolink-select">
-                                    <option value="rounded-md">Redondeado Suave</option>
-                                    <option value="rounded-full">Píldora Total (Redondo)</option>
-                                    <option value="rounded-none">Cuadrado Minimal</option>
+                                    <option value="rounded-md">Redondeado Suave (12px)</option>
+                                    <option value="rounded-full">Píldora Total (Redondo 9999px)</option>
+                                    <option value="rounded-none">Cuadrado Minimal (0px)</option>
                                 </select>
                             </div>
                         </div>
 
-                        <label class="biolink-label" style="margin-bottom:0.75rem;">Paleta de Colores</label>
+                        <label class="biolink-label" style="margin-bottom:0.75rem;">Paleta de Colores Personalizada</label>
                         <div class="biolink-colors-grid">
                             <!-- Fondo -->
                             <div class="biolink-color-card" onclick="document.getElementById('lt_bg_color').click()">
                                 <div class="biolink-color-circle-wrap">
-                                    <input type="color" id="lt_bg_color" value="#f4f4f5" oninput="document.getElementById('lt_bg_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_bg_dot').style.background=this.value;">
-                                    <div class="biolink-color-swatch-dot" id="lt_bg_dot" style="background:#f4f4f5"></div>
+                                    <input type="color" id="lt_bg_color" value="#ffffff" oninput="document.getElementById('lt_bg_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_bg_dot').style.background=this.value;">
+                                    <div class="biolink-color-swatch-dot" id="lt_bg_dot" style="background:#ffffff"></div>
                                 </div>
                                 <div class="biolink-color-texts">
                                     <div class="biolink-color-name">Fondo General</div>
-                                    <div class="biolink-color-hex-tag" id="lt_bg_color_hex">#F4F4F5</div>
+                                    <div class="biolink-color-hex-tag" id="lt_bg_color_hex">#FFFFFF</div>
                                 </div>
                             </div>
                             <!-- Texto -->
@@ -1994,12 +2358,12 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                             <!-- Fondo Botón -->
                             <div class="biolink-color-card" onclick="document.getElementById('lt_btn_color').click()">
                                 <div class="biolink-color-circle-wrap">
-                                    <input type="color" id="lt_btn_color" value="#ffffff" oninput="document.getElementById('lt_btn_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_btn_dot').style.background=this.value;">
-                                    <div class="biolink-color-swatch-dot" id="lt_btn_dot" style="background:#ffffff"></div>
+                                    <input type="color" id="lt_btn_color" value="#f4f4f5" oninput="document.getElementById('lt_btn_color_hex').innerText=this.value.toUpperCase(); document.getElementById('lt_btn_dot').style.background=this.value;">
+                                    <div class="biolink-color-swatch-dot" id="lt_btn_dot" style="background:#f4f4f5"></div>
                                 </div>
                                 <div class="biolink-color-texts">
                                     <div class="biolink-color-name">Fondo de Botón</div>
-                                    <div class="biolink-color-hex-tag" id="lt_btn_color_hex">#FFFFFF</div>
+                                    <div class="biolink-color-hex-tag" id="lt_btn_color_hex">#F4F4F5</div>
                                 </div>
                             </div>
                             <!-- Texto Botón -->
@@ -2019,7 +2383,7 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                         <div class="biolink-toggle-row">
                             <div>
                                 <h5>Ocultar Marca de Agua</h5>
-                                <p>Elimina el pie de página de "Creado por Roma Agencia".</p>
+                                <p>Elimina el pie de página de "Creado con Roma Agencia".</p>
                             </div>
                             <label class="app-switch" style="margin:0;">
                                 <input type="checkbox" id="lt_hide_watermark">
@@ -2028,28 +2392,23 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                         </div>
                     </div>
 
-                    <!-- Enlaces y Bloques -->
+                    <!-- 4. Contenido / Bloques de Enlaces -->
                     <div class="biolink-card">
                         <div class="biolink-card-header" style="justify-content:space-between; margin-bottom:1.25rem;">
                             <div style="display:flex; align-items:center; gap:0.85rem;">
                                 <div class="biolink-card-icon" style="color:#10b981; background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(52,211,153,0.1)); border-color:rgba(16,185,129,0.25);">
-                                    <i class="ph ph-squares-four"></i>
+                                <i class="ph ph-squares-four"></i>
                                 </div>
                                 <div class="biolink-card-title-group">
-                                    <h4>Contenido / Bloques</h4>
-                                    <p>Añade y organiza los enlaces o medios que verá tu audiencia.</p>
+                                    <h4>4. Contenido y Bloques de Enlaces</h4>
+                                    <p>Añade botones de redes sociales oficiales, enlaces directos o medios embebidos.</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="biolink-block-chips-row">
-                            <button type="button" class="biolink-chip-btn chip-btn-link" onclick="linktreeAddLink('link')"><i class="ph ph-link"></i> Enlace</button>
-                            <button type="button" class="biolink-chip-btn chip-btn-whatsapp" onclick="linktreeAddLink('whatsapp')"><i class="ph ph-whatsapp-logo"></i> WhatsApp</button>
-                            <button type="button" class="biolink-chip-btn chip-btn-youtube" onclick="linktreeAddLink('youtube')"><i class="ph ph-youtube-logo"></i> YouTube</button>
-                            <button type="button" class="biolink-chip-btn chip-btn-spotify" onclick="linktreeAddLink('spotify')"><i class="ph ph-spotify-logo"></i> Spotify</button>
-                            <button type="button" class="biolink-chip-btn chip-btn-map" onclick="linktreeAddLink('map')"><i class="ph ph-map-pin"></i> Mapa</button>
-                            <button type="button" class="biolink-chip-btn chip-btn-text" onclick="linktreeAddLink('text')"><i class="ph ph-text-t"></i> Título</button>
-                            <button type="button" class="biolink-chip-btn chip-btn-faq" onclick="linktreeAddLink('faq')"><i class="ph ph-question"></i> FAQ</button>
+                        <label class="biolink-label" style="margin-bottom:0.6rem;">Añadir Nuevo Bloque:</label>
+                        <div class="biolink-block-chips-row" id="lt_block_chips_row">
+                            <!-- Chips inyectados por JS con logos de redes oficiales -->
                         </div>
                         
                         <div id="lt_links_container" style="display:flex; flex-direction:column; gap:0.85rem;">
@@ -2058,16 +2417,25 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                     </div>
                 </div>
 
-                <!-- Preview (Mockup de celular interactivo) -->
+                <!-- Preview (Mockup de celular interactivo Titanium) -->
                 <div class="biolink-editor-right" id="lt_preview_wrapper">
                     <!-- Quick actions toolbar above mockup -->
                     <div class="biolink-preview-toolbar">
-                        <button type="button" class="biolink-preview-tool-btn" id="btnCopyBioLink" onclick="linktreeCopyCurrentLink()" title="Copiar enlace"><i class="ph ph-copy"></i> Copiar link</button>
-                        <a href="javascript:void(0)" class="biolink-preview-tool-btn" id="btnOpenBioLink" target="_blank" title="Abrir en nueva pestaña"><i class="ph ph-arrow-square-out"></i> Vista en vivo</a>
+                        <div class="biolink-preview-status-pill">
+                            <span class="biolink-preview-status-dot"></span>
+                            <span>En vivo</span>
+                        </div>
+                        <div class="biolink-preview-actions-group">
+                            <button type="button" class="biolink-preview-tool-btn" id="btnCopyBioLink" onclick="linktreeCopyCurrentLink()" title="Copiar enlace"><i class="ph ph-copy"></i> Copiar</button>
+                            <a href="javascript:void(0)" class="biolink-preview-tool-btn" id="btnOpenBioLink" target="_blank" title="Abrir en nueva pestaña"><i class="ph ph-arrow-square-out"></i> Abrir</a>
+                        </div>
                     </div>
 
                     <!-- Smartphone Device Frame -->
                     <div class="biolink-phone-mockup" id="lt_preview_box">
+                        <!-- Glass Glare Reflection -->
+                        <div class="biolink-phone-glare"></div>
+
                         <!-- Dynamic Island -->
                         <div class="biolink-phone-island">
                             <div class="biolink-phone-camera-lens"></div>
@@ -2078,6 +2446,7 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                             <span>9:41</span>
                             <div class="biolink-phone-status-icons">
                                 <i class="ph ph-cell-signal-full"></i>
+                                <span style="font-size:0.7rem; font-weight:800; letter-spacing:0.02em;">5G</span>
                                 <i class="ph ph-wifi-high"></i>
                                 <i class="ph ph-battery-charging"></i>
                             </div>
@@ -3099,6 +3468,15 @@ details[open] > .biolink-block-summary .biolink-block-chevron {
                 if (content) content.classList.add('active');
             });
         });
+
+        // Check if URL has tab/tool/hash for automatic selection
+        var initUrlParams = new URLSearchParams(window.location.search);
+        var initHash = window.location.hash.replace('#', '');
+        var initTool = initUrlParams.get('tool') || initUrlParams.get('tab') || initHash;
+        if (initTool) {
+            var matchingTab = document.querySelector('.herr-tab[data-tool="' + initTool + '"]');
+            if (matchingTab) matchingTab.click();
+        }
 
         // Save button
         document.getElementById('btnSave').addEventListener('click', function() {

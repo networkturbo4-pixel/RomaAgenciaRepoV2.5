@@ -44,7 +44,8 @@ require_once 'includes/header.php';
 ?>
 
 <script>
-    const SYSTEM_SERVICES = <?php echo json_encode($all_services); ?>;
+    window.SYSTEM_SERVICES = <?php echo json_encode($all_services); ?>;
+    const SYSTEM_SERVICES = window.SYSTEM_SERVICES;
 </script>
 
 <style>
@@ -824,69 +825,233 @@ require_once 'includes/header.php';
     margin-top: 0.5rem;
 }
 
-/* --- 7. Modal Redesign (SaaS Glassmorphism & Two-Column layout) --- */
+/* --- 7. Modal Redesign - Dual Theme Contrast (Light & Dark) --- */
 .saas-modal-dialog {
-    max-width: 960px !important;
-    width: 92% !important;
+    max-width: 1060px !important;
+    width: 95% !important;
     border-radius: var(--client-radius-xl) !important;
-    border: 1px solid var(--border-color);
-    background: var(--bg-surface);
-    box-shadow: 0 20px 45px rgba(0,0,0,0.25) !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+[data-theme="dark"] .saas-modal-dialog {
+    border: 1px solid #2e3444 !important;
+    background: #14161f !important;
+    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
 }
 
 .saas-modal-header {
-    padding: 1.15rem 1.5rem;
+    padding: 1.2rem 1.65rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+[data-theme="dark"] .saas-modal-header {
+    border-bottom: 1px solid #2e3444;
+    background: #191c28;
+}
+
+.saas-modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.saas-modal-icon-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: var(--primary-color, #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .saas-modal-icon-badge {
+    background: rgba(99, 102, 241, 0.22);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    color: #818cf8;
 }
 
 .saas-modal-title {
-    font-size: 1.15rem;
+    font-size: 1.25rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: #0f172a;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
-.saas-modal-title i {
-    color: var(--primary-color);
+[data-theme="dark"] .saas-modal-title {
+    color: #ffffff;
+}
+
+.saas-modal-subtitle {
+    font-size: 12px;
+    color: #64748b;
+    margin: 2px 0 0 0;
+    font-weight: 400;
+}
+
+[data-theme="dark"] .saas-modal-subtitle {
+    color: #94a3b8;
+}
+
+.btn-close-circular {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-close-circular:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .btn-close-circular {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .btn-close-circular:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
 }
 
 .saas-modal-body {
-    padding: 1.5rem;
-    max-height: 75vh;
+    padding: 1.65rem 1.75rem;
+    max-height: calc(85vh - 145px);
     overflow-y: auto;
+    background: #ffffff;
+}
+
+[data-theme="dark"] .saas-modal-body {
+    background: #14161f;
+}
+
+.saas-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.saas-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+[data-theme="dark"] .saas-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
 }
 
 .modal-split-grid {
     display: grid;
-    grid-template-columns: 1fr 1.35fr;
-    gap: 1.75rem;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 1.85rem;
+    align-items: start;
 }
 
 .modal-section-box {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.1rem;
+}
+
+.modal-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .modal-section-header {
+    border-bottom: 1px solid #2e3444;
+}
+
+.modal-section-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #eef2ff;
+    color: var(--primary-color, #4338ca);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .modal-section-badge {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+.modal-section-badge.brand-badge {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+[data-theme="dark"] .modal-section-badge.brand-badge {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
 }
 
 .modal-section-title {
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--primary-color);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+    color: #0f172a;
     margin: 0;
-    padding-bottom: 0.35rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+[data-theme="dark"] .modal-section-title {
+    color: #f8fafc;
+}
+
+.modal-section-desc {
+    font-size: 11px;
+    color: #64748b;
+    display: block;
+    margin-top: 1px;
+}
+
+[data-theme="dark"] .modal-section-desc {
+    color: #94a3b8;
+}
+
+.modal-section-box .form-label,
+.modal-section-box .field-micro-label {
+    color: #1e293b;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    display: block;
+}
+
+[data-theme="dark"] .modal-section-box .form-label,
+[data-theme="dark"] .modal-section-box .field-micro-label {
+    color: #f1f5f9;
 }
 
 .field-icon-wrap {
@@ -898,86 +1063,684 @@ require_once 'includes/header.php';
 .field-icon-wrap i {
     position: absolute;
     left: 0.85rem;
-    color: var(--text-muted);
-    font-size: 1rem;
+    color: #64748b;
+    font-size: 1.05rem;
     pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+[data-theme="dark"] .field-icon-wrap i {
+    color: #94a3b8;
 }
 
 .field-icon-wrap .form-control {
-    padding-left: 2.35rem;
-    height: 38px;
+    padding-left: 2.5rem;
+    height: 42px;
     font-size: 13px;
     border-radius: var(--client-radius-sm);
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #0f172a !important;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.field-icon-wrap .form-control::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1;
+}
+
+.field-icon-wrap .form-control:focus {
+    outline: none;
+    background: #ffffff;
+    border-color: var(--primary-color, #4f46e5);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 15%, transparent);
+}
+
+[data-theme="dark"] .field-icon-wrap .form-control {
+    background: #191c26;
+    border: 1px solid #2e3444;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .field-icon-wrap .form-control::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+}
+
+[data-theme="dark"] .field-icon-wrap .form-control:focus {
+    background: #1f2330;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
 .field-help-tip {
     font-size: 11px;
-    color: var(--text-muted);
+    color: #64748b;
     margin-top: 0.25rem;
 }
 
-/* Brand Creator Card inside modal */
-.brand-create-box {
-    background: var(--bg-body, rgba(255,255,255,0.03));
-    border: 1px dashed var(--border-color);
+[data-theme="dark"] .field-help-tip {
+    color: #94a3b8;
+}
+
+/* Portal Switcher Card */
+.portal-toggle-box {
+    margin-top: 0.35rem;
+    padding: 0.95rem 1.15rem;
     border-radius: var(--client-radius-md);
-    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.portal-toggle-box.active {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+}
+
+[data-theme="dark"] .portal-toggle-box {
+    background: #191c26;
+    border: 1px solid #2e3444;
+}
+
+[data-theme="dark"] .portal-toggle-box.active {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.portal-toggle-left {
+    display: flex;
+    align-items: center;
     gap: 0.75rem;
 }
 
-.brand-create-inputs {
+.portal-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: #eef2ff;
+    color: var(--primary-color, #4338ca);
     display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
 }
 
-.brand-name-input-wrap {
-    flex: 1.2;
-    min-width: 140px;
+.portal-toggle-box.active .portal-icon-wrap {
+    background: #d1fae5;
+    color: #059669;
 }
 
-.brand-logo-input-wrap {
-    flex: 1;
-    min-width: 140px;
+[data-theme="dark"] .portal-icon-wrap {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+[data-theme="dark"] .portal-toggle-box.active .portal-icon-wrap {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.portal-title-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.logo-preview-box {
-    width: 38px;
-    height: 38px;
-    border-radius: var(--client-radius-sm);
-    border: 1px solid var(--border-color);
-    display: none;
+.portal-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .portal-title {
+    color: #ffffff;
+}
+
+.portal-status-pill {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.portal-status-pill.active {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+[data-theme="dark"] .portal-status-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .portal-status-pill.active {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.portal-desc {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+[data-theme="dark"] .portal-desc {
+    color: #94a3b8;
+}
+
+/* Brand Creator Box inside modal */
+.brand-create-box {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: var(--client-radius-md);
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    position: relative;
+}
+
+[data-theme="dark"] .brand-create-box {
+    background: #191c26;
+    border: 1px solid #2e3444;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.brand-create-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand-create-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .brand-create-title {
+    color: #60a5fa;
+}
+
+.brand-logo-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.brand-logo-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.field-micro-hint {
+    font-size: 11px;
+    color: #64748b;
+}
+
+[data-theme="dark"] .field-micro-hint {
+    color: #94a3b8;
+}
+
+/* Logo Drop & Paste Zone */
+.logo-drop-paste-zone {
+    border: 1.5px dashed #93c5fd;
+    border-radius: 12px;
+    padding: 0.95rem 1.1rem;
+    background: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.logo-drop-paste-zone:hover,
+.logo-drop-paste-zone.dragover {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="dark"] .logo-drop-paste-zone {
+    border: 1.5px dashed rgba(96, 165, 250, 0.4);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+[data-theme="dark"] .logo-drop-paste-zone:hover,
+[data-theme="dark"] .logo-drop-paste-zone.dragover {
+    border-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.12);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+}
+
+.drop-zone-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.logo-drop-paste-zone:hover .drop-zone-icon {
+    transform: translateY(-2px);
+    background: #dbeafe;
+}
+
+[data-theme="dark"] .drop-zone-icon {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .logo-drop-paste-zone:hover .drop-zone-icon {
+    background: rgba(59, 130, 246, 0.25);
+}
+
+.drop-zone-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.drop-zone-title {
+    font-size: 12.5px;
+    color: #0f172a;
+    line-height: 1.35;
+}
+
+.drop-zone-title strong {
+    color: #2563eb;
+}
+
+[data-theme="dark"] .drop-zone-title {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .drop-zone-title strong {
+    color: #60a5fa;
+}
+
+.drop-zone-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+[data-theme="dark"] .drop-zone-hint {
+    color: #94a3b8;
+}
+
+.drop-zone-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.zone-action-btn {
+    height: 30px;
+    padding: 0 0.75rem;
+    border-radius: 7px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.zone-action-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+[data-theme="dark"] .zone-action-btn {
+    background: #232733;
+    border: 1px solid #3b4255;
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .zone-action-btn:hover {
+    background: #2e3547;
+    border-color: #60a5fa;
+    color: #ffffff;
+}
+
+/* URL Input Bar */
+.logo-url-input-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #ffffff;
+    padding: 0.45rem 0.55rem;
+    border-radius: 9px;
+    border: 1px solid #93c5fd;
+    animation: fadeInSlide 0.2s ease;
+}
+
+[data-theme="dark"] .logo-url-input-bar {
+    background: #14161f;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.url-input-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.url-input-wrap i {
+    position: absolute;
+    left: 0.7rem;
+    color: #64748b;
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .url-input-wrap i {
+    color: #94a3b8;
+}
+
+.url-input-wrap input {
+    width: 100%;
+    height: 36px;
+    padding: 0 0.5rem 0 2.2rem;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.url-input-wrap input:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #ffffff;
+}
+
+[data-theme="dark"] .url-input-wrap input {
+    background: #1f2330;
+    border: 1px solid #3b4255;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .url-input-wrap input:focus {
+    border-color: #60a5fa;
+    background: #252b3b;
+}
+
+.btn-apply-url {
+    height: 36px;
+    padding: 0 0.9rem;
+    border-radius: 6px;
+    background: #2563eb;
+    border: none;
+    color: #ffffff;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-apply-url:hover {
+    background: #1d4ed8;
+}
+
+.btn-cancel-url {
+    height: 36px;
+    width: 36px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-cancel-url:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .btn-cancel-url {
+    border: 1px solid #3b4255;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .btn-cancel-url:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* Loaded Logo Preview Card */
+.logo-loaded-preview-card {
+    border: 1px solid #86efac;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    background: #f0fdf4;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    animation: fadeInSlide 0.2s ease;
+}
+
+[data-theme="dark"] .logo-loaded-preview-card {
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.preview-thumb-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 9px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
+    padding: 3px;
 }
 
-.brand-add-btn {
-    align-self: flex-end;
-    height: 38px;
-    padding: 0 1rem;
-    font-size: 12.5px;
+[data-theme="dark"] .preview-thumb-box {
+    background: #12141a;
+    border: 1px solid #2e3444;
+}
+
+.preview-thumb-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.preview-info-box {
+    flex: 1;
+    min-width: 0;
+}
+
+.preview-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.preview-source-badge.clipboard {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.preview-source-badge.url {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+[data-theme="dark"] .preview-source-badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+[data-theme="dark"] .preview-source-badge.clipboard {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+}
+
+[data-theme="dark"] .preview-source-badge.url {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+}
+
+.preview-file-name {
+    font-size: 12px;
     font-weight: 600;
-    border-radius: var(--client-radius-sm);
-    background: var(--primary-color);
-    color: #ffffff;
-    border: none;
+    color: #0f172a;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .preview-file-name {
+    color: #f8fafc;
+}
+
+.preview-actions-box {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.preview-action-btn {
+    height: 30px;
+    padding: 0 0.7rem;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    transition: var(--client-transition);
+    transition: all 0.15s ease;
 }
 
-.brand-add-btn:hover {
-    background: var(--primary-hover);
+.preview-action-btn.change {
+    background: #ffffff;
+    color: #1e293b;
+}
+
+.preview-action-btn.change:hover {
+    background: #f8fafc;
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+[data-theme="dark"] .preview-action-btn.change {
+    background: #232733;
+    border-color: #3b4255;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .preview-action-btn.change:hover {
+    background: #2e3547;
+    border-color: #60a5fa;
+    color: #60a5fa;
+}
+
+.preview-action-btn.remove {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+    width: 30px;
+    padding: 0;
+    justify-content: center;
+}
+
+.preview-action-btn.remove:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+[data-theme="dark"] .preview-action-btn.remove {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+[data-theme="dark"] .preview-action-btn.remove:hover {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+/* Brand Add Submit Button */
+.brand-add-submit-btn {
+    width: 100%;
+    height: 40px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+    transition: all 0.2s ease;
+}
+
+.brand-add-submit-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
 }
 
 /* Dynamic Brand Editor Cards */
@@ -985,22 +1748,34 @@ require_once 'includes/header.php';
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
 }
 
 .brand-editor-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: var(--client-radius-md);
-    padding: 0.85rem;
+    padding: 0.9rem 1.05rem;
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     transition: var(--client-transition);
 }
 
 .brand-editor-card:hover {
-    border-color: color-mix(in srgb, var(--primary-color) 30%, var(--border-color));
+    border-color: #93c5fd;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .brand-editor-card {
+    background: #191c26;
+    border: 1px solid #2e3444;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .brand-editor-card:hover {
+    border-color: rgba(99, 102, 241, 0.35);
 }
 
 .brand-card-top {
@@ -1012,23 +1787,65 @@ require_once 'includes/header.php';
 .brand-identity {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.75rem;
 }
 
-.brand-preview-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 6px;
-    object-fit: cover;
-    border: 1px solid var(--border-color);
-}
-
-.brand-preview-avatar.default {
-    background: var(--bg-body, #2a2a2a);
+.brand-avatar-clickable-wrap {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-muted);
+}
+
+[data-theme="dark"] .brand-avatar-clickable-wrap {
+    border: 1px solid #2e3444;
+    background: #12141a;
+}
+
+.brand-avatar-clickable-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.brand-preview-avatar.default {
+    background: #f1f5f9;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+[data-theme="dark"] .brand-preview-avatar.default {
+    background: #232733;
+    color: #94a3b8;
+}
+
+.avatar-hover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.brand-avatar-clickable-wrap:hover .avatar-hover-overlay {
+    opacity: 1;
 }
 
 .brand-name-wrap {
@@ -1039,19 +1856,27 @@ require_once 'includes/header.php';
 .brand-card-title {
     font-weight: 600;
     font-size: 13px;
-    color: var(--text-main);
+    color: #0f172a;
+}
+
+[data-theme="dark"] .brand-card-title {
+    color: #ffffff;
 }
 
 .brand-card-subtitle {
     font-size: 11px;
-    color: var(--text-muted);
+    color: #64748b;
+}
+
+[data-theme="dark"] .brand-card-subtitle {
+    color: #94a3b8;
 }
 
 .brand-delete-btn {
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--text-muted);
+    color: #64748b;
     font-size: 1rem;
     width: 28px;
     height: 28px;
@@ -1063,17 +1888,119 @@ require_once 'includes/header.php';
 }
 
 .brand-delete-btn:hover {
-    background: color-mix(in srgb, var(--danger-color) 15%, transparent);
-    color: var(--danger-color);
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+[data-theme="dark"] .brand-delete-btn {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .brand-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
 }
 
 .brand-card-controls {
     display: grid;
-    grid-template-columns: auto 1fr 1fr;
+    grid-template-columns: 200px 1fr;
+    gap: 1rem;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #e2e8f0;
+}
+
+[data-theme="dark"] .brand-card-controls {
+    border-top: 1px dashed #2e3444;
+}
+
+/* Secondary modal (Change logo for existing brand) */
+.change-logo-modal-dialog {
+    max-width: 440px !important;
+    background: #ffffff !important;
+    border-radius: 16px !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+    padding: 1.25rem !important;
+    color: #0f172a !important;
+}
+
+[data-theme="dark"] .change-logo-modal-dialog {
+    background: #161821 !important;
+    border: 1px solid #2e3444 !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65) !important;
+    color: #f8fafc !important;
+}
+
+.change-logo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .change-logo-header {
+    border-bottom: 1px solid #2e3444;
+}
+
+.saas-modal-footer {
+    padding: 1.1rem 1.65rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 0.75rem;
-    align-items: flex-start;
-    padding-top: 0.65rem;
-    border-top: 1px dashed var(--border-color);
+}
+
+[data-theme="dark"] .saas-modal-footer {
+    border-top: 1px solid #2e3444;
+    background: #191c28;
+}
+
+.saas-modal-footer .btn-outline {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-size: 13px;
+    height: 40px;
+    padding: 0 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.saas-modal-footer .btn-outline:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+[data-theme="dark"] .saas-modal-footer .btn-outline {
+    background: transparent;
+    border: 1px solid #3f3f46;
+    color: #e4e4e7;
+}
+
+[data-theme="dark"] .saas-modal-footer .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.saas-modal-footer .btn-primary {
+    height: 40px;
+    padding: 0 1.35rem;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+@keyframes fadeInSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Modern iOS Style Toggle Switch */
@@ -1101,9 +2028,13 @@ require_once 'includes/header.php';
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: var(--border-color);
+    background-color: #cbd5e1;
     transition: 0.25s;
     border-radius: 20px;
+}
+
+[data-theme="dark"] .toggle-slider {
+    background-color: #3f3f46;
 }
 
 .toggle-slider:before {
@@ -1129,64 +2060,139 @@ require_once 'includes/header.php';
 .toggle-label {
     font-size: 11.5px;
     font-weight: 500;
-    color: var(--text-main);
+    color: #1e293b;
     cursor: pointer;
     user-select: none;
+}
+
+[data-theme="dark"] .toggle-label {
+    color: #e2e8f0;
 }
 
 .field-micro-label {
     font-size: 10.5px;
     font-weight: 600;
-    color: var(--text-muted);
+    color: #64748b;
     display: block;
     margin-bottom: 0.25rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
-/* Multiselect Styling */
+[data-theme="dark"] .field-micro-label {
+    color: #94a3b8;
+}
+
+/* Multiselect Styling - High Contrast & Dual Theme */
 .custom-multiselect {
     position: relative;
+    width: 100%;
 }
 
 .custom-multiselect-header {
-    border: 1px solid var(--border-color);
+    border: 1px solid #cbd5e1;
     border-radius: var(--client-radius-sm);
-    padding: 4px 8px;
-    background: var(--bg-body, var(--bg-surface));
+    padding: 6px 10px;
+    background: #ffffff;
+    color: #0f172a;
     cursor: pointer;
-    min-height: 34px;
+    min-height: 38px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 4px;
+    gap: 8px;
+    transition: var(--client-transition);
+}
+
+.custom-multiselect-header:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
+[data-theme="dark"] .custom-multiselect-header {
+    border: 1px solid #2e3444;
+    background: #14161f;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .custom-multiselect-header:hover {
+    border-color: #4f46e5;
+    background: #191c26;
 }
 
 .badges-wrapper {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
     flex: 1;
 }
 
 .service-selected-pill {
-    background: color-mix(in srgb, var(--primary-color) 15%, transparent);
-    color: var(--primary-color);
-    padding: 1px 6px;
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 2px 7px;
     border-radius: 4px;
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #c7d2fe;
+    line-height: 1.2;
+}
+
+[data-theme="dark"] .service-selected-pill {
+    background: rgba(99, 102, 241, 0.22);
+    color: #c7d2fe;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.pill-remove-btn {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.7;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+.pill-remove-btn:hover {
+    opacity: 1;
+    transform: scale(1.15);
 }
 
 .service-none-text {
-    color: var(--text-muted);
-    font-size: 11.5px;
+    color: #64748b;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-theme="dark"] .service-none-text {
+    color: #94a3b8;
 }
 
 .caret-icon {
-    color: var(--text-muted);
-    font-size: 0.85rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .caret-icon {
+    color: #94a3b8;
+}
+
+.custom-multiselect.open .caret-icon {
+    transform: rotate(180deg);
 }
 
 .custom-multiselect-dropdown {
@@ -1194,30 +2200,158 @@ require_once 'includes/header.php';
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
     border-radius: var(--client-radius-sm);
-    max-height: 160px;
+    max-height: 240px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .custom-multiselect-dropdown {
+    background: #191c26;
+    border: 1px solid #333a4d;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+
+.multiselect-search-box {
+    padding: 6px 8px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .multiselect-search-box {
+    border-bottom: 1px solid #2e3444;
+    background: #191c26;
+}
+
+.multiselect-search-box i {
+    color: #64748b;
+    font-size: 13px;
+}
+
+[data-theme="dark"] .multiselect-search-box i {
+    color: #94a3b8;
+}
+
+.multiselect-search-box input {
+    width: 100%;
+    padding: 4px 7px;
+    font-size: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #f8fafc;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+[data-theme="dark"] .multiselect-search-box input {
+    background: #12141c;
+    border: 1px solid #2e3444;
+    color: #f8fafc;
+}
+
+.multiselect-search-box input:focus {
+    border-color: #6366f1;
+}
+
+.multiselect-options-list {
     overflow-y: auto;
-    z-index: 50;
-    box-shadow: var(--shadow-lg);
+    max-height: 165px;
+    flex: 1;
 }
 
 .custom-multiselect-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 9px;
+    padding: 7px 10px;
     cursor: pointer;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid #f1f5f9;
     margin: 0;
     font-size: 12px;
-    color: var(--text-main);
+    color: #0f172a;
     transition: background 0.15s;
+    user-select: none;
+}
+
+[data-theme="dark"] .custom-multiselect-option {
+    color: #f1f5f9;
+    border-bottom: 1px solid #232733;
 }
 
 .custom-multiselect-option:hover {
-    background: color-mix(in srgb, var(--primary-color) 8%, var(--bg-surface));
+    background: #f1f5f9;
+}
+
+[data-theme="dark"] .custom-multiselect-option:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.custom-multiselect-option.selected {
+    background: #eef2ff;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .custom-multiselect-option.selected {
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.custom-multiselect-option input[type="checkbox"] {
+    accent-color: #4f46e5;
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+.multiselect-dropdown-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .multiselect-dropdown-footer {
+    background: #12141c;
+    border-top: 1px solid #2e3444;
+}
+
+.services-count-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+[data-theme="dark"] .services-count-text {
+    color: #94a3b8;
+}
+
+.btn-dropdown-done {
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-dropdown-done:hover {
+    background: #4338ca;
 }
 
 .input-with-icon-mini {
@@ -1229,8 +2363,12 @@ require_once 'includes/header.php';
 .input-with-icon-mini i {
     position: absolute;
     left: 0.65rem;
-    color: var(--text-muted);
+    color: #64748b;
     font-size: 0.9rem;
+}
+
+[data-theme="dark"] .input-with-icon-mini i {
+    color: #94a3b8;
 }
 
 .form-control-sm {
@@ -1238,15 +2376,27 @@ require_once 'includes/header.php';
     height: 34px;
     padding: 0 0.5rem 0 1.9rem;
     font-size: 11.5px;
-    border: 1px solid var(--border-color);
+    border: 1px solid #cbd5e1;
     border-radius: var(--client-radius-sm);
-    background: var(--bg-body, var(--bg-surface));
-    color: var(--text-main);
+    background: #f8fafc;
+    color: #0f172a;
 }
 
 .form-control-sm:focus {
     outline: none;
-    border-color: var(--primary-color);
+    border-color: #2563eb;
+    background: #ffffff;
+}
+
+[data-theme="dark"] .form-control-sm {
+    border: 1px solid #2e3444;
+    background: #14161f;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .form-control-sm:focus {
+    border-color: #60a5fa;
+    background: #1e2230;
 }
 
 .brands-empty-state {
@@ -1737,9 +2887,15 @@ require_once 'includes/header.php';
     <div class="modal-content saas-modal-dialog">
         <!-- Modal Header -->
         <div class="saas-modal-header">
-            <h2 class="saas-modal-title" id="clientModalTitle">
-                <i class="ph ph-user-plus"></i> <span>Nuevo Cliente</span>
-            </h2>
+            <div class="saas-modal-title-group">
+                <div class="saas-modal-icon-badge" id="clientModalIconBadge">
+                    <i class="ph ph-user-plus"></i>
+                </div>
+                <div>
+                    <h2 class="saas-modal-title" id="clientModalTitle">Nuevo Cliente</h2>
+                    <p class="saas-modal-subtitle" id="clientModalSubtitle">Registra los datos comerciales y gestiona sus marcas</p>
+                </div>
+            </div>
             <button type="button" class="btn-close-circular" onclick="ClientModule.closeModal()" title="Cerrar modal">
                 <i class="ph ph-x"></i>
             </button>
@@ -1753,14 +2909,18 @@ require_once 'includes/header.php';
                 <div class="modal-split-grid">
                     <!-- Column 1: Client Personal Details -->
                     <div class="modal-section-box">
-                        <h3 class="modal-section-title">
-                            <i class="ph ph-identification-card"></i> Datos del Cliente
-                        </h3>
+                        <div class="modal-section-header">
+                            <span class="modal-section-badge"><i class="ph ph-user"></i></span>
+                            <div>
+                                <h3 class="modal-section-title">Datos del Cliente</h3>
+                                <span class="modal-section-desc">Información comercial y de contacto</span>
+                            </div>
+                        </div>
 
                         <div class="form-group">
                             <label class="form-label" for="client_name">Nombre Completo o Empresa *</label>
                             <div class="field-icon-wrap">
-                                <i class="ph ph-user"></i>
+                                <i class="ph ph-buildings"></i>
                                 <input type="text" class="form-control" name="name" id="client_name" placeholder="Ej: Corporación Andina S.A." required>
                             </div>
                         </div>
@@ -1768,7 +2928,7 @@ require_once 'includes/header.php';
                         <div class="form-group">
                             <label class="form-label" for="client_dni">DNI / RUC</label>
                             <div class="field-icon-wrap">
-                                <i class="ph ph-fingerprint"></i>
+                                <i class="ph ph-identification-card"></i>
                                 <input type="text" class="form-control" name="dni" id="client_dni" placeholder="Ej: 71234567 o 20123456789">
                             </div>
                         </div>
@@ -1789,58 +2949,122 @@ require_once 'includes/header.php';
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="client_drive_folder_id">ID Carpeta Google Drive (Portal)</label>
-                            <div class="field-icon-wrap">
-                                <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i>
-                                <input type="text" class="form-control" name="drive_folder_id" id="client_drive_folder_id" placeholder="ID (ej: 1A2b3C4d5E...)">
-                            </div>
-                            <div class="field-help-tip">Habilita acceso automático al portal de entregables para este cliente.</div>
-                        </div>
-
                         <!-- Portal Switcher Card -->
-                        <div class="portal-toggle-box" style="margin-top: 1.1rem; padding: 0.85rem 1rem; border-radius: var(--client-radius-md); background: color-mix(in srgb, var(--primary-color) 6%, var(--bg-body, var(--bg-surface))); border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--border-color));">
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
-                                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                    <div style="width: 34px; height: 34px; border-radius: 8px; background: color-mix(in srgb, var(--primary-color) 15%, transparent); color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
-                                        <i class="ph ph-app-window"></i>
-                                    </div>
-                                    <div>
-                                        <div style="font-size: 12.5px; font-weight: 600; color: var(--text-main);">Activar Portal de Cliente</div>
-                                        <div style="font-size: 11px; color: var(--text-muted);">Permite al cliente ingresar con su DNI/RUC en el portal</div>
-                                    </div>
+                        <div class="portal-toggle-box" id="portalToggleCard">
+                            <div class="portal-toggle-left">
+                                <div class="portal-icon-wrap">
+                                    <i class="ph ph-app-window"></i>
                                 </div>
-                                <label class="modern-toggle-switch" style="margin: 0; flex-shrink: 0;">
-                                    <input type="checkbox" name="portal_enabled" id="client_portal_enabled" value="1">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                                <div class="portal-info-wrap">
+                                    <div class="portal-title-row">
+                                        <span class="portal-title">Portal de Cliente</span>
+                                        <span class="portal-status-pill" id="portalStatusPill">Desactivado</span>
+                                    </div>
+                                    <div class="portal-desc">Acceso con DNI/RUC para entregables y servicios</div>
+                                </div>
                             </div>
+                            <label class="modern-toggle-switch" style="margin: 0; flex-shrink: 0;">
+                                <input type="checkbox" name="portal_enabled" id="client_portal_enabled" value="1" onchange="ClientModule.onPortalToggleChange(this)">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
                     </div>
 
                     <!-- Column 2: Brands, Memberships & Services -->
                     <div class="modal-section-box">
-                        <h3 class="modal-section-title">
-                            <i class="ph ph-briefcase"></i> Marcas y Servicios Vinculados
-                        </h3>
+                        <div class="modal-section-header">
+                            <span class="modal-section-badge brand-badge"><i class="ph ph-briefcase"></i></span>
+                            <div>
+                                <h3 class="modal-section-title">Marcas y Servicios</h3>
+                                <span class="modal-section-desc">Vincula marcas comerciales y membresías</span>
+                            </div>
+                        </div>
 
                         <!-- Brand Add Box -->
                         <div class="brand-create-box">
-                            <div class="brand-create-inputs">
-                                <div class="brand-name-input-wrap">
-                                    <label class="field-micro-label">Nombre de la Marca</label>
-                                    <input type="text" class="form-control" id="new_brand_name" placeholder="Ej: Mi Marca Pro" style="height: 38px; font-size: 13px;">
-                                </div>
-                                <div class="brand-logo-input-wrap">
-                                    <div style="flex:1;">
-                                        <label class="field-micro-label">Logotipo (Opcional)</label>
-                                        <input type="file" class="form-control" id="new_brand_logo" accept="image/*" onchange="ClientModule.previewNewBrandLogo(this)" style="height: 38px;">
-                                    </div>
-                                    <div class="logo-preview-box" id="newBrandLogoPreview"></div>
+                            <div class="brand-create-header">
+                                <span class="brand-create-title"><i class="ph ph-sparkle"></i> Vincular Nueva Marca</span>
+                            </div>
+
+                            <div class="form-group" style="margin: 0;">
+                                <label class="field-micro-label" for="new_brand_name">Nombre de la Marca *</label>
+                                <div class="field-icon-wrap">
+                                    <i class="ph ph-tag"></i>
+                                    <input type="text" class="form-control" id="new_brand_name" placeholder="Ej: Mi Marca Pro, Nike Perú, etc.">
                                 </div>
                             </div>
-                            <button type="button" class="brand-add-btn" onclick="ClientModule.addBrand()">
-                                <i class="ph ph-plus"></i> Vincular Marca
+
+                            <!-- Logo Multi-channel Uploader -->
+                            <div class="brand-logo-control-group">
+                                <div class="brand-logo-header-row">
+                                    <label class="field-micro-label" style="margin: 0;">Logotipo</label>
+                                    <span class="field-micro-hint">Opcional</span>
+                                </div>
+
+                                <!-- Hidden native file input -->
+                                <input type="file" id="new_brand_logo_file" accept="image/*" style="display:none;" onchange="ClientModule.handleLogoFileInput(this)">
+
+                                <!-- Empty / Drop / Paste zone when no logo is set -->
+                                <div id="brandLogoEmptyZone" class="logo-drop-paste-zone" onclick="document.getElementById('new_brand_logo_file').click()">
+                                    <div class="drop-zone-icon">
+                                        <i class="ph ph-cloud-arrow-up"></i>
+                                    </div>
+                                    <div class="drop-zone-content">
+                                        <div class="drop-zone-title">
+                                            <strong>Haz clic para subir</strong> o arrastra una imagen aquí
+                                        </div>
+                                        <div class="drop-zone-hint">
+                                            PNG, JPG, WEBP, SVG &bull; También puedes <strong>presionar Ctrl+V</strong>
+                                        </div>
+                                    </div>
+                                    <div class="drop-zone-actions" onclick="event.stopPropagation();">
+                                        <button type="button" class="zone-action-btn" onclick="ClientModule.pasteLogoFromClipboard()" title="Pegar imagen desde el portapapeles">
+                                            <i class="ph ph-clipboard-text"></i> Pegar
+                                        </button>
+                                        <button type="button" class="zone-action-btn" onclick="ClientModule.toggleLogoUrlInput()" title="Ingresar enlace de imagen">
+                                            <i class="ph ph-link"></i> URL
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- URL Input Bar -->
+                                <div id="brandLogoUrlBar" class="logo-url-input-bar" style="display: none;">
+                                    <div class="url-input-wrap">
+                                        <i class="ph ph-link-simple"></i>
+                                        <input type="url" id="brand_logo_url_input" placeholder="Pega el enlace de la imagen (https://...)" onkeydown="if(event.key==='Enter'){event.preventDefault();ClientModule.applyLogoUrl();}">
+                                    </div>
+                                    <button type="button" class="btn-apply-url" onclick="ClientModule.applyLogoUrl()">
+                                        Cargar
+                                    </button>
+                                    <button type="button" class="btn-cancel-url" onclick="ClientModule.toggleLogoUrlInput(false)" title="Cerrar">
+                                        <i class="ph ph-x"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Loaded Preview Card -->
+                                <div id="brandLogoPreviewCard" class="logo-loaded-preview-card" style="display: none;">
+                                    <div class="preview-thumb-box">
+                                        <img id="brandLogoPreviewImg" src="" alt="Vista previa del logotipo">
+                                    </div>
+                                    <div class="preview-info-box">
+                                        <div class="preview-source-badge" id="brandLogoSourceBadge">
+                                            <i class="ph ph-check-circle"></i> Logotipo cargado
+                                        </div>
+                                        <div class="preview-file-name" id="brandLogoFileName">logo.png</div>
+                                    </div>
+                                    <div class="preview-actions-box">
+                                        <button type="button" class="preview-action-btn change" onclick="document.getElementById('new_brand_logo_file').click()" title="Cambiar imagen">
+                                            <i class="ph ph-arrows-clockwise"></i> Cambiar
+                                        </button>
+                                        <button type="button" class="preview-action-btn remove" onclick="ClientModule.clearDraftLogo()" title="Quitar logotipo">
+                                            <i class="ph ph-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="brand-add-submit-btn" onclick="ClientModule.addBrand()">
+                                <i class="ph ph-plus-circle"></i> Vincular Marca al Cliente
                             </button>
                         </div>
 
@@ -1854,7 +3078,7 @@ require_once 'includes/header.php';
         </div>
 
         <!-- Modal Footer -->
-        <div class="modal-footer">
+        <div class="modal-footer saas-modal-footer">
             <button type="button" class="btn btn-outline" onclick="ClientModule.closeModal()">
                 Cancelar
             </button>
@@ -1862,6 +3086,64 @@ require_once 'includes/header.php';
                 <i class="ph ph-check-circle"></i>
                 <span class="btn-text">Guardar Cliente</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Secundario: Cambiar Logotipo de Marca Existente -->
+<div class="modal-overlay" id="changeLogoModal" style="z-index: 1050;">
+    <div class="modal-content change-logo-modal-dialog">
+        <input type="file" id="change_brand_logo_file" accept="image/*" style="display:none;" onchange="ClientModule.handleChangeBrandLogoFile(this)">
+        
+        <div class="change-logo-header">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div class="modal-section-badge brand-badge" style="width: 34px; height: 34px; border-radius: 9px; font-size: 1.15rem;">
+                    <i class="ph ph-image"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-size: 13px; font-weight: 700;" id="changeLogoModalBrandTitle">Cambiar Logotipo</h4>
+                    <span style="font-size: 11px; opacity: 0.8;">Elige cómo deseas actualizar la imagen</span>
+                </div>
+            </div>
+            <button type="button" class="btn-close-circular" onclick="ClientModule.closeChangeLogoModal()" style="width: 28px; height: 28px;">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Drop zone / click to upload -->
+            <div class="logo-drop-paste-zone" style="padding: 0.85rem;" onclick="document.getElementById('change_brand_logo_file').click()">
+                <div class="drop-zone-icon" style="width: 36px; height: 36px; font-size: 1.15rem;">
+                    <i class="ph ph-cloud-arrow-up"></i>
+                </div>
+                <div class="drop-zone-content">
+                    <div style="font-size: 12px; font-weight: 600;">Subir archivo desde el equipo</div>
+                    <div class="drop-zone-hint">PNG, JPG, WEBP o SVG</div>
+                </div>
+            </div>
+
+            <!-- Paste from clipboard button -->
+            <button type="button" class="zone-action-btn" style="height: 38px; justify-content: center; width: 100%; font-size: 12px;" onclick="ClientModule.pasteLogoFromClipboardForExisting()">
+                <i class="ph ph-clipboard-text" style="font-size: 1.15rem;"></i> Pegar desde Portapapeles (Ctrl+V)
+            </button>
+
+            <!-- URL input -->
+            <div style="margin-top: 0.25rem;">
+                <label class="field-micro-label">O ingresa una URL de imagen:</label>
+                <div style="display: flex; gap: 0.4rem;">
+                    <input type="url" id="change_brand_logo_url_input" class="form-control-sm" placeholder="https://ejemplo.com/logo.png" style="flex: 1; height: 36px;" onkeydown="if(event.key==='Enter'){event.preventDefault();ClientModule.applyChangeLogoUrl();}">
+                    <button type="button" class="btn-apply-url" style="height: 36px;" onclick="ClientModule.applyChangeLogoUrl()">Aplicar</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-outline" style="font-size: 11.5px; height: 32px; padding: 0 0.75rem; color: var(--danger-color); border-color: rgba(239,68,68,0.3);" onclick="ClientModule.removeExistingBrandLogo()">
+                    <i class="ph ph-trash"></i> Quitar Logo
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 11.5px; height: 32px; padding: 0 0.85rem;" onclick="ClientModule.closeChangeLogoModal()">
+                    Cancelar
+                </button>
+            </div>
         </div>
     </div>
 </div>

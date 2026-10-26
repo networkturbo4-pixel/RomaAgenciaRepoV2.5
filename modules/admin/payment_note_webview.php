@@ -140,15 +140,37 @@ $mp_enabled = ($mp_enabled_setting === false || $mp_enabled_setting === '1');
     --text-main: #0f172a;
     --text-muted: #64748b;
     --font-family: 'Inter', sans-serif;
+    color-scheme: light;
 }
 
 [data-theme="dark"] {
+    color-scheme: dark;
     --primary-contrast: color-mix(in srgb, var(--primary-color), white 40%);
     --border-color: rgba(255, 255, 255, 0.08);
     --bg-surface: #0b0b0e;
     --bg-body: #000000;
     --text-main: #ffffff;
     --text-muted: #9ca3af;
+}
+
+/* Global native control contrast fallbacks */
+select, option {
+    color-scheme: light;
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] option {
+    color-scheme: dark;
+    background-color: #141721 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: 0.85;
 }
 
 body.public-mode {
@@ -467,15 +489,19 @@ body.public-mode {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
+    overflow: visible;
 }
 
 .modern-input-group:hover {
     border-color: color-mix(in srgb, var(--primary-color) 40%, transparent);
 }
 
-.modern-input-group:focus-within {
+.modern-input-group:focus-within,
+.modern-input-group.has-open-select {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 15%, transparent);
+    z-index: 1050;
 }
 
 .modern-input-group label {
@@ -495,30 +521,295 @@ body.public-mode {
     display: flex;
     align-items: center;
     width: 100%;
+    overflow: visible;
 }
 
-.pn-select-wrapper select,
-.modern-input-group select {
-    appearance: none;
-    -webkit-appearance: none;
+/* ==========================================================================
+   REDESIGNED MODERN CUSTOM SELECT (HIGH CONTRAST & DUAL THEME)
+   ========================================================================== */
+.pn-custom-select {
+    position: relative;
     width: 100%;
+}
+
+.pn-cs-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+    outline: none;
+    transition: all 0.2s ease;
     background: transparent;
     border: none;
-    outline: none;
+}
+
+.pn-cs-trigger-val {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+}
+
+.pn-cs-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+    color: var(--primary-color);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.pn-cs-avatar.brand {
+    background: color-mix(in srgb, #0ea5e9 18%, transparent);
+    color: #0ea5e9;
+    font-size: 13px;
+}
+
+.pn-cs-name {
     font-size: 0.92rem;
     font-weight: 600;
     color: var(--text-main);
-    cursor: pointer;
-    padding: 2px 24px 2px 0;
-    font-family: var(--font-family);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.pn-select-caret {
-    position: absolute;
-    right: 0;
-    pointer-events: none;
+.pn-cs-caret {
     color: var(--text-muted);
     font-size: 0.95rem;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.pn-custom-select.is-open .pn-cs-caret {
+    transform: rotate(180deg);
+    color: var(--primary-color);
+}
+
+.pn-cs-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 0;
+    right: 0;
+    min-width: 290px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.05);
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: pnSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .pn-cs-dropdown {
+    background: #141721;
+    border: 1px solid #2e364a;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85);
+}
+
+@keyframes pnSlideDown {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pn-cs-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .pn-cs-search-box {
+    background: #0d0f15;
+    border-bottom: 1px solid #222838;
+}
+
+.pn-cs-search-box i {
+    color: #64748b;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .pn-cs-search-box i {
+    color: #94a3b8;
+}
+
+.pn-cs-search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12.5px;
+    color: #0f172a;
+    font-family: var(--font-family);
+    width: 100%;
+}
+
+[data-theme="dark"] .pn-cs-search-box input {
+    color: #ffffff;
+}
+
+.pn-cs-search-box input::placeholder {
+    color: #94a3b8;
+}
+
+.pn-cs-clear-search {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    border-radius: 4px;
+}
+
+.pn-cs-clear-search:hover {
+    color: #ef4444;
+}
+
+.pn-cs-options-container {
+    max-height: 230px;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pn-cs-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    user-select: none;
+}
+
+.pn-cs-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+}
+
+.pn-cs-item-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+[data-theme="dark"] .pn-cs-item-avatar {
+    background: #232838;
+    color: #e2e8f0;
+}
+
+.pn-cs-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .pn-cs-item-name {
+    color: #f1f5f9;
+}
+
+.pn-cs-item:hover {
+    background: #f1f5f9;
+}
+
+[data-theme="dark"] .pn-cs-item:hover {
+    background: #1f2534;
+}
+
+.pn-cs-item.is-selected {
+    background: rgba(79, 70, 229, 0.08);
+}
+
+[data-theme="dark"] .pn-cs-item.is-selected {
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.pn-cs-item.is-selected .pn-cs-item-name {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+[data-theme="dark"] .pn-cs-item.is-selected .pn-cs-item-name {
+    color: #a5b4fc;
+}
+
+.pn-cs-item-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    color: #475569;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .pn-cs-item-badge {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+.pn-cs-check-icon {
+    color: var(--primary-color);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .pn-cs-check-icon {
+    color: #818cf8;
+}
+
+.pn-cs-no-results {
+    padding: 20px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.pn-cs-no-results i {
+    font-size: 20px;
+    opacity: 0.6;
 }
 
 .modern-input-group input[type="date"],
@@ -768,11 +1059,11 @@ body.public-mode {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-[data-theme="dark"] body.public-mode .app-card,
-[data-theme="dark"] body.public-mode .app-detail-card,
-[data-theme="dark"] body.public-mode .app-pm-card,
-[data-theme="dark"] body.public-mode .app-voucher-card,
-[data-theme="dark"] body.public-mode .section-card,
+[data-theme="dark"] .app-card,
+[data-theme="dark"] .app-detail-card,
+[data-theme="dark"] .app-pm-card,
+[data-theme="dark"] .app-voucher-card,
+[data-theme="dark"] .section-card,
 [data-theme="dark"] #modal-voucher-upload .modal-content {
     background-color: #0b0b0e !important;
     background: #0b0b0e !important;
@@ -781,54 +1072,64 @@ body.public-mode {
     color: #ffffff !important;
 }
 
-[data-theme="dark"] body.public-mode .app-detail-item {
+[data-theme="dark"] .app-detail-item {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
-[data-theme="dark"] body.public-mode .app-detail-total-area {
+[data-theme="dark"] .app-detail-total-area {
     background: #111116 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-[data-theme="dark"] body.public-mode .app-client-name,
-[data-theme="dark"] body.public-mode .app-pm-name,
-[data-theme="dark"] body.public-mode .app-detail-name,
-[data-theme="dark"] body.public-mode .app-total-value {
+[data-theme="dark"] .app-client-name,
+[data-theme="dark"] .app-pm-name,
+[data-theme="dark"] .app-detail-name,
+[data-theme="dark"] .app-total-value {
     color: #ffffff !important;
 }
 
-[data-theme="dark"] body.public-mode .app-client-company,
-[data-theme="dark"] body.public-mode .app-detail-desc,
-[data-theme="dark"] body.public-mode .app-date,
-[data-theme="dark"] body.public-mode .app-pm-acc,
-[data-theme="dark"] body.public-mode .app-total-label {
+[data-theme="dark"] .app-client-company,
+[data-theme="dark"] .app-detail-desc,
+[data-theme="dark"] .app-date,
+[data-theme="dark"] .app-pm-acc,
+[data-theme="dark"] .app-total-label,
+[data-theme="dark"] .app-section-title {
     color: #94a3b8 !important;
 }
 
-[data-theme="dark"] body.public-mode .app-pm-icon-wrap {
+[data-theme="dark"] .app-client-icon {
+    background: rgba(16, 185, 129, 0.2) !important;
+    color: #34d399 !important;
+}
+
+[data-theme="dark"] .app-divider {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .app-pm-icon-wrap {
     background: #181820 !important;
     color: #ffffff !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-[data-theme="dark"] body.public-mode .app-pm-copy {
+[data-theme="dark"] .app-pm-copy {
     background: rgba(16, 185, 129, 0.15) !important;
     color: #10b981 !important;
 }
 
-[data-theme="dark"] body.public-mode .app-verification-seal {
+[data-theme="dark"] .app-verification-seal {
     background: #0b0b0e !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
     color: #94a3b8 !important;
 }
 
-[data-theme="dark"] body.public-mode .app-status-btn:not(.app-status-paid) {
+[data-theme="dark"] .app-status-btn:not(.app-status-paid) {
     background: rgba(239, 68, 68, 0.12) !important;
     color: #f87171 !important;
     border-color: rgba(239, 68, 68, 0.25) !important;
 }
 
-[data-theme="dark"] body.public-mode .app-status-paid {
+[data-theme="dark"] .app-status-paid {
     background: rgba(16, 185, 129, 0.12) !important;
     color: #10b981 !important;
     border-color: rgba(16, 185, 129, 0.25) !important;
@@ -1981,11 +2282,12 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
     <div class="section-card-body">
       <!-- 3 Primary Fields -->
       <div class="pn-form-grid">
-          <div class="modern-input-group">
+          <div class="modern-input-group" id="mig-client">
               <label><i class="ph ph-user"></i> Cliente / Contacto</label>
               <span id="public-client-text" class="public-readonly-text" style="display: none;"></span>
               <div class="pn-select-wrapper">
-                  <select id="note-client">
+                  <!-- Native select kept hidden for form bindings and legacy compatibility -->
+                  <select id="note-client" style="display: none;">
                       <option value="">Selecciona un cliente...</option>
                       <?php foreach ($clients as $client): ?>
                           <option value="<?php echo htmlspecialchars($client['name']); ?>" 
@@ -1996,17 +2298,62 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
                           </option>
                       <?php endforeach; ?>
                   </select>
-                  <i class="ph ph-caret-down pn-select-caret"></i>
+
+                  <!-- Redesigned Custom Dropdown -->
+                  <div class="pn-custom-select" id="pn-cs-client">
+                      <div class="pn-cs-trigger" onclick="PNCustomSelect.toggle('client', event)" tabindex="0" role="combobox" aria-expanded="false" title="Haz clic para seleccionar cliente">
+                          <div class="pn-cs-trigger-val">
+                              <span class="pn-cs-avatar" id="client-cs-avatar"><i class="ph ph-user"></i></span>
+                              <span class="pn-cs-name" id="client-cs-name">Selecciona un cliente...</span>
+                          </div>
+                          <i class="ph ph-caret-down pn-cs-caret"></i>
+                      </div>
+                      <div class="pn-cs-dropdown" id="client-cs-dropdown" style="display: none;" onclick="event.stopPropagation();">
+                          <div class="pn-cs-search-box">
+                              <i class="ph ph-magnifying-glass"></i>
+                              <input type="text" id="client-cs-search-input" placeholder="Buscar cliente por nombre..." oninput="PNCustomSelect.filter('client', this.value)" autocomplete="off">
+                              <button type="button" class="pn-cs-clear-search" id="client-cs-clear-btn" onclick="PNCustomSelect.clearFilter('client', event)" style="display: none;">
+                                  <i class="ph ph-x"></i>
+                              </button>
+                          </div>
+                          <div class="pn-cs-options-container" id="client-cs-options">
+                              <!-- Dynamically populated -->
+                          </div>
+                      </div>
+                  </div>
               </div>
           </div>
-          <div class="modern-input-group">
+          <div class="modern-input-group" id="mig-company">
               <label><i class="ph ph-buildings"></i> Empresa / Marca</label>
               <span id="public-company-text" class="public-readonly-text" style="display: none;"></span>
               <div class="pn-select-wrapper">
-                  <select id="note-company">
+                  <!-- Native select kept hidden for form bindings and legacy compatibility -->
+                  <select id="note-company" style="display: none;">
                       <option value="">Selecciona una marca...</option>
                   </select>
-                  <i class="ph ph-caret-down pn-select-caret"></i>
+
+                  <!-- Redesigned Custom Dropdown -->
+                  <div class="pn-custom-select" id="pn-cs-company">
+                      <div class="pn-cs-trigger" onclick="PNCustomSelect.toggle('company', event)" tabindex="0" role="combobox" aria-expanded="false" title="Haz clic para seleccionar marca">
+                          <div class="pn-cs-trigger-val">
+                              <span class="pn-cs-avatar brand" id="company-cs-avatar"><i class="ph ph-buildings"></i></span>
+                              <span class="pn-cs-name" id="company-cs-name">Selecciona una marca...</span>
+                          </div>
+                          <i class="ph ph-caret-down pn-cs-caret"></i>
+                      </div>
+                      <div class="pn-cs-dropdown" id="company-cs-dropdown" style="display: none;" onclick="event.stopPropagation();">
+                          <div class="pn-cs-search-box">
+                              <i class="ph ph-magnifying-glass"></i>
+                              <input type="text" id="company-cs-search-input" placeholder="Buscar marca..." oninput="PNCustomSelect.filter('company', this.value)" autocomplete="off">
+                              <button type="button" class="pn-cs-clear-search" id="company-cs-clear-btn" onclick="PNCustomSelect.clearFilter('company', event)" style="display: none;">
+                                  <i class="ph ph-x"></i>
+                              </button>
+                          </div>
+                          <div class="pn-cs-options-container" id="company-cs-options">
+                              <!-- Dynamically populated -->
+                          </div>
+                      </div>
+                  </div>
               </div>
           </div>
           <div class="modern-input-group">
@@ -2396,6 +2743,287 @@ body.public-mode .app-animate-delay-5 { animation-delay: 0.4s; }
 <script>
 const APP_BASE_URL = <?php echo json_encode(rtrim($baseUrl, '/') . '/'); ?>;
 const IS_PUBLIC_PAGE = <?php echo $is_public ? 'true' : 'false'; ?>;
+
+/* ==========================================================================
+   PNCustomSelect - Modern High-Contrast Searchable Dropdown Component
+   ========================================================================== */
+const PNCustomSelect = (function() {
+    const avatarColors = ['#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777','#2563eb','#0d9488','#ea580c'];
+
+    function getInitials(name) {
+        if (!name) return '--';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
+    function getAvatarBg(str) {
+        if (!str) return avatarColors[0];
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return avatarColors[Math.abs(hash) % avatarColors.length];
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.toString().replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function toggle(type, e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        const wrapper = document.getElementById('pn-cs-' + type);
+        const dropdown = document.getElementById(type + '-cs-dropdown');
+        const parentGroup = document.getElementById('mig-' + type);
+        if (!dropdown || !wrapper) return;
+
+        const isOpened = dropdown.style.display === 'flex';
+        closeAll();
+
+        if (!isOpened) {
+            buildOptions(type);
+            dropdown.style.display = 'flex';
+            wrapper.classList.add('is-open');
+            if (parentGroup) parentGroup.classList.add('has-open-select');
+            
+            const searchInput = document.getElementById(type + '-cs-search-input');
+            if (searchInput) {
+                searchInput.value = '';
+                filter(type, '');
+                setTimeout(() => searchInput.focus(), 60);
+            }
+        }
+    }
+
+    function closeAll() {
+        ['client', 'company'].forEach(type => {
+            const dropdown = document.getElementById(type + '-cs-dropdown');
+            const wrapper = document.getElementById('pn-cs-' + type);
+            const parentGroup = document.getElementById('mig-' + type);
+            if (dropdown) dropdown.style.display = 'none';
+            if (wrapper) wrapper.classList.remove('is-open');
+            if (parentGroup) parentGroup.classList.remove('has-open-select');
+        });
+    }
+
+    function buildOptions(type) {
+        const selectEl = document.getElementById('note-' + type);
+        const container = document.getElementById(type + '-cs-options');
+        if (!selectEl || !container) return;
+
+        const currentVal = selectEl.value;
+        const options = Array.from(selectEl.options);
+
+        let html = '';
+        let hasValidOptions = false;
+
+        options.forEach(opt => {
+            const val = opt.value;
+            const text = opt.textContent.trim();
+            const isSelected = (val === currentVal) || (!val && !currentVal);
+            const brandsStr = opt.getAttribute('data-brands') || '';
+            const hasMembership = opt.getAttribute('data-has-membership');
+
+            if (val) hasValidOptions = true;
+
+            let metaBadgeHtml = '';
+            if (type === 'client' && val) {
+                const brands = brandsStr ? brandsStr.split('||').filter(Boolean) : [];
+                if (brands.length > 0) {
+                    metaBadgeHtml = `<span class="pn-cs-item-badge">${brands.length} marca${brands.length > 1 ? 's' : ''}</span>`;
+                }
+            } else if (type === 'company' && val && hasMembership === '1') {
+                metaBadgeHtml = `<span class="pn-cs-item-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="ph-fill ph-star"></i> Membresía</span>`;
+            }
+
+            const avatarBg = val ? getAvatarBg(val) : '#64748b';
+            const initials = val ? getInitials(text) : '<i class="ph ph-minus"></i>';
+
+            html += `
+                <div class="pn-cs-item ${isSelected ? 'is-selected' : ''}" 
+                     data-val="${escapeHtml(val)}" 
+                     data-text="${escapeHtml(text)}" 
+                     onclick="PNCustomSelect.select('${type}', '${escapeHtml(val)}')">
+                    <div class="pn-cs-item-left">
+                        <span class="pn-cs-item-avatar" style="${val ? `background: ${avatarBg}; color: #ffffff;` : ''}">
+                            ${initials}
+                        </span>
+                        <span class="pn-cs-item-name">${escapeHtml(text)}</span>
+                    </div>
+                    ${metaBadgeHtml}
+                    ${isSelected ? '<i class="ph-bold ph-check pn-cs-check-icon"></i>' : ''}
+                </div>
+            `;
+        });
+
+        if (!hasValidOptions && type === 'company') {
+            html = `
+                <div class="pn-cs-no-results">
+                    <i class="ph ph-briefcase"></i>
+                    <span>No hay marcas registradas para este cliente</span>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+    }
+
+    function select(type, value) {
+        const selectEl = document.getElementById('note-' + type);
+        if (!selectEl) return;
+
+        selectEl.value = value;
+        selectEl.dispatchEvent(new Event('change'));
+
+        syncTrigger(type);
+        closeAll();
+
+        // If client changed, also sync company trigger & rebuild options
+        if (type === 'client') {
+            setTimeout(() => {
+                buildOptions('company');
+                syncTrigger('company');
+            }, 40);
+        }
+    }
+
+    function filter(type, query) {
+        const container = document.getElementById(type + '-cs-options');
+        const clearBtn = document.getElementById(type + '-cs-clear-btn');
+        if (!container) return;
+
+        const q = (query || '').toLowerCase().trim();
+        if (clearBtn) clearBtn.style.display = q ? 'flex' : 'none';
+
+        const items = container.querySelectorAll('.pn-cs-item');
+        let visibleCount = 0;
+        items.forEach(item => {
+            const text = (item.getAttribute('data-text') || '').toLowerCase();
+            const matches = !q || text.includes(q);
+            item.style.display = matches ? 'flex' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        let emptyEl = container.querySelector('.pn-cs-no-results-filter');
+        if (visibleCount === 0) {
+            if (!emptyEl) {
+                emptyEl = document.createElement('div');
+                emptyEl.className = 'pn-cs-no-results pn-cs-no-results-filter';
+                emptyEl.innerHTML = `<i class="ph ph-magnifying-glass"></i><span>No se encontraron resultados</span>`;
+                container.appendChild(emptyEl);
+            }
+            emptyEl.style.display = 'flex';
+        } else if (emptyEl) {
+            emptyEl.style.display = 'none';
+        }
+    }
+
+    function clearFilter(type, e) {
+        if (e) e.stopPropagation();
+        const input = document.getElementById(type + '-cs-search-input');
+        if (input) {
+            input.value = '';
+            filter(type, '');
+            input.focus();
+        }
+    }
+
+    function syncTrigger(type) {
+        const selectEl = document.getElementById('note-' + type);
+        const nameEl = document.getElementById(type + '-cs-name');
+        const avatarEl = document.getElementById(type + '-cs-avatar');
+        if (!selectEl || !nameEl) return;
+
+        const selectedOpt = selectEl.options[selectEl.selectedIndex];
+        const val = selectEl.value;
+        const text = selectedOpt ? selectedOpt.textContent.trim() : '';
+
+        if (!val || selectEl.selectedIndex <= 0) {
+            nameEl.textContent = type === 'client' ? 'Selecciona un cliente...' : 'Selecciona una marca...';
+            if (avatarEl) {
+                avatarEl.innerHTML = type === 'client' ? '<i class="ph ph-user"></i>' : '<i class="ph ph-buildings"></i>';
+                avatarEl.style.background = '';
+                avatarEl.style.color = '';
+            }
+        } else {
+            nameEl.textContent = text;
+            if (avatarEl) {
+                if (type === 'client') {
+                    avatarEl.textContent = getInitials(text);
+                    avatarEl.style.background = getAvatarBg(val);
+                    avatarEl.style.color = '#ffffff';
+                } else {
+                    avatarEl.innerHTML = '<i class="ph ph-briefcase"></i>';
+                    avatarEl.style.background = 'color-mix(in srgb, #0ea5e9 20%, transparent)';
+                    avatarEl.style.color = '#0ea5e9';
+                }
+            }
+        }
+    }
+
+    function syncAll() {
+        buildOptions('client');
+        syncTrigger('client');
+        buildOptions('company');
+        syncTrigger('company');
+    }
+
+    function init() {
+        syncAll();
+
+        // Listen to native select change events
+        const clientSelect = document.getElementById('note-client');
+        if (clientSelect) {
+            clientSelect.addEventListener('change', () => {
+                syncTrigger('client');
+                setTimeout(() => {
+                    buildOptions('company');
+                    syncTrigger('company');
+                }, 40);
+            });
+        }
+
+        const companySelect = document.getElementById('note-company');
+        if (companySelect) {
+            companySelect.addEventListener('change', () => {
+                syncTrigger('company');
+            });
+        }
+
+        // Close on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.pn-custom-select')) {
+                closeAll();
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeAll();
+            }
+        });
+    }
+
+    return {
+        init: init,
+        toggle: toggle,
+        closeAll: closeAll,
+        select: select,
+        filter: filter,
+        clearFilter: clearFilter,
+        syncTrigger: syncTrigger,
+        buildOptions: buildOptions,
+        syncAll: syncAll
+    };
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -3019,6 +3647,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('note-client').addEventListener('change', renderPublicPreview);
   document.getElementById('note-company').addEventListener('change', renderPublicPreview);
   document.getElementById('note-start-date').addEventListener('change', renderPublicPreview);
+
+  // Initialize and synchronize redesigned custom select dropdowns
+  if (typeof PNCustomSelect !== 'undefined') {
+      PNCustomSelect.init();
+  }
   
   } // end initWebview
 

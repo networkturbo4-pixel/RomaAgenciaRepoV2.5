@@ -35,6 +35,10 @@ const ClientModule = (function() {
     function init() {
         modalEl = document.getElementById('clientModal');
 
+        // Setup dropzone and clipboard paste handlers
+        setupDragAndDrop();
+        setupPasteListener();
+
         // Apply initial view (list or grid)
         const savedView = localStorage.getItem('roma_clients_view') || 'list';
         setView(savedView, document.querySelector(`.clients-view-toggle button[data-view="${savedView}"]`));
@@ -65,9 +69,7 @@ const ClientModule = (function() {
         // Close multiselects when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.custom-multiselect')) {
-                document.querySelectorAll('.custom-multiselect-dropdown').forEach(dd => {
-                    dd.style.display = 'none';
-                });
+                closeAllMultiselects();
             }
         });
     }
@@ -413,7 +415,413 @@ const ClientModule = (function() {
         performAjaxSearch();
     }
 
+    // Draft logo state for new brand
+    let draftLogo = {
+        file: null,
+        url: null,
+        previewUrl: null,
+        sourceType: null, // 'file' | 'clipboard' | 'url'
+        name: ''
+    };
+
+    let currentEditingBrandIndex = null;
+
+    function dataURLtoFile(dataurl, filename) {
+        try {
+            const arr = dataurl.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new File([u8arr], filename, { type: mime });
+        } catch(e) {
+            console.error('Error parsing dataURL:', e);
+            return null;
+        }
+    }
+
+    function setDraftLogoFile(file, sourceType = 'file') {
+        if (!file) return;
+        if (file.type && !file.type.startsWith('image/')) {
+            alert('Por favor selecciona un archivo de imagen válido (PNG, JPG, WEBP, SVG).');
+            return;
+        }
+        draftLogo.file = file;
+        draftLogo.url = null;
+        draftLogo.previewUrl = URL.createObjectURL(file);
+        draftLogo.sourceType = sourceType;
+        draftLogo.name = file.name || (sourceType === 'clipboard' ? 'Captura_Portapapeles.png' : 'logotipo.png');
+        renderDraftLogoUI();
+    }
+
+    function setDraftLogoUrl(url) {
+        if (!url) return;
+        draftLogo.file = null;
+        draftLogo.url = url;
+        draftLogo.previewUrl = url;
+        draftLogo.sourceType = 'url';
+        try {
+            const parsed = new URL(url);
+            draftLogo.name = parsed.pathname.split('/').pop() || parsed.hostname;
+        } catch(e) {
+            draftLogo.name = url.length > 32 ? url.substring(0, 32) + '...' : url;
+        }
+        renderDraftLogoUI();
+    }
+
+    function clearDraftLogo() {
+        draftLogo = {
+            file: null,
+            url: null,
+            previewUrl: null,
+            sourceType: null,
+            name: ''
+        };
+        const fileInput = document.getElementById('new_brand_logo_file');
+        if (fileInput) fileInput.value = '';
+        const urlInput = document.getElementById('brand_logo_url_input');
+        if (urlInput) urlInput.value = '';
+        const urlBar = document.getElementById('brandLogoUrlBar');
+        if (urlBar) urlBar.style.display = 'none';
+        renderDraftLogoUI();
+    }
+
+    function renderDraftLogoUI() {
+        const emptyZone = document.getElementById('brandLogoEmptyZone');
+        const previewCard = document.getElementById('brandLogoPreviewCard');
+        const previewImg = document.getElementById('brandLogoPreviewImg');
+        const sourceBadge = document.getElementById('brandLogoSourceBadge');
+        const fileNameEl = document.getElementById('brandLogoFileName');
+        const urlBar = document.getElementById('brandLogoUrlBar');
+
+        if (!emptyZone || !previewCard) return;
+
+        if (draftLogo.previewUrl) {
+            emptyZone.style.display = 'none';
+            if (urlBar) urlBar.style.display = 'none';
+            previewCard.style.display = 'flex';
+            if (previewImg) previewImg.src = draftLogo.previewUrl;
+            if (fileNameEl) fileNameEl.textContent = draftLogo.name || 'Logotipo cargado';
+
+            if (sourceBadge) {
+                if (draftLogo.sourceType === 'clipboard') {
+                    sourceBadge.innerHTML = '<i class="ph ph-clipboard-text"></i> Portapapeles';
+                    sourceBadge.className = 'preview-source-badge clipboard';
+                } else if (draftLogo.sourceType === 'url') {
+                    sourceBadge.innerHTML = '<i class="ph ph-link"></i> Enlace Web';
+                    sourceBadge.className = 'preview-source-badge url';
+                } else {
+                    sourceBadge.innerHTML = '<i class="ph ph-file-image"></i> Archivo local';
+                    sourceBadge.className = 'preview-source-badge file';
+                }
+            }
+        } else {
+            emptyZone.style.display = 'flex';
+            previewCard.style.display = 'none';
+            if (previewImg) previewImg.src = '';
+        }
+    }
+
+    function toggleLogoUrlInput(show = null) {
+        const urlBar = document.getElementById('brandLogoUrlBar');
+        if (!urlBar) return;
+        const willShow = show !== null ? show : (urlBar.style.display === 'none' || !urlBar.style.display);
+        urlBar.style.display = willShow ? 'flex' : 'none';
+        if (willShow) {
+            const input = document.getElementById('brand_logo_url_input');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+    }
+
+    function applyLogoUrl() {
+        const input = document.getElementById('brand_logo_url_input');
+        const val = input ? input.value.trim() : '';
+        if (!val) {
+            if (input) input.focus();
+            return;
+        }
+        setDraftLogoUrl(val);
+    }
+
+    function handleLogoFileInput(input) {
+        if (input.files && input.files[0]) {
+            setDraftLogoFile(input.files[0], 'file');
+        }
+    }
+
+    async function pasteLogoFromClipboard() {
+        try {
+            if (navigator.clipboard && navigator.clipboard.read) {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    for (const type of item.types) {
+                        if (type.startsWith('image/')) {
+                            const blob = await item.getType(type);
+                            const file = new File([blob], 'clipboard_' + Date.now() + '.png', { type: blob.type || 'image/png' });
+                            setDraftLogoFile(file, 'clipboard');
+                            return;
+                        }
+                    }
+                }
+            }
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    const trimmed = text.trim();
+                    if (trimmed.startsWith('data:image/')) {
+                        const file = dataURLtoFile(trimmed, 'clipboard_' + Date.now() + '.png');
+                        if (file) setDraftLogoFile(file, 'clipboard');
+                        return;
+                    }
+                    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                        setDraftLogoUrl(trimmed);
+                        return;
+                    }
+                }
+            }
+            alert('No se detectó ninguna imagen en el portapapeles. Copia una imagen o captura de pantalla (Ctrl+C / Win+Shift+S) y vuelve a intentar, o simplemente presiona Ctrl+V.');
+        } catch (err) {
+            console.warn('Clipboard read error:', err);
+            alert('Haz clic en el recuadro del logotipo y presiona Ctrl+V para pegar la imagen.');
+        }
+    }
+
+    function setupDragAndDrop() {
+        const dropZone = document.getElementById('brandLogoEmptyZone');
+        if (!dropZone) return;
+
+        ['dragenter', 'dragover'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                setDraftLogoFile(dt.files[0], 'file');
+            }
+        });
+    }
+
+    function setupPasteListener() {
+        document.addEventListener('paste', (e) => {
+            if (!modalEl || !modalEl.classList.contains('active')) return;
+
+            const target = e.target;
+            const isOtherTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && 
+                target.id !== 'brand_logo_url_input' && target.id !== 'change_brand_logo_url_input';
+
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (!clipboardData) return;
+
+            // 1. Try to find image blob in clipboard items
+            const items = clipboardData.items;
+            let imageFound = false;
+            if (items) {
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        if (blob) {
+                            imageFound = true;
+                            e.preventDefault();
+                            const file = new File([blob], 'clipboard_' + Date.now() + '.png', { type: blob.type || 'image/png' });
+                            
+                            const changeModal = document.getElementById('changeLogoModal');
+                            if (changeModal && changeModal.classList.contains('active') && currentEditingBrandIndex !== null) {
+                                updateExistingBrandLogo(currentEditingBrandIndex, file, null);
+                                closeChangeLogoModal();
+                            } else {
+                                setDraftLogoFile(file, 'clipboard');
+                            }
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // 2. If no image blob and user is NOT typing in another text input (or is in URL input)
+            if (!imageFound && (!isOtherTextInput || (target && (target.id === 'brand_logo_url_input' || target.id === 'change_brand_logo_url_input')))) {
+                const text = clipboardData.getData('text/plain');
+                if (text) {
+                    const trimmed = text.trim();
+                    if (trimmed.startsWith('data:image/')) {
+                        e.preventDefault();
+                        const file = dataURLtoFile(trimmed, 'clipboard_' + Date.now() + '.png');
+                        if (file) {
+                            const changeModal = document.getElementById('changeLogoModal');
+                            if (changeModal && changeModal.classList.contains('active') && currentEditingBrandIndex !== null) {
+                                updateExistingBrandLogo(currentEditingBrandIndex, file, null);
+                                closeChangeLogoModal();
+                            } else {
+                                setDraftLogoFile(file, 'clipboard');
+                            }
+                        }
+                    } else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                        if (target.id === 'brand_logo_url_input' || target.id === 'change_brand_logo_url_input' || /\.(png|jpe?g|webp|svg|gif)(\?.*)?$/i.test(trimmed)) {
+                            e.preventDefault();
+                            const changeModal = document.getElementById('changeLogoModal');
+                            if (changeModal && changeModal.classList.contains('active') && currentEditingBrandIndex !== null) {
+                                updateExistingBrandLogo(currentEditingBrandIndex, null, trimmed);
+                                closeChangeLogoModal();
+                            } else {
+                                setDraftLogoUrl(trimmed);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // Modal & Brands Logic
+    function getSystemServices() {
+        if (typeof window.SYSTEM_SERVICES !== 'undefined' && Array.isArray(window.SYSTEM_SERVICES)) {
+            return window.SYSTEM_SERVICES;
+        }
+        if (typeof SYSTEM_SERVICES !== 'undefined' && Array.isArray(SYSTEM_SERVICES)) {
+            return SYSTEM_SERVICES;
+        }
+        return [];
+    }
+
+    function renderServicesBadgesHtml(brandIndex, servicesIds) {
+        if (!Array.isArray(servicesIds) || servicesIds.length === 0) {
+            return '<span class="service-none-text"><i class="ph ph-plus-circle"></i> Asignar servicios...</span>';
+        }
+        const sysServices = getSystemServices();
+        let html = '';
+        servicesIds.forEach(id => {
+            const found = sysServices.find(s => String(s.id) === String(id));
+            const name = found ? found.name : `Servicio #${id}`;
+            html += `
+                <span class="service-selected-pill">
+                    <span>${escapeHtml(name)}</span>
+                    <button type="button" class="pill-remove-btn" onclick="ClientModule.removeBrandService(${brandIndex}, '${id}', event)" title="Quitar">&times;</button>
+                </span>
+            `;
+        });
+        return html;
+    }
+
+    function closeAllMultiselects() {
+        document.querySelectorAll('.custom-multiselect-dropdown').forEach(dd => {
+            dd.style.display = 'none';
+        });
+        document.querySelectorAll('.custom-multiselect').forEach(ms => {
+            ms.classList.remove('open');
+        });
+    }
+
+    function toggleMultiselect(brandIndex, event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        const parent = document.getElementById('customMultiselect_' + brandIndex);
+        const dropdown = document.getElementById('customMultiselectDropdown_' + brandIndex);
+        if (!dropdown || !parent) return;
+
+        const isOpened = dropdown.style.display === 'flex';
+        closeAllMultiselects();
+        if (!isOpened) {
+            dropdown.style.display = 'flex';
+            parent.classList.add('open');
+            const searchInput = dropdown.querySelector('.multiselect-search-box input');
+            if (searchInput) {
+                searchInput.value = '';
+                filterServicesList(brandIndex, '');
+                setTimeout(() => searchInput.focus(), 60);
+            }
+        }
+    }
+
+    function onServiceToggle(brandIndex, serviceId, isChecked, checkboxEl) {
+        const brand = brandsArray[brandIndex];
+        if (!brand) return;
+        if (!Array.isArray(brand.services_ids)) brand.services_ids = [];
+        brand.services_ids = brand.services_ids.map(id => String(id));
+
+        const strId = String(serviceId);
+        if (isChecked) {
+            if (!brand.services_ids.includes(strId)) {
+                brand.services_ids.push(strId);
+            }
+        } else {
+            brand.services_ids = brand.services_ids.filter(id => id !== strId);
+        }
+
+        if (checkboxEl && checkboxEl.closest('.custom-multiselect-option')) {
+            checkboxEl.closest('.custom-multiselect-option').classList.toggle('selected', isChecked);
+        }
+
+        const badgesWrapper = document.getElementById('brandServicesBadges_' + brandIndex);
+        if (badgesWrapper) {
+            badgesWrapper.innerHTML = renderServicesBadgesHtml(brandIndex, brand.services_ids);
+        }
+
+        const countEl = document.getElementById('servicesCount_' + brandIndex);
+        if (countEl) {
+            countEl.textContent = `${brand.services_ids.length} seleccionados`;
+        }
+    }
+
+    function removeBrandService(brandIndex, serviceId, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        const brand = brandsArray[brandIndex];
+        if (!brand) return;
+        if (!Array.isArray(brand.services_ids)) brand.services_ids = [];
+        const strId = String(serviceId);
+        brand.services_ids = brand.services_ids.filter(id => String(id) !== strId);
+
+        const cb = document.querySelector(`.brand-service-cb-${brandIndex}[value="${strId}"]`);
+        if (cb) {
+            cb.checked = false;
+            if (cb.closest('.custom-multiselect-option')) {
+                cb.closest('.custom-multiselect-option').classList.remove('selected');
+            }
+        }
+
+        const badgesWrapper = document.getElementById('brandServicesBadges_' + brandIndex);
+        if (badgesWrapper) {
+            badgesWrapper.innerHTML = renderServicesBadgesHtml(brandIndex, brand.services_ids);
+        }
+
+        const countEl = document.getElementById('servicesCount_' + brandIndex);
+        if (countEl) {
+            countEl.textContent = `${brand.services_ids.length} seleccionados`;
+        }
+    }
+
+    function filterServicesList(brandIndex, query) {
+        const list = document.getElementById('servicesOptionsList_' + brandIndex);
+        if (!list) return;
+        const q = (query || '').toLowerCase().trim();
+        const options = list.querySelectorAll('.custom-multiselect-option');
+        options.forEach(opt => {
+            const name = opt.getAttribute('data-name') || '';
+            opt.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
+        });
+    }
+
     function renderBrands() {
         const container = document.getElementById('brandsList');
         if (!container) return;
@@ -428,6 +836,8 @@ const ClientModule = (function() {
             `;
             return;
         }
+
+        const sysServices = getSystemServices();
 
         brandsArray.forEach((brand, index) => {
             const card = document.createElement('div');
@@ -446,37 +856,38 @@ const ClientModule = (function() {
                 imgHtml = `<img src="${escapeHtml(brand.logo)}" class="brand-preview-avatar">`;
             }
 
-            // Services multi-select items
-            let servicesListHtml = '';
-            let selectedBadgesHtml = '';
-            
-            if (typeof SYSTEM_SERVICES !== 'undefined' && Array.isArray(SYSTEM_SERVICES)) {
-                SYSTEM_SERVICES.forEach(s => {
-                    const isSelected = (brand.services_ids && brand.services_ids.includes(s.id.toString()));
-                    const checkedAttr = isSelected ? 'checked' : '';
-                    
-                    if (isSelected) {
-                        selectedBadgesHtml += `<span class="service-selected-pill">${escapeHtml(s.name)}</span>`;
-                    }
+            // Normalize services_ids
+            if (!Array.isArray(brand.services_ids)) {
+                brand.services_ids = [];
+            }
+            brand.services_ids = brand.services_ids.map(id => String(id));
 
-                    servicesListHtml += `
-                        <label class="custom-multiselect-option">
-                            <input type="checkbox" value="${s.id}" class="brand-service-checkbox-${index}" ${checkedAttr} onchange="ClientModule.updateCustomBrandServices(${index})">
-                            <span>${escapeHtml(s.name)}</span>
-                        </label>
-                    `;
-                });
-            }
-            if (!selectedBadgesHtml) {
-                selectedBadgesHtml = '<span class="service-none-text">Sin servicios asignados</span>';
-            }
+            // Generate options list
+            let servicesListHtml = '';
+            sysServices.forEach(s => {
+                const isSelected = brand.services_ids.some(id => String(id) === String(s.id));
+                const checkedAttr = isSelected ? 'checked' : '';
+                const selectedClass = isSelected ? 'selected' : '';
+
+                servicesListHtml += `
+                    <label class="custom-multiselect-option ${selectedClass}" data-name="${escapeHtml(s.name).toLowerCase()}">
+                        <input type="checkbox" value="${s.id}" class="brand-service-cb-${index}" ${checkedAttr} onchange="ClientModule.onServiceToggle(${index}, '${s.id}', this.checked, this)">
+                        <span>${escapeHtml(s.name)}</span>
+                    </label>
+                `;
+            });
 
             const isChecked = brand.has_membership == 1 ? 'checked' : '';
 
             card.innerHTML = `
                 <div class="brand-card-top">
                     <div class="brand-identity">
-                        ${imgHtml}
+                        <div class="brand-avatar-clickable-wrap" onclick="ClientModule.openChangeLogoModal(${index})" title="Clic para cambiar o pegar nuevo logotipo">
+                            ${imgHtml}
+                            <div class="avatar-hover-overlay">
+                                <i class="ph ph-camera"></i>
+                            </div>
+                        </div>
                         <div class="brand-name-wrap">
                             <span class="brand-card-title">${escapeHtml(brand.name)}</span>
                             <span class="brand-card-subtitle">${brand.has_membership == 1 ? 'Membresía Activa' : 'Membresía Inactiva'}</span>
@@ -498,22 +909,24 @@ const ClientModule = (function() {
 
                     <div class="brand-services-field">
                         <label class="field-micro-label">Servicios Contratados</label>
-                        <div class="custom-multiselect">
-                            <div class="custom-multiselect-header" onclick="ClientModule.toggleMultiselect(this)">
-                                <div class="badges-wrapper">${selectedBadgesHtml}</div>
+                        <div class="custom-multiselect" id="customMultiselect_${index}">
+                            <div class="custom-multiselect-header" onclick="ClientModule.toggleMultiselect(${index}, event)">
+                                <div class="badges-wrapper" id="brandServicesBadges_${index}">${renderServicesBadgesHtml(index, brand.services_ids)}</div>
                                 <i class="ph ph-caret-down caret-icon"></i>
                             </div>
-                            <div class="custom-multiselect-dropdown" style="display: none;">
-                                ${servicesListHtml}
+                            <div class="custom-multiselect-dropdown" id="customMultiselectDropdown_${index}" style="display: none;" onclick="event.stopPropagation();">
+                                <div class="multiselect-search-box">
+                                    <i class="ph ph-magnifying-glass"></i>
+                                    <input type="text" placeholder="Filtrar servicios..." oninput="ClientModule.filterServicesList(${index}, this.value)">
+                                </div>
+                                <div class="multiselect-options-list" id="servicesOptionsList_${index}">
+                                    ${servicesListHtml}
+                                </div>
+                                <div class="multiselect-dropdown-footer">
+                                    <span class="services-count-text" id="servicesCount_${index}">${brand.services_ids.length} seleccionados</span>
+                                    <button type="button" class="btn-dropdown-done" onclick="ClientModule.closeAllMultiselects()">Listo</button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="brand-whatsapp-field">
-                        <label class="field-micro-label">ID Grupo WhatsApp (Opcional)</label>
-                        <div class="input-with-icon-mini">
-                            <i class="ph ph-users-three"></i>
-                            <input type="text" class="form-control-sm" value="${escapeHtml(brand.whatsapp_group || '')}" onchange="ClientModule.updateBrand(${index}, 'whatsapp_group', this.value)" placeholder="ej. 12345678@g.us">
                         </div>
                     </div>
                 </div>
@@ -522,26 +935,113 @@ const ClientModule = (function() {
         });
     }
 
-    function toggleMultiselect(headerEl) {
-        const dropdown = headerEl.nextElementSibling;
-        const isOpened = dropdown.style.display === 'block';
-        // Close others
-        document.querySelectorAll('.custom-multiselect-dropdown').forEach(dd => dd.style.display = 'none');
-        dropdown.style.display = isOpened ? 'none' : 'block';
+    function onPortalToggleChange(checkbox) {
+        const box = document.getElementById('portalToggleCard');
+        const pill = document.getElementById('portalStatusPill');
+        if (checkbox.checked) {
+            if (box) box.classList.add('active');
+            if (pill) {
+                pill.textContent = 'Activo';
+                pill.classList.add('active');
+            }
+        } else {
+            if (box) box.classList.remove('active');
+            if (pill) {
+                pill.textContent = 'Desactivado';
+                pill.classList.remove('active');
+            }
+        }
     }
 
-    function previewNewBrandLogo(input) {
-        const previewContainer = document.getElementById('newBrandLogoPreview');
-        if (!previewContainer) return;
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            const url = URL.createObjectURL(file);
-            previewContainer.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm);">`;
-            previewContainer.style.display = 'flex';
-        } else {
-            previewContainer.innerHTML = '';
-            previewContainer.style.display = 'none';
+    function openChangeLogoModal(index) {
+        currentEditingBrandIndex = index;
+        const brand = brandsArray[index];
+        if (!brand) return;
+        const titleEl = document.getElementById('changeLogoModalBrandTitle');
+        if (titleEl) titleEl.textContent = `Logotipo: ${brand.name || 'Marca'}`;
+        const urlInput = document.getElementById('change_brand_logo_url_input');
+        if (urlInput) urlInput.value = (typeof brand.logo === 'string' && brand.logo.startsWith('http')) ? brand.logo : '';
+        const modal = document.getElementById('changeLogoModal');
+        if (modal) modal.classList.add('active');
+    }
+
+    function closeChangeLogoModal() {
+        const modal = document.getElementById('changeLogoModal');
+        if (modal) modal.classList.remove('active');
+        currentEditingBrandIndex = null;
+    }
+
+    function handleChangeBrandLogoFile(input) {
+        if (input.files && input.files[0] && currentEditingBrandIndex !== null) {
+            updateExistingBrandLogo(currentEditingBrandIndex, input.files[0], null);
+            input.value = '';
+            closeChangeLogoModal();
         }
+    }
+
+    async function pasteLogoFromClipboardForExisting() {
+        if (currentEditingBrandIndex === null) return;
+        try {
+            if (navigator.clipboard && navigator.clipboard.read) {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    for (const type of item.types) {
+                        if (type.startsWith('image/')) {
+                            const blob = await item.getType(type);
+                            const file = new File([blob], 'clipboard_' + Date.now() + '.png', { type: blob.type || 'image/png' });
+                            updateExistingBrandLogo(currentEditingBrandIndex, file, null);
+                            closeChangeLogoModal();
+                            return;
+                        }
+                    }
+                }
+            }
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    const trimmed = text.trim();
+                    if (trimmed.startsWith('data:image/')) {
+                        const file = dataURLtoFile(trimmed, 'clipboard_' + Date.now() + '.png');
+                        if (file) {
+                            updateExistingBrandLogo(currentEditingBrandIndex, file, null);
+                            closeChangeLogoModal();
+                            return;
+                        }
+                    }
+                    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                        updateExistingBrandLogo(currentEditingBrandIndex, null, trimmed);
+                        closeChangeLogoModal();
+                        return;
+                    }
+                }
+            }
+            alert('No se detectó ninguna imagen en el portapapeles.');
+        } catch (err) {
+            console.warn('Clipboard read error:', err);
+            alert('Presiona Ctrl+V con una imagen en el portapapeles.');
+        }
+    }
+
+    function applyChangeLogoUrl() {
+        if (currentEditingBrandIndex === null) return;
+        const input = document.getElementById('change_brand_logo_url_input');
+        const val = input ? input.value.trim() : '';
+        if (!val) return;
+        updateExistingBrandLogo(currentEditingBrandIndex, null, val);
+        closeChangeLogoModal();
+    }
+
+    function removeExistingBrandLogo() {
+        if (currentEditingBrandIndex === null) return;
+        updateExistingBrandLogo(currentEditingBrandIndex, null, null);
+        closeChangeLogoModal();
+    }
+
+    function updateExistingBrandLogo(index, file, logoUrl) {
+        if (!brandsArray[index]) return;
+        brandsArray[index].file = file;
+        brandsArray[index].logo = logoUrl;
+        renderBrands();
     }
 
     return {
@@ -553,22 +1053,42 @@ const ClientModule = (function() {
         setView: setView,
         resetFilters: resetFilters,
         toggleMultiselect: toggleMultiselect,
-        previewNewBrandLogo: previewNewBrandLogo,
+        closeAllMultiselects: closeAllMultiselects,
+        onServiceToggle: onServiceToggle,
+        removeBrandService: removeBrandService,
+        filterServicesList: filterServicesList,
+        onPortalToggleChange: onPortalToggleChange,
+        handleLogoFileInput: handleLogoFileInput,
+        pasteLogoFromClipboard: pasteLogoFromClipboard,
+        toggleLogoUrlInput: toggleLogoUrlInput,
+        applyLogoUrl: applyLogoUrl,
+        clearDraftLogo: clearDraftLogo,
+        openChangeLogoModal: openChangeLogoModal,
+        closeChangeLogoModal: closeChangeLogoModal,
+        handleChangeBrandLogoFile: handleChangeBrandLogoFile,
+        pasteLogoFromClipboardForExisting: pasteLogoFromClipboardForExisting,
+        applyChangeLogoUrl: applyChangeLogoUrl,
+        removeExistingBrandLogo: removeExistingBrandLogo,
 
         openModal: function() {
             document.getElementById('clientForm').reset();
             document.getElementById('client_id').value = '';
             document.getElementById('client_dni').value = '';
-            document.getElementById('client_drive_folder_id').value = '';
-            const portalSwitch = document.getElementById('client_portal_enabled');
-            if (portalSwitch) portalSwitch.checked = false;
-            document.getElementById('clientModalTitle').innerHTML = '<i class="ph ph-user-plus"></i> <span>Nuevo Cliente</span>';
             
-            const previewContainer = document.getElementById('newBrandLogoPreview');
-            if (previewContainer) {
-                previewContainer.innerHTML = '';
-                previewContainer.style.display = 'none';
+            const portalSwitch = document.getElementById('client_portal_enabled');
+            if (portalSwitch) {
+                portalSwitch.checked = false;
+                onPortalToggleChange(portalSwitch);
             }
+
+            const titleEl = document.getElementById('clientModalTitle');
+            if (titleEl) titleEl.textContent = 'Nuevo Cliente';
+            const subEl = document.getElementById('clientModalSubtitle');
+            if (subEl) subEl.textContent = 'Registra los datos comerciales y gestiona sus marcas';
+            const badgeEl = document.getElementById('clientModalIconBadge');
+            if (badgeEl) badgeEl.innerHTML = '<i class="ph ph-user-plus"></i>';
+            
+            clearDraftLogo();
 
             brandsArray = [];
             deletedBrands = [];
@@ -587,12 +1107,11 @@ const ClientModule = (function() {
                 modalEl.classList.remove('active');
                 document.body.style.overflow = '';
             }
+            closeChangeLogoModal();
         },
 
         addBrand: function() {
             const nameInput = document.getElementById('new_brand_name');
-            const fileInput = document.getElementById('new_brand_logo');
-            
             const name = nameInput.value.trim();
             if (!name) {
                 nameInput.focus();
@@ -601,27 +1120,18 @@ const ClientModule = (function() {
                 return;
             }
 
-            const file = fileInput.files[0] || null;
-
             brandsArray.push({
                 id: null,
                 name: name,
-                file: file,
-                logo: null,
+                file: draftLogo.file,
+                logo: draftLogo.url,
                 has_membership: 0,
                 services_ids: [],
                 whatsapp_group: null
             });
 
             nameInput.value = '';
-            fileInput.value = '';
-            
-            const previewContainer = document.getElementById('newBrandLogoPreview');
-            if (previewContainer) {
-                previewContainer.innerHTML = '';
-                previewContainer.style.display = 'none';
-            }
-
+            clearDraftLogo();
             renderBrands();
         },
 
@@ -649,12 +1159,15 @@ const ClientModule = (function() {
         },
 
         updateCustomBrandServices: function(index) {
-            const checkboxes = document.querySelectorAll(`.brand-service-checkbox-${index}:checked`);
+            const checkboxes = document.querySelectorAll(`.brand-service-cb-${index}:checked`);
             const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
             if (brandsArray[index]) {
                 brandsArray[index].services_ids = selectedOptions;
+                const badges = document.getElementById('brandServicesBadges_' + index);
+                if (badges) badges.innerHTML = renderServicesBadgesHtml(index, brandsArray[index].services_ids);
+                const count = document.getElementById('servicesCount_' + index);
+                if (count) count.textContent = `${brandsArray[index].services_ids.length} seleccionados`;
             }
-            renderBrands();
         },
 
         renderBrandsOnly: function() {
@@ -724,10 +1237,11 @@ const ClientModule = (function() {
                     document.getElementById('client_dni').value = client.dni || '';
                     document.getElementById('client_whatsapp').value = client.whatsapp || '';
                     document.getElementById('client_email').value = client.email || '';
-                    document.getElementById('client_drive_folder_id').value = client.drive_folder_id || '';
+                    
                     const portalSwitch = document.getElementById('client_portal_enabled');
                     if (portalSwitch) {
                         portalSwitch.checked = (client.portal_enabled == 1 || client.portal_enabled === '1');
+                        onPortalToggleChange(portalSwitch);
                     }
                     
                     brandsArray = data.brands || [];
@@ -739,18 +1253,22 @@ const ClientModule = (function() {
                                 b.services_ids = [];
                             }
                         }
-                        if (!b.services_ids) b.services_ids = [];
+                        if (!Array.isArray(b.services_ids)) {
+                            b.services_ids = [];
+                        }
+                        b.services_ids = b.services_ids.map(id => String(id));
                     });
 
                     deletedBrands = [];
                     
-                    document.getElementById('clientModalTitle').innerHTML = '<i class="ph ph-pencil-simple-line"></i> <span>Editar Cliente</span>';
+                    const titleEl = document.getElementById('clientModalTitle');
+                    if (titleEl) titleEl.textContent = 'Editar Cliente';
+                    const subEl = document.getElementById('clientModalSubtitle');
+                    if (subEl) subEl.textContent = 'Actualiza los datos y marcas de este cliente';
+                    const badgeEl = document.getElementById('clientModalIconBadge');
+                    if (badgeEl) badgeEl.innerHTML = '<i class="ph ph-pencil-simple-line"></i>';
                     
-                    const previewContainer = document.getElementById('newBrandLogoPreview');
-                    if (previewContainer) {
-                        previewContainer.innerHTML = '';
-                        previewContainer.style.display = 'none';
-                    }
+                    clearDraftLogo();
 
                     renderBrands();
                     modalEl.classList.add('active');

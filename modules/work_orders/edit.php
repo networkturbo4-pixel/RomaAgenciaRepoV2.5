@@ -24,7 +24,7 @@ if (!empty($id)) {
 $stmtClients = $db->query("SELECT id, name FROM clients ORDER BY name ASC");
 $clients = $stmtClients->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch brands for selection if needed (though the user format has free text, we can populate a datalist)
+// Fetch brands
 $stmtBrands = $db->query("SELECT name FROM client_brands ORDER BY name ASC");
 $brands = $stmtBrands->fetchAll(PDO::FETCH_ASSOC);
 
@@ -45,7 +45,7 @@ foreach ($clientBrandsMapRaw as $row) {
 $stmtEmployees = $db->query("SELECT id, name FROM employees ORDER BY name ASC");
 $employees = $stmtEmployees->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all services and features for the workflow auto-populate
+// Fetch all services and features for workflow auto-populate
 $stmtServices = $db->query("SELECT id, name FROM services ORDER BY name ASC");
 $servicesList = $stmtServices->fetchAll(PDO::FETCH_ASSOC);
 
@@ -64,759 +64,1148 @@ foreach ($allFeatures as $f) {
     ];
 }
 
+// Fetch quotes and quote items for workflow auto-populate
+$stmtQuotes = $db->query("
+    SELECT q.id, q.client_id, c.name as client_name, q.client_company, q.total, q.currency, q.status, q.created_at
+    FROM quotes q
+    LEFT JOIN clients c ON q.client_id = c.id
+    ORDER BY q.id DESC
+");
+$quotesList = $stmtQuotes->fetchAll(PDO::FETCH_ASSOC);
+
+$stmtQuoteItems = $db->query("
+    SELECT qi.id, qi.quote_id, qi.service_id, qi.description, qi.quantity, qi.unit_price, qi.total, s.name as service_name
+    FROM quote_items qi
+    LEFT JOIN services s ON qi.service_id = s.id
+    ORDER BY qi.quote_id DESC, qi.id ASC
+");
+$allQuoteItems = $stmtQuoteItems->fetchAll(PDO::FETCH_ASSOC);
+
+$quotesItemsMap = [];
+foreach ($allQuoteItems as $qi) {
+    if (!isset($quotesItemsMap[$qi['quote_id']])) {
+        $quotesItemsMap[$qi['quote_id']] = [];
+    }
+    $quotesItemsMap[$qi['quote_id']][] = [
+        'id' => $qi['id'],
+        'service_id' => $qi['service_id'],
+        'service_name' => $qi['service_name'] ?? '',
+        'description' => $qi['description'] ?? '',
+        'quantity' => $qi['quantity'] ?? 1,
+        'unit_price' => $qi['unit_price'] ?? 0,
+        'total' => $qi['total'] ?? 0
+    ];
+}
+
 require_once 'includes/header.php';
 ?>
 <!-- Quill JS CDN -->
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 
-<!-- User's Custom CSS integrated into the content wrapper -->
 <style>
-    .ot-container {
-        font-family: 'Inter', sans-serif;
-        color: var(--color-text, #1a2c3e);
-        padding-bottom: 2rem;
-    }
+/* ==========================================================================
+   WORK ORDERS EDITOR - DESIGN SYSTEM (OLED DARK & HIGH-DENSITY MODERN SAAS)
+   ========================================================================== */
 
-    .floating-toolbar {
-        position: sticky;
-        top: 0;
-        background: var(--bg-surface);
-        z-index: 90;
-        padding: 1rem 1.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        border-radius: 0 0 1rem 1rem;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
+:root {
+    --wo-bg: #f8fafc;
+    --wo-card: #ffffff;
+    --wo-card-sub: #f8fafc;
+    --wo-border: #e2e8f0;
+    --wo-border-subtle: #f1f5f9;
+    --wo-input-bg: #ffffff;
+    --wo-text-title: #0f172a;
+    --wo-text-main: #334155;
+    --wo-text-muted: #64748b;
+    --wo-toolbar-bg: rgba(255, 255, 255, 0.88);
+    --wo-accent: var(--primary-color, #4f46e5);
+    --wo-radius-sm: 8px;
+    --wo-radius-md: 12px;
+    --wo-radius-lg: 16px;
+    --wo-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
 
-    .logo-area {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .logo-area i {
-      font-size: 1.5rem;
-      color: var(--primary-color);
-      background: var(--bg-color);
-      padding: 6px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    }
-    .logo-area h2 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--color-title);
-      margin: 0;
-    }
-    .button-group {
-      display: flex;
-      gap: 0.9rem;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .btn-float {
-      background: var(--bg-color);
-      border: none;
-      padding: 0.55rem 1.2rem;
-      border-radius: 2.5rem;
-      font-weight: 600;
-      font-size: 0.85rem;
-      font-family: 'Inter', sans-serif;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      transition: all 0.2s ease;
-      color: var(--color-text);
-      border: 1px solid var(--border-color);
-    }
-    .btn-float i {
-      font-size: 1rem;
-    }
-    .btn-float:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.1);
-      background: var(--bg-surface);
-      border-color: var(--primary-color);
-    }
-    .btn-primary-float {
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-    .btn-primary-float:hover {
-      background: var(--primary-color);
-      filter: brightness(0.9);
-      transform: translateY(-2px);
-      color: white;
-    }
+[data-theme="dark"] {
+    --wo-bg: #000000 !important;
+    --wo-card: #0a0a0a !important;
+    --wo-card-sub: #111111 !important;
+    --wo-border: #1f1f1f !important;
+    --wo-border-subtle: #262626 !important;
+    --wo-input-bg: #080808 !important;
+    --wo-text-title: #ffffff !important;
+    --wo-text-main: #e2e8f0 !important;
+    --wo-text-muted: #94a3b8 !important;
+    --wo-toolbar-bg: rgba(10, 10, 10, 0.88) !important;
+    --wo-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
 
-    .toast-msg {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background: #0f766e;
-      color: #ffffff;
-      padding: 0.8rem 1.5rem;
-      border-radius: 2rem;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-      font-size: 0.9rem;
-      font-weight: 600;
-      z-index: 10000;
-      animation: toastIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    @keyframes toastIn {
-      from { transform: translateY(100%) scale(0.9); opacity: 0; }
-      to { transform: translateY(0) scale(1); opacity: 1; }
-    }
-    
-    .btn-back {
-        background: var(--bg-color);
-        color: var(--text-muted);
-        border-color: var(--border-color);
-    }
+[data-theme="dark"] body,
+[data-theme="dark"] .wo-editor-container {
+    background-color: #000000 !important;
+}
 
-    .info-cards {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.2rem;
-      margin-bottom: 2rem;
-    }
-    .card-glass {
-      background: var(--bg-surface);
-      border-radius: 1rem;
-      padding: 1rem 1.2rem;
-      flex: 1 1 200px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      border: 1px solid var(--border-color);
-    }
-    .card-glass label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 600;
-      color: var(--text-muted);
-      display: block;
-      margin-bottom: 0.3rem;
-    }
-    .card-glass input, .card-glass select {
-      font-weight: 600;
-      font-size: 0.95rem;
-      border: none;
-      background: transparent;
-      width: 100%;
-      outline: none;
-      font-family: 'Inter', sans-serif;
-      color: var(--color-text);
-      padding: 0;
-    }
+.wo-editor-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    color: var(--wo-text-main);
+    max-width: 1260px;
+    margin: 0 auto;
+    padding: 0.5rem 0.75rem 4rem;
+    box-sizing: border-box;
+}
 
-    .section-title {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      margin: 1.8rem 0 1.2rem 0;
-      flex-wrap: wrap;
-    }
-    .section-title h2 {
-      font-size: 1.4rem;
-      font-weight: 600;
-      color: var(--color-title);
-      margin: 0;
-    }
+/* ==========================================================================
+   STICKY FLOATING APP HEADER
+   ========================================================================== */
+.wo-app-header {
+    position: sticky;
+    top: 10px;
+    z-index: 95;
+    background: var(--wo-toolbar-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-lg);
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--wo-shadow);
+    transition: all 0.2s ease;
+}
 
-    .process-card {
-      background: var(--bg-surface);
-      border-radius: 1rem;
-      margin-bottom: 1.4rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      border: 1px solid var(--border-color);
-      overflow: hidden;
-    }
-    .process-header {
-      background: var(--bg-color);
-      padding: 1rem 1.6rem;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .process-name {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--primary-color);
-    }
-    .actions-buttons {
-      display: flex;
-      gap: 0.6rem;
-    }
-    .btn-icon-ot {
-      background: transparent;
-      border: none;
-      font-size: 1rem;
-      cursor: pointer;
-      padding: 0.4rem 0.6rem;
-      border-radius: 2rem;
-      color: var(--text-muted);
-    }
-    .btn-icon-ot:hover {
-      background: var(--bg-color);
-      color: var(--primary-color);
-    }
-    .danger:hover {
-      color: var(--danger-color, #e05a56);
-      background: rgba(224, 90, 86, 0.1);
-    }
-    .rows-container {
-      padding: 1rem 1.2rem 1.4rem 1.2rem;
-      background: var(--bg-surface);
-    }
-    .row-item {
-      background: var(--bg-surface);
-      border-radius: 12px;
-      padding: 1rem 1.2rem;
-      margin-bottom: 0.8rem;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 1.2rem;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.02);
-      border: 1px solid var(--border-color);
-      transition: box-shadow 0.2s, transform 0.2s;
-    }
-    .row-item:hover {
-      box-shadow: 0 6px 20px rgba(0,0,0,0.04);
-      transform: translateY(-2px);
-    }
-    .row-field {
-      flex: 2 1 180px;
-      min-width: 150px;
-      position: relative;
-    }
-    .row-field label {
-      display: block;
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      margin-bottom: 0.4rem;
-    }
-    .row-field select, .row-field textarea, .row-field input {
-      width: 100%;
-      border: none;
-      background: var(--bg-color);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      font-size: 0.9rem;
-      font-weight: 500;
-      font-family: 'Inter', sans-serif;
-      color: var(--color-text);
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
-      transition: all 0.2s;
-    }
-    .row-field select:focus, .row-field textarea:focus, .row-field input:focus {
-      background: var(--bg-surface);
-      outline: none;
-      box-shadow: inset 0 0 0 2px var(--primary-color), 0 4px 12px rgba(var(--primary-color-rgb, 79, 70, 229), 0.1);
-    }
-    .row-field textarea {
-        resize: vertical;
-        min-height: 44px;
-        line-height: 1.4;
-    }
-    .remove-row-btn {
-      background: var(--bg-color);
-      border: none;
-      font-size: 1.2rem;
-      color: var(--text-muted);
-      cursor: pointer;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: all 0.2s;
-    }
-    .remove-row-btn:hover {
-      background: rgba(224, 90, 86, 0.1);
-      color: var(--danger-color, #e05a56);
-      transform: scale(1.05);
-    }
-    .add-row-btn {
-      margin-top: 0.4rem;
-      background: var(--bg-color);
-      border: 1px dashed var(--border-color);
-      border-radius: 2rem;
-      padding: 0.5rem 1rem;
-      font-size: 0.75rem;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      color: var(--primary-color);
-    }
-    .budget-obs {
-      background: var(--bg-surface);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      margin-top: 2rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      border: 1px solid var(--border-color);
-    }
-    .budget-box, .obs-box {
-      flex: 1;
-      min-width: 250px;
-      overflow: hidden;
-    }
-    .budget-box h4, .obs-box h4 {
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 0.6rem;
-      margin-top: 0;
-    }
-    .budget-box input, .obs-box textarea {
-      width: 100%;
-      border-radius: 0.5rem;
-      border: 1px solid var(--border-color);
-      padding: 0.8rem 1rem;
-      font-family: 'Inter', sans-serif;
-      background: var(--bg-color);
-      color: var(--color-text);
-    }
+.wo-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+}
 
-    /* Modern Quill Editor Styling */
-    .obs-box .ql-toolbar.ql-snow {
-      border: 1px solid var(--border-color);
-      border-radius: 10px 10px 0 0;
-      background: var(--bg-body);
-      padding: 0.5rem 0.7rem;
-    }
-    .obs-box .ql-toolbar.ql-snow .ql-formats button {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      transition: all 0.15s ease;
-    }
-    .obs-box .ql-toolbar.ql-snow .ql-formats button:hover {
-      background: var(--bg-surface);
-    }
-    .obs-box .ql-toolbar.ql-snow .ql-formats button.ql-active {
-      background: var(--primary-color);
-      color: white;
-    }
-    .obs-box .ql-toolbar.ql-snow .ql-formats button.ql-active .ql-stroke {
-      stroke: white;
-    }
-    .obs-box .ql-toolbar.ql-snow .ql-formats button.ql-active .ql-fill {
-      fill: white;
-    }
-    .obs-box .ql-toolbar.ql-snow .ql-stroke {
-      stroke: var(--text-muted);
-    }
-    .obs-box .ql-toolbar.ql-snow .ql-fill {
-      fill: var(--text-muted);
-    }
-    .obs-box .ql-container.ql-snow {
-      border: 1px solid var(--border-color);
-      border-top: none;
-      border-radius: 0 0 10px 10px;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.9rem;
-      color: var(--color-text);
-      background: var(--bg-color);
-      min-height: 120px;
-      transition: box-shadow 0.2s ease;
-    }
-    .obs-box .ql-container.ql-snow:focus-within {
-      box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.15);
-    }
-    .obs-box .ql-editor {
-      min-height: 120px;
-      padding: 0.8rem 1rem;
-      line-height: 1.6;
-    }
-    .obs-box .ql-editor.ql-blank::before {
-      color: var(--text-muted);
-      font-style: normal;
-      opacity: 0.6;
-    }
+.wo-btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--wo-radius-sm);
+    background: var(--wo-card-sub);
+    border: 1px solid var(--wo-border);
+    color: var(--wo-text-main);
+    text-decoration: none;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.wo-btn-back:hover {
+    background: var(--wo-border);
+    color: var(--wo-text-title);
+    transform: translateX(-2px);
+}
 
-    /* Modern SweetAlert2 Popup */
-    .swal-modern-popup {
-      border-radius: 1rem !important;
-      border: 1px solid var(--border-color) !important;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-      font-family: 'Inter', sans-serif !important;
-    }
-    .swal-modern-popup .swal2-title {
-      font-size: 1.2rem !important;
-      font-weight: 700 !important;
-    }
-    .swal-modern-popup .swal2-html-container {
-      font-size: 0.9rem !important;
-      line-height: 1.5 !important;
-    }
-    .swal-modern-popup .swal2-actions button {
-      border-radius: 8px !important;
-      font-weight: 600 !important;
-      font-family: 'Inter', sans-serif !important;
-      padding: 0.5rem 1.2rem !important;
-      font-size: 0.9rem !important;
-    }
+.wo-title-group {
+    display: flex;
+    flex-direction: column;
+}
 
-    /* === Accordion === */
-    .os-accordion {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 1rem;
-      margin-bottom: 2rem;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    .os-accordion-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 1.5rem;
-      cursor: pointer;
-      transition: background 0.2s;
-      user-select: none;
-    }
-    .os-accordion-header:hover {
-      background: transparent;
-    }
-    .os-accordion-icon {
-      font-size: 1.25rem;
-      color: var(--text-muted);
-      transition: transform 0.3s ease;
-    }
-    .os-accordion.open .os-accordion-icon {
-      transform: rotate(180deg);
-    }
-    .os-accordion-body {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.35s ease, padding 0.35s ease;
-      padding: 0 1.5rem;
-    }
-    .os-accordion.open .os-accordion-body {
-      max-height: 600px;
-      padding: 0 1.5rem 1.5rem;
-    }
-    .os-accordion-summary {
-      transition: opacity 0.2s;
-    }
-    .os-accordion.open .os-accordion-summary {
-      opacity: 0;
-      height: 0;
-      margin: 0 !important;
-    }
+.wo-doc-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
-    /* Accordion inner fields */
-    .os-field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
+.wo-doc-pill h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--wo-text-title);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.wo-badge-correlativo {
+    background: var(--wo-card-sub);
+    border: 1px solid var(--wo-border);
+    color: var(--wo-accent);
+    padding: 0.15rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: monospace;
+    letter-spacing: 0.5px;
+}
+
+.wo-header-subtitle {
+    font-size: 0.75rem;
+    color: var(--wo-text-muted);
+    margin-top: 1px;
+}
+
+.wo-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-shrink: 0;
+}
+
+.wo-btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--wo-radius-sm);
+    font-size: 0.825rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+    border: 1px solid transparent;
+}
+
+.wo-btn-subtle {
+    background: var(--wo-card-sub);
+    border-color: var(--wo-border);
+    color: var(--wo-text-main);
+}
+.wo-btn-subtle:hover {
+    background: var(--wo-border);
+    color: var(--wo-text-title);
+}
+
+.wo-btn-primary {
+    background: var(--wo-accent);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.25);
+}
+.wo-btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+}
+
+.wo-kbd-hint {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 0.7rem;
+    font-family: monospace;
+    margin-left: 2px;
+}
+
+/* ==========================================================================
+   MODULAR CARDS (CARDS OLED)
+   ========================================================================== */
+.wo-card {
+    background: var(--wo-card);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-lg);
+    padding: 1.35rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--wo-shadow);
+    transition: border-color 0.2s ease;
+}
+.wo-card:focus-within {
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.wo-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--wo-border-subtle);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.wo-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.wo-card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--wo-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.wo-card-title h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--wo-text-title);
+    letter-spacing: -0.01em;
+}
+
+.wo-card-title p {
+    margin: 1px 0 0;
+    font-size: 0.75rem;
+    color: var(--wo-text-muted);
+}
+
+/* Grid System */
+.wo-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.wo-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.25rem;
+}
+
+/* Form Groups */
+.wo-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.wo-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--wo-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.wo-label i {
+    font-size: 0.85rem;
+    color: var(--wo-accent);
+}
+
+.wo-input,
+.wo-select {
+    width: 100%;
+    padding: 0.65rem 0.9rem;
+    background: var(--wo-input-bg);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm);
+    color: var(--wo-text-main);
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 500;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+.wo-input:focus,
+.wo-select:focus {
+    border-color: var(--wo-accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Priority Modern Pills Selector */
+.wo-priority-pills {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.wo-priority-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.5rem;
+    background: var(--wo-input-bg);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm);
+    color: var(--wo-text-main);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+.wo-priority-pill:hover {
+    border-color: var(--wo-text-muted);
+    background: var(--wo-card-sub);
+}
+
+.wo-priority-pill.active[data-priority="Baja"] {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+.wo-priority-pill.active[data-priority="Media"] {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+.wo-priority-pill.active[data-priority="Alta"] {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.priority-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.priority-dot.dot-green { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+.priority-dot.dot-yellow { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+.priority-dot.dot-red { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+
+/* Channels / Social Networks modern selector */
+.wo-channels-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.wo-quick-channel-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.wo-channel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 9999px;
+    border: 1px solid var(--wo-border);
+    background: var(--wo-card-sub);
+    color: var(--wo-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.wo-channel-btn:hover {
+    border-color: var(--wo-accent);
+    color: var(--wo-text-title);
+    transform: translateY(-1px);
+}
+.wo-channel-btn i {
+    font-size: 0.95rem;
+}
+
+.wo-channel-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--wo-card-sub);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm);
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.2s ease;
+}
+.wo-channel-card:focus-within {
+    border-color: var(--wo-accent);
+}
+
+.wo-channel-icon-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--wo-input-bg);
+    border: 1px solid var(--wo-border);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.wo-channel-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--wo-text-main);
+    font-size: 0.85rem;
+    outline: none;
+    font-family: inherit;
+}
+.wo-channel-input::placeholder {
+    color: var(--wo-text-muted);
+    opacity: 0.7;
+}
+
+.wo-btn-remove {
+    background: transparent;
+    border: none;
+    color: var(--wo-text-muted);
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.wo-btn-remove:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* ==========================================================================
+   WORKFLOW / DELIVERABLES ITEMS & IMPORTERS
+   ========================================================================== */
+.wo-workflow-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.wo-importer-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--wo-card-sub);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm);
+    padding: 0.35rem 0.65rem;
+    transition: all 0.15s ease;
+}
+.wo-importer-pill:hover,
+.wo-importer-pill:focus-within {
+    border-color: var(--wo-accent);
+}
+.wo-importer-pill.quote-importer i {
+    color: #6366f1;
+    font-size: 1.05rem;
+}
+.wo-importer-pill.service-importer i {
+    color: #f59e0b;
+    font-size: 1.05rem;
+}
+
+.wo-importer-pill select {
+    border: none;
+    background: transparent;
+    color: var(--wo-text-main);
+    font-size: 0.8rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    max-width: 215px;
+}
+.wo-importer-pill select option {
+    background: var(--wo-card);
+    color: var(--wo-text-main);
+}
+
+.wo-badge-counter {
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: var(--wo-accent);
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.wo-deliverable-card {
+    background: var(--wo-card-sub);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-md);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.95rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.wo-deliverable-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+
+.wo-deliverable-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.wo-deliverable-index {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wo-deliverable-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--wo-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: monospace;
+}
+
+.wo-deliverable-assignee {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 240px;
+    flex: 1;
+    max-width: 380px;
+}
+
+.wo-deliverable-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+/* Modern Quill inside deliverable item */
+.wo-deliverable-card .ql-toolbar.ql-snow {
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm) var(--wo-radius-sm) 0 0;
+    background: var(--wo-input-bg);
+    padding: 0.35rem 0.5rem;
+}
+.wo-deliverable-card .ql-container.ql-snow {
+    border: 1px solid var(--wo-border);
+    border-top: none;
+    border-radius: 0 0 var(--wo-radius-sm) var(--wo-radius-sm);
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--wo-text-main);
+    background: var(--wo-input-bg);
+    min-height: 75px;
+}
+.wo-deliverable-card .ql-editor {
+    min-height: 75px;
+    padding: 0.65rem 0.85rem;
+    line-height: 1.5;
+}
+.wo-deliverable-card .ql-editor.ql-blank::before {
+    color: var(--wo-text-muted);
+    font-style: normal;
+    opacity: 0.6;
+}
+
+/* Empty State */
+.wo-empty-state {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    background: var(--wo-card-sub);
+    border: 1px dashed var(--wo-border);
+    border-radius: var(--wo-radius-md);
+}
+.wo-empty-icon {
+    font-size: 2.5rem;
+    color: var(--wo-text-muted);
+    opacity: 0.6;
+    margin-bottom: 0.5rem;
+}
+.wo-empty-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--wo-text-title);
+    margin: 0 0 0.25rem;
+}
+.wo-empty-desc {
+    font-size: 0.8rem;
+    color: var(--wo-text-muted);
+    max-width: 480px;
+    margin: 0 auto 1.25rem;
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   BUDGET & NOTES CARDS
+   ========================================================================== */
+.wo-budget-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--wo-input-bg);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+.wo-budget-input-wrap:focus-within {
+    border-color: var(--wo-accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.wo-currency-select {
+    border: none;
+    background: var(--wo-card-sub);
+    color: var(--wo-text-title);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.65rem 0.85rem;
+    outline: none;
+    cursor: pointer;
+    border-right: 1px solid var(--wo-border);
+    font-family: inherit;
+}
+
+.wo-amount-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.65rem 0.9rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--wo-text-title);
+    outline: none;
+    font-family: inherit;
+}
+
+.wo-note-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+    font-size: 0.75rem;
+    color: var(--wo-text-muted);
+}
+.wo-note-banner i {
+    color: #10b981;
+}
+
+/* Quill Global Observaciones */
+#observacionesContainer .ql-toolbar.ql-snow {
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm) var(--wo-radius-sm) 0 0;
+    background: var(--wo-input-bg);
+    padding: 0.45rem 0.65rem;
+}
+#observacionesContainer .ql-container.ql-snow {
+    border: 1px solid var(--wo-border);
+    border-top: none;
+    border-radius: 0 0 var(--wo-radius-sm) var(--wo-radius-sm);
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--wo-text-main);
+    background: var(--wo-input-bg);
+    min-height: 120px;
+}
+#observacionesContainer .ql-editor {
+    min-height: 120px;
+    padding: 0.85rem 1rem;
+    line-height: 1.55;
+}
+
+/* ==========================================================================
+   CUSTOM FIELDS (NOTION / LINEAR PROPERTIES)
+   ========================================================================== */
+.wo-property-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: var(--wo-card-sub);
+    border: 1px solid var(--wo-border);
+    border-radius: var(--wo-radius-sm);
+    padding: 0.45rem 0.75rem;
+    transition: border-color 0.2s;
+}
+.wo-property-row:focus-within {
+    border-color: var(--wo-accent);
+}
+
+.wo-prop-name {
+    width: 180px;
+    border: none;
+    background: transparent;
+    color: var(--wo-text-title);
+    font-weight: 600;
+    font-size: 0.825rem;
+    outline: none;
+    font-family: inherit;
+}
+
+.wo-prop-separator {
+    color: var(--wo-text-muted);
+    opacity: 0.4;
+    user-select: none;
+}
+
+.wo-prop-value {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--wo-text-main);
+    font-size: 0.825rem;
+    outline: none;
+    font-family: inherit;
+}
+
+/* ==========================================================================
+   DARK THEME SPECIFIC OVERRIDES FOR QUILL
+   ========================================================================== */
+[data-theme="dark"] .ql-stroke {
+    stroke: #94a3b8 !important;
+}
+[data-theme="dark"] .ql-fill {
+    fill: #94a3b8 !important;
+}
+[data-theme="dark"] .ql-picker {
+    color: #94a3b8 !important;
+}
+[data-theme="dark"] .ql-active .ql-stroke,
+[data-theme="dark"] .ql-snow.ql-toolbar button:hover .ql-stroke {
+    stroke: var(--wo-accent) !important;
+}
+[data-theme="dark"] .ql-active .ql-fill,
+[data-theme="dark"] .ql-snow.ql-toolbar button:hover .ql-fill {
+    fill: var(--wo-accent) !important;
+}
+
+/* Toast Message */
+.toast-msg {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: #0f766e;
+    color: #ffffff;
+    padding: 0.75rem 1.4rem;
+    border-radius: 9999px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 10000;
+    animation: toastIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+@keyframes toastIn {
+    from { transform: translateY(100%) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .wo-workflow-actions {
+        width: 100%;
+        margin-top: 0.5rem;
     }
-    .os-field-group label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      font-weight: 600;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
+    .wo-importer-pill {
+        flex: 1 1 200px;
     }
-    .os-field-input {
-      width: 100%;
-      padding: 0.6rem 0.9rem;
-      border: 1px solid var(--border-color);
-      border-radius: 0.6rem;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: var(--color-text);
-      background: var(--bg-color);
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+    .wo-importer-pill select {
+        max-width: 100%;
+        width: 100%;
     }
-    .os-field-input:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb, 79,70,229), 0.12);
+}
+
+@media (max-width: 900px) {
+    .wo-grid-2, .wo-grid-3 {
+        grid-template-columns: 1fr;
     }
-    .os-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      padding: 0.35rem 0.75rem;
-      background: var(--bg-color);
-      border: 1px solid var(--border-color);
-      border-radius: 2rem;
-      font-size: 0.8rem;
-      font-weight: 500;
-      cursor: pointer;
-      color: var(--color-text);
-      text-transform: none;
-      letter-spacing: 0;
-      transition: all 0.15s;
+}
+
+@media (max-width: 768px) {
+    .wo-app-header {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        border-radius: 16px 16px 0 0;
+        z-index: 1000;
+        padding: 0.75rem 1rem;
     }
-    .os-chip:hover {
-      border-color: var(--primary-color);
-      background: var(--bg-surface);
+    .wo-editor-container {
+        padding-bottom: 90px;
     }
-    .os-chip input[type="checkbox"] {
-      width: auto;
-      margin: 0;
-      accent-color: var(--primary-color);
+    .wo-deliverable-assignee {
+        max-width: 100%;
+        min-width: 100%;
     }
-    .os-chip:has(input:checked) {
-      background: var(--primary-color);
-      color: white;
-      border-color: var(--primary-color);
-    }
-    @media (max-width: 600px) {
-      .os-accordion-body > div[style*="grid-template-columns: 1fr 1fr"] {
-        grid-template-columns: 1fr !important;
-      }
-    }
-    @media (max-width: 768px) {
-      .floating-toolbar { 
-          position: fixed;
-          top: auto;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          margin: 0;
-          padding: 1rem 1.5rem !important;
-          border-radius: 1.2rem 1.2rem 0 0;
-          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-          z-index: 1000;
-          flex-direction: row;
-      }
-      .logo-area h2 {
-          font-size: 1.1rem;
-      }
-      .button-group {
-          gap: 0.5rem;
-      }
-      .btn-float {
-          padding: 0.5rem 0.8rem;
-          font-size: 0.8rem;
-      }
-      .ot-container {
-          padding-bottom: 90px;
-      }
-    }
-    @media (max-width: 500px) {
-      .logo-area h2 { display: none; }
-    }
-    /* Dark Mode OLED */
-    [data-theme="dark"] body,
-    [data-theme="dark"] .ot-container {
-        background-color: #000000 !important;
-    }
-    [data-theme="dark"] .card-glass,
-    [data-theme="dark"] .process-card,
-    [data-theme="dark"] .os-accordion,
-    [data-theme="dark"] .budget-obs,
-    [data-theme="dark"] .floating-toolbar {
-        background: #0a0a0a !important;
-        border-color: #262626 !important;
-    }
-    [data-theme="dark"] .row-item,
-    [data-theme="dark"] .process-header,
-    [data-theme="dark"] .rows-container,
-    [data-theme="dark"] .row-field select,
-    [data-theme="dark"] .row-field textarea,
-    [data-theme="dark"] .row-field input,
-    [data-theme="dark"] .budget-box input,
-    [data-theme="dark"] .obs-box textarea,
-    [data-theme="dark"] .os-field-input,
-    [data-theme="dark"] .os-chip {
-        background: #000000 !important;
-        border-color: #262626 !important;
-        color: #f4f4f5 !important;
-    }
-    [data-theme="dark"] .btn-float {
-        background: #141414 !important;
-        border-color: #262626 !important;
-        color: #f4f4f5 !important;
-    }
-    [data-theme="dark"] .btn-primary-float {
-        background: var(--primary-color) !important;
-        color: #ffffff !important;
-    }
-    [data-theme="dark"] .card-glass label input[type="checkbox"] {
-        accent-color: var(--primary-color);
-    }
+}
 </style>
 
-<div class="ot-container">
-    <div class="floating-toolbar">
-        <div class="logo-area">
-            <i class="ph ph-clipboard-text"></i>
-            <h2>OS: <?php echo htmlspecialchars($correlativo); ?></h2>
+<div class="wo-editor-container">
+    <!-- Sticky Floating App Header -->
+    <header class="wo-app-header">
+        <div class="wo-header-left">
+            <a href="index.php?module=work_orders&action=index" class="wo-btn-back" title="Volver al listado">
+                <i class="ph ph-arrow-left"></i>
+            </a>
+            <div class="wo-title-group">
+                <div class="wo-doc-pill">
+                    <h2>Orden de Servicio</h2>
+                    <span class="wo-badge-correlativo">#<?php echo htmlspecialchars($correlativo); ?></span>
+                </div>
+                <span class="wo-header-subtitle" id="headerSubtitleSummary">Borrador de orden de trabajo</span>
+            </div>
         </div>
-        <div class="button-group">
-            <a href="index.php?module=work_orders&action=index" class="btn-float btn-back"><i class="ph ph-arrow-left"></i> Volver</a>
-            <button id="saveSnapshotBtn" class="btn-float btn-primary-float"><i class="ph ph-floppy-disk"></i> Guardar</button>
+
+        <div class="wo-header-actions">
+            <?php if (!empty($public_token)): ?>
+            <button type="button" class="wo-btn-action wo-btn-subtle" onclick="shareOrder('<?php echo htmlspecialchars($public_token); ?>')">
+                <i class="ph ph-share-network"></i> Compartir
+            </button>
+            <?php endif; ?>
+
+            <button type="button" id="saveSnapshotBtn" class="wo-btn-action wo-btn-primary">
+                <i class="ph ph-floppy-disk"></i> Guardar <span class="wo-kbd-hint">Ctrl+S</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- CARD 1: INFORMACIÓN DEL SERVICIO -->
+    <div class="wo-card">
+        <div class="wo-card-header">
+            <div class="wo-card-title">
+                <div class="wo-card-icon"><i class="ph ph-briefcase"></i></div>
+                <div>
+                    <h3>Información del Servicio</h3>
+                    <p>Datos principales del cliente, marca y cronograma de inicio</p>
+                </div>
+            </div>
+            <div id="quickInfoPill" style="font-size: 0.75rem; color: var(--wo-text-muted); font-weight: 500;"></div>
+        </div>
+
+        <div class="wo-grid-2" style="margin-bottom: 1.25rem;">
+            <!-- Cliente -->
+            <div class="wo-form-group">
+                <label class="wo-label"><i class="ph ph-buildings"></i> Cliente</label>
+                <select id="clienteName" class="wo-select">
+                    <option value="">Seleccionar Cliente...</option>
+                    <?php foreach($clients as $c): ?>
+                        <option value="<?php echo htmlspecialchars($c['name']); ?>"><?php echo htmlspecialchars($c['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Marca -->
+            <div class="wo-form-group">
+                <label class="wo-label"><i class="ph ph-tag"></i> Marca Comercial</label>
+                <select id="marcaName" class="wo-select">
+                    <option value="">Primero seleccione un cliente...</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="wo-grid-2" style="margin-bottom: 1.25rem;">
+            <!-- Fecha de Inicio -->
+            <div class="wo-form-group">
+                <label class="wo-label"><i class="ph ph-calendar-blank"></i> Fecha de Inicio</label>
+                <input type="date" id="fechaInicio" class="wo-input" value="">
+            </div>
+
+            <!-- Prioridad con pills interactivas -->
+            <div class="wo-form-group">
+                <label class="wo-label"><i class="ph ph-flag"></i> Prioridad del Proyecto</label>
+                <input type="hidden" id="osPrioridad" value="Media">
+                <div class="wo-priority-pills" id="priorityPillsGroup">
+                    <div class="wo-priority-pill" data-priority="Baja" onclick="setPriority('Baja')">
+                        <span class="priority-dot dot-green"></span> Baja
+                    </div>
+                    <div class="wo-priority-pill active" data-priority="Media" onclick="setPriority('Media')">
+                        <span class="priority-dot dot-yellow"></span> Media
+                    </div>
+                    <div class="wo-priority-pill" data-priority="Alta" onclick="setPriority('Alta')">
+                        <span class="priority-dot dot-red"></span> Alta
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Redes a Manejar -->
+        <div class="wo-form-group">
+            <label class="wo-label"><i class="ph ph-globe"></i> Canales y Redes Sociales a Manejar</label>
+            <div class="wo-channels-container">
+                <div class="wo-quick-channel-pills">
+                    <button type="button" class="wo-channel-btn" onclick="addNetworkPreset('Facebook')"><i class="ph ph-facebook-logo" style="color:#1877F2;"></i> + Facebook</button>
+                    <button type="button" class="wo-channel-btn" onclick="addNetworkPreset('Instagram')"><i class="ph ph-instagram-logo" style="color:#E4405F;"></i> + Instagram</button>
+                    <button type="button" class="wo-channel-btn" onclick="addNetworkPreset('TikTok')"><i class="ph ph-tiktok-logo"></i> + TikTok</button>
+                    <button type="button" class="wo-channel-btn" onclick="addNetworkPreset('LinkedIn')"><i class="ph ph-linkedin-logo" style="color:#0A66C2;"></i> + LinkedIn</button>
+                    <button type="button" class="wo-channel-btn" onclick="addNetworkPreset('YouTube')"><i class="ph ph-youtube-logo" style="color:#FF0000;"></i> + YouTube</button>
+                    <button type="button" class="wo-channel-btn" onclick="addNetworkPreset('Google')"><i class="ph ph-google-logo" style="color:#DB4437;"></i> + Google</button>
+                    <button type="button" class="wo-channel-btn" onclick="addNetworkPreset('Web')"><i class="ph ph-globe" style="color:#10b981;"></i> + Enlace Web</button>
+                </div>
+                <div id="redesManejarWrapper" style="display: flex; flex-direction: column; gap: 0.65rem;"></div>
+            </div>
         </div>
     </div>
 
-    <!-- Acordeón: Información del servicio -->
-    <div class="os-accordion" id="accordion-info-servicio">
-        <div class="os-accordion-header" onclick="toggleAccordion('accordion-info-servicio')">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--primary-color); display: flex; align-items: center; justify-content: center;">
-                    <i class="ph ph-clipboard-text" style="color: white; font-size: 1.1rem;"></i>
-                </div>
+    <!-- CARD 2: FLUJO DE TRABAJO & ENTREGABLES -->
+    <div class="wo-card">
+        <div class="wo-card-header">
+            <div class="wo-card-title">
+                <div class="wo-card-icon"><i class="ph ph-kanban"></i></div>
                 <div>
-                    <h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--color-title);">Información del servicio</h3>
-                    <p class="os-accordion-summary" id="info-summary" style="margin: 0; font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;"></p>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <h3>Flujo de Trabajo & Entregables</h3>
+                        <span id="workflowBadgeCounter" class="wo-badge-counter">0 entregables</span>
+                    </div>
+                    <p>Tareas, entregables específicos y asignación de responsables</p>
                 </div>
             </div>
-            <i class="ph ph-caret-down os-accordion-icon"></i>
-        </div>
-        <div class="os-accordion-body">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                <div class="os-field-group">
-                    <label><i class="ph ph-buildings"></i> CLIENTE</label>
-                    <select id="clienteName" class="os-field-input">
-                        <option value="">Seleccionar Cliente...</option>
-                        <?php foreach($clients as $c): ?>
-                            <option value="<?php echo htmlspecialchars($c['name']); ?>"><?php echo htmlspecialchars($c['name']); ?></option>
+
+            <div class="wo-workflow-actions">
+                <!-- Cargar desde Cotización -->
+                <div class="wo-importer-pill quote-importer" title="Importar entregables desde una cotización registrada">
+                    <i class="ph ph-receipt"></i>
+                    <select id="quoteSelector">
+                        <option value="">Cargar desde Cotización...</option>
+                        <?php foreach($quotesList as $q): ?>
+                            <option value="<?php echo $q['id']; ?>" 
+                                data-client="<?php echo htmlspecialchars($q['client_name'] ?? ''); ?>" 
+                                data-company="<?php echo htmlspecialchars($q['client_company'] ?? ''); ?>" 
+                                data-currency="<?php echo htmlspecialchars($q['currency'] ?? 'PEN'); ?>" 
+                                data-total="<?php echo htmlspecialchars($q['total'] ?? '0'); ?>">
+                                #COT-<?php echo str_pad($q['id'], 4, '0', STR_PAD_LEFT); ?> · <?php echo htmlspecialchars($q['client_name'] ?: ($q['client_company'] ?: 'Sin cliente')); ?> (<?php echo ($q['currency'] === 'USD' ? 'USD' : 'S/') . ' ' . number_format((float)$q['total'], 2); ?>)
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="os-field-group">
-                    <label><i class="ph ph-tag"></i> MARCA</label>
-                    <select id="marcaName" class="os-field-input">
-                        <option value="">Primero seleccione un cliente...</option>
+
+                <!-- Cargar desde Servicio -->
+                <div class="wo-importer-pill service-importer" title="Cargar entregables predefinidos desde un servicio del catálogo">
+                    <i class="ph ph-lightning"></i>
+                    <select id="serviceSelector">
+                        <option value="">Cargar desde Servicio...</option>
+                        <?php foreach($servicesList as $s): ?>
+                            <option value="<?php echo $s['id']; ?>"><?php echo htmlspecialchars($s['name']); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
+
+                <button type="button" class="wo-btn-action wo-btn-primary add-main-row" data-id="main_workflow">
+                    <i class="ph ph-plus-circle"></i> Agregar Fila
+                </button>
+                <button type="button" class="wo-btn-action wo-btn-subtle delete-all-rows" data-id="main_workflow" title="Limpiar todas las filas">
+                    <i class="ph ph-trash"></i>
+                </button>
             </div>
-            <div style="margin-bottom: 1rem;">
-                <div class="os-field-group">
-                    <label><i class="ph ph-globe"></i> REDES A MANEJAR</label>
-                    <div id="redesManejarWrapper" style="margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.8rem;"></div>
+        </div>
+
+        <div id="procesosContainer"></div>
+    </div>
+
+    <!-- CARD 3 & 4: PRESUPUESTO & OBSERVACIONES (GRID 2 COLUMNAS) -->
+    <div class="wo-grid-2">
+        <!-- Presupuesto ADS -->
+        <div class="wo-card">
+            <div class="wo-card-header">
+                <div class="wo-card-title">
+                    <div class="wo-card-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                        <i class="ph ph-currency-circle-dollar"></i>
+                    </div>
+                    <div>
+                        <h3>Presupuesto ADS + Pauta</h3>
+                        <p>Inversión destinada a campañas y cuenta comercial</p>
+                    </div>
                 </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="os-field-group">
-                    <label><i class="ph ph-calendar-blank"></i> FECHA DE INICIO</label>
-                    <input type="date" id="fechaInicio" value="" class="os-field-input">
-                </div>
-                <div class="os-field-group">
-                    <label><i class="ph ph-flag"></i> PRIORIDAD</label>
-                    <select id="osPrioridad" class="os-field-input">
-                        <option value="Baja">Baja (Verde)</option>
-                        <option value="Media" selected>Media (Amarillo)</option>
-                        <option value="Alta">Alta (Rojo)</option>
+
+            <div class="wo-form-group">
+                <label class="wo-label"><i class="ph ph-coins"></i> Monto de Inversión Estimada</label>
+                <div class="wo-budget-input-wrap">
+                    <select id="monedaPresupuesto" class="wo-currency-select">
+                        <option value="S/">S/</option>
+                        <option value="USD">USD</option>
                     </select>
+                    <input type="text" inputmode="decimal" id="presupuestoAds" name="budget_ots_amount" placeholder="0.00" value="" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')" class="wo-amount-input">
                 </div>
+                <div class="wo-note-banner">
+                    <i class="ph ph-check-circle"></i>
+                    <span>Cuenta comercial y pauta publicitaria ya calculada/incluida.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observaciones Adicionales -->
+        <div class="wo-card">
+            <div class="wo-card-header">
+                <div class="wo-card-title">
+                    <div class="wo-card-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                        <i class="ph ph-note-pencil"></i>
+                    </div>
+                    <div>
+                        <h3>Observaciones Generales</h3>
+                        <p>Términos clave, accesos, notas internas o directrices</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wo-form-group">
+                <div id="observacionesContainer"></div>
+                <textarea id="observacionesGlobal" style="display:none;"></textarea>
             </div>
         </div>
     </div>
 
-    <div class="section-title">
-        <div>
-            <span style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">
-                <i class="ph ph-info"></i> Agrega o elimina filas, o selecciona un servicio para autocompletar.
-            </span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-surface); padding: 0.5rem; border-radius: 0.8rem; border: 1px solid var(--border-color);">
-            <i class="ph ph-briefcase" style="color: var(--primary-color); font-size: 1.2rem;"></i>
-            <select id="serviceSelector" style="border: none; outline: none; background: transparent; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--color-text); cursor: pointer; min-width: 200px;">
-                <option value="">Seleccionar un Servicio...</option>
-                <?php foreach($servicesList as $s): ?>
-                    <option value="<?php echo $s['id']; ?>"><?php echo htmlspecialchars($s['name']); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-    </div>
-    
-    <div id="procesosContainer"></div>
-
-    <div class="budget-obs">
-        <div class="budget-box">
-            <h4><i class="ph ph-currency-circle-dollar"></i> PRESUPUESTO ADS + CUENTA COMERCIAL</h4>
-            <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-color); padding: 0.5rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); transition: box-shadow 0.2s;" onfocusin="this.style.boxShadow='0 0 0 2px var(--primary-color)33'" onfocusout="this.style.boxShadow='none'">
-                <select id="monedaPresupuesto" style="border: none; background: transparent; font-weight: 700; color: var(--color-title); font-size: 0.95rem; outline: none; cursor: pointer; padding-right: 0.5rem; border-right: 1px solid var(--border-color);">
-                    <option value="S/">S/</option>
-                    <option value="USD">USD</option>
-                </select>
-                <input type="text" inputmode="decimal" id="presupuestoAds" name="budget_ots_amount" placeholder="0.00" value="" autocomplete="one-time-code" data-lpignore="true" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')" style="flex: 1; border: none; background: transparent; font-size: 1rem; color: var(--color-text); outline: none; padding-left: 0.5rem;">
+    <!-- CARD 5: CAMPOS PERSONALIZADOS & ENLACES RÁPIDOS -->
+    <div class="wo-card">
+        <div class="wo-card-header">
+            <div class="wo-card-title">
+                <div class="wo-card-icon" style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9;">
+                    <i class="ph ph-faders"></i>
+                </div>
+                <div>
+                    <h3>Campos Personalizados (Metadatos)</h3>
+                    <p>Propiedades adicionales, enlaces a Figma, Google Drive o carpetas compartidas</p>
+                </div>
             </div>
-            <small style="color: var(--text-muted); display: block; margin-top: 0.5rem; font-size: 0.75rem;"><i class="ph ph-info"></i> Cuenta comercial ya incluida</small>
+
+            <button type="button" id="add-custom-field-btn" class="wo-btn-action wo-btn-subtle">
+                <i class="ph ph-plus"></i> Añadir Propiedad
+            </button>
         </div>
-        <div class="obs-box">
-            <h4><i class="ph ph-text-align-left"></i> OBSERVACIONES ADICIONALES</h4>
-            <div id="observacionesContainer" style="border-radius: 10px; min-height: 120px;"></div>
-            <textarea id="observacionesGlobal" style="display:none;"></textarea>
-        </div>
-    </div>
-    
-    <div style="margin-top: 1.5rem; padding: 1.5rem; background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h4 style="margin: 0; font-size: 0.95rem; color: var(--color-title); display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-faders"></i> CAMPOS PERSONALIZADOS</h4>
-            <button type="button" id="add-custom-field-btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--color-title); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;"><i class="ph ph-plus"></i> Añadir Campo</button>
-        </div>
-        <div id="customFieldsContainer" style="display: flex; flex-direction: column; gap: 0.8rem;"></div>
+
+        <div id="customFieldsContainer" style="display: flex; flex-direction: column; gap: 0.65rem;"></div>
     </div>
 </div>
 
 <!-- Modal para Compartir -->
 <div class="modal-overlay" id="shareModal">
-    <div class="modal-content" style="max-width: 400px; text-align: center;">
-        <div class="modal-header" style="justify-content: center; position: relative;">
-            <h2 class="modal-title">Compartir Orden</h2>
-            <button class="btn-icon close-modal" onclick="document.getElementById('shareModal').classList.remove('active')" style="position: absolute; right: 0;"><i class="ph ph-x"></i></button>
-        </div>
-        <div class="modal-body" style="padding: 2rem 1rem;">
-            <i class="ph ph-link" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
-            <p style="color: var(--color-text); margin-bottom: 1rem;">Copia este enlace para compartir la vista pública de esta orden de servicio con tu cliente.</p>
-            <input type="text" id="shareLinkInput" class="form-control" readonly style="text-align: center; margin-bottom: 1rem;">
-            <button class="btn btn-primary" onclick="copyShareLink()" style="width: 100%;">
-                <i class="ph ph-copy"></i> Copiar Enlace
+    <div class="modal-content" style="max-width: 440px; text-align: center; border-radius: 18px;">
+        <div class="modal-header" style="justify-content: center; position: relative; border-bottom: 1px solid var(--wo-border);">
+            <h2 class="modal-title" style="font-size: 1.1rem; font-weight: 700;">Compartir Orden de Servicio</h2>
+            <button class="btn-icon close-modal" onclick="document.getElementById('shareModal').classList.remove('active')" style="position: absolute; right: 0;">
+                <i class="ph ph-x"></i>
             </button>
+        </div>
+        <div class="modal-body" style="padding: 1.8rem 1.25rem;">
+            <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(99, 102, 241, 0.12); color: var(--wo-accent); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.8rem;">
+                <i class="ph ph-link-simple"></i>
+            </div>
+            <p style="color: var(--wo-text-main); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.5;">
+                Copia este enlace para compartir la vista pública de esta orden de servicio con tu cliente o equipo.
+            </p>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <input type="text" id="shareLinkInput" class="wo-input" readonly style="text-align: center; font-family: monospace; font-size: 0.8rem;">
+                <button type="button" class="wo-btn-action wo-btn-primary" onclick="copyShareLink()">
+                    <i class="ph ph-copy"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-  // Accordion toggle
-  function toggleAccordion(id) {
-    const el = document.getElementById(id);
-    el.classList.toggle('open');
-    if (!el.classList.contains('open')) {
-      updateInfoSummary();
-    }
-  }
+/* ==========================================================================
+   WORK ORDERS JAVASCRIPT ENGINE
+   ========================================================================== */
 
-  const REDES_DEF = [
+const REDES_DEF = [
     { id: 'Facebook', label: 'Facebook', icon: 'ph-facebook-logo', color: '#1877F2' },
     { id: 'Instagram', label: 'Instagram', icon: 'ph-instagram-logo', color: '#E4405F' },
     { id: 'TikTok', label: 'TikTok', icon: 'ph-tiktok-logo', color: '#000000' },
@@ -824,56 +1213,75 @@ require_once 'includes/header.php';
     { id: 'Google', label: 'Google', icon: 'ph-google-logo', color: '#DB4437' },
     { id: 'YouTube', label: 'YouTube', icon: 'ph-youtube-logo', color: '#FF0000' },
     { id: 'LinkedIn', label: 'LinkedIn', icon: 'ph-linkedin-logo', color: '#0A66C2' },
-    { id: 'Web', label: 'Enlace Web', icon: 'ph-globe', color: '#577a9e' }
-  ];
-  let redesData = []; // [{ id: 'Facebook', url: '' }]
-  let customFieldsData = []; // [{ name: '', value: '' }]
+    { id: 'Web', label: 'Enlace Web', icon: 'ph-globe', color: '#10b981' }
+];
 
-  function renderCustomFields() {
-    const container = document.getElementById('customFieldsContainer');
-    if (!container) return;
+let redesData = []; // [{ id: 'Facebook', url: '' }]
+let customFieldsData = []; // [{ name: '', value: '' }]
+const MAIN_WORKFLOW = [
+    { id: "main_workflow", nombre: "FLUJO DE TRABAJO PRINCIPAL", icono: "ph-kanban", rowsDefault: [] }
+];
+const SERVICES_FEATURES_MAP = <?php echo json_encode($servicesFeaturesMap); ?>;
+const QUOTES_ITEMS_MAP = <?php echo json_encode($quotesItemsMap); ?>;
+const EMPLEADOS = <?php echo json_encode($employees); ?>;
+const clientBrandsMap = <?php echo json_encode($clientBrandsMap); ?>;
+const dbData = <?php echo $order_data ? $order_data : 'null'; ?>;
+const woId = '<?php echo $id; ?>';
+
+let procesosData = [];
+let quillGlobal = null;
+
+// Helper toast integrado
+function showAppToast(message) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: message,
+            showConfirmButton: false,
+            timer: 2200,
+            background: 'var(--wo-card)',
+            color: 'var(--wo-text-main)'
+        });
+        return;
+    }
+    let existing = document.querySelector('.toast-msg');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast-msg';
+    toast.innerHTML = '<i class="ph ph-check-circle" style="font-size: 1.15rem;"></i> ' + message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m){
+        if(m==='&') return '&amp;';
+        if(m==='<') return '&lt;';
+        if(m==='>') return '&gt;';
+        return m;
+    });
+}
+
+// Priority management
+function setPriority(priority) {
+    const input = document.getElementById('osPrioridad');
+    if (input) input.value = priority;
     
-    let html = '';
-    customFieldsData.forEach((cf, index) => {
-      html += `
-        <div style="display: flex; gap: 0.5rem; align-items: center; background: var(--bg-body); padding: 0.5rem; border-radius: 8px;">
-            <input type="text" class="cf-name-input" data-index="${index}" value="${escapeHtml(cf.name)}" placeholder="Nombre (ej. Figma)" style="width: 150px; border: none; background: var(--bg-surface); border-radius: 6px; padding: 0.5rem; font-size: 0.85rem; outline: none; font-weight: 600; color: var(--color-title);">
-            <input type="text" class="cf-value-input" data-index="${index}" value="${escapeHtml(cf.value)}" placeholder="Valor o Enlace" style="flex: 1; border: none; background: var(--bg-surface); border-radius: 6px; padding: 0.5rem; font-size: 0.85rem; outline: none; color: var(--color-text);">
-            <button type="button" class="remove-cf-btn" data-index="${index}" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0.5rem; border-radius: 6px; transition: 0.2s;" onmouseover="this.style.background='var(--color-danger)1a'" onmouseout="this.style.background='none'"><i class="ph ph-trash" style="font-size: 1.1rem;"></i></button>
-        </div>
-      `;
+    document.querySelectorAll('.wo-priority-pill').forEach(pill => {
+        if (pill.dataset.priority === priority) {
+            pill.classList.add('active');
+        } else {
+            pill.classList.remove('active');
+        }
     });
-    container.innerHTML = html;
+    updateInfoSummary();
+}
 
-    container.querySelectorAll('.cf-name-input').forEach(input => {
-      input.addEventListener('input', (e) => {
-        customFieldsData[e.target.dataset.index].name = e.target.value;
-      });
-    });
-    container.querySelectorAll('.cf-value-input').forEach(input => {
-      input.addEventListener('input', (e) => {
-        customFieldsData[e.target.dataset.index].value = e.target.value;
-      });
-    });
-    container.querySelectorAll('.remove-cf-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        customFieldsData.splice(e.currentTarget.dataset.index, 1);
-        renderCustomFields();
-      });
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-      const addCfBtn = document.getElementById('add-custom-field-btn');
-      if (addCfBtn) {
-          addCfBtn.addEventListener('click', () => {
-              customFieldsData.push({ name: '', value: '' });
-              renderCustomFields();
-          });
-      }
-  });
-
-  function detectNetwork(url) {
+// Social networks
+function detectNetwork(url) {
     if (!url) return 'Web';
     const u = url.toLowerCase();
     if (u.includes('facebook.com') || u.includes('fb.me')) return 'Facebook';
@@ -884,457 +1292,547 @@ require_once 'includes/header.php';
     if (u.includes('linkedin.com')) return 'LinkedIn';
     if (u.includes('google.com') || u.includes('g.page')) return 'Google';
     return 'Web';
-  }
+}
 
-  function renderRedes() {
+function addNetworkPreset(networkId) {
+    redesData.push({ id: networkId, url: '' });
+    renderRedes();
+    updateInfoSummary();
+}
+
+function renderRedes() {
     const container = document.getElementById('redesManejarWrapper');
     if (!container) return;
-    
+
+    if (redesData.length === 0) {
+        container.innerHTML = '<div style="font-size: 0.75rem; color: var(--wo-text-muted); font-style: italic; padding: 0.4rem 0;">No se han agregado redes sociales aún. Haz clic en las etiquetas superiores para añadir una.</div>';
+        return;
+    }
+
     let html = '';
-    
-    if (redesData.length > 0) {
-      html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.8rem; margin-bottom: 0.5rem;">';
-      redesData.forEach((redSel, index) => {
+    redesData.forEach((redSel, index) => {
         const def = REDES_DEF.find(d => d.id === redSel.id) || REDES_DEF.find(d => d.id === 'Web');
         html += `
-          <div class="row-item" style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; margin-bottom: 0;">
-            <div style="width: 40px; height: 40px; border-radius: 10px; background: ${def.color}; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; transition: all 0.3s; box-shadow: 0 4px 10px ${def.color}40;" title="${def.label}">
-              <i class="${def.icon}"></i>
+            <div class="wo-channel-card">
+                <div class="wo-channel-icon-pill" style="color: ${def.color};">
+                    <i class="ph ${def.icon}"></i>
+                </div>
+                <input type="text" class="wo-channel-input red-url-input" data-index="${index}" value="${escapeHtml(redSel.url)}" placeholder="Enlace o usuario de ${def.label} (ej. https://...)">
+                <button type="button" class="wo-btn-remove remove-red-btn" data-index="${index}" title="Eliminar canal">
+                    <i class="ph ph-x"></i>
+                </button>
             </div>
-            <input type="text" class="red-url-input" data-index="${index}" value="${escapeHtml(redSel.url)}" placeholder="https://..." style="flex: 1; border: none; background: var(--bg-color); border-radius: 8px; padding: 0.8rem 1rem; font-size: 0.95rem; color: var(--color-text); outline: none; transition: box-shadow 0.2s;" onfocus="this.style.boxShadow='0 0 0 2px var(--primary-color)33'" onblur="this.style.boxShadow='none'">
-            <button type="button" class="remove-red-btn" data-index="${index}" style="background: none; border: none; color: var(--color-danger); cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='var(--color-danger)1a'" onmouseout="this.style.background='none'">
-              <i class="ph ph-trash" style="font-size: 1.2rem;"></i>
-            </button>
-          </div>
         `;
-      });
-      html += '</div>';
-    }
-
-    html += `
-      <button type="button" id="add-red-btn" style="align-self: flex-start; background: var(--bg-color); border: 1px dashed var(--border-color); color: var(--primary-color); padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem;">
-        <i class="ph ph-plus"></i> Añadir enlace
-      </button>
-    `;
-
+    });
     container.innerHTML = html;
 
-    // Listeners
-    const addBtn = container.querySelector('#add-red-btn');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        redesData.push({ id: 'Web', url: '' });
-        renderRedes();
-      });
-    }
-
     container.querySelectorAll('.remove-red-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const index = parseInt(e.currentTarget.dataset.index);
-        redesData.splice(index, 1);
-        renderRedes();
-        updateInfoSummary();
-      });
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.currentTarget.dataset.index, 10);
+            redesData.splice(idx, 1);
+            renderRedes();
+            updateInfoSummary();
+        });
     });
 
     container.querySelectorAll('.red-url-input').forEach(input => {
-      input.addEventListener('input', (e) => {
-        const index = parseInt(e.currentTarget.dataset.index);
-        const val = e.currentTarget.value;
-        redesData[index].url = val;
-        
-        // Auto-detect network
-        const detected = detectNetwork(val);
-        if (redesData[index].id !== detected) {
-          redesData[index].id = detected;
-          renderRedes(); // Re-render to update icon and color
-          // We need to refocus the input since we re-rendered
-          setTimeout(() => {
-            const inputs = document.getElementById('redesManejarWrapper').querySelectorAll('.red-url-input');
-            if(inputs[index]) {
-                inputs[index].focus();
-                // Move cursor to end
-                const len = inputs[index].value.length;
-                inputs[index].setSelectionRange(len, len);
-            }
-          }, 0);
-        }
-        updateInfoSummary();
-      });
-    });
-  }
+        input.addEventListener('input', (e) => {
+            const index = parseInt(e.target.dataset.index, 10);
+            const val = e.target.value;
+            redesData[index].url = val;
 
-  function updateInfoSummary() {
-    const cliente = document.getElementById('clienteName').value || 'Sin cliente';
+            const detected = detectNetwork(val);
+            if (detected && detected !== redesData[index].id && val.length > 8) {
+                redesData[index].id = detected;
+                renderRedes();
+                setTimeout(() => {
+                    const inputs = document.getElementById('redesManejarWrapper').querySelectorAll('.red-url-input');
+                    if (inputs[index]) {
+                        inputs[index].focus();
+                        const len = inputs[index].value.length;
+                        inputs[index].setSelectionRange(len, len);
+                    }
+                }, 0);
+            }
+            updateInfoSummary();
+        });
+    });
+}
+
+// Custom fields
+function renderCustomFields() {
+    const container = document.getElementById('customFieldsContainer');
+    if (!container) return;
+
+    if (customFieldsData.length === 0) {
+        container.innerHTML = '<div style="font-size: 0.75rem; color: var(--wo-text-muted); font-style: italic; padding: 0.25rem 0;">Sin propiedades personalizadas. Puedes agregar enlaces a tableros, carpetas compartidas o notas clave.</div>';
+        return;
+    }
+
+    let html = '';
+    customFieldsData.forEach((cf, index) => {
+        html += `
+            <div class="wo-property-row">
+                <input type="text" class="wo-prop-name cf-name-input" data-index="${index}" value="${escapeHtml(cf.name)}" placeholder="Propiedad (ej. Figma, Drive)">
+                <span class="wo-prop-separator">:</span>
+                <input type="text" class="wo-prop-value cf-value-input" data-index="${index}" value="${escapeHtml(cf.value)}" placeholder="Valor, enlace o descripción...">
+                ${cf.value && (cf.value.startsWith('http://') || cf.value.startsWith('https://')) ? `<a href="${escapeHtml(cf.value)}" target="_blank" rel="noopener noreferrer" class="wo-btn-remove" title="Abrir enlace" style="color: var(--wo-accent);"><i class="ph ph-arrow-square-out"></i></a>` : ''}
+                <button type="button" class="wo-btn-remove remove-cf-btn" data-index="${index}" title="Eliminar propiedad">
+                    <i class="ph ph-trash"></i>
+                </button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+
+    container.querySelectorAll('.cf-name-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            customFieldsData[e.target.dataset.index].name = e.target.value;
+        });
+    });
+    container.querySelectorAll('.cf-value-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            customFieldsData[e.target.dataset.index].value = e.target.value;
+        });
+    });
+    container.querySelectorAll('.remove-cf-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            customFieldsData.splice(e.currentTarget.dataset.index, 1);
+            renderCustomFields();
+        });
+    });
+}
+
+// Summary banner & subtitles
+function updateInfoSummary() {
+    const cliente = document.getElementById('clienteName').value || 'Sin cliente seleccionado';
     const marca = document.getElementById('marcaName').value || '';
     const redes = redesData.map(r => r.id);
     const fecha = document.getElementById('fechaInicio').value || '';
+    const prioridad = document.getElementById('osPrioridad').value || 'Media';
 
     let parts = [cliente];
     if (marca) parts.push(marca);
-    if (redes.length) parts.push(redes.join(', '));
-    if (fecha) parts.push(fecha);
+    if (fecha) parts.push('Inicio: ' + fecha);
+    parts.push('Prioridad: ' + prioridad);
 
-    const summary = document.getElementById('info-summary');
-    if (summary) summary.textContent = parts.join(' · ');
-  }
+    const subEl = document.getElementById('headerSubtitleSummary');
+    if (subEl) subEl.textContent = parts.join(' · ');
 
-  document.addEventListener('DOMContentLoaded', () => {
-    ['clienteName', 'marcaName', 'fechaInicio'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('change', updateInfoSummary);
+    const quickEl = document.getElementById('quickInfoPill');
+    if (quickEl) {
+        quickEl.textContent = redes.length > 0 ? `${redes.length} canal(es) asignado(s)` : 'Sin canales configurados';
+    }
+}
+
+// Dependent Brands logic
+function populateBrands(selectedClient, preselect) {
+    const select = document.getElementById('marcaName');
+    select.innerHTML = '';
+
+    if (!selectedClient) {
+        select.innerHTML = '<option value="">Primero seleccione un cliente...</option>';
+        return;
+    }
+
+    const brandsToShow = clientBrandsMap[selectedClient] || [];
+
+    if (brandsToShow.length === 0) {
+        select.innerHTML = '<option value="">Sin marcas registradas</option>';
+        return;
+    }
+
+    select.innerHTML = '<option value="">Seleccionar Marca...</option>';
+    brandsToShow.forEach(brand => {
+        const option = document.createElement('option');
+        option.value = brand;
+        option.textContent = brand;
+        if (preselect && brand === preselect) option.selected = true;
+        select.appendChild(option);
     });
-  });
-</script>
+}
 
-<script>
-  const MAIN_WORKFLOW = [
-    { id: "main_workflow", nombre: "FLUJO DE TRABAJO PRINCIPAL", icono: "ph-kanban", rowsDefault: [] }
-  ];
-  const SERVICES_FEATURES_MAP = <?php echo json_encode($servicesFeaturesMap); ?>;
-
-  let procesosData = [];
-  const dbData = <?php echo $order_data ? $order_data : 'null'; ?>;
-  const woId = '<?php echo $id; ?>';
-
-  // Helper toast integrado con la app
-  function showAppToast(message) {
-    let existing = document.querySelector('.toast-msg');
-    if(existing) existing.remove();
-    const toast = document.createElement('div');
-    toast.className = 'toast-msg';
-    toast.innerHTML = '<i class="ph ph-check-circle" style="font-size: 1.1rem;"></i> ' + message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2500);
-  }
-
-  let quillGlobal = null;
-  document.addEventListener('DOMContentLoaded', () => {
-    quillGlobal = new Quill('#observacionesContainer', {
-      theme: 'snow',
-      modules: {
-          toolbar: [
-              ['bold', 'italic', 'underline'],
-              [{ 'list': 'bullet' }],
-              ['link', 'clean']
-          ]
-      }
-    });
-    quillGlobal.on('text-change', () => {
-      document.getElementById('observacionesGlobal').value = quillGlobal.root.innerHTML;
-    });
-  });
-
-  function captureFullState() {
-    return {
-      procesos: procesosData,
-      cliente: document.getElementById('clienteName').value,
-      marca: document.getElementById('marcaName').value,
-      redes: JSON.stringify(redesData),
-      fechaInicio: document.getElementById('fechaInicio').value,
-      prioridad: document.getElementById('osPrioridad').value,
-      presupuesto: (document.getElementById('monedaPresupuesto') ? document.getElementById('monedaPresupuesto').value + ' ' : '') + document.getElementById('presupuestoAds').value,
-      observaciones: document.getElementById('observacionesGlobal').value,
-      customFields: customFieldsData
-    };
-  }
-
-  // Render completo
-  function renderProcesos() {
+// Workflows & Deliverables Engine
+function renderProcesos() {
     const container = document.getElementById('procesosContainer');
-    if(!container) return;
+    if (!container) return;
     container.innerHTML = '';
-    procesosData.forEach((proc) => {
-      const card = document.createElement('div');
-      card.className = 'process-card';
-      card.dataset.procId = proc.id;
-      const header = document.createElement('div');
-      header.className = 'process-header';
-      header.innerHTML = `
-        <div class="process-name">
-          <i class="${proc.icono}"></i>
-          <span>${proc.nombre}</span>
-        </div>
-        <div class="actions-buttons">
-          <button type="button" class="btn-icon-ot add-main-row" data-id="${proc.id}" title="Agregar fila"><i class="ph ph-plus-circle"></i> Fila</button>
-          <button type="button" class="btn-icon-ot danger delete-all-rows" data-id="${proc.id}" title="Eliminar todas las filas"><i class="ph ph-trash"></i></button>
-        </div>
-      `;
-      const rowsContainer = document.createElement('div');
-      rowsContainer.className = 'rows-container';
-      
-      function refreshRowsContainer() {
-        rowsContainer.innerHTML = '';
-        const currentProcess = procesosData.find(p => p.id === proc.id);
-        if(!currentProcess) return;
-        currentProcess.rows.forEach((row, rowIndex) => {
-          const rowDiv = document.createElement('div');
-          rowDiv.className = 'row-item';
-          
-          let selectOptions = `<option value="">Responsable</option>`;
-          const EMPLEADOS = <?php echo json_encode($employees); ?>;
-          let found = false;
-          EMPLEADOS.forEach(emp => {
-              const isSelected = row.encargado === emp.name ? 'selected' : '';
-              if (isSelected) found = true;
-              selectOptions += `<option value="${escapeHtml(emp.name)}" ${isSelected}>${escapeHtml(emp.name)}</option>`;
-          });
-          if (row.encargado && !found) {
-              selectOptions += `<option value="${escapeHtml(row.encargado)}" selected>${escapeHtml(row.encargado)} (Antiguo)</option>`;
-          }
 
-          rowDiv.innerHTML = `
-            <div class="row-field">
-              <label><i class="ph ph-user"></i> ENCARGADO DEL ÁREA</label>
-              <select class="encargado-input">
-                ${selectOptions}
-              </select>
+    const currentProcess = procesosData.find(p => p.id === "main_workflow") || procesosData[0];
+    if (!currentProcess) return;
+
+    const rowCount = currentProcess.rows ? currentProcess.rows.length : 0;
+    const badgeCounter = document.getElementById('workflowBadgeCounter');
+    if (badgeCounter) {
+        badgeCounter.textContent = `${rowCount} ${rowCount === 1 ? 'entregable' : 'entregables'}`;
+    }
+
+    if (rowCount === 0) {
+        container.innerHTML = `
+            <div class="wo-empty-state">
+                <i class="ph ph-clipboard-text wo-empty-icon"></i>
+                <h4 class="wo-empty-title">No hay entregables o tareas añadidas</h4>
+                <p class="wo-empty-desc">Comienza agregando un entregable manualmente o importa desde una cotización o servicio con los selectores superiores.</p>
+                <button type="button" class="wo-btn-action wo-btn-primary add-main-row" data-id="main_workflow">
+                    <i class="ph ph-plus-circle"></i> Agregar Primer Entregable
+                </button>
             </div>
-            <div class="row-field">
-              <label><i class="ph ph-text-align-left"></i> DESCRIPCIÓN DEL TRABAJO</label>
-              <div class="quill-editor" style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; min-height: 60px;"></div>
-              <textarea class="descripcion-input" style="display:none;">${escapeHtml(row.descripcion)}</textarea>
+        `;
+        attachGlobalProcessEvents();
+        return;
+    }
+
+    currentProcess.rows.forEach((row, rowIndex) => {
+        const card = document.createElement('div');
+        card.className = 'wo-deliverable-card';
+        card.dataset.rowIndex = rowIndex;
+
+        let selectOptions = `<option value="">Asignar Encargado...</option>`;
+        let found = false;
+        EMPLEADOS.forEach(emp => {
+            const isSelected = row.encargado === emp.name ? 'selected' : '';
+            if (isSelected) found = true;
+            selectOptions += `<option value="${escapeHtml(emp.name)}" ${isSelected}>${escapeHtml(emp.name)}</option>`;
+        });
+        if (row.encargado && !found) {
+            selectOptions += `<option value="${escapeHtml(row.encargado)}" selected>${escapeHtml(row.encargado)} (Antiguo)</option>`;
+        }
+
+        const formattedIndex = String(rowIndex + 1).padStart(2, '0');
+
+        card.innerHTML = `
+            <div class="wo-deliverable-top">
+                <div class="wo-deliverable-index">
+                    <span class="wo-deliverable-num">#${formattedIndex}</span>
+                    <strong style="color: var(--wo-text-title); font-size: 0.85rem;">Entregable de Servicio</strong>
+                </div>
+
+                <div class="wo-deliverable-assignee">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; width: 100%;">
+                        <i class="ph ph-user-circle" style="color: var(--wo-accent); font-size: 1.15rem;"></i>
+                        <select class="wo-select encargado-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;">
+                            ${selectOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" class="wo-btn-remove remove-row-btn" title="Eliminar fila">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
             </div>
-            <div class="row-actions">
-              <button type="button" class="remove-row-btn" title="Eliminar fila"><i class="ph ph-x-circle"></i></button>
+
+            <div class="wo-deliverable-body">
+                <label class="wo-label"><i class="ph ph-list-checks"></i> Descripción y Alcance del Trabajo</label>
+                <div class="quill-editor"></div>
+                <textarea class="descripcion-input" style="display:none;">${escapeHtml(row.descripcion)}</textarea>
             </div>
-          `;
-          const encInput = rowDiv.querySelector('.encargado-input');
-          encInput.addEventListener('input', (e) => { currentProcess.rows[rowIndex].encargado = e.target.value; });
-          const quillContainer = rowDiv.querySelector('.quill-editor');
-          if (quillContainer) {
-              const quill = new Quill(quillContainer, {
-                  theme: 'snow',
-                  modules: {
-                      toolbar: [
-                          ['bold', 'italic', 'underline', 'link']
-                      ]
-                  }
-              });
-              // Disable link tooltip target=_blank annoyance if needed
-              quill.root.innerHTML = row.descripcion;
-              quill.on('text-change', function() {
-                  currentProcess.rows[rowIndex].descripcion = quill.root.innerHTML;
-                  rowDiv.querySelector('.descripcion-input').value = quill.root.innerHTML;
-              });
-          }
-          const removeBtn = rowDiv.querySelector('.remove-row-btn');
-          removeBtn.addEventListener('click', () => {
+        `;
+
+        // Bind Encargado
+        const encInput = card.querySelector('.encargado-input');
+        encInput.addEventListener('change', (e) => {
+            currentProcess.rows[rowIndex].encargado = e.target.value;
+        });
+
+        // Bind Quill Editor
+        const quillContainer = card.querySelector('.quill-editor');
+        if (quillContainer) {
+            const quill = new Quill(quillContainer, {
+                theme: 'snow',
+                placeholder: 'Describe las especificaciones, requisitos y entregables de esta tarea...',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline'],
+                        [{ 'list': 'bullet' }],
+                        ['link', 'clean']
+                    ]
+                }
+            });
+            quill.root.innerHTML = row.descripcion || '';
+            quill.on('text-change', function() {
+                currentProcess.rows[rowIndex].descripcion = quill.root.innerHTML;
+                card.querySelector('.descripcion-input').value = quill.root.innerHTML;
+            });
+        }
+
+        // Bind Remove Button
+        const removeBtn = card.querySelector('.remove-row-btn');
+        removeBtn.addEventListener('click', () => {
             currentProcess.rows.splice(rowIndex, 1);
-            refreshRowsContainer();
             renderProcesos();
-          });
-          rowsContainer.appendChild(rowDiv);
         });
-        const addLocalBtn = document.createElement('div');
-        addLocalBtn.className = 'add-row-btn';
-        addLocalBtn.innerHTML = '<i class="ph ph-plus"></i> Añadir nueva fila';
-        addLocalBtn.addEventListener('click', () => {
-          currentProcess.rows.push({ encargado: "", descripcion: "" });
-          refreshRowsContainer();
-          renderProcesos();
-        });
-        rowsContainer.appendChild(addLocalBtn);
-      }
-      refreshRowsContainer();
-      card.appendChild(header);
-      card.appendChild(rowsContainer);
-      container.appendChild(card);
-    });
-    attachGlobalProcessEvents();
-  }
 
-  function attachGlobalProcessEvents() {
+        container.appendChild(card);
+    });
+
+    attachGlobalProcessEvents();
+}
+
+function attachGlobalProcessEvents() {
     document.querySelectorAll('.delete-all-rows').forEach(btn => {
-      btn.removeEventListener('click', deleteAllHandler);
-      btn.addEventListener('click', deleteAllHandler);
+        btn.removeEventListener('click', deleteAllHandler);
+        btn.addEventListener('click', deleteAllHandler);
     });
     document.querySelectorAll('.add-main-row').forEach(btn => {
-      btn.removeEventListener('click', addMainHandler);
-      btn.addEventListener('click', addMainHandler);
+        btn.removeEventListener('click', addMainHandler);
+        btn.addEventListener('click', addMainHandler);
     });
-  }
-  function deleteAllHandler(e) {
-    const procId = e.currentTarget.dataset.id;
-    const proceso = procesosData.find(p => p.id === procId);
-    if(proceso) {
-      Swal.fire({
-        title: '¿Eliminar filas?',
-        html: `Se eliminarán todas las filas en <strong>"${proceso.nombre}"</strong>.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#0f766e',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: '<i class="ph ph-trash"></i> Sí, eliminar',
-        cancelButtonText: 'Cancelar',
-        background: 'var(--bg-surface)',
-        color: 'var(--color-text)',
-        customClass: { popup: 'swal-modern-popup' }
-      }).then((result) => {
-        if (result.isConfirmed) {
-          proceso.rows = [];
-          renderProcesos();
-          Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Filas eliminadas', showConfirmButton: false, timer: 2000, background: 'var(--bg-surface)', color: 'var(--color-text)' });
-        }
-      });
-    }
-  }
-  function addMainHandler(e) {
-    const procId = e.currentTarget.dataset.id;
-    const proceso = procesosData.find(p => p.id === procId);
-    if(proceso) {
-      proceso.rows.push({ encargado: "", descripcion: "" });
-      renderProcesos();
-    }
-  }
-  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+}
 
-  function initData() {
-    if(dbData) {
-      const state = dbData;
-      if(state.procesos) {
-          // Backward compatibility: flatten multiple old processes into the single workflow
-          let mergedRows = [];
-          state.procesos.forEach(p => {
-              if (p.rows && p.rows.length > 0) {
-                  // Only add rows that actually have content to avoid blank rows piling up
-                  p.rows.forEach(r => {
-                      if (r.descripcion.trim() !== '' || r.encargado.trim() !== '') {
-                          mergedRows.push(r);
-                      }
-                  });
-              }
-          });
-          if (mergedRows.length === 0) {
-              mergedRows = [];
-          }
-          procesosData = [{ id: "main_workflow", nombre: "FLUJO DE TRABAJO", icono: "ph-kanban", rows: mergedRows }];
-      }
-      if(state.cliente) document.getElementById('clienteName').value = state.cliente;
-      if(state.marca) document.getElementById('marcaName').value = state.marca;
-      if(state.redes) {
-          try {
-              // Intenta parsear el JSON de redes (nuevo formato array de objetos)
-              const parsed = JSON.parse(state.redes);
-              if (Array.isArray(parsed)) {
-                  redesData = parsed;
-              } else {
-                  throw new Error("Formato antiguo");
-              }
-          } catch(e) {
-              // Si falla o no es array, es string separado por comas (formato antiguo)
-              const arr = state.redes.split(',').map(s => s.trim());
-              redesData = arr.filter(Boolean).map(net => ({ id: net, url: '' }));
-          }
-      }
-      if(state.fechaInicio) document.getElementById('fechaInicio').value = state.fechaInicio;
-      if(state.presupuesto) {
-          let val = state.presupuesto;
-          if (val.startsWith('S/ ')) {
-             if(document.getElementById('monedaPresupuesto')) document.getElementById('monedaPresupuesto').value = 'S/';
-             val = val.substring(3);
-          } else if (val.startsWith('USD ')) {
-             if(document.getElementById('monedaPresupuesto')) document.getElementById('monedaPresupuesto').value = 'USD';
-             val = val.substring(4);
-          }
-          document.getElementById('presupuestoAds').value = val;
-      }
-      if(state.observaciones) {
-          document.getElementById('observacionesGlobal').value = state.observaciones;
-          if (quillGlobal) {
-              quillGlobal.root.innerHTML = state.observaciones;
-          } else {
-              // Si quillGlobal aún no cargó (raro pero posible)
-              setTimeout(() => { if (quillGlobal) quillGlobal.root.innerHTML = state.observaciones; }, 100);
-          }
-      }
-      if(state.prioridad) document.getElementById('osPrioridad').value = state.prioridad;
-      if(state.customFields && Array.isArray(state.customFields)) {
-          customFieldsData = state.customFields;
-          renderCustomFields();
-      }
-    } else {
-      procesosData = MAIN_WORKFLOW.map(p => ({ id: p.id, nombre: p.nombre, icono: p.icono, rows: p.rowsDefault.map(r => ({ encargado: r.encargado, descripcion: r.descripcion })) }));
-      document.getElementById('fechaInicio').value = new Date().toISOString().split('T')[0];
-    }
-    
-    // Ensure the main workflow exists
-    const existing = procesosData.find(p => p.id === "main_workflow");
-    if(!existing) {
-        procesosData = [{ id: "main_workflow", nombre: "FLUJO DE TRABAJO", icono: "ph-kanban", rows: [] }];
-    }
-    renderRedes();
-    updateInfoSummary();
-    renderProcesos();
-  }
+function deleteAllHandler(e) {
+    const currentProcess = procesosData.find(p => p.id === "main_workflow") || procesosData[0];
+    if (!currentProcess || !currentProcess.rows || currentProcess.rows.length === 0) return;
 
-  // Service Selection Logic
-  document.getElementById('serviceSelector').addEventListener('change', function() {
-      const serviceId = this.value;
-      if (!serviceId) return;
-      
-      const currentProcess = procesosData.find(p => p.id === "main_workflow");
-      if (!currentProcess) return;
-
-      const hasData = currentProcess.rows.some(r => r.descripcion.trim() !== '' || r.encargado.trim() !== '');
-      
-      if (hasData) {
-          const selectEl = this;
-          Swal.fire({
-            title: '¿Reemplazar filas?',
-            html: 'Esto reemplazará las filas actuales por las características del servicio seleccionado.',
-            icon: 'question',
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: '¿Eliminar todas las filas?',
+            text: 'Se vaciarán todos los entregables actuales del flujo de trabajo.',
+            icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#0f766e',
+            confirmButtonColor: '#ef4444',
             cancelButtonColor: '#64748b',
-            confirmButtonText: '<i class="ph ph-arrows-clockwise"></i> Sí, reemplazar',
+            confirmButtonText: '<i class="ph ph-trash"></i> Sí, vaciar',
             cancelButtonText: 'Cancelar',
-            background: 'var(--bg-surface)',
-            color: 'var(--color-text)',
-            customClass: { popup: 'swal-modern-popup' }
-          }).then((result) => {
+            background: 'var(--wo-card)',
+            color: 'var(--wo-text-main)'
+        }).then((result) => {
             if (result.isConfirmed) {
-              applyServiceFeatures(serviceId, currentProcess);
-            } else {
-              selectEl.value = '';
+                currentProcess.rows = [];
+                renderProcesos();
+                showAppToast('Filas eliminadas.');
             }
-          });
-          return;
-      }
+        });
+    } else {
+        if (confirm('¿Deseas eliminar todas las filas del flujo de trabajo?')) {
+            currentProcess.rows = [];
+            renderProcesos();
+        }
+    }
+}
 
-      applyServiceFeatures(serviceId, currentProcess);
-      this.value = '';
-  });
+function addMainHandler(e) {
+    const currentProcess = procesosData.find(p => p.id === "main_workflow") || procesosData[0];
+    if (currentProcess) {
+        currentProcess.rows.push({ encargado: "", descripcion: "" });
+        renderProcesos();
+        const container = document.getElementById('procesosContainer');
+        if (container && container.lastElementChild) {
+            container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+}
 
-  function applyServiceFeatures(serviceId, currentProcess) {
-      const features = SERVICES_FEATURES_MAP[serviceId] || [];
-      
-      if (features.length > 0) {
-          currentProcess.rows = features.map(f => ({
-              encargado: "",
-              descripcion: f.title + (f.description ? ": " + f.description : "")
-          }));
-      } else {
-          currentProcess.rows = [{ encargado: "", descripcion: "Este servicio no tiene características registradas." }];
-      }
-      
-      renderProcesos();
-      showAppToast('Filas actualizadas según el servicio seleccionado.');
-      document.getElementById('serviceSelector').value = '';
-  }
+// ==========================================================================
+// QUOTE IMPORTER (CARGAR DESDE COTIZACIÓN)
+// ==========================================================================
+document.getElementById('quoteSelector')?.addEventListener('change', function() {
+    const quoteId = this.value;
+    if (!quoteId) return;
 
-  // Guardar en la base de datos
-  async function handleSaveDB() {
+    const currentProcess = procesosData.find(p => p.id === "main_workflow") || procesosData[0];
+    if (!currentProcess) return;
+
+    const items = QUOTES_ITEMS_MAP[quoteId] || [];
+    if (items.length === 0) {
+        showAppToast('Esta cotización no contiene ítems registrados.');
+        this.value = '';
+        return;
+    }
+
+    const selectedOption = this.options[this.selectedIndex];
+    const clientName = selectedOption.getAttribute('data-client') || '';
+    const currency = selectedOption.getAttribute('data-currency') || 'PEN';
+    const total = selectedOption.getAttribute('data-total') || '0';
+
+    const newRows = items.map(it => {
+        let desc = (it.description || '').trim();
+        if (!desc) {
+            desc = it.service_name || 'Entregable cotizado';
+        }
+        return {
+            encargado: '',
+            descripcion: desc
+        };
+    });
+
+    const hasData = currentProcess.rows && currentProcess.rows.some(r => (r.descripcion && r.descripcion.trim() !== '') || (r.encargado && r.encargado.trim() !== ''));
+
+    const applyQuoteData = (append = false) => {
+        if (append) {
+            currentProcess.rows = currentProcess.rows.concat(newRows);
+        } else {
+            currentProcess.rows = newRows;
+        }
+
+        // Auto-fill client if available
+        const clientInput = document.getElementById('clienteName');
+        if (clientName && (!clientInput.value || !append)) {
+            for (let i = 0; i < clientInput.options.length; i++) {
+                if (clientInput.options[i].value.toLowerCase() === clientName.toLowerCase()) {
+                    clientInput.selectedIndex = i;
+                    populateBrands(clientInput.value, null);
+                    break;
+                }
+            }
+        }
+
+        // Auto-fill budget if not filled or on replace
+        const budgetInput = document.getElementById('presupuestoAds');
+        const currSelect = document.getElementById('monedaPresupuesto');
+        if (total && (!budgetInput.value || budgetInput.value === '0.00' || !append)) {
+            budgetInput.value = parseFloat(total).toFixed(2);
+            if (currSelect) {
+                currSelect.value = (currency === 'USD' ? 'USD' : 'S/');
+            }
+        }
+
+        updateInfoSummary();
+        renderProcesos();
+        showAppToast(`Cotización #${quoteId} importada exitosamente (${newRows.length} ítems).`);
+        this.value = '';
+    };
+
+    if (hasData) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: `Cargar Cotización #${quoteId}`,
+                text: '¿Deseas reemplazar los entregables actuales o añadirlos al final?',
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonColor: '#4f46e5',
+                denyButtonColor: '#0ea5e9',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="ph ph-arrows-clockwise"></i> Reemplazar',
+                denyButtonText: '<i class="ph ph-plus-circle"></i> Añadir al final',
+                cancelButtonText: 'Cancelar',
+                background: 'var(--wo-card)',
+                color: 'var(--wo-text-main)'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    applyQuoteData(false);
+                } else if (result.isDenied) {
+                    applyQuoteData(true);
+                } else {
+                    this.value = '';
+                }
+            });
+        } else {
+            if (confirm('¿Deseas reemplazar los entregables actuales con los de esta cotización?')) {
+                applyQuoteData(false);
+            } else {
+                this.value = '';
+            }
+        }
+        return;
+    }
+
+    applyQuoteData(false);
+});
+
+// ==========================================================================
+// SERVICE SELECTION LOGIC (CARGAR DESDE SERVICIO)
+// ==========================================================================
+document.getElementById('serviceSelector')?.addEventListener('change', function() {
+    const serviceId = this.value;
+    if (!serviceId) return;
+
+    const currentProcess = procesosData.find(p => p.id === "main_workflow") || procesosData[0];
+    if (!currentProcess) return;
+
+    const features = SERVICES_FEATURES_MAP[serviceId] || [];
+    let newRows = [];
+    if (features.length > 0) {
+        newRows = features.map(f => ({
+            encargado: "",
+            descripcion: f.title + (f.description ? ": " + f.description : "")
+        }));
+    } else {
+        newRows = [{ encargado: "", descripcion: "Servicio seleccionado sin características registradas." }];
+    }
+
+    const hasData = currentProcess.rows && currentProcess.rows.some(r => (r.descripcion && r.descripcion.trim() !== '') || (r.encargado && r.encargado.trim() !== ''));
+
+    const applyFeatures = (append = false) => {
+        if (append) {
+            currentProcess.rows = currentProcess.rows.concat(newRows);
+        } else {
+            currentProcess.rows = newRows;
+        }
+        renderProcesos();
+        showAppToast('Entregables del servicio cargados exitosamente.');
+        this.value = '';
+    };
+
+    if (hasData) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '¿Cómo cargar el servicio?',
+                text: '¿Deseas reemplazar los entregables actuales o añadirlos al final?',
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonColor: '#4f46e5',
+                denyButtonColor: '#0ea5e9',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="ph ph-arrows-clockwise"></i> Reemplazar',
+                denyButtonText: '<i class="ph ph-plus-circle"></i> Añadir al final',
+                cancelButtonText: 'Cancelar',
+                background: 'var(--wo-card)',
+                color: 'var(--wo-text-main)'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    applyFeatures(false);
+                } else if (result.isDenied) {
+                    applyFeatures(true);
+                } else {
+                    this.value = '';
+                }
+            });
+        } else {
+            if (confirm('¿Reemplazar las filas actuales con las del servicio?')) {
+                applyFeatures(false);
+            } else {
+                this.value = '';
+            }
+        }
+        return;
+    }
+
+    applyFeatures(false);
+});
+
+// State Capture
+function captureFullState() {
+    return {
+        procesos: procesosData,
+        cliente: document.getElementById('clienteName').value,
+        marca: document.getElementById('marcaName').value,
+        redes: JSON.stringify(redesData),
+        fechaInicio: document.getElementById('fechaInicio').value,
+        prioridad: document.getElementById('osPrioridad').value,
+        presupuesto: (document.getElementById('monedaPresupuesto') ? document.getElementById('monedaPresupuesto').value + ' ' : '') + document.getElementById('presupuestoAds').value,
+        observaciones: document.getElementById('observacionesGlobal').value,
+        customFields: customFieldsData
+    };
+}
+
+// Save to DB
+async function handleSaveDB() {
     const btn = document.getElementById('saveSnapshotBtn');
+    if (!btn) return;
+
     const originalHtml = btn.innerHTML;
     btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Guardando...';
     btn.disabled = true;
 
     const state = captureFullState();
-    
+
     const formData = new FormData();
     formData.append('work_order_id', woId);
-    formData.append('marca', state.marca || state.cliente);
+    formData.append('marca', state.marca || state.cliente || 'Sin Marca');
     formData.append('data', JSON.stringify(state));
 
     try {
@@ -1343,11 +1841,11 @@ require_once 'includes/header.php';
             body: formData
         });
         const result = await response.json();
-        
+
         if (result.success) {
-            // alert('Orden guardada correctamente.');
+            showAppToast('Orden guardada correctamente.');
             if (result.redirect_url) {
-                window.location.href = result.redirect_url;
+                setTimeout(() => { window.location.href = result.redirect_url; }, 800);
             } else {
                 btn.innerHTML = '<i class="ph ph-check"></i> Guardado';
                 setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 2000);
@@ -1358,72 +1856,171 @@ require_once 'includes/header.php';
             btn.disabled = false;
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error de conexión.');
+        console.error('Error al guardar:', error);
+        alert('Error de conexión con el servidor.');
         btn.innerHTML = originalHtml;
         btn.disabled = false;
     }
-  }
+}
 
-  function shareOrder(token) {
-      let currentUrl = window.location.href;
-      let baseUrl = currentUrl.split('?')[0];
-      const url = baseUrl + '?module=work_orders&action=public&token=' + token;
-      document.getElementById('shareLinkInput').value = url;
-      document.getElementById('shareModal').classList.add('active');
-  }
+// Public sharing
+function shareOrder(token) {
+    let currentUrl = window.location.href;
+    let baseUrl = currentUrl.split('?')[0];
+    const url = baseUrl + '?module=work_orders&action=public&token=' + token;
+    const input = document.getElementById('shareLinkInput');
+    if (input) input.value = url;
+    const modal = document.getElementById('shareModal');
+    if (modal) modal.classList.add('active');
+}
 
-  function copyShareLink() {
-      const input = document.getElementById('shareLinkInput');
-      input.select();
-      document.execCommand('copy');
-      alert('¡Enlace copiado al portapapeles!');
-  }
+function copyShareLink() {
+    const input = document.getElementById('shareLinkInput');
+    if (!input) return;
+    input.select();
+    document.execCommand('copy');
+    showAppToast('Enlace copiado al portapapeles');
+}
 
-  // Handle dependent dropdown for Brands based on selected Client
-  const clientBrandsMap = <?php echo json_encode($clientBrandsMap); ?>;
-  
-  function populateBrands(selectedClient, preselect) {
-      const select = document.getElementById('marcaName');
-      select.innerHTML = '';
-      
-      if (!selectedClient) {
-          select.innerHTML = '<option value="">Primero seleccione un cliente...</option>';
-          return;
-      }
-      
-      const brandsToShow = clientBrandsMap[selectedClient] || [];
-      
-      if (brandsToShow.length === 0) {
-          select.innerHTML = '<option value="">Sin marcas registradas</option>';
-          return;
-      }
-      
-      select.innerHTML = '<option value="">Seleccionar Marca...</option>';
-      brandsToShow.forEach(brand => {
-          const option = document.createElement('option');
-          option.value = brand;
-          option.textContent = brand;
-          if (preselect && brand === preselect) option.selected = true;
-          select.appendChild(option);
-      });
-  }
-  
-  document.getElementById('clienteName').addEventListener('change', function() {
-      populateBrands(this.value, null);
-  });
+// Keyboard shortcuts (Ctrl+S / Cmd+S)
+window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSaveDB();
+    }
+});
 
-  document.getElementById('saveSnapshotBtn')?.addEventListener('click', handleSaveDB);
+// Initialization
+function initData() {
+    if (dbData) {
+        const state = dbData;
+        if (state.procesos) {
+            let mergedRows = [];
+            state.procesos.forEach(p => {
+                if (p.rows && p.rows.length > 0) {
+                    p.rows.forEach(r => {
+                        if ((r.descripcion && r.descripcion.trim() !== '') || (r.encargado && r.encargado.trim() !== '')) {
+                            mergedRows.push(r);
+                        }
+                    });
+                }
+            });
+            procesosData = [{ id: "main_workflow", nombre: "FLUJO DE TRABAJO", icono: "ph-kanban", rows: mergedRows }];
+        }
+        if (state.cliente) document.getElementById('clienteName').value = state.cliente;
+        if (state.marca) {
+            document.getElementById('marcaName').setAttribute('data-saved', state.marca);
+        }
+        if (state.redes) {
+            try {
+                const parsed = JSON.parse(state.redes);
+                if (Array.isArray(parsed)) {
+                    redesData = parsed;
+                } else {
+                    throw new Error("Legacy format");
+                }
+            } catch(e) {
+                const arr = state.redes.split(',').map(s => s.trim());
+                redesData = arr.filter(Boolean).map(net => ({ id: net, url: '' }));
+            }
+        }
+        if (state.fechaInicio) document.getElementById('fechaInicio').value = state.fechaInicio;
+        if (state.prioridad) {
+            setPriority(state.prioridad);
+        } else {
+            setPriority('Media');
+        }
+        if (state.presupuesto) {
+            let val = state.presupuesto;
+            if (val.startsWith('S/ ')) {
+                if (document.getElementById('monedaPresupuesto')) document.getElementById('monedaPresupuesto').value = 'S/';
+                val = val.substring(3);
+            } else if (val.startsWith('USD ')) {
+                if (document.getElementById('monedaPresupuesto')) document.getElementById('monedaPresupuesto').value = 'USD';
+                val = val.substring(4);
+            }
+            document.getElementById('presupuestoAds').value = val;
+        }
+        if (state.observaciones) {
+            document.getElementById('observacionesGlobal').value = state.observaciones;
+            if (quillGlobal) {
+                quillGlobal.root.innerHTML = state.observaciones;
+            } else {
+                setTimeout(() => { if (quillGlobal) quillGlobal.root.innerHTML = state.observaciones; }, 100);
+            }
+        }
+        if (state.customFields && Array.isArray(state.customFields)) {
+            customFieldsData = state.customFields;
+            renderCustomFields();
+        }
+    } else {
+        procesosData = [{ id: "main_workflow", nombre: "FLUJO DE TRABAJO", icono: "ph-kanban", rows: [] }];
+        document.getElementById('fechaInicio').value = new Date().toISOString().split('T')[0];
+        setPriority('Media');
+    }
 
-  window.addEventListener('DOMContentLoaded', () => {
+    const existing = procesosData.find(p => p.id === "main_workflow");
+    if (!existing) {
+        procesosData = [{ id: "main_workflow", nombre: "FLUJO DE TRABAJO", icono: "ph-kanban", rows: [] }];
+    }
+
+    renderRedes();
+    updateInfoSummary();
+    renderProcesos();
+}
+
+// DOM Ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Global Quill for Observaciones
+    quillGlobal = new Quill('#observacionesContainer', {
+        theme: 'snow',
+        placeholder: 'Escribe términos, condiciones de entrega, accesos o comentarios generales...',
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline'],
+                [{ 'list': 'bullet' }],
+                ['link', 'clean']
+            ]
+        }
+    });
+    quillGlobal.on('text-change', () => {
+        document.getElementById('observacionesGlobal').value = quillGlobal.root.innerHTML;
+    });
+
+    // Custom fields add button
+    const addCfBtn = document.getElementById('add-custom-field-btn');
+    if (addCfBtn) {
+        addCfBtn.addEventListener('click', () => {
+            customFieldsData.push({ name: '', value: '' });
+            renderCustomFields();
+        });
+    }
+
+    // Client change event
+    document.getElementById('clienteName').addEventListener('change', function() {
+        populateBrands(this.value, null);
+        updateInfoSummary();
+    });
+
+    // Brand & date change events
+    ['marcaName', 'fechaInicio'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateInfoSummary);
+    });
+
+    // Save button click
+    document.getElementById('saveSnapshotBtn')?.addEventListener('click', handleSaveDB);
+
+    // Initialize data
     initData();
-    // After data is loaded, populate brands based on loaded client and preselect saved brand
+
+    // Populate brands after data restore
     setTimeout(() => {
         const clienteEl = document.getElementById('clienteName');
-        const savedBrand = document.getElementById('marcaName').getAttribute('data-saved') || document.getElementById('marcaName').value;
+        const savedBrand = document.getElementById('marcaName').getAttribute('data-saved');
         populateBrands(clienteEl.value, savedBrand);
-    }, 500);
-  });
+    }, 300);
+});
 </script>
 
 <?php require_once 'includes/footer.php'; ?>

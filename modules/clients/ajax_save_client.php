@@ -12,8 +12,6 @@ $name = $_POST['name'] ?? '';
 $whatsapp = $_POST['whatsapp'] ?? '';
 $email = $_POST['email'] ?? '';
 $dni = $_POST['dni'] ?? '';
-$drive_folder_id = $_POST['drive_folder_id'] ?? null;
-if ($drive_folder_id === '') $drive_folder_id = null;
 $portal_enabled = isset($_POST['portal_enabled']) && ($_POST['portal_enabled'] == '1' || $_POST['portal_enabled'] === 'true' || $_POST['portal_enabled'] === 'on') ? 1 : 0;
 $deletedBrands = json_decode($_POST['deleted_brands'] ?? '[]', true);
 $brands = $_POST['brands'] ?? [];
@@ -27,12 +25,18 @@ try {
     $db->beginTransaction();
 
     if ($id) {
-        $stmt = $db->prepare("UPDATE clients SET name = ?, whatsapp = ?, email = ?, dni = ?, drive_folder_id = ?, portal_enabled = ? WHERE id = ?");
-        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id, $portal_enabled, $id]);
+        if (array_key_exists('drive_folder_id', $_POST)) {
+            $drive_folder_id = $_POST['drive_folder_id'] !== '' ? $_POST['drive_folder_id'] : null;
+            $stmt = $db->prepare("UPDATE clients SET name = ?, whatsapp = ?, email = ?, dni = ?, drive_folder_id = ?, portal_enabled = ? WHERE id = ?");
+            $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id, $portal_enabled, $id]);
+        } else {
+            $stmt = $db->prepare("UPDATE clients SET name = ?, whatsapp = ?, email = ?, dni = ?, portal_enabled = ? WHERE id = ?");
+            $stmt->execute([$name, $whatsapp, $email, $dni, $portal_enabled, $id]);
+        }
         $clientId = $id;
     } else {
-        $stmt = $db->prepare("INSERT INTO clients (name, whatsapp, email, dni, drive_folder_id, portal_enabled) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $whatsapp, $email, $dni, $drive_folder_id, $portal_enabled]);
+        $stmt = $db->prepare("INSERT INTO clients (name, whatsapp, email, dni, portal_enabled) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$name, $whatsapp, $email, $dni, $portal_enabled]);
         $clientId = $db->lastInsertId();
     }
 
@@ -59,15 +63,65 @@ try {
         $brandServicesIds = $brand['services_ids'] ?? '[]'; // should be json string
         $brandWhatsappGroup = $brand['whatsapp_group'] ?? null;
 
-        // Check if there is a file upload for this brand
+        // Check if there is a file upload for this brand (from file input or clipboard)
         if (isset($_FILES["brands_files_$index"]) && $_FILES["brands_files_$index"]['error'] === UPLOAD_ERR_OK) {
             $tmpName = $_FILES["brands_files_$index"]['tmp_name'];
-            $fileName = uniqid() . '_' . basename($_FILES["brands_files_$index"]['name']);
-            // Limpiar nombre de archivo
-            $fileName = preg_replace("/[^a-zA-Z0-9_\-\.]/", "", $fileName);
+            $cleanName = basename($_FILES["brands_files_$index"]['name']);
+            $cleanName = preg_replace("/[^a-zA-Z0-9_\-\.]/", "", $cleanName);
+            if (empty($cleanName) || $cleanName === '.') $cleanName = 'logo_' . time() . '.png';
+            $fileName = uniqid('brand_') . '_' . $cleanName;
             $filePath = $uploadDir . $fileName;
             if (move_uploaded_file($tmpName, $filePath)) {
                 $brandLogo = $filePath;
+            }
+        } elseif (!empty($brandLogo)) {
+            // Check if brandLogo is a base64 string
+            if (strpos($brandLogo, 'data:image/') === 0) {
+                if (preg_match('/^data:image\/(\w+);base64,/', $brandLogo, $typeMatch)) {
+                    $base64Data = substr($brandLogo, strpos($brandLogo, ',') + 1);
+                    $ext = strtolower($typeMatch[1]);
+                    if ($ext === 'jpeg') $ext = 'jpg';
+                    if (!in_array($ext, ['png', 'jpg', 'webp', 'svg', 'gif'])) {
+                        $ext = 'png';
+                    }
+                    $decoded = base64_decode($base64Data);
+                    if ($decoded !== false) {
+                        $fileName = 'b64_' . uniqid() . '.' . $ext;
+                        $filePath = $uploadDir . $fileName;
+                        if (file_put_contents($filePath, $decoded)) {
+                            $brandLogo = $filePath;
+                        }
+                    }
+                }
+            } elseif (strpos($brandLogo, 'http://') === 0 || strpos($brandLogo, 'https://') === 0) {
+                // If it's a remote URL, attempt to download and save locally
+                try {
+                    $ctx = stream_context_create([
+                        'http' => [
+                            'timeout' => 4,
+                            'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                        ],
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false
+                        ]
+                    ]);
+                    $remoteImg = @file_get_contents($brandLogo, false, $ctx);
+                    if ($remoteImg !== false && strlen($remoteImg) > 0) {
+                        $pathExt = pathinfo(parse_url($brandLogo, PHP_URL_PATH), PATHINFO_EXTENSION);
+                        $pathExt = strtolower($pathExt);
+                        if (!$pathExt || !in_array($pathExt, ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'])) {
+                            $pathExt = 'png';
+                        }
+                        $fileName = 'url_' . uniqid() . '.' . $pathExt;
+                        $filePath = $uploadDir . $fileName;
+                        if (file_put_contents($filePath, $remoteImg)) {
+                            $brandLogo = $filePath;
+                        }
+                    }
+                } catch (\Throwable $t) {
+                    // Retain the URL as fallback if download fails
+                }
             }
         }
 
