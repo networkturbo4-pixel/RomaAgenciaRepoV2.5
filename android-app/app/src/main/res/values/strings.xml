@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">ROMA</string>
-    <!-- URL del sistema en producción. Cámbiala por tu dominio HTTPS -->
-    <string name="server_url">https://crm.romaagencia.com</string>
+    <!-- URL oficial del sistema ROMA -->
+    <string name="server_url">https://romaagencia.lat</string>
     <string name="error_offline_title">Sin conexión</string>
     <string name="error_offline_desc">Comprueba tu conexión a Internet para continuar usando ROMA.</string>
     <string name="btn_retry">Reintentar</string>

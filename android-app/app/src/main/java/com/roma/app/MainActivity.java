@@ -83,6 +83,11 @@ public class MainActivity extends AppCompatActivity {
         // Inicializar preferencias y URL
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         serverUrl = preferences.getString(KEY_SERVER_URL, getString(R.string.server_url));
+        // Auto-migrar URL antigua si existía
+        if (serverUrl == null || serverUrl.contains("crm.romaagencia.com")) {
+            serverUrl = getString(R.string.server_url);
+            preferences.edit().putString(KEY_SERVER_URL, serverUrl).apply();
+        }
 
         // Inicializar vistas
         webView = findViewById(R.id.webView);

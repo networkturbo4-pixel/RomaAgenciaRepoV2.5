@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       server_url:
-        description: 'URL del Sistema ROMA (ej: https://crm.romaagencia.com)'
+        description: 'URL del Sistema ROMA'
         required: false
-        default: 'https://crm.romaagencia.com'
+        default: 'https://romaagencia.lat'
   push:
     branches:
       - main
