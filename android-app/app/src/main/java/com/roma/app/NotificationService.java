@@ -13,9 +13,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Build;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.os.SystemClock;
 import android.text.Html;
 import android.webkit.CookieManager;
@@ -30,15 +31,17 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.net.URLEncoder;
+import java.util.Calendar;
+import java.util.zip.GZIPInputStream;
 
 /**
- * Servicio en primer plano que mantiene las notificaciones en tiempo real aunque la app esté cerrada.
+ * Servicio en primer plano con LONG-POLLING: una sola petición abierta (~25 s) que el servidor
+ * responde al instante cuando hay una notificación. Sin WakeLock, sin consultas fijas.
  * Es la ÚNICA fuente de notificaciones nativas (evita duplicados).
  */
 public class NotificationService extends Service {
@@ -47,16 +50,21 @@ public class NotificationService extends Service {
     public static final String KEY_SERVER_URL = "custom_server_url";
     public static final String KEY_SITE_NAME = "cached_site_name";
     public static final String KEY_LAST_NOTIF_ID = "last_native_notif_id";
+    public static final String KEY_QUIET_START = "quiet_start_hour"; // -1 = desactivado
+    public static final String KEY_QUIET_END = "quiet_end_hour";
+    public static final String KEY_TYPES = "notif_types";            // csv, vacío = todos
     public static final String FAVICON_FILE = "cached_system_favicon.png";
 
     private static final String ALERT_CHANNEL = "roma_realtime_alerts_v3";
     private static final String SERVICE_CHANNEL = "roma_service_silent";
     private static final int FOREGROUND_ID = 1;
-    private static final long POLL_SECONDS = 8;
 
-    private ScheduledExecutorService scheduler;
-    private PowerManager.WakeLock wakeLock;
-    private volatile boolean firstPoll = true;
+    private volatile boolean running = false;
+    private Thread worker;
+    private final Object netLock = new Object();
+    private volatile boolean online = true;
+    private ConnectivityManager cm;
+    private ConnectivityManager.NetworkCallback netCallback;
 
     public static void start(Context ctx) {
         Intent i = new Intent(ctx, NotificationService.class);
@@ -88,15 +96,148 @@ public class NotificationService extends Service {
             startForeground(FOREGROUND_ID, fg);
         }
 
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        if (pm != null) {
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "roma:notif");
-            wakeLock.setReferenceCounted(false);
-            wakeLock.acquire();
-        }
+        registerNetworkCallback();
+        running = true;
+        worker = new Thread(this::loop, "roma-longpoll");
+        worker.start();
+    }
 
-        scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleWithFixedDelay(this::poll, 2, POLL_SECONDS, TimeUnit.SECONDS);
+    /** Pausa el sondeo mientras no haya internet y lo reanuda al volver la conexión. */
+    private void registerNetworkCallback() {
+        try {
+            cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return;
+            netCallback = new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(Network network) {
+                    synchronized (netLock) {
+                        online = true;
+                        netLock.notifyAll();
+                    }
+                }
+
+                @Override
+                public void onLost(Network network) {
+                    online = cm.getActiveNetwork() != null;
+                }
+            };
+            cm.registerDefaultNetworkCallback(netCallback);
+            online = cm.getActiveNetwork() != null;
+        } catch (Exception ignored) {}
+    }
+
+    private boolean sleepInterruptible(long ms) {
+        long end = SystemClock.elapsedRealtime() + ms;
+        synchronized (netLock) {
+            while (running) {
+                long left = end - SystemClock.elapsedRealtime();
+                if (left <= 0) return true;
+                try {
+                    netLock.wait(left);
+                } catch (InterruptedException e) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void loop() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int backoffSec = 5;
+        while (running) {
+            try {
+                if (!online) {
+                    synchronized (netLock) {
+                        while (running && !online) netLock.wait(60000);
+                    }
+                    continue;
+                }
+                if (inQuietHours(prefs)) {
+                    if (!sleepInterruptible(5 * 60 * 1000L)) return;
+                    continue;
+                }
+
+                String server = prefs.getString(KEY_SERVER_URL, getString(R.string.server_url));
+                String cookies = CookieManager.getInstance().getCookie(server);
+                if (cookies == null || cookies.isEmpty()) {
+                    if (!sleepInterruptible(30000)) return;
+                    continue;
+                }
+
+                int since = prefs.getInt(KEY_LAST_NOTIF_ID, -1);
+                String types = prefs.getString(KEY_TYPES, "");
+                String base = server.endsWith("/") ? server : server + "/";
+                String url = base + "ajax/notifications_poll.php?since=" + since + "&timeout=25"
+                        + (types.isEmpty() ? "" : "&types=" + URLEncoder.encode(types, "UTF-8"));
+
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                try {
+                    conn.setConnectTimeout(8000);
+                    conn.setReadTimeout(35000);
+                    conn.setRequestProperty("Cookie", cookies);
+                    conn.setRequestProperty("Accept", "application/json");
+                    conn.setRequestProperty("Accept-Encoding", "gzip");
+                    int code = conn.getResponseCode();
+                    if (code == 401 || code == 403) {
+                        if (!sleepInterruptible(60000)) return;
+                        continue;
+                    }
+                    if (code != 200) throw new Exception("HTTP " + code);
+
+                    InputStream in = conn.getInputStream();
+                    if ("gzip".equalsIgnoreCase(conn.getContentEncoding())) in = new GZIPInputStream(in);
+                    StringBuilder sb = new StringBuilder();
+                    try (BufferedReader r = new BufferedReader(new InputStreamReader(in))) {
+                        String line;
+                        while ((line = r.readLine()) != null) sb.append(line);
+                    }
+                    JSONObject json = new JSONObject(sb.toString());
+                    if (!json.optBoolean("success", false)) throw new Exception("api");
+
+                    int lastId = json.optInt("last_id", since);
+                    JSONArray arr = json.optJSONArray("notifications");
+                    if (since < 0) {
+                        // Primera sincronización: solo guardar el cursor, sin notificar el historial
+                        prefs.edit().putInt(KEY_LAST_NOTIF_ID, lastId).apply();
+                    } else {
+                        if (arr != null) {
+                            for (int i = 0; i < arr.length(); i++) {
+                                JSONObject n = arr.getJSONObject(i);
+                                int id = n.optInt("id", 0);
+                                if (id > prefs.getInt(KEY_LAST_NOTIF_ID, -1)) {
+                                    post(this, id,
+                                            decode(n.optString("title", "")),
+                                            decode(n.optString("message", "")),
+                                            n.optString("link", ""));
+                                }
+                            }
+                        }
+                        if (lastId > prefs.getInt(KEY_LAST_NOTIF_ID, -1)) {
+                            prefs.edit().putInt(KEY_LAST_NOTIF_ID, lastId).apply();
+                        }
+                    }
+                    backoffSec = 5;
+                } finally {
+                    conn.disconnect();
+                }
+            } catch (InterruptedException ie) {
+                return;
+            } catch (Exception e) {
+                // Reintento con espera creciente (5 a 60 s) para no gastar batería si el servidor no responde
+                if (!sleepInterruptible(backoffSec * 1000L)) return;
+                backoffSec = Math.min(60, backoffSec * 2);
+            }
+        }
+    }
+
+    /** Horario silencioso: si start == end o -1, está desactivado. Soporta rangos que cruzan medianoche. */
+    private boolean inQuietHours(SharedPreferences prefs) {
+        int s = prefs.getInt(KEY_QUIET_START, -1);
+        int e = prefs.getInt(KEY_QUIET_END, -1);
+        if (s < 0 || e < 0 || s == e) return false;
+        int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        return s < e ? (h >= s && h < e) : (h >= s || h < e);
     }
 
     @Override
@@ -106,7 +247,6 @@ public class NotificationService extends Service {
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        // Reiniciar el servicio si el usuario cierra la app deslizando
         Intent restart = new Intent(getApplicationContext(), NotificationService.class);
         int f = PendingIntent.FLAG_ONE_SHOT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
         PendingIntent pi = PendingIntent.getService(getApplicationContext(), 7, restart, f);
@@ -119,8 +259,14 @@ public class NotificationService extends Service {
 
     @Override
     public void onDestroy() {
-        if (scheduler != null) scheduler.shutdownNow();
-        if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        running = false;
+        synchronized (netLock) {
+            netLock.notifyAll();
+        }
+        if (worker != null) worker.interrupt();
+        try {
+            if (cm != null && netCallback != null) cm.unregisterNetworkCallback(netCallback);
+        } catch (Exception ignored) {}
         super.onDestroy();
     }
 
@@ -128,67 +274,6 @@ public class NotificationService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
-    }
-
-    private void poll() {
-        HttpURLConnection conn = null;
-        try {
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-            String server = prefs.getString(KEY_SERVER_URL, getString(R.string.server_url));
-            String cookies = CookieManager.getInstance().getCookie(server);
-            if (cookies == null || cookies.isEmpty()) return;
-
-            String base = server.endsWith("/") ? server : server + "/";
-            conn = (HttpURLConnection) new URL(base + "ajax/notifications.php?action=get_notifications&limit=10").openConnection();
-            conn.setConnectTimeout(6000);
-            conn.setReadTimeout(6000);
-            conn.setRequestProperty("Cookie", cookies);
-            conn.setRequestProperty("Accept", "application/json");
-            if (conn.getResponseCode() != 200) return;
-
-            StringBuilder sb = new StringBuilder();
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                String line;
-                while ((line = r.readLine()) != null) sb.append(line);
-            }
-            JSONObject json = new JSONObject(sb.toString());
-            if (!json.optBoolean("success", false)) return;
-            JSONArray arr = json.optJSONArray("notifications");
-            if (arr == null) return;
-
-            int maxId = 0;
-            for (int i = 0; i < arr.length(); i++) {
-                maxId = Math.max(maxId, arr.getJSONObject(i).optInt("id", 0));
-            }
-            if (firstPoll) {
-                firstPoll = false;
-                if (prefs.getInt(KEY_LAST_NOTIF_ID, -1) < 0) {
-                    prefs.edit().putInt(KEY_LAST_NOTIF_ID, maxId).apply();
-                    return;
-                }
-            }
-
-            // De la más antigua a la más reciente
-            for (int i = arr.length() - 1; i >= 0; i--) {
-                JSONObject n = arr.getJSONObject(i);
-                int id = n.optInt("id", 0);
-                if (id > 0 && n.optInt("is_read", 1) == 0 && claim(prefs, id)) {
-                    post(this, id,
-                            decode(n.optString("title", "")),
-                            decode(n.optString("message", "")),
-                            n.optString("link", ""));
-                }
-            }
-        } catch (Exception ignored) {
-        } finally {
-            if (conn != null) conn.disconnect();
-        }
-    }
-
-    private static synchronized boolean claim(SharedPreferences prefs, int id) {
-        if (id <= prefs.getInt(KEY_LAST_NOTIF_ID, -1)) return false;
-        prefs.edit().putInt(KEY_LAST_NOTIF_ID, id).apply();
-        return true;
     }
 
     private static String decode(String s) {

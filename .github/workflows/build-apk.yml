@@ -68,6 +68,24 @@ jobs:
       - name: Dar permisos de ejecución a Gradlew
         run: chmod +x android-app/gradlew
 
+      - name: Preparar firma propia (solo si existen los secretos)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KS_KEYPASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/roma.jks"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/roma.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=$KS_PASS" >> $GITHUB_ENV
+            echo "KEY_ALIAS=$KS_ALIAS" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${KS_KEYPASS:-$KS_PASS}" >> $GITHUB_ENV
+            echo "Firma propia activada"
+          else
+            echo "Sin keystore: se usa la firma de depuración"
+          fi
+
       - name: Compilar APK (Release firmado)
         run: |
           cd android-app
@@ -75,7 +93,7 @@ jobs:
           gradle assembleRelease --stacktrace --console=plain > ../gradle-build.log 2>&1
           RC=$?
           if [ $RC -ne 0 ]; then
-            echo "Gradle fall�, mostrando errores:"
+            echo "Gradle fall�, mostrando errores:"
             grep -E "error:|What went wrong|Execution failed for|AAPT: error|Manifest merger failed" -A4 ../gradle-build.log | head -n 40 | while IFS= read -r line; do echo "::error::${line}"; done
             tail -n 60 ../gradle-build.log
             exit $RC

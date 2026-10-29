@@ -42,3 +42,34 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
+
+
+// ---- Caché de recursos estáticos (stale-while-revalidate) para carga más rápida / uso offline parcial ----
+const STATIC_CACHE = 'roma-static-v1';
+self.addEventListener('install', function() { self.skipWaiting(); });
+self.addEventListener('activate', function(event) {
+    event.waitUntil(
+        caches.keys().then(function(keys) {
+            return Promise.all(keys.filter(function(k) { return k.indexOf('roma-static-') === 0 && k !== STATIC_CACHE; })
+                .map(function(k) { return caches.delete(k); }));
+        }).then(function() { return self.clients.claim(); })
+    );
+});
+self.addEventListener('fetch', function(event) {
+    const req = event.request;
+    if (req.method !== 'GET') return;
+    const url = new URL(req.url);
+    if (url.origin !== self.location.origin) return;
+    if (!/\/(assets|uploads)\/.+\.(css|js|png|jpg|jpeg|webp|svg|woff2?)$/i.test(url.pathname)) return;
+    event.respondWith(
+        caches.open(STATIC_CACHE).then(function(cache) {
+            return cache.match(req).then(function(cached) {
+                const network = fetch(req).then(function(res) {
+                    if (res && res.status === 200) cache.put(req, res.clone());
+                    return res;
+                }).catch(function() { return cached; });
+                return cached || network;
+            });
+        })
+    );
+});

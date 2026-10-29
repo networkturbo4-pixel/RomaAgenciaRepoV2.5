@@ -219,6 +219,55 @@
                 <i class="ph ph-key"></i>
                 <span>Actualizar contraseña</span>
             </button>
+
+            <!-- Preferencias exclusivas de la app Android -->
+            <div id="native-app-prefs" style="display:none; margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+                <h4 style="margin:0 0 .6rem 0; font-size:13px; color:var(--color-title);"><i class="ph ph-device-mobile"></i> Preferencias de la app</h4>
+                <label style="display:flex; align-items:center; gap:.5rem; font-size:12.5px; margin-bottom:.6rem;">
+                    <input type="checkbox" id="np-lock"> Pedir huella/PIN al abrir (tras 5 min fuera)
+                </label>
+                <div style="font-size:12.5px; margin-bottom:.35rem;">Horario silencioso (sin avisos):</div>
+                <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.6rem; font-size:12.5px;">
+                    <select id="np-qs" class="form-control" style="max-width:90px;"></select> a
+                    <select id="np-qe" class="form-control" style="max-width:90px;"></select>
+                </div>
+                <div style="font-size:12.5px; margin-bottom:.35rem;">Avisar solo de:</div>
+                <div id="np-types" style="display:flex; flex-wrap:wrap; gap:.4rem .9rem; font-size:12.5px; margin-bottom:.7rem;">
+                    <label><input type="checkbox" value="task"> Tareas</label>
+                    <label><input type="checkbox" value="meeting"> Reuniones</label>
+                    <label><input type="checkbox" value="mention"> Menciones</label>
+                    <label><input type="checkbox" value="comment"> Comentarios</label>
+                    <label><input type="checkbox" value="calendar"> Calendario</label>
+                    <label><input type="checkbox" value="quote"> Cotizaciones</label>
+                </div>
+                <small class="text-muted" style="display:block; margin-bottom:.5rem;">Sin marcar ningún tipo = todos los avisos.</small>
+                <button type="button" class="pm-pw-btn" id="np-save"><i class="ph ph-floppy-disk"></i><span>Guardar preferencias</span></button>
+            </div>
+            <script>
+            (function(){
+                if (!window.RomaNativeApp || !RomaNativeApp.getAppSettings) return;
+                var box = document.getElementById('native-app-prefs'); if (!box) return;
+                box.style.display = 'block';
+                var s = {}; try { s = JSON.parse(RomaNativeApp.getAppSettings()); } catch(e) {}
+                var qs = document.getElementById('np-qs'), qe = document.getElementById('np-qe');
+                [qs, qe].forEach(function(sel){
+                    sel.innerHTML = '<option value="-1">--</option>';
+                    for (var h = 0; h < 24; h++) sel.innerHTML += '<option value="'+h+'">'+(h<10?'0':'')+h+':00</option>';
+                });
+                qs.value = String(s.quiet_start != null ? s.quiet_start : -1);
+                qe.value = String(s.quiet_end != null ? s.quiet_end : -1);
+                document.getElementById('np-lock').checked = s.app_lock !== false;
+                var active = (s.types || '').split(',');
+                document.querySelectorAll('#np-types input').forEach(function(c){ c.checked = active.indexOf(c.value) !== -1; });
+                document.getElementById('np-save').addEventListener('click', function(){
+                    RomaNativeApp.setAppLock(document.getElementById('np-lock').checked);
+                    RomaNativeApp.setQuietHours(parseInt(qs.value, 10), parseInt(qe.value, 10));
+                    var t = []; document.querySelectorAll('#np-types input:checked').forEach(function(c){ t.push(c.value); });
+                    RomaNativeApp.setNotifTypes(t.join(','));
+                    if (window.showToast) window.showToast('Preferencias guardadas', 'success');
+                });
+            })();
+            </script>
         </div>
     </div>
 </div>

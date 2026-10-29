@@ -78,6 +78,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MainActivity extends AppCompatActivity {
 
     private static final int FILE_CHOOSER_RESULT_CODE = 1001;
+    private static final int UNLOCK_REQUEST_CODE = 3003;
+    private static final String KEY_APP_LOCK = "app_lock_enabled";
+    private static final long LOCK_TIMEOUT_MS = 5 * 60 * 1000L;
+    private long stoppedAt = 0;
+    private boolean unlocking = false;
+    private boolean firstStart = true;
     private static final int PERMISSION_REQUEST_CODE = 2002;
     private static final String PREFS_NAME = "roma_app_prefs";
     private static final String KEY_SERVER_URL = "custom_server_url";
@@ -196,6 +202,9 @@ public class MainActivity extends AppCompatActivity {
         NotificationService.start(this);
 
         String notifTargetUrl = getIntent() != null ? getIntent().getStringExtra("target_url") : null;
+        if ((notifTargetUrl == null || notifTargetUrl.isEmpty()) && getIntent() != null && getIntent().getData() != null) {
+            notifTargetUrl = deepLinkToUrl(getIntent().getData());
+        }
         hideOfflineScreen();
         if (notifTargetUrl != null && !notifTargetUrl.isEmpty()) {
             webView.loadUrl(resolveFullUrl(notifTargetUrl));
@@ -204,12 +213,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** Enlaces profundos: https://romaagencia.lat/... abren dentro de la app. */
+    private String deepLinkToUrl(Uri data) {
+        if (data == null || data.getHost() == null) return null;
+        Uri base = Uri.parse(serverUrl);
+        if (base.getHost() != null && data.getHost().equalsIgnoreCase(base.getHost())) {
+            return data.toString();
+        }
+        return null;
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         if (intent != null) {
             String targetUrl = intent.getStringExtra("target_url");
+            if ((targetUrl == null || targetUrl.isEmpty()) && intent.getData() != null) {
+                targetUrl = deepLinkToUrl(intent.getData());
+            }
             if (targetUrl != null && !targetUrl.isEmpty() && webView != null) {
                 hideOfflineScreen();
                 webView.loadUrl(resolveFullUrl(targetUrl));
@@ -392,6 +414,38 @@ public class MainActivity extends AppCompatActivity {
         public boolean isNativeApp() {
             return true;
         }
+
+        @JavascriptInterface
+        public void setAppLock(boolean enabled) {
+            preferences.edit().putBoolean(KEY_APP_LOCK, enabled).apply();
+        }
+
+        @JavascriptInterface
+        public void setQuietHours(int startHour, int endHour) {
+            preferences.edit()
+                    .putInt(NotificationService.KEY_QUIET_START, startHour)
+                    .putInt(NotificationService.KEY_QUIET_END, endHour)
+                    .apply();
+        }
+
+        @JavascriptInterface
+        public void setNotifTypes(String csv) {
+            preferences.edit().putString(NotificationService.KEY_TYPES, csv == null ? "" : csv.trim()).apply();
+        }
+
+        @JavascriptInterface
+        public String getAppSettings() {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("app_lock", preferences.getBoolean(KEY_APP_LOCK, true));
+                o.put("quiet_start", preferences.getInt(NotificationService.KEY_QUIET_START, -1));
+                o.put("quiet_end", preferences.getInt(NotificationService.KEY_QUIET_END, -1));
+                o.put("types", preferences.getString(NotificationService.KEY_TYPES, ""));
+                return o.toString();
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
     }
 
     /** Desactiva Notification/Push web dentro de la APK para que no haya notificaciones dobles. */
@@ -473,7 +527,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                handler.proceed();
+                handler.cancel();
             }
 
             @Override
@@ -600,6 +654,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == UNLOCK_REQUEST_CODE) {
+            unlocking = false;
+            if (resultCode == RESULT_OK) {
+                webView.setVisibility(View.VISIBLE);
+            } else {
+                finish();
+            }
+            super.onActivityResult(requestCode, resultCode, data);
+            return;
+        }
         if (requestCode == FILE_CHOOSER_RESULT_CODE) {
             if (mFilePathCallback != null) {
                 Uri[] results = null;
@@ -678,6 +742,41 @@ public class MainActivity extends AppCompatActivity {
     private void hideOfflineScreen() {
         layoutOffline.setVisibility(View.GONE);
         webView.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        boolean lockOn = preferences != null && preferences.getBoolean(KEY_APP_LOCK, true);
+        if (lockOn && !unlocking) {
+            long away = stoppedAt == 0 ? 0 : System.currentTimeMillis() - stoppedAt;
+            if (firstStart || away > LOCK_TIMEOUT_MS) {
+                promptUnlock();
+            }
+        }
+        firstStart = false;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (!unlocking) stoppedAt = System.currentTimeMillis();
+    }
+
+    /** Pide huella / patrón / PIN del teléfono (si tiene bloqueo de pantalla configurado). */
+    private void promptUnlock() {
+        try {
+            android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            if (km == null || !km.isDeviceSecure()) return;
+            Intent i = km.createConfirmDeviceCredentialIntent(currentSiteName, "Verifica tu identidad para continuar");
+            if (i == null) return;
+            unlocking = true;
+            webView.setVisibility(View.INVISIBLE);
+            startActivityForResult(i, UNLOCK_REQUEST_CODE);
+        } catch (Exception e) {
+            unlocking = false;
+            webView.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
