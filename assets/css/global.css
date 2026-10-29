@@ -880,3 +880,27 @@ html:not([data-theme="dark"]) .brand-logo-dark { display: none !important; }
         transform: translateX(-50%) translateY(0);
     }
 }
+
+/* Skeleton loaders (esqueletos de carga) */
+.skeleton, .skeleton-line {
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--text-muted, #94a3b8) 18%, transparent);
+    border-radius: 8px;
+    color: transparent !important;
+    user-select: none;
+}
+.skeleton-line { height: 12px; margin: 8px 0; }
+.skeleton::after, .skeleton-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, #fff 45%, transparent), transparent);
+    animation: skeleton-shimmer 1.2s infinite;
+}
+@keyframes skeleton-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .skeleton::after, .skeleton-line::after { animation: none; } }
+
+/* Retroalimentación inmediata al navegar entre módulos */
+body.is-navigating main { opacity: .55; transition: opacity .15s ease; pointer-events: none; }

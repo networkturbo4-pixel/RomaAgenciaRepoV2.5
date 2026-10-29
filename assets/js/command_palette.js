@@ -643,6 +643,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const fechaInput = document.getElementById('cp-meet-fecha');
         fechaInput.value = localISOTime;
 
+        if (window.romaLoadLibs) window.romaLoadLibs(['flatpickr', 'tagify']).then(function() { cpInitMeetLibs(fechaInput); });
+        function cpInitMeetLibs(fechaInput) {
         if (window.flatpickr) {
             flatpickr(fechaInput, {
                 enableTime: true,
@@ -665,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     delimiters: ",| ",
                 });
             }
+        }
         }
 
         if (!brandsLoaded) {

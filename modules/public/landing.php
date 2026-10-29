@@ -77,7 +77,7 @@ $base_url = $protocol . '://' . $host . rtrim(dirname($_SERVER['PHP_SELF']), '/\
     <meta property="og:type" content="website">
     <meta property="og:title" content="<?php echo $site_name; ?> | The Agency Operating System">
     <meta property="og:description" content="Transformamos marcas visionarias con dirección de arte, ingeniería web y automatización con IA.">
-    <meta property="og:image" content="<?php echo $base_url; ?>assets/img/login_slide_1.jpg">
+    <meta property="og:image" content="<?php echo $base_url; ?>assets/img/login_slide_1.webp">
     <meta property="og:url" content="<?php echo $base_url; ?>">
 
     <!-- Google Fonts & Phosphor Icons -->
@@ -657,7 +657,7 @@ $base_url = $protocol . '://' . $host . rtrim(dirname($_SERVER['PHP_SELF']), '/\
                                 <!-- Cinema Video Mockup Player -->
                                 <div class="md:col-span-7">
                                     <div id="videoMockContainer" class="relative rounded-2xl overflow-hidden bg-dark-base border border-white/10 aspect-video flex items-center justify-center transition-all duration-300">
-                                        <div class="absolute inset-0 bg-cover bg-center opacity-60" style="background-image: url('assets/img/login_slide_1.jpg');"></div>
+                                        <div class="absolute inset-0 bg-cover bg-center opacity-60" style="background-image: url('assets/img/login_slide_1.webp');"></div>
                                         <div class="absolute inset-0 bg-gradient-to-t from-dark-base via-transparent to-transparent"></div>
                                         
                                         <!-- Play Button Overlay -->

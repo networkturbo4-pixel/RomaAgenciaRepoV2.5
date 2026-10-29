@@ -134,11 +134,11 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
     <?php endif; ?>
 
     <!-- Preload Slider Images for Butter-Smooth Transitions -->
-    <link rel="preload" as="image" href="assets/img/login_slide_1.jpg">
-    <link rel="preload" as="image" href="assets/img/login_slide_2.jpg">
-    <link rel="preload" as="image" href="assets/img/login_slide_3.jpg">
-    <link rel="preload" as="image" href="assets/img/login_slide_4.jpg">
-    <link rel="preload" as="image" href="assets/img/login_slide_5.jpg">
+    <link rel="preload" as="image" href="assets/img/login_slide_1.webp">
+    <link rel="preload" as="image" href="assets/img/login_slide_2.webp">
+    <link rel="preload" as="image" href="assets/img/login_slide_3.webp">
+    <link rel="preload" as="image" href="assets/img/login_slide_4.webp">
+    <link rel="preload" as="image" href="assets/img/login_slide_5.webp">
 
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -395,11 +395,11 @@ $primaryColor = $global_settings['primary_color'] ?? '#0f172a';
 
     <!-- Background Modern Slider -->
     <div class="slider-container" id="bgSlider">
-        <div class="slider-slide active" style="background-image: url('assets/img/login_slide_1.jpg');"></div>
-        <div class="slider-slide" style="background-image: url('assets/img/login_slide_2.jpg');"></div>
-        <div class="slider-slide" style="background-image: url('assets/img/login_slide_3.jpg');"></div>
-        <div class="slider-slide" style="background-image: url('assets/img/login_slide_4.jpg');"></div>
-        <div class="slider-slide" style="background-image: url('assets/img/login_slide_5.jpg');"></div>
+        <div class="slider-slide active" style="background-image: url('assets/img/login_slide_1.webp');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_2.webp');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_3.webp');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_4.webp');"></div>
+        <div class="slider-slide" style="background-image: url('assets/img/login_slide_5.webp');"></div>
     </div>
 
     <!-- Subtle Gradients for Legibility -->

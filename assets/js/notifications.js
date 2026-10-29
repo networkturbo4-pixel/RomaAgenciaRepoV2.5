@@ -273,12 +273,11 @@
         if (isFetching || !notifList) return;
         isFetching = true;
 
-        notifList.innerHTML = `
-            <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                <i class="ph ph-spinner ph-spin" style="font-size: 1.8rem;"></i>
-                <p style="margin-top: 0.5rem; font-size: 0.85rem;">Cargando notificaciones...</p>
-            </div>
-        `;
+        notifList.innerHTML = [1, 2, 3].map(() => `
+            <li style="list-style:none; display:flex; gap:.75rem; padding:.85rem 1rem;">
+                <div class="skeleton" style="width:38px; height:38px; border-radius:10px; flex-shrink:0;"></div>
+                <div style="flex:1;"><div class="skeleton-line" style="width:70%;"></div><div class="skeleton-line" style="width:90%;"></div></div>
+            </li>`).join("");
 
         fetch('ajax/notifications.php?action=get_notifications')
             .then(res => res.json())

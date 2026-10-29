@@ -273,16 +273,15 @@
 </div>
 
 <!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="assets/vendor/sweetalert2.all.min.js"></script>
 <!-- Quill.js -->
-<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<?php if (roma_lib_eager('quill')): ?><script src="assets/vendor/quill.min.js"></script><?php endif; ?>
 <!-- Pusher -->
-<script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+<script src="assets/vendor/pusher.min.js"></script>
 <!-- Flatpickr -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+<?php if (roma_lib_eager('flatpickr')): ?><script src="assets/vendor/flatpickr.min.js"></script><script src="assets/vendor/flatpickr-es.js"></script><?php endif; ?>
 <!-- Tagify -->
-<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+<?php if (roma_lib_eager('tagify')): ?><script src="assets/vendor/tagify.min.js"></script><?php endif; ?>
 
 <script src="assets/js/app.js?v=<?php echo filemtime('assets/js/app.js'); ?>"></script>
 <script src="assets/js/push_notifications.js?v=<?php echo filemtime('assets/js/push_notifications.js'); ?>"></script>
@@ -563,12 +562,25 @@ document.getElementById('btn-change-pw').addEventListener('click', async () => {
 </script>
 
 <!-- Fancybox JS -->
-<script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
+<?php if (roma_lib_eager('fancybox')): ?>
+<script src="assets/vendor/fancybox.umd.js"></script>
 <script>
-    Fancybox.bind("[data-fancybox]", {
-        // Your custom options
+    Fancybox.bind("[data-fancybox]", {});
+</script>
+<?php else: ?>
+<script>
+    // Lightbox bajo demanda: se carga Fancybox solo cuando el usuario toca una imagen con data-fancybox
+    document.addEventListener("click", function(e) {
+        const a = e.target.closest ? e.target.closest("[data-fancybox]") : null;
+        if (!a || window.Fancybox) return;
+        e.preventDefault();
+        window.romaLoadLibs(["fancybox"]).then(function() {
+            Fancybox.bind("[data-fancybox]", {});
+            a.click();
+        });
     });
 </script>
+<?php endif; ?>
 
 <?php if (isset($_SESSION['user_id'])): ?>
 <!-- Google Drive Explorer -->
@@ -781,7 +793,26 @@ if (isset($_SESSION['user_id'])) {
 
     window.addEventListener('pageshow', () => {
         progressBar.classList.remove('active');
+        document.body.classList.remove('is-navigating');
     });
+
+    document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href*="index.php?module="]');
+        if (a && !a.target && !e.ctrlKey && !e.metaKey && !e.defaultPrevented && !a.hasAttribute('download')) {
+            document.body.classList.add('is-navigating');
+        }
+    });
+
+    // Imágenes con carga diferida (lazy) fuera de la primera pantalla
+    function lazyImgs(root) {
+        (root || document).querySelectorAll('img:not([loading])').forEach((img) => {
+            const r = img.getBoundingClientRect();
+            if (r.top > window.innerHeight * 1.2) { img.loading = 'lazy'; }
+            img.decoding = 'async';
+        });
+    }
+    lazyImgs();
+    window.addEventListener('tables-updated', () => lazyImgs());
 })();
 </script>
 </body>

@@ -1,6 +1,7 @@
 <?php
 // includes/header.php
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/vendor_libs.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -96,13 +97,15 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     <?php endif; ?>
 
     <!-- Preconnect for Faster Resource Loading -->
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Phosphor Icons (local, sin CDN) -->
+    <link rel="preload" href="assets/vendor/phosphor/regular/Phosphor.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/vendor/phosphor/regular/style.css">
+    <link rel="stylesheet" href="assets/vendor/phosphor/bold/style.css">
+    <link rel="stylesheet" href="assets/vendor/phosphor/fill/style.css">
+    <link rel="stylesheet" href="assets/vendor/phosphor/duotone/style.css">
     
     <!-- Load selected fonts -->
     <?php
@@ -119,12 +122,12 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     ?>
 
     <!-- Quill.js CSS -->
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <?php if (roma_lib_eager('quill')): ?><link href="assets/vendor/quill.snow.css" rel="stylesheet"><?php endif; ?>
     
     <!-- Flatpickr CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <?php if (roma_lib_eager('flatpickr')): ?><link rel="stylesheet" href="assets/vendor/flatpickr.min.css"><?php endif; ?>
     <!-- Tagify CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />
+    <?php if (roma_lib_eager('tagify')): ?><link href="assets/vendor/tagify.css" rel="stylesheet" type="text/css" /><?php endif; ?>
 
     <!-- Web App Manifest -->
     <link rel="manifest" href="manifest.php">
@@ -153,6 +156,36 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             } catch (e) {}
         }
 
+        // Carga bajo demanda de librerÃ­as pesadas (locales): romaLoadLibs(['flatpickr','tagify','quill','fancybox'])
+        window.romaLoadLibs = (function() {
+            const V = 'assets/vendor/';
+            const defs = {
+                quill:     { css: ['quill.snow.css'],     js: ['quill.min.js'],                         ok: function() { return window.Quill; } },
+                flatpickr: { css: ['flatpickr.min.css'],  js: ['flatpickr.min.js', 'flatpickr-es.js'], ok: function() { return window.flatpickr; } },
+                tagify:    { css: ['tagify.css'],         js: ['tagify.min.js'],                       ok: function() { return window.Tagify; } },
+                fancybox:  { css: ['fancybox.css'],       js: ['fancybox.umd.js'],                     ok: function() { return window.Fancybox; } }
+            };
+            const cache = {};
+            function css(f) {
+                if (document.querySelector('link[href$="' + f + '"]')) return;
+                const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = V + f; document.head.appendChild(l);
+            }
+            function js(f) {
+                return new Promise(function(res, rej) {
+                    const s = document.createElement('script'); s.src = V + f; s.onload = res; s.onerror = rej; document.head.appendChild(s);
+                });
+            }
+            function load(name) {
+                const d = defs[name];
+                if (!d) return Promise.resolve();
+                if (d.ok()) return Promise.resolve();
+                if (cache[name]) return cache[name];
+                d.css.forEach(css);
+                cache[name] = d.js.reduce(function(p, f) { return p.then(function() { return js(f); }); }, Promise.resolve());
+                return cache[name];
+            }
+            return function(names) { return Promise.all((names || []).map(load)); };
+        })();
         // Auto-inyectar CSRF Token en todas las llamadas jQuery AJAX
         if (typeof jQuery !== 'undefined') {
             jQuery.ajaxPrefilter(function(options, originalOptions, xhr) {
@@ -251,7 +284,7 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
         [data-theme="dark"] .ql-snow .ql-editor.ql-blank::before { color: var(--text-muted); }
     </style>
     <!-- Fancybox CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css"/>
+    <?php if (roma_lib_eager('fancybox')): ?><link rel="stylesheet" href="assets/vendor/fancybox.css"/><?php endif; ?>
 </head>
 <body class="<?php echo $is_popup ? 'is-popup' : ''; ?>">
 
