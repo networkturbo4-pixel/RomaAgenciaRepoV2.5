@@ -664,6 +664,11 @@ try {
 if (isset($_SESSION['user_id']) && ($current_module ?? '') !== 'romita') {
     require_once __DIR__ . '/romita_floating_modal.php';
 }
+
+// Mobile Bottom Navigation Bar & Workspace FAB Launcher
+if (isset($_SESSION['user_id'])) {
+    require_once __DIR__ . '/mobile_bottom_nav.php';
+}
 ?>
 </body>
 </html>

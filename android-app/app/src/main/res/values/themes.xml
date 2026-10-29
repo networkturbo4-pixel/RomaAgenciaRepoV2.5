@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.RomaApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Status bar styling -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:statusBarColor">@color/primary</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+    </style>
+</resources>

@@ -3167,8 +3167,8 @@ body.has-active-modal .romita-fab-container,
 
     /* FAB Botón en Mobile */
     .romita-fab-container {
-        bottom: 18px;
-        right: 18px;
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        right: 16px;
     }
 
     .romita-fab-btn {

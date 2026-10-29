@@ -113,7 +113,7 @@ if (!isset($_SESSION['user_id'])) {
     $user_requires_attendance = isset($currentUserData['requires_attendance']) ? (int)$currentUserData['requires_attendance'] : 1;
 
     $user_permissions = [];
-    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'brand_guidelines', 'audiovisual', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
+    $allowed_modules = ['auth', 'dashboard', 'workspace', 'desarrollo_marca', 'brand_guidelines', 'audiovisual', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'quotes', 'forms', 'contracts', 'conexiones', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'romita', 'project_board', 'month_board', 'community', 'projects', 'public', 'whatsapp', 'task_manager', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base', 'chat_moderno'];
     
     $role_name = '';
     $role_requires_attendance = 1;
@@ -139,6 +139,9 @@ if (!isset($_SESSION['user_id'])) {
             $user_permissions[] = 'dashboard';
         }
 
+        if (in_array('mensajes', $user_permissions) && !in_array('chat_moderno', $user_permissions)) {
+            $user_permissions[] = 'chat_moderno';
+        }
         $_SESSION['user_permissions'] = $user_permissions;
     }
 
@@ -308,7 +311,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Map modules to their respective files
-$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca', 'brand_guidelines', 'audiovisual', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base'];
+$allowed_modules = ['auth', 'dashboard', 'workspace', 'drive', 'config', 'clients', 'suppliers', 'work_orders', 'admin', 'services', 'calendar', 'community', 'project_board', 'month_board', 'quotes', 'forms', 'public', 'contracts', 'conexiones', 'projects', 'reuniones', 'herramientas', 'pizarras', 'mensajes', 'whatsapp', 'romita', 'task_manager', 'desarrollo_marca', 'brand_guidelines', 'audiovisual', 'client_portal', 'design_tasks', 'tasks', 'chat', 'knowledge_base', 'chat_moderno'];
 if (in_array($module, $allowed_modules)) {
     $module_file = "modules/{$module}/{$action}.php";
     if (file_exists($module_file)) {

@@ -301,9 +301,26 @@ try {
     <?php endif; ?>
 
     <!-- Master-Detail Layout -->
+    <!-- Mobile Active Tab Indicator & Switcher Button -->
+    <div class="settings-mobile-switcher-bar">
+        <button type="button" class="settings-mobile-trigger-btn" id="settingsMobileMenuBtn" aria-expanded="false">
+            <div class="sm-trigger-left">
+                <span class="sm-trigger-icon" id="smActiveIcon"><i class="ph ph-palette"></i></span>
+                <div class="sm-trigger-meta">
+                    <span class="sm-trigger-sub">Sección activa</span>
+                    <span class="sm-trigger-title" id="smActiveTitle">Personalización</span>
+                </div>
+            </div>
+            <div class="sm-trigger-right">
+                <span class="sm-trigger-badge">Menú</span>
+                <i class="ph ph-caret-down sm-trigger-caret"></i>
+            </div>
+        </button>
+    </div>
+
     <div class="settings-layout">
         <!-- Master Sidebar -->
-        <aside class="settings-sidebar">
+        <aside class="settings-sidebar" id="settingsSidebar">
             <div class="settings-search-box">
                 <i class="ph ph-magnifying-glass"></i>
                 <input type="text" id="settings-search-input" class="settings-search-input" placeholder="Buscar ajuste..." autocomplete="off">
@@ -480,21 +497,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Mobile sidebar toggle logic
+    const mobileMenuBtn = document.getElementById('settingsMobileMenuBtn');
+    const settingsSidebar = document.getElementById('settingsSidebar');
+    const smActiveTitle = document.getElementById('smActiveTitle');
+    const smActiveIcon = document.getElementById('smActiveIcon');
+
+    function syncMobileActiveTab(tabBtn) {
+        if (!tabBtn) return;
+        const label = tabBtn.querySelector('.tab-label')?.textContent.trim() || 'Ajustes';
+        const iconHtml = tabBtn.querySelector('.tab-icon-wrap')?.innerHTML || '<i class="ph ph-gear"></i>';
+        if (smActiveTitle) smActiveTitle.textContent = label;
+        if (smActiveIcon) smActiveIcon.innerHTML = iconHtml;
+    }
+
+    // Initialize with current active tab
+    const initialActive = document.querySelector('.settings-sidebar .tab-btn.active');
+    if (initialActive) {
+        syncMobileActiveTab(initialActive);
+    }
+
+    if (mobileMenuBtn && settingsSidebar) {
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = settingsSidebar.classList.toggle('mobile-expanded');
+            mobileMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            mobileMenuBtn.classList.toggle('is-open', isOpen);
+        });
+    }
+
     // URL Hash support for tabs
     if (window.location.hash) {
         const hashTab = window.location.hash.replace('#', '');
         const targetBtn = document.querySelector(`.settings-sidebar .tab-btn[data-tab="${hashTab}"]`);
         if (targetBtn) {
             targetBtn.click();
+            syncMobileActiveTab(targetBtn);
         }
     }
 
-    // Update URL Hash on tab switch
+    // Update URL Hash on tab switch & auto-close mobile sidebar
     navItems.forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
             if (tabId && history.pushState) {
                 history.pushState(null, null, '#' + tabId);
+            }
+            syncMobileActiveTab(btn);
+
+            // On mobile, collapse sidebar after selection and scroll smoothly to content
+            if (window.innerWidth <= 991 && settingsSidebar) {
+                settingsSidebar.classList.remove('mobile-expanded');
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    mobileMenuBtn.classList.remove('is-open');
+                }
+                const mainContent = document.querySelector('.settings-main');
+                if (mainContent) {
+                    mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
         });
     });

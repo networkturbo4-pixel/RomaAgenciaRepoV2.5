@@ -894,7 +894,9 @@
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 .app-table {
@@ -1024,48 +1026,217 @@
     object-fit: contain;
 }
 
+/* --- BARRA MÓVIL DE SELECCIÓN RÁPIDA DE AJUSTES --- */
+.settings-mobile-switcher-bar {
+    display: none;
+    margin-bottom: 1rem;
+}
+
+.settings-mobile-trigger-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--text-main);
+    transition: all 0.25s ease;
+}
+
+.settings-mobile-trigger-btn:hover {
+    border-color: var(--primary-color);
+}
+
+.sm-trigger-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: left;
+    overflow: hidden;
+}
+
+.sm-trigger-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 35%, transparent);
+}
+
+.sm-trigger-meta {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sm-trigger-sub {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.sm-trigger-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-title);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sm-trigger-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.sm-trigger-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+}
+
+.sm-trigger-caret {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    transition: transform 0.25s ease;
+}
+
+.settings-mobile-trigger-btn.is-open .sm-trigger-caret {
+    transform: rotate(180deg);
+}
+
 /* --- RESPONSIVIDAD / MOBILE FIRST --- */
 @media (max-width: 991px) {
-    .settings-layout {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
+    .settings-app-container {
+        padding: 0.25rem 0 5rem 0;
     }
 
+    .settings-mobile-switcher-bar {
+        display: block;
+    }
+
+    .settings-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Sidebar colapsable en móvil */
     .settings-sidebar {
         position: static;
         max-height: none;
         overflow-y: visible;
-        padding: 0.85rem;
+        padding: 1rem;
+        display: none; /* Oculto por defecto en móvil para dar protagonismo al formulario */
+        animation: settingsSlideDown 0.25s ease-out forwards;
+    }
+
+    .settings-sidebar.mobile-expanded {
+        display: block;
+    }
+
+    @keyframes settingsSlideDown {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     .settings-nav-group {
-        margin-bottom: 0.75rem;
+        margin-bottom: 1rem;
     }
 
+    /* Grid fluido de 2 columnas para que los botones aprovechen el 100% sin cortarse */
     .settings-nav-list {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.5rem;
-        padding-bottom: 0.5rem;
-        scrollbar-width: thin;
+        overflow-x: visible;
+        padding-bottom: 0;
     }
 
     .settings-tab,
     .settings-sidebar .tab-btn {
-        flex: 0 0 auto;
-        width: auto;
+        width: 100%;
+        min-width: 0;
+        padding: 0.65rem 0.75rem;
+        box-sizing: border-box;
+    }
+
+    .settings-tab .tab-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 12.5px;
     }
 
     .settings-header {
         flex-direction: column;
-        align-items: flex-start;
-        padding: 1.25rem;
-        gap: 1rem;
+        align-items: stretch;
+        padding: 1.15rem 1.25rem;
+        gap: 0.85rem;
+        border-radius: 14px;
+    }
+
+    .settings-header-left {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.85rem;
+    }
+
+    .settings-header-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        font-size: 1.35rem;
+        border-radius: 12px;
+    }
+
+    .settings-header-title {
+        font-size: 1.25rem;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        line-height: 1.25;
+    }
+
+    .settings-header-badge {
+        font-size: 10px;
+        padding: 0.15rem 0.5rem;
+    }
+
+    .settings-header-desc {
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .settings-header-right {
+        align-self: flex-start;
+    }
+
+    .settings-status-chip {
+        font-size: 11.5px;
+        padding: 0.35rem 0.75rem;
     }
 
     .settings-pane {
-        padding: 1.25rem;
+        padding: 1.15rem;
+        border-radius: 14px;
     }
 
     .color-picker-grid {
@@ -1078,6 +1249,10 @@
 }
 
 @media (max-width: 600px) {
+    .settings-nav-list {
+        grid-template-columns: 1fr;
+    }
+
     .brand-dropzone-grid {
         grid-template-columns: 1fr;
     }
@@ -1085,12 +1260,17 @@
     .settings-header-left {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: 0.65rem;
     }
 
     .settings-action-bar {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .settings-action-bar .btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 
