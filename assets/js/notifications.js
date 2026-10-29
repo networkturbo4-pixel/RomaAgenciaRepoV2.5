@@ -1,4 +1,4 @@
-// assets/js/notifications.js
+﻿// assets/js/notifications.js
 (function() {
     'use strict';
 
@@ -92,7 +92,7 @@
         initPusher();
 
         // Polling activo en tiempo real cada 7 segundos (respaldo infalible en Web y APK)
-        setInterval(fetchUnreadCount, 7000);
+        setInterval(fetchUnreadCount, window.RomaNativeApp ? 25000 : 7000);
     }
 
     function checkPushPermissionBanner() {
@@ -515,3 +515,4 @@
         init();
     }
 })();
+

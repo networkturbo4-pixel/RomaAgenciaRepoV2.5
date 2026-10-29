@@ -1,4 +1,4 @@
-package com.roma.app;
+﻿package com.roma.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -103,28 +103,7 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap cachedFaviconBitmap = null;
     private SharedPreferences preferences;
     private final ExecutorService bgExecutor = Executors.newCachedThreadPool();
-    private final ScheduledExecutorService pollerScheduler = Executors.newSingleThreadScheduledExecutor();
     private final AtomicInteger notifIdCounter = new AtomicInteger(1000);
-
-    private volatile int lastNotifiedId = -1;
-    private volatile boolean isFirstPoll = true;
-    private PendingNotifData pendingNotification = null;
-
-    private static class PendingNotifData {
-        final int id;
-        final String title;
-        final String body;
-        final String targetUrl;
-        final String appName;
-
-        PendingNotifData(int id, String title, String body, String targetUrl, String appName) {
-            this.id = id;
-            this.title = title;
-            this.body = body;
-            this.targetUrl = targetUrl;
-            this.appName = appName;
-        }
-    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -132,8 +111,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        createNotificationChannel();
-
+        NotificationService.createChannels(this);
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         serverUrl = preferences.getString(KEY_SERVER_URL, getString(R.string.server_url));
         if (serverUrl == null || serverUrl.contains("crm.romaagencia.com")) {
@@ -141,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
             preferences.edit().putString(KEY_SERVER_URL, serverUrl).apply();
         }
         currentSiteName = preferences.getString(KEY_SITE_NAME, getString(R.string.app_name));
-        lastNotifiedId = preferences.getInt(KEY_LAST_NOTIF_ID, -1);
 
         webView = findViewById(R.id.webView);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
@@ -214,8 +191,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         requestAppPermissions();
+        requestBatteryExemption();
         syncBrandingFromApi();
-        startNativeNotificationPoller();
+        NotificationService.start(this);
 
         String notifTargetUrl = getIntent() != null ? getIntent().getStringExtra("target_url") : null;
         hideOfflineScreen();
@@ -249,23 +227,6 @@ public class MainActivity extends AppCompatActivity {
         String base = serverUrl.endsWith("/") ? serverUrl.substring(0, serverUrl.length() - 1) : serverUrl;
         String rel = pathOrUrl.startsWith("/") ? pathOrUrl.substring(1) : pathOrUrl;
         return base + "/" + rel;
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    NOTIF_CHANNEL_ID,
-                    "Notificaciones en Tiempo Real",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            channel.setDescription("Alertas instantáneas de tareas, reuniones y avisos de " + currentSiteName);
-            channel.enableVibration(true);
-            channel.setVibrationPattern(new long[]{0, 250, 120, 250});
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
-            }
-        }
     }
 
     private Bitmap scaleBitmapSafe(Bitmap src, int targetSize) {
@@ -401,172 +362,11 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
-    /**
-     * Poller nativo en segundo plano que verifica notificaciones nuevas cada 6 segundos
-     * usando las cookies de sesión del usuario autenticado en el WebView.
-     */
-    private void startNativeNotificationPoller() {
-        pollerScheduler.scheduleWithFixedDelay(() -> {
-            HttpURLConnection conn = null;
-            try {
-                String cookies = CookieManager.getInstance().getCookie(serverUrl);
-                if (cookies == null || cookies.isEmpty()) {
-                    return;
-                }
-
-                String checkUrl = resolveFullUrl("ajax/notifications.php?action=get_notifications&limit=1");
-                URL url = new URL(checkUrl);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Cookie", cookies);
-                conn.setRequestProperty("Accept", "application/json");
-
-                if (conn.getResponseCode() == 200) {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        sb.append(line);
-                    }
-                    reader.close();
-
-                    JSONObject json = new JSONObject(sb.toString());
-                    if (json.optBoolean("success", false)) {
-                        JSONArray arr = json.optJSONArray("notifications");
-                        if (arr != null && arr.length() > 0) {
-                            JSONObject latest = arr.getJSONObject(0);
-                            int id = latest.optInt("id", 0);
-                            int isRead = latest.optInt("is_read", 1);
-
-                            if (isFirstPoll) {
-                                isFirstPoll = false;
-                                if (lastNotifiedId < 0 && id > 0) {
-                                    saveLastNotifiedId(id);
-                                }
-                                return;
-                            }
-
-                            if (id > 0 && isRead == 0 && id > lastNotifiedId) {
-                                saveLastNotifiedId(id);
-                                String rawTitle = decodeHtmlEntities(latest.optString("title", "Nueva Notificación"));
-                                String rawMsg = decodeHtmlEntities(latest.optString("message", ""));
-                                String link = latest.optString("link", "index.php");
-                                postNativeNotification(id, rawTitle, rawMsg, link, currentSiteName);
-                            }
-                        } else if (isFirstPoll) {
-                            isFirstPoll = false;
-                            if (lastNotifiedId < 0) {
-                                saveLastNotifiedId(0);
-                            }
-                        }
-                    }
-                }
-            } catch (Exception ignored) {
-            } finally {
-                if (conn != null) conn.disconnect();
-            }
-        }, 4, 6, TimeUnit.SECONDS);
-    }
-
-    private String decodeHtmlEntities(String text) {
-        if (text == null || text.isEmpty()) return "";
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            return Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY).toString();
-        } else {
-            return Html.fromHtml(text).toString();
-        }
-    }
-
-    private synchronized void saveLastNotifiedId(int id) {
-        if (id > lastNotifiedId) {
-            lastNotifiedId = id;
-            preferences.edit().putInt(KEY_LAST_NOTIF_ID, id).apply();
-        }
-    }
-
-    private void postNativeNotification(int notifId, String title, String body, String targetUrl, String appName) {
-        String sysName = (appName != null && !appName.trim().isEmpty()) ? appName.trim() : currentSiteName;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                pendingNotification = new PendingNotifData(notifId, title, body, targetUrl, sysName);
-                runOnUiThread(() -> ActivityCompat.requestPermissions(
-                        MainActivity.this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        PERMISSION_REQUEST_CODE
-                ));
-                return;
-            }
-        }
-
-        Bitmap baseBitmap = cachedFaviconBitmap;
-        if (baseBitmap == null) {
-            baseBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_roma);
-        }
-        Bitmap largeIconBmp = scaleBitmapSafe(baseBitmap, 128);
-        Bitmap smallIconBmp = scaleBitmapSafe(baseBitmap, 64);
-
-        int uniqueIntId = (notifId > 0) ? notifId : notifIdCounter.incrementAndGet();
-
-        Intent intent = new Intent(MainActivity.this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        if (targetUrl != null && !targetUrl.isEmpty() && !targetUrl.equals("#")) {
-            intent.putExtra("target_url", targetUrl);
-        }
-
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            flags |= PendingIntent.FLAG_IMMUTABLE;
-        }
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                MainActivity.this,
-                uniqueIntId,
-                intent,
-                flags
-        );
-
-        String cleanTitle = (title != null && !title.isEmpty()) ? title : sysName;
-        String cleanBody = (body != null && !body.isEmpty()) ? body : "Tienes una nueva notificación en " + sysName;
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this, NOTIF_CHANNEL_ID)
-                .setContentTitle(cleanTitle)
-                .setContentText(cleanBody)
-                .setSubText(sysName)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(cleanBody).setSummaryText(sysName))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent);
-
-        if (largeIconBmp != null) {
-            builder.setLargeIcon(largeIconBmp);
-        }
-        if (smallIconBmp != null) {
-            try {
-                builder.setSmallIcon(IconCompat.createWithBitmap(smallIconBmp));
-            } catch (Exception e) {
-                builder.setSmallIcon(R.drawable.ic_launcher_roma);
-            }
-        } else {
-            builder.setSmallIcon(R.drawable.ic_launcher_roma);
-        }
-
-        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (manager != null) {
-            try {
-                manager.notify(uniqueIntId, builder.build());
-            } catch (Exception e) {
-                // Fallback seguro con icono de recurso en caso de restricción del fabricante
-                builder.setSmallIcon(R.drawable.ic_launcher_roma);
-                manager.notify(uniqueIntId, builder.build());
-            }
-        }
-    }
-
+    /** Puente JS: la notificación nativa la publica SIEMPRE el servicio (una sola vía, sin duplicados). */
     public class RomaJsBridge {
+        private volatile String lastKey = "";
+        private volatile long lastTime = 0;
+
         @JavascriptInterface
         public void syncBranding(String siteName, String faviconUrl) {
             bgExecutor.execute(() -> updateBrandingData(siteName, faviconUrl));
@@ -574,67 +374,44 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public void showNotificationWithId(int id, String title, String body, String targetUrl, String iconUrl, String appName) {
-            bgExecutor.execute(() -> {
-                if (id > 0) {
-                    if (id <= lastNotifiedId) return;
-                    saveLastNotifiedId(id);
-                }
-                String sysName = (appName != null && !appName.trim().isEmpty()) ? appName.trim() : currentSiteName;
-                if (iconUrl != null && !iconUrl.trim().isEmpty()) {
-                    updateBrandingData(sysName, iconUrl);
-                }
-                postNativeNotification(id, title, body, targetUrl, sysName);
-            });
+            // Las notificaciones del servidor ya las entrega el servicio; ignorar para evitar duplicados
         }
 
         @JavascriptInterface
         public void showNotification(String title, String body, String targetUrl, String iconUrl, String appName) {
-            bgExecutor.execute(() -> {
-                String sysName = (appName != null && !appName.trim().isEmpty()) ? appName.trim() : currentSiteName;
-                if (iconUrl != null && !iconUrl.trim().isEmpty()) {
-                    updateBrandingData(sysName, iconUrl);
-                }
-                postNativeNotification(notifIdCounter.incrementAndGet(), title, body, targetUrl, sysName);
-            });
+            // Solo avisos locales (ej. alarma de reunión) con antirrebote
+            String key = title + "|" + body;
+            long now = System.currentTimeMillis();
+            if (key.equals(lastKey) && now - lastTime < 60000) return;
+            lastKey = key;
+            lastTime = now;
+            bgExecutor.execute(() -> NotificationService.post(MainActivity.this, 0, title, body, targetUrl));
+        }
+
+        @JavascriptInterface
+        public boolean isNativeApp() {
+            return true;
         }
     }
 
-    private void injectRealtimeNotificationBridge(WebView view) {
-        String js = "(function(){" +
-                "if(window.__romaNativeHooked) return;" +
-                "window.__romaNativeHooked = true;" +
-                "var sysTitle = document.title ? document.title.split('|')[0].trim() : 'Roma Agencia';" +
-                "var favEl = document.querySelector('link[rel*=\"icon\"]');" +
-                "var favHref = favEl ? favEl.href : '';" +
-                "if(window.RomaNativeApp && window.RomaNativeApp.syncBranding){" +
-                "  window.RomaNativeApp.syncBranding(window.SYSTEM_SITE_NAME || sysTitle, window.SYSTEM_FAVICON || favHref);" +
-                "}" +
-                "var origFetch = window.fetch;" +
-                "if(origFetch){" +
-                "  window.fetch = function(u, c){" +
-                "    var p = origFetch.apply(this, arguments);" +
-                "    try {" +
-                "      var uStr = typeof u === 'string' ? u : (u && u.url ? u.url : '');" +
-                "      if(uStr.indexOf('action=send_test') !== -1){" +
-                "        p.then(function(r){ return r.clone().json(); }).then(function(d){" +
-                "          if(d && d.success && window.RomaNativeApp){" +
-                "            var n = d.notification || {};" +
-                "            window.RomaNativeApp.showNotification(" +
-                "              n.title || 'Notificación de Prueba 🔔'," +
-                "              n.message || '¡Excelente! Las notificaciones en tiempo real están activas.'," +
-                "              n.link || 'index.php'," +
-                "              window.SYSTEM_FAVICON || favHref," +
-                "              window.SYSTEM_SITE_NAME || sysTitle" +
-                "            );" +
-                "          }" +
-                "        }).catch(function(){});" +
-                "      }" +
-                "    } catch(e){}" +
-                "    return p;" +
-                "  };" +
-                "}" +
-                "})();";
-        view.evaluateJavascript(js, null);
+    /** Desactiva Notification/Push web dentro de la APK para que no haya notificaciones dobles. */
+    private static final String DISABLE_WEB_NOTIFS_JS =
+            "(function(){try{" +
+            "function N(){}; N.permission='denied'; N.requestPermission=function(){return Promise.resolve('denied');};" +
+            "Object.defineProperty(window,'Notification',{value:N,configurable:true,writable:true});" +
+            "try{delete window.PushManager;}catch(e){}" +
+            "if(navigator.serviceWorker){try{Object.defineProperty(navigator,'serviceWorker',{value:undefined,configurable:true});}catch(e){}}" +
+            "}catch(e){}})();";
+
+    private void requestBatteryExemption() {
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                Intent i = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                i.setData(Uri.parse("package:" + getPackageName()));
+                startActivity(i);
+            }
+        } catch (Exception ignored) {}
     }
 
     private void updateCurrentUrlDisplay() {
@@ -680,6 +457,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
+                view.evaluateJavascript(DISABLE_WEB_NOTIFS_JS, null);
                 progressBar.setVisibility(View.VISIBLE);
             }
 
@@ -690,7 +468,7 @@ public class MainActivity extends AppCompatActivity {
                 swipeRefreshLayout.setRefreshing(false);
                 hideOfflineScreen();
                 CookieManager.getInstance().flush();
-                injectRealtimeNotificationBridge(view);
+                view.evaluateJavascript(DISABLE_WEB_NOTIFS_JS, null);
             }
 
             @Override
@@ -886,11 +664,7 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                if (pendingNotification != null) {
-                    PendingNotifData p = pendingNotification;
-                    pendingNotification = null;
-                    bgExecutor.execute(() -> postNativeNotification(p.id, p.title, p.body, p.targetUrl, p.appName));
-                }
+                NotificationService.start(MainActivity.this);
             }
         }
     }
@@ -915,6 +689,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        pollerScheduler.shutdownNow();
     }
 }
+
+
+
