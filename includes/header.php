@@ -282,15 +282,6 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             </a>
             <?php endif; ?>
 
-            <?php if (in_array('chat_moderno', $perms) || in_array('mensajes', $perms)): ?>
-            <a href="index.php?module=chat_moderno&action=index" class="nav-item <?php echo $current_module === 'chat_moderno' ? 'active' : ''; ?>" style="display:flex; justify-content:space-between; align-items:center;" data-title="Chat Moderno">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <i class="ph ph-chats-circle" style="color:#818cf8;"></i> <span>Chat Moderno</span>
-                </div>
-                <span style="background:linear-gradient(135deg, #4f46e5, #818cf8); color:white; font-size:9px; font-weight:700; padding:1px 6px; border-radius:4px; text-transform:uppercase;">SaaS</span>
-            </a>
-            <?php endif; ?>
-
             <?php if (in_array('clients', $perms)): ?>
             <a href="index.php?module=clients&action=index" class="nav-item <?php echo $current_module === 'clients' ? 'active' : ''; ?>" data-title="Clientes">
                 <i class="ph ph-users"></i>

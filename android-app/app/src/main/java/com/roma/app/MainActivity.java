@@ -4,21 +4,27 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.DownloadManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Parcelable;
 import android.provider.MediaStore;
+import android.text.InputType;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.GeolocationPermissions;
+import android.webkit.SslErrorHandler;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -28,12 +34,14 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
-import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -50,16 +58,21 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int FILE_CHOOSER_RESULT_CODE = 1001;
     private static final int PERMISSION_REQUEST_CODE = 2002;
+    private static final String PREFS_NAME = "roma_app_prefs";
+    private static final String KEY_SERVER_URL = "custom_server_url";
 
     private WebView webView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private ProgressBar progressBar;
     private LinearLayout layoutOffline;
     private Button btnRetry;
+    private Button btnChangeUrl;
+    private TextView txtCurrentUrl;
 
     private ValueCallback<Uri[]> mFilePathCallback;
     private Uri mCameraPhotoUri;
     private String serverUrl;
+    private SharedPreferences preferences;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -67,14 +80,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Inicializar preferencias y URL
+        preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        serverUrl = preferences.getString(KEY_SERVER_URL, getString(R.string.server_url));
+
         // Inicializar vistas
         webView = findViewById(R.id.webView);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         progressBar = findViewById(R.id.progressBar);
         layoutOffline = findViewById(R.id.layoutOffline);
         btnRetry = findViewById(R.id.btnRetry);
+        btnChangeUrl = findViewById(R.id.btnChangeUrl);
+        txtCurrentUrl = findViewById(R.id.txtCurrentUrl);
 
-        serverUrl = getString(R.string.server_url);
+        updateCurrentUrlDisplay();
 
         // Configuración de cookies persistentes para mantener la sesión de PHP activa
         CookieManager cookieManager = CookieManager.getInstance();
@@ -98,19 +117,14 @@ public class MainActivity extends AppCompatActivity {
             webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
-        // Identificador UserAgent personalizado para el sistema si se desea
+        // Identificador UserAgent personalizado
         String defaultUA = webSettings.getUserAgentString();
         webSettings.setUserAgentString(defaultUA + " RomaAndroidApp/1.0");
 
         // Swipe to Refresh
         swipeRefreshLayout.setColorSchemeResources(R.color.primary, R.color.accent);
         swipeRefreshLayout.setOnRefreshListener(() -> {
-            if (isNetworkAvailable()) {
-                webView.reload();
-            } else {
-                swipeRefreshLayout.setRefreshing(false);
-                showOfflineScreen();
-            }
+            webView.reload();
         });
 
         // Configurar WebViewClient
@@ -122,15 +136,15 @@ public class MainActivity extends AppCompatActivity {
         // Configurar Descargas (PDFs, Cotizaciones, Backups)
         setupDownloadListener();
 
-        // Botón reintentar en pantalla offline
+        // Botón Reintentar
         btnRetry.setOnClickListener(v -> {
-            if (isNetworkAvailable()) {
-                hideOfflineScreen();
-                webView.loadUrl(serverUrl);
-            } else {
-                Toast.makeText(this, R.string.error_offline_desc, Toast.LENGTH_SHORT).show();
-            }
+            hideOfflineScreen();
+            progressBar.setVisibility(View.VISIBLE);
+            webView.loadUrl(serverUrl);
         });
+
+        // Botón Cambiar URL del servidor
+        btnChangeUrl.setOnClickListener(v -> showChangeUrlDialog());
 
         // Manejo del botón físico o gesto Atrás
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -146,15 +160,49 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Solicitar permisos de notificación en Android 13+
+        // Solicitar permisos en tiempo de ejecución
         requestAppPermissions();
 
-        // Cargar URL inicial
-        if (isNetworkAvailable()) {
-            webView.loadUrl(serverUrl);
-        } else {
-            showOfflineScreen();
+        // Cargar URL inicial siempre intentando la conexión directa
+        hideOfflineScreen();
+        webView.loadUrl(serverUrl);
+    }
+
+    private void updateCurrentUrlDisplay() {
+        if (txtCurrentUrl != null) {
+            txtCurrentUrl.setText("URL: " + serverUrl);
         }
+    }
+
+    private void showChangeUrlDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Configurar URL de ROMA");
+        builder.setMessage("Escribe la dirección web donde está alojado tu sistema (con https:// o http://):");
+
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        input.setText(serverUrl);
+        input.setSelection(serverUrl.length());
+        builder.setView(input);
+
+        builder.setPositiveButton("Guardar y Conectar", (dialog, which) -> {
+            String newUrl = input.getText().toString().trim();
+            if (!newUrl.isEmpty()) {
+                if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
+                    newUrl = "https://" + newUrl;
+                }
+                serverUrl = newUrl;
+                preferences.edit().putString(KEY_SERVER_URL, serverUrl).apply();
+                updateCurrentUrlDisplay();
+                hideOfflineScreen();
+                progressBar.setVisibility(View.VISIBLE);
+                webView.loadUrl(serverUrl);
+                Toast.makeText(this, "Conectando a: " + serverUrl, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+        builder.show();
     }
 
     private void setupWebViewClient() {
@@ -163,7 +211,6 @@ public class MainActivity extends AppCompatActivity {
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 progressBar.setVisibility(View.VISIBLE);
-                hideOfflineScreen();
             }
 
             @Override
@@ -171,12 +218,20 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageFinished(view, url);
                 progressBar.setVisibility(View.GONE);
                 swipeRefreshLayout.setRefreshing(false);
+                hideOfflineScreen();
                 CookieManager.getInstance().flush();
             }
 
             @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                // Permitir certificados en caso de servidores con SSL intermedio o autofirmado
+                handler.proceed();
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
+                // Solo mostrar offline si falló la página principal (no un sub-asset como favicon o analytics)
+                if (request != null && request.isForMainFrame()) {
                     progressBar.setVisibility(View.GONE);
                     swipeRefreshLayout.setRefreshing(false);
                     showOfflineScreen();
@@ -212,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         }
-        return false; // Permite cargar dentro del WebView
+        return false;
     }
 
     private void setupWebChromeClient() {
@@ -349,18 +404,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isNetworkAvailable() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm != null) {
-            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-            return activeNetwork != null && activeNetwork.isConnected();
-        }
-        return false;
-    }
-
     private void showOfflineScreen() {
         layoutOffline.setVisibility(View.VISIBLE);
         webView.setVisibility(View.GONE);
+        updateCurrentUrlDisplay();
     }
 
     private void hideOfflineScreen() {
