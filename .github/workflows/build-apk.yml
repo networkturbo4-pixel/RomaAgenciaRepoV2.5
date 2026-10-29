@@ -71,8 +71,15 @@ jobs:
       - name: Compilar APK (Release firmado)
         run: |
           cd android-app
-          gradle assembleRelease --stacktrace || ./gradlew assembleRelease --stacktrace
-
+          set +e
+          gradle assembleRelease --stacktrace --console=plain > ../gradle-build.log 2>&1
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            echo "Gradle fall�, mostrando errores:"
+            grep -E "error:|error: |FAILED|What went wrong|Execution failed|AAPT|Manifest" -A3 ../gradle-build.log | head -n 40 | while IFS= read -r line; do echo "::error::${line}"; done
+            tail -n 60 ../gradle-build.log
+            exit $RC
+          fi
       - name: Renombrar APK generado
         run: |
           mkdir -p output-apk
@@ -107,3 +114,4 @@ jobs:
         run: |
           echo "### ✅ APK Compilado con Éxito" >> $GITHUB_STEP_SUMMARY
           echo "El archivo **ROMA-app.apk** está listo para descargar en la sección de Releases y Artefactos." >> $GITHUB_STEP_SUMMARY
+
