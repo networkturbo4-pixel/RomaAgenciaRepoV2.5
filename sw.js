@@ -4,10 +4,12 @@ self.addEventListener('push', function(event) {
     }
 
     const data = event.data ? event.data.json() : {};
-    const title = data.title || 'Nueva Notificación';
+    const appName = data.app_name || 'ROMA';
+    const rawTitle = data.title || 'Nueva Notificación';
+    const title = rawTitle.toLowerCase().includes(appName.toLowerCase()) ? rawTitle : `${appName} • ${rawTitle}`;
     const message = data.body || 'Tienes un nuevo mensaje.';
-    const icon = data.icon || '/assets/img/icon-192x192.png';
-    const badge = data.badge || '/assets/img/badge-72x72.png';
+    const icon = data.icon || 'assets/img/icon-192x192.png';
+    const badge = data.badge || icon;
     const url = data.url || '/';
 
     const options = {

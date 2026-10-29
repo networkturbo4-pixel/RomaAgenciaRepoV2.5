@@ -94,15 +94,26 @@ class NotificationHelper {
 
         // 2. Transmitir en tiempo real por Pusher WebSockets
         if (in_array('pusher', $channels)) {
+            $siteName = 'ROMA';
+            $sysFavicon = 'assets/img/default-icon.png';
+            try {
+                $stmtCfg = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('site_name', 'favicon')");
+                $cfgMap = $stmtCfg ? $stmtCfg->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+                if (!empty($cfgMap['site_name'])) $siteName = trim($cfgMap['site_name']);
+                if (!empty($cfgMap['favicon'])) $sysFavicon = ltrim($cfgMap['favicon'], '/');
+            } catch (\Throwable $ign) {}
+
             self::broadcastPusher($userIds, [
-                'title'      => $title,
-                'message'    => $message,
-                'link'       => $link,
-                'type'       => $type,
-                'icon'       => $icon,
-                'created_at' => $createdAt,
-                'time_ago'   => $timeAgo,
-                'extra'      => $extra
+                'title'          => $title,
+                'app_name'       => $siteName,
+                'system_favicon' => $sysFavicon,
+                'message'        => $message,
+                'link'           => $link,
+                'type'           => $type,
+                'icon'           => $icon,
+                'created_at'     => $createdAt,
+                'time_ago'       => $timeAgo,
+                'extra'          => $extra
             ], $createdIds);
         }
 

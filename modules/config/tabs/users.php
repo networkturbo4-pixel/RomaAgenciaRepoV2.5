@@ -136,7 +136,7 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
             <input type="hidden" name="action_type" value="user_create">
             
             <div class="modal-body" style="padding: 1.5rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="settings-modal-grid-2" style="margin-bottom: 1rem;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="user_name">Nombre Completo</label>
                         <div class="input-with-icon">
@@ -154,7 +154,7 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="settings-modal-grid-2">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="user_role">Rol Asignado</label>
                         <div class="input-with-icon">
@@ -213,7 +213,7 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
             <input type="hidden" name="user_id" id="edit_user_id" value="">
             
             <div class="modal-body" style="padding: 1.5rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="settings-modal-grid-2" style="margin-bottom: 1rem;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="edit_user_name">Nombre Completo</label>
                         <div class="input-with-icon">
@@ -231,7 +231,7 @@ $roles = $db->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="settings-modal-grid-2">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="edit_user_role">Rol Asignado</label>
                         <div class="input-with-icon">

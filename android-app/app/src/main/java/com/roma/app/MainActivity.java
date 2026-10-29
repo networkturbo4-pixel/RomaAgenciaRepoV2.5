@@ -2,17 +2,18 @@ package com.roma.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.DownloadManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
@@ -24,6 +25,7 @@ import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.GeolocationPermissions;
+import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
@@ -35,6 +37,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -44,15 +47,28 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.graphics.drawable.IconCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,11 +76,16 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 2002;
     private static final String PREFS_NAME = "roma_app_prefs";
     private static final String KEY_SERVER_URL = "custom_server_url";
+    private static final String KEY_SITE_NAME = "cached_site_name";
+    private static final String KEY_FAVICON_URL = "cached_favicon_url";
+    private static final String NOTIF_CHANNEL_ID = "roma_system_notifications";
+    private static final String CACHED_FAVICON_FILENAME = "cached_system_favicon.png";
 
     private WebView webView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private ProgressBar progressBar;
     private LinearLayout layoutOffline;
+    private ImageView imgOfflineLogo;
     private Button btnRetry;
     private Button btnChangeUrl;
     private TextView txtCurrentUrl;
@@ -72,7 +93,11 @@ public class MainActivity extends AppCompatActivity {
     private ValueCallback<Uri[]> mFilePathCallback;
     private Uri mCameraPhotoUri;
     private String serverUrl;
+    private String currentSiteName = "ROMA";
+    private Bitmap cachedFaviconBitmap = null;
     private SharedPreferences preferences;
+    private final ExecutorService bgExecutor = Executors.newCachedThreadPool();
+    private final AtomicInteger notifIdCounter = new AtomicInteger(100);
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -80,24 +105,28 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        createNotificationChannel();
+
         // Inicializar preferencias y URL
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         serverUrl = preferences.getString(KEY_SERVER_URL, getString(R.string.server_url));
-        // Auto-migrar URL antigua si existía
         if (serverUrl == null || serverUrl.contains("crm.romaagencia.com")) {
             serverUrl = getString(R.string.server_url);
             preferences.edit().putString(KEY_SERVER_URL, serverUrl).apply();
         }
+        currentSiteName = preferences.getString(KEY_SITE_NAME, getString(R.string.app_name));
 
         // Inicializar vistas
         webView = findViewById(R.id.webView);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         progressBar = findViewById(R.id.progressBar);
         layoutOffline = findViewById(R.id.layoutOffline);
+        imgOfflineLogo = findViewById(R.id.imgOfflineLogo);
         btnRetry = findViewById(R.id.btnRetry);
         btnChangeUrl = findViewById(R.id.btnChangeUrl);
         txtCurrentUrl = findViewById(R.id.txtCurrentUrl);
 
+        loadCachedBranding();
         updateCurrentUrlDisplay();
 
         // Configuración de cookies persistentes para mantener la sesión de PHP activa
@@ -105,7 +134,10 @@ public class MainActivity extends AppCompatActivity {
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, true);
 
-        // Configuración avanzada de WebSettings
+        // Aceleración por Hardware para máxima fluidez
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
+        // Configuración avanzada de WebSettings para carga rápida
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
@@ -118,19 +150,23 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
         webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            webSettings.setOffscreenPreRaster(true);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
         // Identificador UserAgent personalizado
         String defaultUA = webSettings.getUserAgentString();
-        webSettings.setUserAgentString(defaultUA + " RomaAndroidApp/1.0");
+        webSettings.setUserAgentString(defaultUA + " RomaAndroidApp/2.0");
+
+        // Puente JavaScript Nativo para Notificaciones y Sincronización de Favicon/Nombre
+        webView.addJavascriptInterface(new RomaJsBridge(), "RomaNativeApp");
 
         // Swipe to Refresh
         swipeRefreshLayout.setColorSchemeResources(R.color.primary, R.color.accent);
-        swipeRefreshLayout.setOnRefreshListener(() -> {
-            webView.reload();
-        });
+        swipeRefreshLayout.setOnRefreshListener(() -> webView.reload());
 
         // Configurar WebViewClient
         setupWebViewClient();
@@ -168,9 +204,240 @@ public class MainActivity extends AppCompatActivity {
         // Solicitar permisos en tiempo de ejecución
         requestAppPermissions();
 
-        // Cargar URL inicial siempre intentando la conexión directa
+        // Sincronizar nombre de la app y favicon desde api/app_metadata.php en segundo plano
+        syncBrandingFromApi();
+
+        // Si se abrió desde una notificación nativa con URL destino
+        String notifTargetUrl = getIntent() != null ? getIntent().getStringExtra("target_url") : null;
         hideOfflineScreen();
-        webView.loadUrl(serverUrl);
+        if (notifTargetUrl != null && !notifTargetUrl.isEmpty()) {
+            webView.loadUrl(resolveFullUrl(notifTargetUrl));
+        } else {
+            webView.loadUrl(serverUrl);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null) {
+            String targetUrl = intent.getStringExtra("target_url");
+            if (targetUrl != null && !targetUrl.isEmpty() && webView != null) {
+                hideOfflineScreen();
+                webView.loadUrl(resolveFullUrl(targetUrl));
+            }
+        }
+    }
+
+    private String resolveFullUrl(String pathOrUrl) {
+        if (pathOrUrl == null || pathOrUrl.isEmpty() || pathOrUrl.equals("#")) {
+            return serverUrl;
+        }
+        if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+            return pathOrUrl;
+        }
+        String base = serverUrl.endsWith("/") ? serverUrl.substring(0, serverUrl.length() - 1) : serverUrl;
+        String rel = pathOrUrl.startsWith("/") ? pathOrUrl.substring(1) : pathOrUrl;
+        return base + "/" + rel;
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    NOTIF_CHANNEL_ID,
+                    "Notificaciones del Sistema",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Alertas en tiempo real, tareas, reuniones y avisos del sistema");
+            channel.enableVibration(true);
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    private void loadCachedBranding() {
+        try {
+            File iconFile = new File(getFilesDir(), CACHED_FAVICON_FILENAME);
+            if (iconFile.exists()) {
+                cachedFaviconBitmap = BitmapFactory.decodeFile(iconFile.getAbsolutePath());
+            }
+            if (cachedFaviconBitmap == null) {
+                cachedFaviconBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_roma);
+            }
+            applyBrandingToUi();
+        } catch (Exception ignored) {}
+    }
+
+    private void applyBrandingToUi() {
+        runOnUiThread(() -> {
+            setTitle(currentSiteName);
+            if (cachedFaviconBitmap != null) {
+                if (imgOfflineLogo != null) {
+                    imgOfflineLogo.setImageBitmap(cachedFaviconBitmap);
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    try {
+                        ActivityManager.TaskDescription taskDesc = new ActivityManager.TaskDescription(
+                                currentSiteName,
+                                cachedFaviconBitmap,
+                                Color.parseColor("#4F46E5")
+                        );
+                        setTaskDescription(taskDesc);
+                    } catch (Exception ignored) {}
+                }
+            }
+        });
+    }
+
+    private void syncBrandingFromApi() {
+        bgExecutor.execute(() -> {
+            HttpURLConnection conn = null;
+            try {
+                String metaUrl = resolveFullUrl("api/app_metadata.php");
+                URL url = new URL(metaUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(6000);
+                conn.setReadTimeout(6000);
+                conn.setRequestMethod("GET");
+                if (conn.getResponseCode() == 200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+
+                    JSONObject json = new JSONObject(sb.toString());
+                    String siteName = json.optString("site_name", currentSiteName);
+                    String faviconUrl = json.optString("favicon_url", "");
+                    updateBrandingData(siteName, faviconUrl);
+                }
+            } catch (Exception ignored) {
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        });
+    }
+
+    private void updateBrandingData(String siteName, String faviconUrl) {
+        boolean changed = false;
+        if (siteName != null && !siteName.trim().isEmpty() && !siteName.equals(currentSiteName)) {
+            currentSiteName = siteName.trim();
+            preferences.edit().putString(KEY_SITE_NAME, currentSiteName).apply();
+            changed = true;
+        }
+
+        if (faviconUrl != null && !faviconUrl.trim().isEmpty()) {
+            String fullFaviconUrl = resolveFullUrl(faviconUrl.trim());
+            String lastFaviconUrl = preferences.getString(KEY_FAVICON_URL, "");
+            File iconFile = new File(getFilesDir(), CACHED_FAVICON_FILENAME);
+
+            if (!fullFaviconUrl.equals(lastFaviconUrl) || !iconFile.exists()) {
+                Bitmap downloaded = downloadBitmap(fullFaviconUrl);
+                if (downloaded != null) {
+                    cachedFaviconBitmap = downloaded;
+                    try (FileOutputStream fos = new FileOutputStream(iconFile)) {
+                        downloaded.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        preferences.edit().putString(KEY_FAVICON_URL, fullFaviconUrl).apply();
+                        changed = true;
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        if (changed) {
+            applyBrandingToUi();
+        }
+    }
+
+    private Bitmap downloadBitmap(String urlString) {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(urlString);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(6000);
+            conn.setReadTimeout(6000);
+            conn.setDoInput(true);
+            conn.connect();
+            if (conn.getResponseCode() == 200) {
+                InputStream input = conn.getInputStream();
+                return BitmapFactory.decodeStream(input);
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+        return null;
+    }
+
+    public class RomaJsBridge {
+        @JavascriptInterface
+        public void syncBranding(String siteName, String faviconUrl) {
+            bgExecutor.execute(() -> updateBrandingData(siteName, faviconUrl));
+        }
+
+        @JavascriptInterface
+        public void showNotification(String title, String body, String targetUrl, String iconUrl, String appName) {
+            bgExecutor.execute(() -> {
+                String sysName = (appName != null && !appName.trim().isEmpty()) ? appName.trim() : currentSiteName;
+                if (iconUrl != null && !iconUrl.trim().isEmpty()) {
+                    updateBrandingData(sysName, iconUrl);
+                }
+
+                Bitmap notifBitmap = cachedFaviconBitmap;
+                if (notifBitmap == null) {
+                    notifBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_roma);
+                }
+
+                Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                if (targetUrl != null && !targetUrl.isEmpty()) {
+                    intent.putExtra("target_url", targetUrl);
+                }
+
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    flags |= PendingIntent.FLAG_IMMUTABLE;
+                }
+                PendingIntent pendingIntent = PendingIntent.getActivity(
+                        MainActivity.this,
+                        notifIdCounter.incrementAndGet(),
+                        intent,
+                        flags
+                );
+
+                String cleanTitle = (title != null && !title.isEmpty()) ? title : sysName;
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this, NOTIF_CHANNEL_ID)
+                        .setContentTitle(cleanTitle)
+                        .setContentText(body != null ? body : "")
+                        .setSubText(sysName)
+                        .setStyle(new NotificationCompat.BigTextStyle().bigText(body != null ? body : "").setSummaryText(sysName))
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setDefaults(NotificationCompat.DEFAULT_ALL)
+                        .setAutoCancel(true)
+                        .setContentIntent(pendingIntent);
+
+                if (notifBitmap != null) {
+                    builder.setLargeIcon(notifBitmap);
+                    builder.setSmallIcon(IconCompat.createWithBitmap(notifBitmap));
+                } else {
+                    builder.setSmallIcon(R.drawable.ic_launcher_roma);
+                }
+
+                NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (manager != null) {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                            ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                        manager.notify(notifIdCounter.get(), builder.build());
+                    }
+                }
+            });
+        }
     }
 
     private void updateCurrentUrlDisplay() {
@@ -181,7 +448,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showChangeUrlDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Configurar URL de ROMA");
+        builder.setTitle("Configurar URL de " + currentSiteName);
         builder.setMessage("Escribe la dirección web donde está alojado tu sistema (con https:// o http://):");
 
         final EditText input = new EditText(this);
@@ -201,6 +468,7 @@ public class MainActivity extends AppCompatActivity {
                 updateCurrentUrlDisplay();
                 hideOfflineScreen();
                 progressBar.setVisibility(View.VISIBLE);
+                syncBrandingFromApi();
                 webView.loadUrl(serverUrl);
                 Toast.makeText(this, "Conectando a: " + serverUrl, Toast.LENGTH_SHORT).show();
             }
@@ -229,13 +497,11 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                // Permitir certificados en caso de servidores con SSL intermedio o autofirmado
                 handler.proceed();
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                // Solo mostrar offline si falló la página principal (no un sub-asset como favicon o analytics)
                 if (request != null && request.isForMainFrame()) {
                     progressBar.setVisibility(View.GONE);
                     swipeRefreshLayout.setRefreshing(false);
@@ -260,7 +526,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean handleExternalUrls(String url) {
         if (url == null) return false;
 
-        // Abrir enlaces de llamadas, emails, WhatsApp o intents en apps nativas
         if (url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("sms:") ||
             url.startsWith("whatsapp:") || url.startsWith("https://wa.me/")) {
             try {
@@ -277,6 +542,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupWebChromeClient() {
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onReceivedIcon(WebView view, Bitmap icon) {
+                super.onReceivedIcon(view, icon);
+                if (icon != null && icon.getWidth() >= 32) {
+                    cachedFaviconBitmap = icon;
+                    applyBrandingToUi();
+                }
+            }
+
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
                 if (newProgress < 100) {
@@ -382,7 +656,7 @@ public class MainActivity extends AppCompatActivity {
                     String cookies = CookieManager.getInstance().getCookie(url);
                     request.addRequestHeader("cookie", cookies);
                     request.addRequestHeader("User-Agent", userAgent);
-                    request.setDescription("Descargando archivo desde ROMA...");
+                    request.setDescription("Descargando archivo desde " + currentSiteName + "...");
                     String fileName = URLUtil.guessFileName(url, contentDisposition, mimeType);
                     request.setTitle(fileName);
                     request.allowScanningByMediaScanner();

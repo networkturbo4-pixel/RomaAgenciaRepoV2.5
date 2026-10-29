@@ -19,7 +19,7 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+        <div class="settings-grid-2-1">
             <div class="form-group" style="margin-bottom: 0;">
                 <label for="site_name">Nombre Global del Sistema</label>
                 <div class="input-with-icon">
@@ -193,7 +193,7 @@
     </div>
 
     <!-- CARD 4: COLORES MODO CLARO Y MODO OSCURO -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <div class="settings-grid-2" style="margin-bottom: 1.5rem;">
         
         <!-- MODO CLARO -->
         <div class="settings-card" style="margin-bottom: 0;">
@@ -204,7 +204,7 @@
                 </div>
             </div>
 
-            <div class="color-picker-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="color-picker-grid theme-elements-grid">
                 <?php
                 $light_fields = [
                     'color_title_light' => ['label' => 'Títulos', 'default' => '#0f172a'],
@@ -240,7 +240,7 @@
                 </div>
             </div>
 
-            <div class="color-picker-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="color-picker-grid theme-elements-grid">
                 <?php
                 $dark_fields = [
                     'color_title_dark' => ['label' => 'Títulos', 'default' => '#f8fafc'],
@@ -277,7 +277,7 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+        <div class="settings-grid-auto-sm">
             <?php 
             $font_options = ['Inter', 'Roboto', 'Poppins', 'Outfit', 'Playfair Display', 'Montserrat', 'Lora', 'Open Sans']; 
             $font_fields = [

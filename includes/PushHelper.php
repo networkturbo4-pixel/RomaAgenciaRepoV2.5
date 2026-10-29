@@ -54,11 +54,31 @@ class PushHelper {
             }
 
             $webPush = new Minishlink\WebPush\WebPush($auth);
+
+            // Obtener nombre del sistema y favicon reales desde settings
+            $siteName = 'ROMA';
+            $faviconIcon = 'assets/img/default-icon.png';
+            try {
+                $stmtCfg = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('site_name', 'favicon', 'logo_light')");
+                $cfgRows = $stmtCfg ? $stmtCfg->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+                if (!empty($cfgRows['site_name'])) {
+                    $siteName = trim($cfgRows['site_name']);
+                }
+                if (!empty($cfgRows['favicon'])) {
+                    $faviconIcon = ltrim($cfgRows['favicon'], '/');
+                } elseif (!empty($cfgRows['logo_light'])) {
+                    $faviconIcon = ltrim($cfgRows['logo_light'], '/');
+                }
+            } catch (\Throwable $ign) {}
+
+            $displayTitle = (stripos($title, $siteName) !== false) ? $title : ($siteName . ' • ' . $title);
             
             $payloadData = [
-                'title' => $title, 
+                'title' => $displayTitle, 
+                'app_name' => $siteName,
                 'body' => mb_substr($body, 0, 150) . (mb_strlen($body) > 150 ? '...' : ''), 
-                'icon' => '/assets/img/default-icon.png', 
+                'icon' => $faviconIcon, 
+                'badge' => $faviconIcon,
                 'url' => $url,
                 'tag' => $tag
             ];

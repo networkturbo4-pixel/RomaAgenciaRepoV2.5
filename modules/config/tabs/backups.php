@@ -9,7 +9,7 @@
 
 
     <!-- ROW 1: DESCARGA DIRECTA & SUBIR/RESTAURAR -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="settings-grid-auto" style="gap: 1.25rem; margin-bottom: 1.5rem;">
         
         <!-- CARD 1: DESCARGAR COPIAS DIRECTAS EN ZIP -->
         <div class="form-group" style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between;">
@@ -79,7 +79,7 @@
     </div>
 
     <!-- ROW 2: GOOGLE DRIVE & AJUSTES DE FRECUENCIA -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="settings-grid-auto" style="gap: 1.25rem; margin-bottom: 1.5rem;">
         
         <!-- MANUAL GOOGLE DRIVE BACKUP -->
         <div class="form-group" style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">

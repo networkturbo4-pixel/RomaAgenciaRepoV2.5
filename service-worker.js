@@ -10,10 +10,15 @@ self.addEventListener('push', function(event) {
         }
     }
 
+    const appName = data.app_name || 'ROMA';
+    const rawTitle = data.title || 'Nuevo mensaje';
+    const finalTitle = rawTitle.toLowerCase().includes(appName.toLowerCase()) ? rawTitle : `${appName} • ${rawTitle}`;
+    const iconUrl = data.icon || 'assets/img/default-icon.png';
+
     const options = {
         body: data.body || '',
-        icon: data.icon || '/assets/img/default-icon.png',
-        badge: data.badge || '/assets/img/badge.png',
+        icon: iconUrl,
+        badge: data.badge || iconUrl,
         vibrate: [200, 100, 200],
         tag: data.tag || 'general-message',
         renotify: true,
@@ -23,7 +28,7 @@ self.addEventListener('push', function(event) {
     };
 
     event.waitUntil(
-        self.registration.showNotification(data.title, options).then(() => {
+        self.registration.showNotification(finalTitle, options).then(() => {
             // Broadcast a message to all open clients (windows) to refresh UI
             if (data.custom_data && data.custom_data.module) {
                 return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {

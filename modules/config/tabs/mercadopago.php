@@ -38,7 +38,7 @@ if (!empty($mpToken)) {
 <form method="POST" action="index.php?module=config">
     <input type="hidden" name="action_type" value="mercadopago">
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+    <div class="settings-grid-auto">
         <!-- Card 1: Credenciales API -->
         <div class="settings-card" style="margin-bottom: 0;">
             <div class="settings-card-header">

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ROMA</string>
+    <string name="app_name">Roma Agencia</string>
     <!-- URL oficial del sistema ROMA -->
     <string name="server_url">https://romaagencia.lat</string>
     <string name="error_offline_title">Sin conexión</string>

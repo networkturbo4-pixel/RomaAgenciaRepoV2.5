@@ -92,7 +92,15 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     </script>
     <?php if(!empty($global_settings['favicon'])): ?>
     <link rel="icon" href="<?php echo htmlspecialchars($global_settings['favicon']); ?>">
+    <link rel="apple-touch-icon" href="<?php echo htmlspecialchars($global_settings['favicon']); ?>">
     <?php endif; ?>
+
+    <!-- Preconnect for Faster Resource Loading -->
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
@@ -130,6 +138,17 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
     <script>
         window.CURRENT_USER_ID = <?php echo (int)($_SESSION['user_id'] ?? 0); ?>;
         window.CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
+        window.SYSTEM_SITE_NAME = <?php echo json_encode($site_name_display); ?>;
+        window.SYSTEM_FAVICON = <?php
+            $fav_rel = $global_settings['favicon'] ?? ($global_settings['logo_light'] ?? 'assets/img/default-icon.png');
+            $fav_full = (strpos($fav_rel, 'http') === 0) ? $fav_rel : (rtrim($sys_base_url, '/') . '/' . ltrim($fav_rel, '/'));
+            echo json_encode($fav_full);
+        ?>;
+        if (window.RomaNativeApp && typeof window.RomaNativeApp.syncBranding === 'function') {
+            try {
+                window.RomaNativeApp.syncBranding(window.SYSTEM_SITE_NAME, window.SYSTEM_FAVICON);
+            } catch (e) {}
+        }
 
         // Auto-inyectar CSRF Token en todas las llamadas jQuery AJAX
         if (typeof jQuery !== 'undefined') {

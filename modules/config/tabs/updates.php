@@ -28,7 +28,7 @@ $migrationHistory = $migManager->getMigrationHistory();
 
 
     <!-- ROW 1: INFO ACTUAL & CONFIGURACIÓN REPOSITORIO -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="settings-grid-auto" style="gap: 1.25rem; margin-bottom: 1.5rem;">
         
         <!-- CARD 1: ESTADO ACTUAL -->
         <div style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
@@ -178,7 +178,7 @@ $migrationHistory = $migManager->getMigrationHistory();
         </div>
 
         <!-- 3 Bento Metric Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+        <div class="settings-grid-auto-sm" style="margin-bottom: 1rem;">
             <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem;">
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
                     <i class="ph ph-lightning" style="color: #10b981;"></i> Auto-Actualización

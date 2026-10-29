@@ -134,6 +134,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            if ($action_type === 'personalization') {
+                require_once __DIR__ . '/../../includes/AndroidAppSyncHelper.php';
+                AndroidAppSyncHelper::syncFromSettings($db);
+            }
+
             $success = 'Configuración guardada exitosamente.';
         } elseif ($action_type === 'role_create') {
             $active_tab = 'tab-roles';

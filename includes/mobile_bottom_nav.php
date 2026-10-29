@@ -57,14 +57,6 @@ if (in_array('calendar', $perms) || in_array('reuniones', $perms) || $is_admin) 
         'icon' => 'ph ph-check-square-offset',
         'active' => in_array($curr_mod, ['task_manager', 'tasks'])
     ];
-} elseif (in_array('chat_moderno', $perms)) {
-    $left_items[] = [
-        'id' => 'chat_moderno',
-        'title' => 'Chat',
-        'url' => 'index.php?module=chat_moderno&action=index',
-        'icon' => 'ph ph-chats-circle',
-        'active' => ($curr_mod === 'chat_moderno')
-    ];
 } elseif (in_array('mensajes', $perms)) {
     $left_items[] = [
         'id' => 'mensajes',
@@ -187,18 +179,6 @@ if (in_array('pizarras', $perms) || $is_admin) {
     ];
 }
 
-// Month Board
-if (in_array('month_board', $perms) || $is_admin) {
-    $ws_apps[] = [
-        'title' => 'Month Board',
-        'desc' => 'Planificación mensual de contenidos',
-        'url' => 'index.php?module=month_board&action=index',
-        'icon' => 'ph ph-kanban',
-        'color' => '#8b5cf6',
-        'badge' => 'Social'
-    ];
-}
-
 // Audiovisual
 if (in_array('audiovisual', $perms) || $is_admin) {
     $ws_apps[] = [
@@ -220,6 +200,30 @@ if (in_array('romita', $perms) || $is_admin) {
         'icon' => 'ph ph-sparkle',
         'color' => '#6366f1',
         'badge' => 'Gemini'
+    ];
+}
+
+// Desarrollo de Marca
+if (in_array('desarrollo_marca', $perms) || $is_admin) {
+    $ws_apps[] = [
+        'title' => 'Desarrollo Marca',
+        'desc' => 'Naming, brief y estrategia',
+        'url' => 'index.php?module=desarrollo_marca&action=index',
+        'icon' => 'ph ph-compass-tool',
+        'color' => '#ec4899',
+        'badge' => 'Brand'
+    ];
+}
+
+// Brand Guidelines (Manuales de Marca)
+if (in_array('brand_guidelines', $perms) || in_array('desarrollo_marca', $perms) || $is_admin) {
+    $ws_apps[] = [
+        'title' => 'Brand Guidelines',
+        'desc' => 'Manuales de marca interactivos',
+        'url' => 'index.php?module=brand_guidelines&action=index',
+        'icon' => 'ph ph-Swatches',
+        'color' => '#8b5cf6',
+        'badge' => 'Manuales'
     ];
 }
 
@@ -267,18 +271,6 @@ if (in_array('herramientas', $perms) || $is_admin) {
         'icon' => 'ph ph-wrench',
         'color' => '#f59e0b',
         'badge' => 'Tools'
-    ];
-}
-
-// Desarrollo de Marca
-if (in_array('desarrollo_marca', $perms) || $is_admin) {
-    $ws_apps[] = [
-        'title' => 'Marca & Manuales',
-        'desc' => 'Identidad corporativa y brandbooks',
-        'url' => 'index.php?module=desarrollo_marca&action=index',
-        'icon' => 'ph ph-paint-brush-broad',
-        'color' => '#ec4899',
-        'badge' => 'Brand'
     ];
 }
 ?>

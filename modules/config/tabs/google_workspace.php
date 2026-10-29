@@ -40,7 +40,7 @@ $exactRedirectUri = $protocol . "://" . $host . $basePath . "/modules/config/goo
             </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+        <div class="settings-grid-auto">
             <div class="form-group" style="margin-bottom: 0;">
                 <label for="google_client_id">Client ID (ID de Cliente)</label>
                 <div class="input-with-icon">
@@ -96,7 +96,7 @@ $exactRedirectUri = $protocol . "://" . $host . $basePath . "/modules/config/goo
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+        <div class="settings-grid-2-1">
             <div class="form-group" style="margin-bottom: 0;">
                 <label for="gemini_subject_keywords">Palabras Clave en el Asunto (separadas por coma)</label>
                 <?php $default_keywords = 'Notas, Grabación, Resumen, Notes, Recording, Reunión, Presentación'; ?>

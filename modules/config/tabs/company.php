@@ -19,7 +19,7 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+        <div class="settings-grid-auto">
             <div class="form-group" style="margin-bottom: 0;">
                 <label for="company_trade_name">Nombre Comercial</label>
                 <div class="input-with-icon">
@@ -55,7 +55,7 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+        <div class="settings-grid-auto">
             <div class="form-group" style="margin-bottom: 0;">
                 <label for="company_email">Correo Electrónico Oficial</label>
                 <div class="input-with-icon">
@@ -91,7 +91,7 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        <div class="settings-grid-auto" style="gap: 1rem;">
             <div class="social-card">
                 <i class="ph ph-facebook-logo" style="color: #1877F2;"></i>
                 <input type="url" name="social_facebook" placeholder="https://facebook.com/tuempresa" value="<?php echo htmlspecialchars($settings['social_facebook'] ?? ''); ?>">

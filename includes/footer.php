@@ -670,5 +670,70 @@ if (isset($_SESSION['user_id'])) {
     require_once __DIR__ . '/mobile_bottom_nav.php';
 }
 ?>
+<!-- Speculation Rules & Instant Navigation Booster for Fast Module Switching -->
+<script type="speculationrules">
+{
+    "prefetch": [
+        {
+            "where": {
+                "and": [
+                    { "href_matches": "*index.php?module=*" },
+                    { "not": { "href_matches": "*action=logout*" } },
+                    { "not": { "href_matches": "*action=delete*" } }
+                ]
+            },
+            "eagerness": "moderate"
+        }
+    ]
+}
+</script>
+<script>
+(function() {
+    const progressBar = document.createElement('div');
+    progressBar.className = 'instant-nav-progress';
+    document.body.appendChild(progressBar);
+
+    const prefetchedUrls = new Set();
+    function prefetchLink(url) {
+        if (!url || prefetchedUrls.has(url)) return;
+        if (url.startsWith('javascript:') || url.includes('#') || url.includes('logout') || url.includes('delete')) return;
+        prefetchedUrls.add(url);
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = url;
+        link.as = 'document';
+        document.head.appendChild(link);
+    }
+
+    // Pre-cargar al tocar o pasar el cursor sobre enlaces de módulos
+    document.addEventListener('pointerdown', (e) => {
+        const a = e.target.closest('a[href*="index.php?module="]');
+        if (a && a.href && !a.target && !e.ctrlKey && !e.metaKey) {
+            prefetchLink(a.href);
+        }
+    }, { passive: true });
+
+    document.addEventListener('mouseover', (e) => {
+        const a = e.target.closest('.sidebar-nav a[href*="index.php?module="], .mobile-bottom-navbar a[href*="index.php?module="], .mobile-ws-grid a[href*="index.php?module="], .ws-app-card[href*="index.php?module="]');
+        if (a && a.href) {
+            prefetchLink(a.href);
+        }
+    }, { passive: true });
+
+    // Barra de progreso instantánea al navegar entre módulos
+    document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href*="index.php?module="]');
+        if (a && a.href && !a.target && !a.hasAttribute('download') && !e.ctrlKey && !e.metaKey && !e.defaultPrevented) {
+            if (!a.href.startsWith('javascript:') && a.href.split('#')[0] !== window.location.href.split('#')[0]) {
+                progressBar.classList.add('active');
+            }
+        }
+    });
+
+    window.addEventListener('pageshow', () => {
+        progressBar.classList.remove('active');
+    });
+})();
+</script>
 </body>
 </html>

@@ -192,7 +192,7 @@ $all_modules = [
             <input type="hidden" name="action_type" value="role_create">
             
             <div class="modal-body" style="padding: 1.5rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                <div class="settings-modal-grid-2" style="margin-bottom: 1.25rem;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="role_name" style="font-weight: 600; font-size: 13px;">Nombre del Rol</label>
                         <input type="text" id="role_name" name="role_name" class="form-control" required placeholder="Ej. Gerente de Ventas">
@@ -216,7 +216,7 @@ $all_modules = [
                             </button>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--bg-color); padding: 0.85rem; border-radius: 12px; border: 1px solid var(--border-color); max-height: 310px; overflow-y: auto;">
+                    <div class="settings-modal-grid-2" style="gap: 0.5rem; background: var(--bg-color); padding: 0.85rem; border-radius: 12px; border: 1px solid var(--border-color); max-height: 310px; overflow-y: auto;">
                         <?php foreach($all_modules as $mod_key => $mod_data): 
                             $mod_name = is_array($mod_data) ? $mod_data['name'] : $mod_data;
                             $mod_icon = is_array($mod_data) ? $mod_data['icon'] : 'ph-cube';
@@ -267,7 +267,7 @@ $all_modules = [
             <input type="hidden" name="role_id" id="edit_role_id" value="">
             
             <div class="modal-body" style="padding: 1.5rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                <div class="settings-modal-grid-2" style="margin-bottom: 1.25rem;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="edit_role_name" style="font-weight: 600; font-size: 13px;">Nombre del Rol</label>
                         <input type="text" id="edit_role_name" name="role_name" class="form-control" required>
@@ -291,7 +291,7 @@ $all_modules = [
                             </button>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--bg-color); padding: 0.85rem; border-radius: 12px; border: 1px solid var(--border-color); max-height: 310px; overflow-y: auto;">
+                    <div class="settings-modal-grid-2" style="gap: 0.5rem; background: var(--bg-color); padding: 0.85rem; border-radius: 12px; border: 1px solid var(--border-color); max-height: 310px; overflow-y: auto;">
                         <?php foreach($all_modules as $mod_key => $mod_data): 
                             $mod_name = is_array($mod_data) ? $mod_data['name'] : $mod_data;
                             $mod_icon = is_array($mod_data) ? $mod_data['icon'] : 'ph-cube';

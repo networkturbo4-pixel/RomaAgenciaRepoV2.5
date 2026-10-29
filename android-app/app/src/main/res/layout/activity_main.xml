@@ -41,9 +41,10 @@
         android:background="@color/surface_light">
 
         <ImageView
+            android:id="@+id/imgOfflineLogo"
             android:layout_width="88dp"
             android:layout_height="88dp"
-            android:src="@mipmap/ic_launcher"
+            android:src="@drawable/ic_launcher_roma"
             android:contentDescription="@string/app_name" />
 
         <TextView

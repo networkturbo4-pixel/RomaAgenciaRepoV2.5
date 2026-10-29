@@ -91,20 +91,31 @@ function startMeetingAlarm() {
                     const notified = JSON.parse(localStorage.getItem('notified_meetings') || '[]');
                     if (!notified.includes(meet.id)) {
                         
-                        // Enviar notificación a través de Service Worker o Notification API
-                        if ('serviceWorker' in navigator) {
+                        const sysIcon = window.SYSTEM_FAVICON || 'assets/img/icon-192x192.png';
+                        const sysName = window.SYSTEM_SITE_NAME || 'ROMA';
+                        const notifTitle = `${sysName} • ¡Reunión en 5 minutos!`;
+                        const notifBody = `La reunión de ${meet.brand_name} ("${meet.motivo}") está a punto de empezar.`;
+                        const targetUrl = meet.meet_link || 'index.php?module=reuniones&action=index';
+
+                        // Si se ejecuta dentro de la APK nativa de Android, disparar notificación nativa
+                        if (window.RomaNativeApp && typeof window.RomaNativeApp.showNotification === 'function') {
+                            try {
+                                window.RomaNativeApp.showNotification(notifTitle, notifBody, targetUrl, sysIcon, sysName);
+                            } catch (e) {}
+                        } else if ('serviceWorker' in navigator) {
                             navigator.serviceWorker.ready.then(registration => {
-                                registration.showNotification('¡Reunión en 5 minutos!', {
-                                    body: `La reunión de ${meet.brand_name} ("${meet.motivo}") está a punto de empezar.`,
-                                    icon: '/assets/img/icon-192x192.png',
+                                registration.showNotification(notifTitle, {
+                                    body: notifBody,
+                                    icon: sysIcon,
+                                    badge: sysIcon,
                                     vibrate: [200, 100, 200],
-                                    data: { url: meet.meet_link || '/' }
+                                    data: { url: targetUrl }
                                 });
                             });
-                        } else {
-                            new Notification('¡Reunión en 5 minutos!', {
-                                body: `La reunión de ${meet.brand_name} ("${meet.motivo}") está a punto de empezar.`,
-                                icon: '/assets/img/icon-192x192.png'
+                        } else if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification(notifTitle, {
+                                body: notifBody,
+                                icon: sysIcon
                             });
                         }
                         

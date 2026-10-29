@@ -356,15 +356,48 @@
                     try { window.playNotificationSound(); } catch(e) {}
                 }
 
-                // 2. Mostrar toast flotante en pantalla
-                if (typeof window.showToast === 'function') {
-                    window.showToast(`${data.title}: ${data.message || ''}`, 'info');
+                const sysName = data.app_name || window.SYSTEM_SITE_NAME || 'ROMA';
+                const sysIcon = data.system_favicon || window.SYSTEM_FAVICON || 'assets/img/default-icon.png';
+                const rawTitle = data.title || 'Nueva Notificación';
+                const fullTitle = rawTitle.toLowerCase().includes(sysName.toLowerCase()) ? rawTitle : `${sysName} • ${rawTitle}`;
+
+                // 2. Si estamos en la APK nativa de Android, lanzar notificación nativa con el favicon y nombre del sistema
+                if (window.RomaNativeApp && typeof window.RomaNativeApp.showNotification === 'function') {
+                    try {
+                        window.RomaNativeApp.showNotification(
+                            rawTitle,
+                            data.message || '',
+                            data.link || 'index.php',
+                            sysIcon,
+                            sysName
+                        );
+                    } catch (err) {}
+                } else if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+                    try {
+                        const n = new Notification(fullTitle, {
+                            body: data.message || '',
+                            icon: sysIcon,
+                            badge: sysIcon
+                        });
+                        n.onclick = function() {
+                            window.focus();
+                            if (data.link && data.link !== '#') {
+                                window.location.href = data.link;
+                            }
+                            n.close();
+                        };
+                    } catch (err) {}
                 }
 
-                // 3. Incrementar el badge con animación
+                // 3. Mostrar toast flotante en pantalla
+                if (typeof window.showToast === 'function') {
+                    window.showToast(`${rawTitle}: ${data.message || ''}`, 'info');
+                }
+
+                // 4. Incrementar el badge con animación
                 updateBadge(currentUnreadCount + 1, true);
 
-                // 4. Si el popover está abierto, insertar elemento arriba
+                // 5. Si el popover está abierto, insertar elemento arriba
                 if (isPopoverOpen && notifList) {
                     prependNewNotification(data);
                 }
