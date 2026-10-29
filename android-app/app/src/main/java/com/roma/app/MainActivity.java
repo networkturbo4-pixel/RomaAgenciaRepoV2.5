@@ -1,4 +1,4 @@
-﻿package com.roma.app;
+package com.roma.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;

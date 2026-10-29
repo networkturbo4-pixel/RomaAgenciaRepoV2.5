@@ -1,4 +1,4 @@
-﻿// assets/js/notifications.js
+// assets/js/notifications.js
 (function() {
     'use strict';
 
