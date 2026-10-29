@@ -56,6 +56,8 @@ import androidx.core.graphics.drawable.IconCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import org.json.JSONArray;
+import com.google.firebase.messaging.FirebaseMessaging;
+
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -118,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         NotificationService.createChannels(this);
-        preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        preferences = SecurePrefs.get(this);
         serverUrl = preferences.getString(KEY_SERVER_URL, getString(R.string.server_url));
         if (serverUrl == null || serverUrl.contains("crm.romaagencia.com")) {
             serverUrl = getString(R.string.server_url);
@@ -199,7 +201,8 @@ public class MainActivity extends AppCompatActivity {
         requestAppPermissions();
         requestBatteryExemption();
         syncBrandingFromApi();
-        NotificationService.start(this);
+        checkForUpdate();
+        NotificationService.startIfNeeded(this);
 
         String notifTargetUrl = getIntent() != null ? getIntent().getStringExtra("target_url") : null;
         if ((notifTargetUrl == null || notifTargetUrl.isEmpty()) && getIntent() != null && getIntent().getData() != null) {
@@ -413,6 +416,11 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public boolean isNativeApp() {
             return true;
+        }
+
+        @JavascriptInterface
+        public void registerPush(int userId) {
+            registerFcmToken(userId);
         }
 
         @JavascriptInterface
@@ -728,7 +736,7 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                NotificationService.start(MainActivity.this);
+                NotificationService.startIfNeeded(MainActivity.this);
             }
         }
     }
@@ -763,8 +771,109 @@ public class MainActivity extends AppCompatActivity {
         if (!unlocking) stoppedAt = System.currentTimeMillis();
     }
 
-    /** Pide huella / patrón / PIN del teléfono (si tiene bloqueo de pantalla configurado). */
-    private void promptUnlock() {
+    /** Registra el token FCM del dispositivo en el servidor (requiere sesión iniciada) y desactiva el servicio de respaldo. */
+    private void registerFcmToken(int userId) {
+        if (userId <= 0) return;
+        try {
+            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+                if (!task.isSuccessful() || task.getResult() == null) return;
+                final String token = task.getResult();
+                final String marker = userId + "|" + token;
+                long last = preferences.getLong("fcm_registered_time", 0);
+                if (marker.equals(preferences.getString(NotificationService.KEY_FCM_DONE, ""))
+                        && System.currentTimeMillis() - last < 12L * 3600 * 1000) {
+                    return;
+                }
+                bgExecutor.execute(() -> {
+                    HttpURLConnection conn = null;
+                    try {
+                        String cookies = CookieManager.getInstance().getCookie(serverUrl);
+                        String base = serverUrl.endsWith("/") ? serverUrl : serverUrl + "/";
+                        conn = (HttpURLConnection) new URL(base + "ajax/fcm_register.php").openConnection();
+                        conn.setConnectTimeout(8000);
+                        conn.setReadTimeout(8000);
+                        conn.setRequestMethod("POST");
+                        conn.setDoOutput(true);
+                        if (cookies != null) conn.setRequestProperty("Cookie", cookies);
+                        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                        String body = "token=" + java.net.URLEncoder.encode(token, "UTF-8")
+                                + "&device=" + java.net.URLEncoder.encode(Build.MANUFACTURER + " " + Build.MODEL, "UTF-8");
+                        conn.getOutputStream().write(body.getBytes("UTF-8"));
+                        if (conn.getResponseCode() == 200) {
+                            BufferedReader r = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                            StringBuilder sb = new StringBuilder();
+                            String line;
+                            while ((line = r.readLine()) != null) sb.append(line);
+                            r.close();
+                            if (new JSONObject(sb.toString()).optBoolean("success", false)) {
+                                preferences.edit()
+                                        .putString(NotificationService.KEY_FCM_DONE, marker)
+                                        .putLong("fcm_registered_time", System.currentTimeMillis())
+                                        .putBoolean(NotificationService.KEY_FCM_READY, true)
+                                        .apply();
+                                // FCM activo: ya no hace falta el servicio de segundo plano (ahorra batería)
+                                runOnUiThread(() -> stopService(new Intent(MainActivity.this, NotificationService.class)));
+                            }
+                        }
+                    } catch (Exception ignored) {
+                    } finally {
+                        if (conn != null) conn.disconnect();
+                    }
+                });
+            });
+        } catch (Throwable ignored) {}
+    }
+
+    /** Busca una versión nueva de la APK en GitHub Releases (máx. cada 6 h) y ofrece descargarla. */
+    private void checkForUpdate() {
+        bgExecutor.execute(() -> {
+            long now = System.currentTimeMillis();
+            if (now - preferences.getLong("update_check_time", 0) < 6L * 3600 * 1000) return;
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL("https://api.github.com/repos/networkturbo4-pixel/RomaAgenciaRepoV2.5/releases/tags/app-apk-latest").openConnection();
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+                conn.setRequestProperty("Accept", "application/vnd.github+json");
+                conn.setRequestProperty("User-Agent", "RomaAndroidApp");
+                if (conn.getResponseCode() != 200) return;
+                BufferedReader r = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = r.readLine()) != null) sb.append(line);
+                r.close();
+                preferences.edit().putLong("update_check_time", now).apply();
+
+                JSONObject rel = new JSONObject(sb.toString());
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("versionCode:\\s*(\\d+)").matcher(rel.optString("body", ""));
+                if (!m.find()) return;
+                int remote = Integer.parseInt(m.group(1));
+                @SuppressWarnings("deprecation")
+                int current = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+                if (remote <= current || preferences.getInt("update_dismissed", 0) >= remote) return;
+
+                org.json.JSONArray assets = rel.optJSONArray("assets");
+                if (assets == null || assets.length() == 0) return;
+                final String apkUrl = assets.getJSONObject(0).optString("browser_download_url", "");
+                if (apkUrl.isEmpty()) return;
+
+                runOnUiThread(() -> {
+                    if (isFinishing()) return;
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Nueva versión disponible")
+                            .setMessage("Hay una actualización de " + currentSiteName + " con mejoras y correcciones.")
+                            .setPositiveButton("Actualizar", (d, w) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl))))
+                            .setNegativeButton("Después", (d, w) -> preferences.edit().putInt("update_dismissed", remote).apply())
+                            .show();
+                });
+            } catch (Exception ignored) {
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        });
+    }
+
+    /** Pide huella / patrón / PIN del teléfono (si tiene bloqueo de pantalla configurado). */    private void promptUnlock() {
         try {
             android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
             if (km == null || !km.isDeviceSecure()) return;

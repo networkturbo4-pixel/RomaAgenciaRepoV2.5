@@ -54,6 +54,8 @@ public class NotificationService extends Service {
     public static final String KEY_QUIET_END = "quiet_end_hour";
     public static final String KEY_TYPES = "notif_types";            // csv, vacío = todos
     public static final String FAVICON_FILE = "cached_system_favicon.png";
+    public static final String KEY_FCM_READY = "fcm_ready";
+    public static final String KEY_FCM_DONE = "fcm_registered_marker";
 
     private static final String ALERT_CHANNEL = "roma_realtime_alerts_v3";
     private static final String SERVICE_CHANNEL = "roma_service_silent";
@@ -75,6 +77,25 @@ public class NotificationService extends Service {
                 ctx.startService(i);
             }
         } catch (Exception ignored) {}
+    }
+
+    /** Arranca el servicio de respaldo solo si FCM aún no está activo en este dispositivo. */
+    public static void startIfNeeded(Context ctx) {
+        if (!SecurePrefs.get(ctx).getBoolean(KEY_FCM_READY, false)) start(ctx);
+    }
+
+    public static synchronized boolean claim(SharedPreferences prefs, int id) {
+        if (id <= prefs.getInt(KEY_LAST_NOTIF_ID, -1)) return false;
+        prefs.edit().putInt(KEY_LAST_NOTIF_ID, id).apply();
+        return true;
+    }
+
+    public static boolean isQuietNow(SharedPreferences prefs) {
+        int s = prefs.getInt(KEY_QUIET_START, -1);
+        int e = prefs.getInt(KEY_QUIET_END, -1);
+        if (s < 0 || e < 0 || s == e) return false;
+        int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        return s < e ? (h >= s && h < e) : (h >= s || h < e);
     }
 
     @Override
@@ -143,7 +164,7 @@ public class NotificationService extends Service {
     }
 
     private void loop() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences prefs = SecurePrefs.get(this);
         int backoffSec = 5;
         while (running) {
             try {
@@ -205,7 +226,7 @@ public class NotificationService extends Service {
                             for (int i = 0; i < arr.length(); i++) {
                                 JSONObject n = arr.getJSONObject(i);
                                 int id = n.optInt("id", 0);
-                                if (id > prefs.getInt(KEY_LAST_NOTIF_ID, -1)) {
+                                if (claim(prefs, id)) {
                                     post(this, id,
                                             decode(n.optString("title", "")),
                                             decode(n.optString("message", "")),
@@ -309,7 +330,7 @@ public class NotificationService extends Service {
             return;
         }
         createChannels(ctx);
-        SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences prefs = SecurePrefs.get(ctx);
         String site = prefs.getString(KEY_SITE_NAME, ctx.getString(R.string.app_name));
 
         Bitmap icon = null;

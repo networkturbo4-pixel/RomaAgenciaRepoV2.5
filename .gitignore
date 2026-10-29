@@ -16,3 +16,6 @@ modules/brand_guidelines/cache/
 !database/sql/*.sql
 database/.migration_cache
 database/migration_log.txt
+
+config/firebase-service-account.json
+*firebase-adminsdk*.json

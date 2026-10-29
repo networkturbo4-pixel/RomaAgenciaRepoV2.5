@@ -117,8 +117,23 @@ class NotificationHelper {
             ], $createdIds);
         }
 
-        // 3. Notificación Push del Navegador (Web Push / Service Worker)
+        // 3. Notificación Push del Navegador (Web Push / Service Worker) + Push nativo Android (FCM)
         if (in_array('push', $channels)) {
+            try {
+                require_once __DIR__ . '/FcmHelper.php';
+                foreach ($userIds as $uidFcm) {
+                    FcmHelper::sendToUsers($db, [$uidFcm], [
+                        'id'      => $createdIds[$uidFcm] ?? 0,
+                        'title'   => $title,
+                        'message' => $message,
+                        'link'    => $link,
+                        'type'    => $type,
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                error_log("NotificationHelper FCM Error: " . $e->getMessage());
+            }
+
             try {
                 PushHelper::sendPushNotification(
                     $db,

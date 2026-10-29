@@ -1,5 +1,7 @@
 plugins {
     id 'com.android.application'
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
 }
 
 // Firma propia opcional: si en GitHub existen los secretos del keystore, se usa; si no, firma de depuración.
@@ -59,4 +61,10 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.webkit:webkit:1.10.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // Firebase: notificaciones push (FCM) y reporte de errores (Crashlytics)
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-crashlytics'
 }

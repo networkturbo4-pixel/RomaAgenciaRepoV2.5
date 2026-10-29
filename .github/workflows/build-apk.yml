@@ -46,6 +46,7 @@ jobs:
 
           # Incrementar versionCode automáticamente en cada compilación para que Android actualice el icono y la APK sin conflicto
           NEW_VER_CODE=$((10 + ${{ github.run_number }}))
+          echo "APP_VERSION_CODE=${NEW_VER_CODE}" >> $GITHUB_ENV
           sed -i "s|versionCode [0-9]*|versionCode ${NEW_VER_CODE}|g" android-app/app/build.gradle
           sed -i "s|versionName \".*\"|versionName \"2.1.${{ github.run_number }}\"|g" android-app/app/build.gradle
 
@@ -119,6 +120,7 @@ jobs:
           tag_name: 'app-apk-latest'
           name: 'ROMA App Android (Descarga Oficial)'
           body: |
+            versionCode: ${{ env.APP_VERSION_CODE }}
             ### 📱 Aplicación Móvil Android para ROMA
             Descarga el archivo **ROMA-app.apk** directamente en tu celular Android e instálalo.
             

@@ -144,6 +144,9 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
             $fav_full = (strpos($fav_rel, 'http') === 0) ? $fav_rel : (rtrim($sys_base_url, '/') . '/' . ltrim($fav_rel, '/'));
             echo json_encode($fav_full);
         ?>;
+        if (window.RomaNativeApp && window.CURRENT_USER_ID && typeof window.RomaNativeApp.registerPush === 'function') {
+            try { window.RomaNativeApp.registerPush(window.CURRENT_USER_ID); } catch (e) {}
+        }
         if (window.RomaNativeApp && typeof window.RomaNativeApp.syncBranding === 'function') {
             try {
                 window.RomaNativeApp.syncBranding(window.SYSTEM_SITE_NAME, window.SYSTEM_FAVICON);

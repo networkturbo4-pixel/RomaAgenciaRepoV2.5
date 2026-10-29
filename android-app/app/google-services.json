@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "371683617856",
+    "project_id": "romaapk",
+    "storage_bucket": "romaapk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371683617856:android:564eb7632199ace4a503a5",
+        "android_client_info": {
+          "package_name": "com.roma.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSUH7t7xAHc6r5rS3yfO5ON7g6rUzHNM0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
