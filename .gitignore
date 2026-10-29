@@ -1,4 +1,5 @@
 vendor/
+!assets/vendor/
 node_modules/
 .env
 .gemini/
