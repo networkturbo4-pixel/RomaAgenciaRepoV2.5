@@ -300,6 +300,7 @@ function closeChat(triggerPopState = false) {
     const main = document.getElementById('msgMain');
     if (sidebar) sidebar.classList.remove('hidden');
     if (main) main.classList.remove('active');
+    document.body.classList.remove('msg-chat-active');
 
     if (triggerPopState && history.state && history.state.msg_chat_open) {
         history.back();
@@ -628,6 +629,7 @@ function openChat(chatId, name, publicLink) {
     }
     if (main && window.innerWidth < 768) {
         main.classList.add('active');
+        document.body.classList.add('msg-chat-active');
     }
 
     // Register mobile browser history state for seamless back button support

@@ -80,6 +80,51 @@ function notifyPusher($chat_id) {
     }
 }
 
+function notifyWidgetMessage($db, $chat_id, $guest_id, $content) {
+    try {
+        $stmt = $db->prepare("SELECT user_id FROM msg_participants WHERE chat_id = ? AND user_id IS NOT NULL");
+        $stmt->execute([$chat_id]);
+        $target_user_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Si no hay participantes asignados aun, notificar a los administradores
+        if (empty($target_user_ids)) {
+            $stAdmins = $db->query("SELECT id FROM users WHERE role_id = 1");
+            if ($stAdmins) {
+                $target_user_ids = $stAdmins->fetchAll(PDO::FETCH_COLUMN);
+            }
+        }
+        
+        if (empty($target_user_ids)) return;
+
+        $sender_name = 'Visitante Web';
+        if ($guest_id) {
+            $st = $db->prepare("SELECT name FROM msg_guests WHERE id = ?");
+            $st->execute([$guest_id]);
+            $s = $st->fetchColumn();
+            if ($s) $sender_name = $s;
+        }
+
+        $clean = trim(preg_replace('/\s+/', ' ', strip_tags((string)$content)));
+        $preview = mb_substr($clean, 0, 100);
+        if (empty($preview)) $preview = 'Nuevo mensaje desde el widget web';
+
+        $notifHelperPath = __DIR__ . '/../../includes/NotificationHelper.php';
+        if (file_exists($notifHelperPath)) {
+            require_once $notifHelperPath;
+            NotificationHelper::send([
+                'user_id' => $target_user_ids,
+                'title'   => 'Mensaje de ' . $sender_name,
+                'message' => $preview,
+                'link'    => 'index.php?module=mensajes&chat_id=' . $chat_id,
+                'type'    => 'mensajes',
+                'icon'    => 'ph-chat-circle-dots'
+            ], $db);
+        }
+    } catch (\Throwable $e) {
+        error_log("notifyWidgetMessage error: " . $e->getMessage());
+    }
+}
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 switch ($action) {
@@ -292,6 +337,7 @@ switch ($action) {
             $mStmt->execute([$chatId, $guestId, $msgContent]);
 
             notifyPusher($chatId);
+        notifyWidgetMessage($db, $chatId, $guestId, $content);
 
             echo json_encode([
                 'success' => true,
@@ -339,6 +385,8 @@ switch ($action) {
                 $mStmt = $db->prepare("INSERT INTO msg_messages (chat_id, sender_guest_id, content, type, created_at) VALUES (?, ?, ?, 'text', NOW())");
                 $mStmt->execute([$chatId, $guestId, $initial_message]);
                 notifyPusher($chatId);
+        notifyWidgetMessage($db, $chatId, $guestId, $content);
+                notifyWidgetMessage($db, $chatId, $guestId, $initial_message);
             }
 
             echo json_encode([
@@ -469,6 +517,7 @@ switch ($action) {
         $msgId = $db->lastInsertId();
 
         notifyPusher($chatId);
+        notifyWidgetMessage($db, $chatId, $guestId, $content);
 
         echo json_encode([
             'success' => true,

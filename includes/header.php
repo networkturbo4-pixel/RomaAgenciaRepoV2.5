@@ -412,7 +412,7 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                 <span class="notif-badge" id="notifBadgeDesktop" style="display: none;">0</span>
             </button>
 
-            <!-- User Info Card -->
+            <!-- User Info Card (Desktop Sidebar) -->
             <div class="sidebar-profile-card" id="profileCardToggle" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); padding: 0.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); cursor: pointer; margin: 0.5rem var(--space-3) 0 var(--space-3); border: 1px solid var(--border-color);">
                 <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; width: 100%;">
                     <div id="sidebar-avatar" style="width: 32px; height: 32px; flex-shrink: 0; background: var(--primary-color); color: white; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-weight: bold; overflow: hidden; margin: 0 auto;">
@@ -435,78 +435,6 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                     <i class="ph ph-dots-three" style="font-size: 1.25rem;"></i>
                 </div>
             </div>
-            
-            <!-- Modern Profile Popover Menu -->
-            <div class="profile-popover" id="profilePopover">
-                <div class="popover-header">
-                    <div class="popover-avatar">
-                        <?php if ($userAv): ?>
-                            <img src="<?php echo htmlspecialchars($userAv); ?>">
-                        <?php else: ?>
-                            <?php echo substr($_SESSION['user_name'] ?? 'U', 0, 1); ?>
-                        <?php endif; ?>
-                    </div>
-                    <div class="popover-user-info">
-                        <span class="popover-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?></span>
-                        <span class="popover-email"><?php echo htmlspecialchars($_SESSION['user_email'] ?? $_SESSION['user_role'] ?? ''); ?></span>
-                    </div>
-                </div>
-                
-                <div class="popover-divider"></div>
-                
-                <button class="popover-item" onclick="if(typeof openProfileModal === 'function') openProfileModal(); document.getElementById('profilePopover').classList.remove('active');">
-                    <i class="ph ph-user-circle"></i> Editar perfil
-                </button>
-                
-                <button class="popover-item theme-toggle-btn" style="justify-content: space-between;">
-                    <div style="display:flex; align-items:center; gap:0.75rem;">
-                        <i class="ph ph-moon dark-icon"></i>
-                        <i class="ph ph-sun light-icon" style="display: none;"></i>
-                        <span>Modo oscuro</span>
-                    </div>
-                    <div class="theme-switch-track" style="width: 32px; height: 18px; background: var(--border-color); border-radius: 18px; position: relative;">
-                        <div class="theme-switch-knob" style="width: 14px; height: 14px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.2);"></div>
-                    </div>
-                </button>
-
-                <?php if (in_array('conexiones', $perms)): ?>
-                <a href="index.php?module=conexiones&action=index" class="popover-item">
-                    <i class="ph ph-plugs-connected"></i> Conexiones
-                </a>
-                <?php endif; ?>
-
-                <?php if (in_array('config', $perms)): ?>
-                <a href="index.php?module=config&action=index" class="popover-item">
-                    <i class="ph ph-gear"></i> Configuración
-                </a>
-                <?php endif; ?>
-
-                <div class="popover-divider"></div>
-
-                <a href="index.php?module=auth&action=logout" class="popover-item text-danger">
-                    <i class="ph ph-sign-out"></i> Cerrar sesión
-                </a>
-            </div>
-            
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const profileCard = document.getElementById('profileCardToggle');
-                    const profilePopover = document.getElementById('profilePopover');
-                    
-                    if (profileCard && profilePopover) {
-                        profileCard.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            profilePopover.classList.toggle('active');
-                        });
-                        
-                        document.addEventListener('click', (e) => {
-                            if (!profilePopover.contains(e.target) && !profileCard.contains(e.target)) {
-                                profilePopover.classList.remove('active');
-                            }
-                        });
-                    }
-                });
-            </script>
         </div>
     </aside>
     <?php endif; ?>
@@ -531,22 +459,123 @@ $is_popup = !empty($is_popup) || (isset($_GET['popup']) && $_GET['popup'] == '1'
                     </span>
                 <?php endif; ?>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <button class="btn-icon" onclick="window.dispatchEvent(new CustomEvent('toggle-command-palette'));" title="Buscar (Ctrl+K)" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.25rem;">
-                    <i class="ph ph-magnifying-glass"></i>
-                </button>
-                <button class="btn-icon" onclick="if(typeof DriveExplorer !== 'undefined') DriveExplorer.openGlobalModal()" title="Archivos" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; font-size: 1.15rem;">
-                    <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i>
-                </button>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
                 <button class="notif-bell-btn" id="mobileNotifBtn" title="Notificaciones" type="button">
                     <i class="ph ph-bell"></i>
                     <span class="notif-badge" id="notifBadgeMobile" style="display: none;">0</span>
+                </button>
+                <button class="mobile-profile-btn" id="mobileProfileBtn" type="button" title="Mi Cuenta y Accesos" style="border: none; background: transparent; padding: 0; cursor: pointer; display: flex; align-items: center; -webkit-tap-highlight-color: transparent;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; overflow: hidden; border: 1.5px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                        <?php if ($userAv): ?>
+                            <img src="<?php echo htmlspecialchars($userAv); ?>" style="width:100%;height:100%;object-fit:cover;">
+                        <?php else: ?>
+                            <?php echo substr($_SESSION['user_name'] ?? 'U', 0, 1); ?>
+                        <?php endif; ?>
+                    </div>
                 </button>
             </div>
         </div>
 
         <!-- Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Modern Profile Popover Menu (Global) -->
+        <div class="profile-popover" id="profilePopover">
+            <div class="popover-header">
+                <div class="popover-avatar">
+                    <?php if ($userAv): ?>
+                        <img src="<?php echo htmlspecialchars($userAv); ?>" alt="Avatar">
+                    <?php else: ?>
+                        <?php echo substr($_SESSION['user_name'] ?? 'U', 0, 1); ?>
+                    <?php endif; ?>
+                </div>
+                <div class="popover-user-info">
+                    <span class="popover-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?></span>
+                    <span class="popover-email"><?php echo htmlspecialchars($_SESSION['user_email'] ?? $_SESSION['user_role'] ?? ''); ?></span>
+                </div>
+            </div>
+            
+            <div class="popover-divider"></div>
+
+            <!-- Accesos Rápidos Integrados (Búsqueda y Drive) -->
+            <button type="button" class="popover-item" onclick="window.dispatchEvent(new CustomEvent('toggle-command-palette')); document.getElementById('profilePopover').classList.remove('active');">
+                <i class="ph ph-magnifying-glass"></i>
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                    <span>Búsqueda rápida</span>
+                    <kbd style="font-size:10px; opacity:0.65; background:var(--border-color); padding:1px 5px; border-radius:4px;">Ctrl+K</kbd>
+                </div>
+            </button>
+
+            <button type="button" class="popover-item" onclick="if(typeof DriveExplorer !== 'undefined') DriveExplorer.openGlobalModal(); document.getElementById('profilePopover').classList.remove('active');">
+                <i class="ph ph-google-drive-logo" style="color: #3b82f6;"></i>
+                <span>Google Drive</span>
+            </button>
+
+            <button type="button" class="popover-item" onclick="if(typeof openProfileModal === 'function') openProfileModal(); document.getElementById('profilePopover').classList.remove('active');">
+                <i class="ph ph-user-circle"></i>
+                <span>Editar perfil</span>
+            </button>
+            
+            <button type="button" class="popover-item theme-toggle-btn" style="justify-content: space-between;">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <i class="ph ph-moon dark-icon"></i>
+                    <i class="ph ph-sun light-icon" style="display: none;"></i>
+                    <span>Modo oscuro</span>
+                </div>
+                <div class="theme-switch-track" style="width: 32px; height: 18px; background: var(--border-color); border-radius: 18px; position: relative;">
+                    <div class="theme-switch-knob" style="width: 14px; height: 14px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.2);"></div>
+                </div>
+            </button>
+
+            <?php if (in_array('conexiones', $perms)): ?>
+            <a href="index.php?module=conexiones&action=index" class="popover-item">
+                <i class="ph ph-plugs-connected"></i> Conexiones
+            </a>
+            <?php endif; ?>
+
+            <?php if (in_array('config', $perms)): ?>
+            <a href="index.php?module=config&action=index" class="popover-item">
+                <i class="ph ph-gear"></i> Configuración
+            </a>
+            <?php endif; ?>
+
+            <div class="popover-divider"></div>
+
+            <a href="index.php?module=auth&action=logout" class="popover-item text-danger">
+                <i class="ph ph-sign-out"></i> Cerrar sesión
+            </a>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const profileCard = document.getElementById('profileCardToggle');
+                const mobileProfileBtn = document.getElementById('mobileProfileBtn');
+                const profilePopover = document.getElementById('profilePopover');
+                
+                function toggleProfilePopover(e) {
+                    if (!profilePopover) return;
+                    e.stopPropagation();
+                    const notifPopover = document.getElementById('notifPopover');
+                    if (notifPopover) notifPopover.classList.remove('active');
+                    profilePopover.classList.toggle('active');
+                }
+
+                if (profileCard) {
+                    profileCard.addEventListener('click', toggleProfilePopover);
+                }
+                if (mobileProfileBtn) {
+                    mobileProfileBtn.addEventListener('click', toggleProfilePopover);
+                }
+                
+                document.addEventListener('click', (e) => {
+                    if (profilePopover && profilePopover.classList.contains('active')) {
+                        if (!profilePopover.contains(e.target) && (!profileCard || !profileCard.contains(e.target)) && (!mobileProfileBtn || !mobileProfileBtn.contains(e.target))) {
+                            profilePopover.classList.remove('active');
+                        }
+                    }
+                });
+            });
+        </script>
 
         <!-- Notification Popover Panel -->
         <div class="notif-popover" id="notifPopover">

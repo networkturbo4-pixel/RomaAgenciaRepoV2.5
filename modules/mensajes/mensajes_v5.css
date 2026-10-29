@@ -1937,8 +1937,21 @@
         background: var(--msg-surface);
     }
     .msg-main.active {
-        z-index: 30;
+        z-index: 9999;
         transform: translateX(0);
+    }
+
+    /* Ocultar barra inferior de navegación en móvil cuando el chat está activo para escribir con libertad */
+    body.msg-chat-active .mobile-bottom-navbar,
+    body:has(#msgMain.active) .mobile-bottom-navbar {
+        display: none !important;
+    }
+    body.msg-chat-active,
+    body:has(#msgMain.active) {
+        padding-bottom: 0 !important;
+    }
+    .msg-chat-list {
+        padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     /* Mobile Back Button in Header */

@@ -33,6 +33,80 @@ function triggerChatRefreshByMsg($msg_id) {
     } catch(Exception $e) {}
 }
 
+function notifyMessageParticipants($db, $chat_id, $sender_user_id, $sender_guest_id, $content, $type, $file_name = '') {
+    try {
+        $stmt = $db->prepare("SELECT user_id FROM msg_participants WHERE chat_id = ?");
+        $stmt->execute([$chat_id]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $target_user_ids = [];
+        foreach ($rows as $r) {
+            $uid = (int)($r['user_id'] ?? 0);
+            if ($uid > 0 && $uid !== (int)$sender_user_id) {
+                $target_user_ids[] = $uid;
+            }
+        }
+        if (empty($target_user_ids)) {
+            return;
+        }
+
+        // Sender display name
+        $sender_name = 'Mensajes';
+        if ($sender_user_id) {
+            $st = $db->prepare("SELECT name FROM users WHERE id = ?");
+            $st->execute([$sender_user_id]);
+            $s = $st->fetchColumn();
+            if ($s) $sender_name = $s;
+        } elseif ($sender_guest_id) {
+            $st = $db->prepare("SELECT name FROM msg_guests WHERE id = ?");
+            $st->execute([$sender_guest_id]);
+            $s = $st->fetchColumn();
+            if ($s) $sender_name = $s . ' (Invitado)';
+        }
+
+        // Chat name or group name if it's a group
+        $stChat = $db->prepare("SELECT name, is_group FROM msg_chats WHERE id = ?");
+        $stChat->execute([$chat_id]);
+        $chatData = $stChat->fetch(PDO::FETCH_ASSOC);
+        $title = $sender_name;
+        if (!empty($chatData['is_group']) && !empty($chatData['name'])) {
+            $title = $sender_name . ' (' . $chatData['name'] . ')';
+        }
+
+        // Preview snippet
+        $preview = '';
+        if ($type === 'image') {
+            $preview = '📷 Foto';
+        } elseif ($type === 'audio') {
+            $preview = '🎤 Mensaje de voz';
+        } elseif ($type === 'video') {
+            $preview = '🎥 Video';
+        } elseif ($type === 'file') {
+            $preview = '📎 ' . ($file_name ?: 'Archivo adjunto');
+        } else {
+            $clean = trim(preg_replace('/\s+/', ' ', strip_tags((string)$content)));
+            $preview = mb_substr($clean, 0, 100);
+            if (empty($preview)) {
+                $preview = 'Nuevo mensaje';
+            }
+        }
+
+        $notifHelperPath = __DIR__ . '/../../includes/NotificationHelper.php';
+        if (file_exists($notifHelperPath)) {
+            require_once $notifHelperPath;
+            NotificationHelper::send([
+                'user_id' => $target_user_ids,
+                'title'   => $title,
+                'message' => $preview,
+                'link'    => 'index.php?module=mensajes&chat_id=' . $chat_id,
+                'type'    => 'mensajes',
+                'icon'    => 'ph-chat-circle-dots'
+            ], $db);
+        }
+    } catch (\Throwable $e) {
+        error_log("notifyMessageParticipants error: " . $e->getMessage());
+    }
+}
+
 $action = $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'] ?? null;
 $guest_id = $_SESSION['guest_id'] ?? null;
@@ -594,6 +668,7 @@ switch ($action) {
         }
         
         triggerChatRefresh($chat_id);
+        notifyMessageParticipants($db, $chat_id, $user_id, $guest_id, $content, $type, $file_name);
         echo json_encode(['success' => true]);
         break;
 
@@ -762,6 +837,7 @@ switch ($action) {
                     $msg['file_name']
                 ]);
                 triggerChatRefresh($target_chat_id);
+                notifyMessageParticipants($db, $target_chat_id, $s_user, $s_guest, $msg['content'], $msg['type'], $msg['file_name']);
                 echo json_encode(['success' => true]);
                 exit;
             }

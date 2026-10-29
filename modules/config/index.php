@@ -269,24 +269,17 @@ try {
 <link rel="stylesheet" href="assets/css/config.css?v=<?php echo file_exists('assets/css/config.css') ? filemtime('assets/css/config.css') : '1'; ?>">
 
 <div class="settings-app-container">
-    <!-- Modern App Header -->
+    <!-- Modern Compact Header -->
     <div class="settings-header">
         <div class="settings-header-left">
             <div class="settings-header-icon">
                 <i class="ph ph-sliders-horizontal"></i>
             </div>
-            <div>
+            <div class="settings-header-info">
                 <h1 class="settings-header-title">
                     Configuración del Sistema
                     <span class="settings-header-badge">Centro de Control</span>
                 </h1>
-                <p class="settings-header-desc">Administra la personalización de marca, roles de acceso, integraciones en la nube y mantenimiento general de la plataforma.</p>
-            </div>
-        </div>
-        <div class="settings-header-right">
-            <div class="settings-status-chip">
-                <span class="status-dot"></span>
-                <span>Plataforma Operativa</span>
             </div>
         </div>
     </div>

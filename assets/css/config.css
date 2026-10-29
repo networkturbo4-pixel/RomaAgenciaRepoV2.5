@@ -21,11 +21,11 @@
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: 18px;
-    padding: 1.5rem 2rem;
+    padding: 1.15rem 1.6rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
+    justify-content: flex-start;
+    gap: 1.25rem;
     margin-bottom: 1.5rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
     position: relative;
@@ -384,7 +384,7 @@
 
 .settings-pane,
 .tab-pane {
-    display: none;
+    display: none !important;
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: 18px;
@@ -397,33 +397,15 @@
     box-sizing: border-box;
 }
 
-@supports (content-visibility: hidden) {
-    .settings-pane {
-        display: block;
-        content-visibility: hidden;
-        height: 0;
-        overflow: hidden;
-        padding: 0;
-        border: none;
-        margin: 0;
-    }
-    .settings-pane.active {
-        content-visibility: visible;
-        height: auto;
-        overflow: visible;
-        padding: 2rem;
-        border: 1px solid var(--border-color);
-    }
-}
-
 [data-theme="dark"] .settings-pane {
     background: rgba(17, 24, 39, 0.85);
     border-color: rgba(255, 255, 255, 0.07);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
-.settings-pane.active {
-    display: block;
+.settings-pane.active,
+.tab-pane.active {
+    display: block !important;
 }
 
 @keyframes settingsSlideUp {
@@ -1305,8 +1287,22 @@
         border-radius: 12px;
     }
 
+    .settings-header {
+        padding: 0.9rem 1.15rem;
+        border-radius: 14px;
+        margin-bottom: 1rem;
+    }
+
+    .settings-header-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        font-size: 1.4rem;
+        border-radius: 12px;
+    }
+
     .settings-header-title {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
         flex-wrap: wrap;
         gap: 0.4rem;
         line-height: 1.25;
@@ -1317,22 +1313,8 @@
         padding: 0.15rem 0.5rem;
     }
 
-    .settings-header-desc {
-        font-size: 12px;
-        line-height: 1.4;
-    }
-
-    .settings-header-right {
-        align-self: flex-start;
-    }
-
-    .settings-status-chip {
-        font-size: 11.5px;
-        padding: 0.35rem 0.75rem;
-    }
-
-    .settings-pane,
-    .settings-pane.active {
+    .settings-pane.active,
+    .tab-pane.active {
         padding: 1.1rem;
         border-radius: 14px;
     }
