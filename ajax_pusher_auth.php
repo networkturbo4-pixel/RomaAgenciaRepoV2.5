@@ -13,7 +13,11 @@ $db = $database->getConnection();
 
 $options = array(
     'cluster' => 'us2',
-    'useTLS' => true
+    'useTLS' => true,
+    'curl_options' => array(
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0
+    )
 );
 $pusher = new Pusher\Pusher(
     'b31f38612d61b0285c78',

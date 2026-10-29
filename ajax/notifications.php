@@ -28,9 +28,45 @@ try {
             $stmt->execute([$userId]);
             $count = (int)$stmt->fetchColumn();
 
+            $latestStmt = $db->prepare("
+                SELECT id, title, message, link, type, icon, created_at
+                FROM notifications
+                WHERE user_id = ? AND is_read = 0
+                ORDER BY id DESC
+                LIMIT 1
+            ");
+            $latestStmt->execute([$userId]);
+            $latestRow = $latestStmt->fetch(PDO::FETCH_ASSOC);
+
+            $siteName = 'Roma Agencia';
+            $sysFavicon = 'uploads/favicon_1783912317.png';
+            try {
+                $stmtCfg = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('site_name', 'favicon')");
+                $cfgMap = $stmtCfg ? $stmtCfg->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+                if (!empty($cfgMap['site_name'])) $siteName = trim($cfgMap['site_name']);
+                if (!empty($cfgMap['favicon'])) $sysFavicon = ltrim($cfgMap['favicon'], '/');
+            } catch (\Throwable $ign) {}
+
+            $latestUnread = null;
+            if ($latestRow) {
+                $latestUnread = [
+                    'id'             => (int)$latestRow['id'],
+                    'title'          => $latestRow['title'] ?? '',
+                    'message'        => $latestRow['message'] ?? '',
+                    'link'           => $latestRow['link'] ?: 'index.php',
+                    'type'           => $latestRow['type'] ?: 'general',
+                    'icon'           => $latestRow['icon'] ?: 'ph-bell',
+                    'app_name'       => $siteName,
+                    'system_favicon' => $sysFavicon
+                ];
+            }
+
             echo json_encode([
-                'success' => true,
-                'count' => $count
+                'success'        => true,
+                'count'          => $count,
+                'latest_unread'  => $latestUnread,
+                'app_name'       => $siteName,
+                'system_favicon' => $sysFavicon
             ]);
             break;
 
@@ -121,14 +157,27 @@ try {
             break;
 
         case 'send_test':
-            NotificationHelper::send([
+            $siteName = 'Roma Agencia';
+            $sysFavicon = 'uploads/favicon_1783912317.png';
+            try {
+                $stmtCfg = $db->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('site_name', 'favicon')");
+                $cfgMap = $stmtCfg ? $stmtCfg->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+                if (!empty($cfgMap['site_name'])) $siteName = trim($cfgMap['site_name']);
+                if (!empty($cfgMap['favicon'])) $sysFavicon = ltrim($cfgMap['favicon'], '/');
+            } catch (\Throwable $ign) {}
+
+            $testTitle = 'Notificación de Prueba 🔔';
+            $testMsg = '¡Excelente! Las notificaciones en tiempo real de ' . $siteName . ' están activas.';
+            $createdIds = NotificationHelper::send([
                 'user_id' => $userId,
-                'title'   => 'Notificación de Prueba 🔔',
-                'message' => '¡Excelente! El sistema de notificaciones en tiempo real funciona correctamente.',
+                'title'   => $testTitle,
+                'message' => $testMsg,
                 'link'    => 'index.php',
                 'type'    => 'general',
                 'icon'    => 'ph-bell-ringing'
             ], $db);
+
+            $newId = $createdIds[$userId] ?? (int)$db->lastInsertId();
 
             $countStmt = $db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
             $countStmt->execute([$userId]);
@@ -137,7 +186,15 @@ try {
             echo json_encode([
                 'success'      => true,
                 'unread_count' => $unreadCount,
-                'message'      => 'Notificación de prueba enviada con éxito'
+                'message'      => 'Notificación de prueba enviada con éxito',
+                'notification' => [
+                    'id'             => (int)$newId,
+                    'title'          => $testTitle,
+                    'message'        => $testMsg,
+                    'link'           => 'index.php',
+                    'app_name'       => $siteName,
+                    'system_favicon' => $sysFavicon
+                ]
             ]);
             break;
 

@@ -12,9 +12,9 @@ class AndroidAppSyncHelper {
             }
 
             $rootDir = dirname(__DIR__);
-            $siteName = trim($cfg['site_name'] ?? 'ROMA');
+            $siteName = trim($cfg['site_name'] ?? 'Roma Agencia');
             if ($siteName === '') {
-                $siteName = 'ROMA';
+                $siteName = 'Roma Agencia';
             }
 
             // 1. Actualizar strings.xml del proyecto Android con el nombre actual del sistema
@@ -34,7 +34,7 @@ class AndroidAppSyncHelper {
 
             // 2. Sincronizar iconos de la APK y PWA a partir del favicon del sistema si GD está disponible
             $faviconRel = $cfg['favicon'] ?? '';
-            if (!empty($faviconRel) && extension_exists('gd')) {
+            if (!empty($faviconRel) && function_exists('imagecreatefrompng')) {
                 $faviconPath = $rootDir . '/' . ltrim($faviconRel, '/');
                 if (is_file($faviconPath)) {
                     self::generateIconsFromImage($faviconPath, $rootDir);
@@ -45,7 +45,7 @@ class AndroidAppSyncHelper {
         }
     }
 
-    private static function generateIconsFromImage(string $srcPath, string $rootDir): void {
+    public static function generateIconsFromImage(string $srcPath, string $rootDir): void {
         $info = @getimagesize($srcPath);
         if (!$info) return;
 
@@ -65,24 +65,25 @@ class AndroidAppSyncHelper {
 
         $srcW = imagesx($srcImg);
         $srcH = imagesy($srcImg);
+        $isSquare = (abs($srcW - $srcH) <= max(10, (int)round(max($srcW, $srcH) * 0.05)));
 
         $targets = [
-            $rootDir . '/android-app/app/src/main/res/mipmap-mdpi/ic_launcher.png' => 48,
-            $rootDir . '/android-app/app/src/main/res/mipmap-mdpi/ic_launcher_round.png' => 48,
-            $rootDir . '/android-app/app/src/main/res/mipmap-hdpi/ic_launcher.png' => 72,
-            $rootDir . '/android-app/app/src/main/res/mipmap-hdpi/ic_launcher_round.png' => 72,
-            $rootDir . '/android-app/app/src/main/res/mipmap-xhdpi/ic_launcher.png' => 96,
-            $rootDir . '/android-app/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png' => 96,
-            $rootDir . '/android-app/app/src/main/res/mipmap-xxhdpi/ic_launcher.png' => 144,
-            $rootDir . '/android-app/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png' => 144,
-            $rootDir . '/android-app/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png' => 192,
-            $rootDir . '/android-app/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png' => 192,
-            $rootDir . '/android-app/app/src/main/res/drawable/ic_launcher_roma.png' => 256,
-            $rootDir . '/assets/img/icon-192x192.png' => 192,
-            $rootDir . '/assets/img/default-icon.png' => 192,
+            $rootDir . '/android-app/app/src/main/res/mipmap-mdpi/ic_launcher.png' => [48, false],
+            $rootDir . '/android-app/app/src/main/res/mipmap-mdpi/ic_launcher_round.png' => [48, true],
+            $rootDir . '/android-app/app/src/main/res/mipmap-hdpi/ic_launcher.png' => [72, false],
+            $rootDir . '/android-app/app/src/main/res/mipmap-hdpi/ic_launcher_round.png' => [72, true],
+            $rootDir . '/android-app/app/src/main/res/mipmap-xhdpi/ic_launcher.png' => [96, false],
+            $rootDir . '/android-app/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png' => [96, true],
+            $rootDir . '/android-app/app/src/main/res/mipmap-xxhdpi/ic_launcher.png' => [144, false],
+            $rootDir . '/android-app/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png' => [144, true],
+            $rootDir . '/android-app/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png' => [192, false],
+            $rootDir . '/android-app/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png' => [192, true],
+            $rootDir . '/android-app/app/src/main/res/drawable/ic_launcher_roma.png' => [256, false],
+            $rootDir . '/assets/img/icon-192x192.png' => [192, false],
+            $rootDir . '/assets/img/default-icon.png' => [192, false],
         ];
 
-        foreach ($targets as $destPath => $size) {
+        foreach ($targets as $destPath => [$size, $isRound]) {
             $dir = dirname($destPath);
             if (!is_dir($dir)) {
                 @mkdir($dir, 0775, true);
@@ -94,8 +95,8 @@ class AndroidAppSyncHelper {
             imagefilledrectangle($dst, 0, 0, $size, $size, $transparent);
             imagealphablending($dst, true);
 
-            // Escalar manteniendo proporción centrada con pequeño margen
-            $pad = (int)round($size * 0.08);
+            // Si el icono ya es cuadrado (como el favicon de producción), ocupar el 100% sin márgenes vacíos
+            $pad = $isSquare ? 0 : (int)round($size * 0.06);
             $avail = $size - ($pad * 2);
             $scale = min($avail / max(1, $srcW), $avail / max(1, $srcH));
             $newW = max(1, (int)round($srcW * $scale));
@@ -104,6 +105,22 @@ class AndroidAppSyncHelper {
             $dstY = (int)round(($size - $newH) / 2);
 
             imagecopyresampled($dst, $srcImg, $dstX, $dstY, 0, 0, $newW, $newH, $srcW, $srcH);
+
+            if ($isRound && $isSquare) {
+                imagealphablending($dst, false);
+                $r = $size / 2.0;
+                $cx = $r - 0.5;
+                $cy = $r - 0.5;
+                for ($y = 0; $y < $size; $y++) {
+                    for ($x = 0; $x < $size; $x++) {
+                        $dist = sqrt(($x - $cx) * ($x - $cx) + ($y - $cy) * ($y - $cy));
+                        if ($dist > $r) {
+                            imagesetpixel($dst, $x, $y, $transparent);
+                        }
+                    }
+                }
+            }
+
             @imagepng($dst, $destPath, 9);
             imagedestroy($dst);
         }

@@ -35,11 +35,34 @@ jobs:
         with:
           gradle-version: '8.5'
 
-      - name: Configurar URL del Sistema (si se especificó en el trigger)
+      - name: Configurar URL del Sistema y Sincronizar Icono en Vivo desde Producción
         run: |
-          if [ -n "${{ github.event.inputs.server_url }}" ]; then
-            echo "Inyectando URL personalizada: ${{ github.event.inputs.server_url }}"
-            sed -i 's|<string name="server_url">.*</string>|<string name="server_url">${{ github.event.inputs.server_url }}</string>|g' android-app/app/src/main/res/values/strings.xml
+          TARGET_URL="${{ github.event.inputs.server_url }}"
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="https://romaagencia.lat"
+          fi
+          echo "Sincronizando URL y Favicon desde: $TARGET_URL"
+          sed -i "s|<string name=\"server_url\">.*</string>|<string name=\"server_url\">${TARGET_URL}</string>|g" android-app/app/src/main/res/values/strings.xml
+
+          # Incrementar versionCode automáticamente en cada compilación para que Android actualice el icono y la APK sin conflicto
+          NEW_VER_CODE=$((10 + ${{ github.run_number }}))
+          sed -i "s|versionCode [0-9]*|versionCode ${NEW_VER_CODE}|g" android-app/app/build.gradle
+          sed -i "s|versionName \".*\"|versionName \"2.1.${{ github.run_number }}\"|g" android-app/app/build.gradle
+
+          # Extraer favicon en vivo desde el servidor de producción y regenerar todos los mipmap-* antes de compilar
+          FAV_PATH=$(curl -sL "$TARGET_URL" | grep -oE '<link rel="icon" href="[^"]+"' | head -n 1 | sed -E 's/.*href="([^"]+)".*/\1/')
+          if [ -n "$FAV_PATH" ]; then
+            if [[ "$FAV_PATH" == http* ]]; then
+              FAV_URL="$FAV_PATH"
+            else
+              FAV_URL="${TARGET_URL%/}/${FAV_PATH#/}"
+            fi
+            echo "Descargando favicon de producción: $FAV_URL"
+            curl -sL "$FAV_URL" -o /tmp/live_favicon.png && [ -s /tmp/live_favicon.png ] && php -r '
+              require "includes/AndroidAppSyncHelper.php";
+              AndroidAppSyncHelper::generateIconsFromImage("/tmp/live_favicon.png", getcwd());
+              echo "Iconos regenerados exitosamente desde producción.\n";
+            ' || true
           fi
 
       - name: Dar permisos de ejecución a Gradlew

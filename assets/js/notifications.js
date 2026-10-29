@@ -6,6 +6,17 @@
     let currentUnreadCount = 0;
     let notificationsCache = [];
     let isFetching = false;
+    let isFirstCountFetch = true;
+    const storageKeyLastId = 'roma_last_notif_id_' + (window.CURRENT_USER_ID || '0');
+    let lastNotifiedId = parseInt(localStorage.getItem(storageKeyLastId) || '0', 10) || 0;
+
+    function saveLastNotifiedId(id) {
+        const numId = parseInt(id, 10) || 0;
+        if (numId > lastNotifiedId) {
+            lastNotifiedId = numId;
+            try { localStorage.setItem(storageKeyLastId, String(lastNotifiedId)); } catch (e) {}
+        }
+    }
 
     // Elementos del DOM
     let desktopBtn, mobileBtn, popover, badgeDesktop, badgeMobile, notifList, notifCountText, markAllBtn, testBtn, pushBanner;
@@ -80,8 +91,8 @@
         // Conectar a Pusher en tiempo real
         initPusher();
 
-        // Polling de respaldo cada 60 segundos
-        setInterval(fetchUnreadCount, 60000);
+        // Polling activo en tiempo real cada 7 segundos (respaldo infalible en Web y APK)
+        setInterval(fetchUnreadCount, 7000);
     }
 
     function checkPushPermissionBanner() {
@@ -154,13 +165,105 @@
         }
     }
 
+    function dispatchRealtimeNotification(data, isManualTest = false) {
+        if (!data) return;
+        const notifId = parseInt(data.id, 10) || 0;
+        if (!isManualTest && notifId > 0 && notifId <= lastNotifiedId) {
+            return;
+        }
+        if (notifId > 0) {
+            saveLastNotifiedId(notifId);
+        }
+
+        if (typeof window.playNotificationSound === 'function') {
+            try { window.playNotificationSound(); } catch(e) {}
+        }
+
+        const sysName = data.app_name || window.SYSTEM_SITE_NAME || 'Roma Agencia';
+        const sysIcon = data.system_favicon || window.SYSTEM_FAVICON || 'uploads/favicon_1783912317.png';
+        const rawTitle = data.title || 'Nueva Notificación';
+        const fullTitle = rawTitle.toLowerCase().includes(sysName.toLowerCase()) ? rawTitle : `${sysName} • ${rawTitle}`;
+
+        // 1. Si estamos en la APK nativa de Android, disparar notificación nativa con el favicon y nombre del sistema
+        if (window.RomaNativeApp) {
+            try {
+                if (typeof window.RomaNativeApp.showNotificationWithId === 'function') {
+                    window.RomaNativeApp.showNotificationWithId(
+                        notifId,
+                        rawTitle,
+                        data.message || '',
+                        data.link || 'index.php',
+                        sysIcon,
+                        sysName
+                    );
+                } else if (typeof window.RomaNativeApp.showNotification === 'function') {
+                    window.RomaNativeApp.showNotification(
+                        rawTitle,
+                        data.message || '',
+                        data.link || 'index.php',
+                        sysIcon,
+                        sysName
+                    );
+                }
+            } catch (err) {}
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+                const n = new Notification(fullTitle, {
+                    body: data.message || '',
+                    icon: sysIcon,
+                    badge: sysIcon
+                });
+                n.onclick = function() {
+                    window.focus();
+                    if (data.link && data.link !== '#') {
+                        window.location.href = data.link;
+                    }
+                    n.close();
+                };
+            } catch (err) {}
+        }
+
+        // 2. Mostrar toast flotante en pantalla
+        if (typeof window.showToast === 'function' && !isManualTest) {
+            window.showToast(`${rawTitle}: ${data.message || ''}`, 'info');
+        }
+    }
+
     function fetchUnreadCount() {
-        if (navigator.onLine === false || document.hidden) return;
+        if (navigator.onLine === false) return;
+        const isNativeApp = Boolean(window.RomaNativeApp);
+        if (document.hidden && !isNativeApp) return;
+
         fetch('ajax/notifications.php?action=get_unread_count')
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    updateBadge(data.count);
+                    const prevCount = currentUnreadCount;
+                    const wasFirst = isFirstCountFetch;
+                    isFirstCountFetch = false;
+
+                    if (data.latest_unread && data.latest_unread.id) {
+                        const latestId = parseInt(data.latest_unread.id, 10) || 0;
+                        if (wasFirst && lastNotifiedId === 0) {
+                            saveLastNotifiedId(latestId);
+                        } else if (latestId > lastNotifiedId) {
+                            dispatchRealtimeNotification(data.latest_unread, false);
+                        }
+                    } else if (!wasFirst && data.count > prevCount) {
+                        fetch('ajax/notifications.php?action=get_notifications&limit=1')
+                            .then(r => r.json())
+                            .then(listData => {
+                                if (listData.success && listData.notifications && listData.notifications.length > 0) {
+                                    const newest = listData.notifications[0];
+                                    if (newest && !newest.is_read) {
+                                        dispatchRealtimeNotification(newest, false);
+                                    }
+                                }
+                            })
+                            .catch(() => {});
+                    }
+
+                    updateBadge(data.count, !wasFirst && data.count > prevCount);
                 }
             })
             .catch(() => {});
@@ -303,6 +406,15 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    const notifPayload = data.notification || {
+                        id: Date.now(),
+                        title: 'Notificación de Prueba 🔔',
+                        message: '¡Excelente! Las notificaciones en tiempo real están activas.',
+                        link: 'index.php',
+                        app_name: window.SYSTEM_SITE_NAME || 'Roma Agencia',
+                        system_favicon: window.SYSTEM_FAVICON || 'uploads/favicon_1783912317.png'
+                    };
+                    dispatchRealtimeNotification(notifPayload, true);
                     if (typeof window.showToast === 'function') {
                         window.showToast('¡Notificación de prueba enviada con éxito!', 'success');
                     }
@@ -351,53 +463,12 @@
             const channel = pusherClient.subscribe(channelName);
 
             channel.bind('new-notification', (data) => {
-                // 1. Reproducir sonido si existe
-                if (typeof window.playNotificationSound === 'function') {
-                    try { window.playNotificationSound(); } catch(e) {}
-                }
+                dispatchRealtimeNotification(data, false);
 
-                const sysName = data.app_name || window.SYSTEM_SITE_NAME || 'ROMA';
-                const sysIcon = data.system_favicon || window.SYSTEM_FAVICON || 'assets/img/default-icon.png';
-                const rawTitle = data.title || 'Nueva Notificación';
-                const fullTitle = rawTitle.toLowerCase().includes(sysName.toLowerCase()) ? rawTitle : `${sysName} • ${rawTitle}`;
-
-                // 2. Si estamos en la APK nativa de Android, lanzar notificación nativa con el favicon y nombre del sistema
-                if (window.RomaNativeApp && typeof window.RomaNativeApp.showNotification === 'function') {
-                    try {
-                        window.RomaNativeApp.showNotification(
-                            rawTitle,
-                            data.message || '',
-                            data.link || 'index.php',
-                            sysIcon,
-                            sysName
-                        );
-                    } catch (err) {}
-                } else if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-                    try {
-                        const n = new Notification(fullTitle, {
-                            body: data.message || '',
-                            icon: sysIcon,
-                            badge: sysIcon
-                        });
-                        n.onclick = function() {
-                            window.focus();
-                            if (data.link && data.link !== '#') {
-                                window.location.href = data.link;
-                            }
-                            n.close();
-                        };
-                    } catch (err) {}
-                }
-
-                // 3. Mostrar toast flotante en pantalla
-                if (typeof window.showToast === 'function') {
-                    window.showToast(`${rawTitle}: ${data.message || ''}`, 'info');
-                }
-
-                // 4. Incrementar el badge con animación
+                // Incrementar el badge con animación
                 updateBadge(currentUnreadCount + 1, true);
 
-                // 5. Si el popover está abierto, insertar elemento arriba
+                // Si el popover está abierto, insertar elemento arriba
                 if (isPopoverOpen && notifList) {
                     prependNewNotification(data);
                 }

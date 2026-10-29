@@ -148,7 +148,11 @@ class NotificationHelper {
         try {
             $options = [
                 'cluster' => self::PUSHER_CLUSTER,
-                'useTLS'  => true
+                'useTLS'  => true,
+                'curl_options' => [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => 0
+                ]
             ];
             $pusher = new Pusher\Pusher(
                 self::PUSHER_KEY,

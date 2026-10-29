@@ -20,6 +20,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.Html;
 import android.text.InputType;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -44,6 +45,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -53,6 +55,7 @@ import androidx.core.content.FileProvider;
 import androidx.core.graphics.drawable.IconCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -68,6 +71,8 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
@@ -78,7 +83,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_SERVER_URL = "custom_server_url";
     private static final String KEY_SITE_NAME = "cached_site_name";
     private static final String KEY_FAVICON_URL = "cached_favicon_url";
-    private static final String NOTIF_CHANNEL_ID = "roma_system_notifications";
+    private static final String KEY_LAST_NOTIF_ID = "last_native_notif_id";
+    private static final String NOTIF_CHANNEL_ID = "roma_realtime_alerts_v2";
     private static final String CACHED_FAVICON_FILENAME = "cached_system_favicon.png";
 
     private WebView webView;
@@ -93,11 +99,32 @@ public class MainActivity extends AppCompatActivity {
     private ValueCallback<Uri[]> mFilePathCallback;
     private Uri mCameraPhotoUri;
     private String serverUrl;
-    private String currentSiteName = "ROMA";
+    private String currentSiteName = "Roma Agencia";
     private Bitmap cachedFaviconBitmap = null;
     private SharedPreferences preferences;
     private final ExecutorService bgExecutor = Executors.newCachedThreadPool();
-    private final AtomicInteger notifIdCounter = new AtomicInteger(100);
+    private final ScheduledExecutorService pollerScheduler = Executors.newSingleThreadScheduledExecutor();
+    private final AtomicInteger notifIdCounter = new AtomicInteger(1000);
+
+    private volatile int lastNotifiedId = -1;
+    private volatile boolean isFirstPoll = true;
+    private PendingNotifData pendingNotification = null;
+
+    private static class PendingNotifData {
+        final int id;
+        final String title;
+        final String body;
+        final String targetUrl;
+        final String appName;
+
+        PendingNotifData(int id, String title, String body, String targetUrl, String appName) {
+            this.id = id;
+            this.title = title;
+            this.body = body;
+            this.targetUrl = targetUrl;
+            this.appName = appName;
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -107,7 +134,6 @@ public class MainActivity extends AppCompatActivity {
 
         createNotificationChannel();
 
-        // Inicializar preferencias y URL
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         serverUrl = preferences.getString(KEY_SERVER_URL, getString(R.string.server_url));
         if (serverUrl == null || serverUrl.contains("crm.romaagencia.com")) {
@@ -115,8 +141,8 @@ public class MainActivity extends AppCompatActivity {
             preferences.edit().putString(KEY_SERVER_URL, serverUrl).apply();
         }
         currentSiteName = preferences.getString(KEY_SITE_NAME, getString(R.string.app_name));
+        lastNotifiedId = preferences.getInt(KEY_LAST_NOTIF_ID, -1);
 
-        // Inicializar vistas
         webView = findViewById(R.id.webView);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         progressBar = findViewById(R.id.progressBar);
@@ -129,15 +155,12 @@ public class MainActivity extends AppCompatActivity {
         loadCachedBranding();
         updateCurrentUrlDisplay();
 
-        // Configuración de cookies persistentes para mantener la sesión de PHP activa
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, true);
 
-        // Aceleración por Hardware para máxima fluidez
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-        // Configuración avanzada de WebSettings para carga rápida
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
@@ -157,37 +180,26 @@ public class MainActivity extends AppCompatActivity {
             webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
-        // Identificador UserAgent personalizado
         String defaultUA = webSettings.getUserAgentString();
-        webSettings.setUserAgentString(defaultUA + " RomaAndroidApp/2.0");
+        webSettings.setUserAgentString(defaultUA + " RomaAndroidApp/2.1");
 
-        // Puente JavaScript Nativo para Notificaciones y Sincronización de Favicon/Nombre
         webView.addJavascriptInterface(new RomaJsBridge(), "RomaNativeApp");
 
-        // Swipe to Refresh
         swipeRefreshLayout.setColorSchemeResources(R.color.primary, R.color.accent);
         swipeRefreshLayout.setOnRefreshListener(() -> webView.reload());
 
-        // Configurar WebViewClient
         setupWebViewClient();
-
-        // Configurar WebChromeClient (Cámara, FileChooser y Progress)
         setupWebChromeClient();
-
-        // Configurar Descargas (PDFs, Cotizaciones, Backups)
         setupDownloadListener();
 
-        // Botón Reintentar
         btnRetry.setOnClickListener(v -> {
             hideOfflineScreen();
             progressBar.setVisibility(View.VISIBLE);
             webView.loadUrl(serverUrl);
         });
 
-        // Botón Cambiar URL del servidor
         btnChangeUrl.setOnClickListener(v -> showChangeUrlDialog());
 
-        // Manejo del botón físico o gesto Atrás
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -201,13 +213,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Solicitar permisos en tiempo de ejecución
         requestAppPermissions();
-
-        // Sincronizar nombre de la app y favicon desde api/app_metadata.php en segundo plano
         syncBrandingFromApi();
+        startNativeNotificationPoller();
 
-        // Si se abrió desde una notificación nativa con URL destino
         String notifTargetUrl = getIntent() != null ? getIntent().getStringExtra("target_url") : null;
         hideOfflineScreen();
         if (notifTargetUrl != null && !notifTargetUrl.isEmpty()) {
@@ -246,11 +255,12 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     NOTIF_CHANNEL_ID,
-                    "Notificaciones del Sistema",
+                    "Notificaciones en Tiempo Real",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Alertas en tiempo real, tareas, reuniones y avisos del sistema");
+            channel.setDescription("Alertas instantáneas de tareas, reuniones y avisos de " + currentSiteName);
             channel.enableVibration(true);
+            channel.setVibrationPattern(new long[]{0, 250, 120, 250});
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -258,14 +268,30 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private Bitmap scaleBitmapSafe(Bitmap src, int targetSize) {
+        if (src == null) return null;
+        try {
+            if (src.getWidth() <= targetSize && src.getHeight() <= targetSize) {
+                return src;
+            }
+            return Bitmap.createScaledBitmap(src, targetSize, targetSize, true);
+        } catch (Exception e) {
+            return src;
+        }
+    }
+
     private void loadCachedBranding() {
         try {
             File iconFile = new File(getFilesDir(), CACHED_FAVICON_FILENAME);
             if (iconFile.exists()) {
-                cachedFaviconBitmap = BitmapFactory.decodeFile(iconFile.getAbsolutePath());
+                Bitmap decoded = BitmapFactory.decodeFile(iconFile.getAbsolutePath());
+                if (decoded != null) {
+                    cachedFaviconBitmap = scaleBitmapSafe(decoded, 192);
+                }
             }
             if (cachedFaviconBitmap == null) {
-                cachedFaviconBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_roma);
+                Bitmap fallback = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_roma);
+                cachedFaviconBitmap = scaleBitmapSafe(fallback, 192);
             }
             applyBrandingToUi();
         } catch (Exception ignored) {}
@@ -282,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         ActivityManager.TaskDescription taskDesc = new ActivityManager.TaskDescription(
                                 currentSiteName,
-                                cachedFaviconBitmap,
+                                scaleBitmapSafe(cachedFaviconBitmap, 128),
                                 Color.parseColor("#4F46E5")
                         );
                         setTaskDescription(taskDesc);
@@ -325,7 +351,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateBrandingData(String siteName, String faviconUrl) {
         boolean changed = false;
-        if (siteName != null && !siteName.trim().isEmpty() && !siteName.equals(currentSiteName)) {
+        if (siteName != null && !siteName.trim().isEmpty() && !siteName.trim().equals(currentSiteName)) {
             currentSiteName = siteName.trim();
             preferences.edit().putString(KEY_SITE_NAME, currentSiteName).apply();
             changed = true;
@@ -339,9 +365,10 @@ public class MainActivity extends AppCompatActivity {
             if (!fullFaviconUrl.equals(lastFaviconUrl) || !iconFile.exists()) {
                 Bitmap downloaded = downloadBitmap(fullFaviconUrl);
                 if (downloaded != null) {
-                    cachedFaviconBitmap = downloaded;
+                    Bitmap scaled = scaleBitmapSafe(downloaded, 192);
+                    cachedFaviconBitmap = scaled;
                     try (FileOutputStream fos = new FileOutputStream(iconFile)) {
-                        downloaded.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        scaled.compress(Bitmap.CompressFormat.PNG, 100, fos);
                         preferences.edit().putString(KEY_FAVICON_URL, fullFaviconUrl).apply();
                         changed = true;
                     } catch (Exception ignored) {}
@@ -374,10 +401,190 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
+    /**
+     * Poller nativo en segundo plano que verifica notificaciones nuevas cada 6 segundos
+     * usando las cookies de sesión del usuario autenticado en el WebView.
+     */
+    private void startNativeNotificationPoller() {
+        pollerScheduler.scheduleWithFixedDelay(() -> {
+            HttpURLConnection conn = null;
+            try {
+                String cookies = CookieManager.getInstance().getCookie(serverUrl);
+                if (cookies == null || cookies.isEmpty()) {
+                    return;
+                }
+
+                String checkUrl = resolveFullUrl("ajax/notifications.php?action=get_notifications&limit=1");
+                URL url = new URL(checkUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Cookie", cookies);
+                conn.setRequestProperty("Accept", "application/json");
+
+                if (conn.getResponseCode() == 200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+
+                    JSONObject json = new JSONObject(sb.toString());
+                    if (json.optBoolean("success", false)) {
+                        JSONArray arr = json.optJSONArray("notifications");
+                        if (arr != null && arr.length() > 0) {
+                            JSONObject latest = arr.getJSONObject(0);
+                            int id = latest.optInt("id", 0);
+                            int isRead = latest.optInt("is_read", 1);
+
+                            if (isFirstPoll) {
+                                isFirstPoll = false;
+                                if (lastNotifiedId < 0 && id > 0) {
+                                    saveLastNotifiedId(id);
+                                }
+                                return;
+                            }
+
+                            if (id > 0 && isRead == 0 && id > lastNotifiedId) {
+                                saveLastNotifiedId(id);
+                                String rawTitle = decodeHtmlEntities(latest.optString("title", "Nueva Notificación"));
+                                String rawMsg = decodeHtmlEntities(latest.optString("message", ""));
+                                String link = latest.optString("link", "index.php");
+                                postNativeNotification(id, rawTitle, rawMsg, link, currentSiteName);
+                            }
+                        } else if (isFirstPoll) {
+                            isFirstPoll = false;
+                            if (lastNotifiedId < 0) {
+                                saveLastNotifiedId(0);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }, 4, 6, TimeUnit.SECONDS);
+    }
+
+    private String decodeHtmlEntities(String text) {
+        if (text == null || text.isEmpty()) return "";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            return Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY).toString();
+        } else {
+            return Html.fromHtml(text).toString();
+        }
+    }
+
+    private synchronized void saveLastNotifiedId(int id) {
+        if (id > lastNotifiedId) {
+            lastNotifiedId = id;
+            preferences.edit().putInt(KEY_LAST_NOTIF_ID, id).apply();
+        }
+    }
+
+    private void postNativeNotification(int notifId, String title, String body, String targetUrl, String appName) {
+        String sysName = (appName != null && !appName.trim().isEmpty()) ? appName.trim() : currentSiteName;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                pendingNotification = new PendingNotifData(notifId, title, body, targetUrl, sysName);
+                runOnUiThread(() -> ActivityCompat.requestPermissions(
+                        MainActivity.this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        PERMISSION_REQUEST_CODE
+                ));
+                return;
+            }
+        }
+
+        Bitmap baseBitmap = cachedFaviconBitmap;
+        if (baseBitmap == null) {
+            baseBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_roma);
+        }
+        Bitmap largeIconBmp = scaleBitmapSafe(baseBitmap, 128);
+        Bitmap smallIconBmp = scaleBitmapSafe(baseBitmap, 64);
+
+        int uniqueIntId = (notifId > 0) ? notifId : notifIdCounter.incrementAndGet();
+
+        Intent intent = new Intent(MainActivity.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        if (targetUrl != null && !targetUrl.isEmpty() && !targetUrl.equals("#")) {
+            intent.putExtra("target_url", targetUrl);
+        }
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                MainActivity.this,
+                uniqueIntId,
+                intent,
+                flags
+        );
+
+        String cleanTitle = (title != null && !title.isEmpty()) ? title : sysName;
+        String cleanBody = (body != null && !body.isEmpty()) ? body : "Tienes una nueva notificación en " + sysName;
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this, NOTIF_CHANNEL_ID)
+                .setContentTitle(cleanTitle)
+                .setContentText(cleanBody)
+                .setSubText(sysName)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(cleanBody).setSummaryText(sysName))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+
+        if (largeIconBmp != null) {
+            builder.setLargeIcon(largeIconBmp);
+        }
+        if (smallIconBmp != null) {
+            try {
+                builder.setSmallIcon(IconCompat.createWithBitmap(smallIconBmp));
+            } catch (Exception e) {
+                builder.setSmallIcon(R.drawable.ic_launcher_roma);
+            }
+        } else {
+            builder.setSmallIcon(R.drawable.ic_launcher_roma);
+        }
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            try {
+                manager.notify(uniqueIntId, builder.build());
+            } catch (Exception e) {
+                // Fallback seguro con icono de recurso en caso de restricción del fabricante
+                builder.setSmallIcon(R.drawable.ic_launcher_roma);
+                manager.notify(uniqueIntId, builder.build());
+            }
+        }
+    }
+
     public class RomaJsBridge {
         @JavascriptInterface
         public void syncBranding(String siteName, String faviconUrl) {
             bgExecutor.execute(() -> updateBrandingData(siteName, faviconUrl));
+        }
+
+        @JavascriptInterface
+        public void showNotificationWithId(int id, String title, String body, String targetUrl, String iconUrl, String appName) {
+            bgExecutor.execute(() -> {
+                if (id > 0) {
+                    if (id <= lastNotifiedId) return;
+                    saveLastNotifiedId(id);
+                }
+                String sysName = (appName != null && !appName.trim().isEmpty()) ? appName.trim() : currentSiteName;
+                if (iconUrl != null && !iconUrl.trim().isEmpty()) {
+                    updateBrandingData(sysName, iconUrl);
+                }
+                postNativeNotification(id, title, body, targetUrl, sysName);
+            });
         }
 
         @JavascriptInterface
@@ -387,57 +594,47 @@ public class MainActivity extends AppCompatActivity {
                 if (iconUrl != null && !iconUrl.trim().isEmpty()) {
                     updateBrandingData(sysName, iconUrl);
                 }
-
-                Bitmap notifBitmap = cachedFaviconBitmap;
-                if (notifBitmap == null) {
-                    notifBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_roma);
-                }
-
-                Intent intent = new Intent(MainActivity.this, MainActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                if (targetUrl != null && !targetUrl.isEmpty()) {
-                    intent.putExtra("target_url", targetUrl);
-                }
-
-                int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    flags |= PendingIntent.FLAG_IMMUTABLE;
-                }
-                PendingIntent pendingIntent = PendingIntent.getActivity(
-                        MainActivity.this,
-                        notifIdCounter.incrementAndGet(),
-                        intent,
-                        flags
-                );
-
-                String cleanTitle = (title != null && !title.isEmpty()) ? title : sysName;
-
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this, NOTIF_CHANNEL_ID)
-                        .setContentTitle(cleanTitle)
-                        .setContentText(body != null ? body : "")
-                        .setSubText(sysName)
-                        .setStyle(new NotificationCompat.BigTextStyle().bigText(body != null ? body : "").setSummaryText(sysName))
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setDefaults(NotificationCompat.DEFAULT_ALL)
-                        .setAutoCancel(true)
-                        .setContentIntent(pendingIntent);
-
-                if (notifBitmap != null) {
-                    builder.setLargeIcon(notifBitmap);
-                    builder.setSmallIcon(IconCompat.createWithBitmap(notifBitmap));
-                } else {
-                    builder.setSmallIcon(R.drawable.ic_launcher_roma);
-                }
-
-                NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                if (manager != null) {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                            ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                        manager.notify(notifIdCounter.get(), builder.build());
-                    }
-                }
+                postNativeNotification(notifIdCounter.incrementAndGet(), title, body, targetUrl, sysName);
             });
         }
+    }
+
+    private void injectRealtimeNotificationBridge(WebView view) {
+        String js = "(function(){" +
+                "if(window.__romaNativeHooked) return;" +
+                "window.__romaNativeHooked = true;" +
+                "var sysTitle = document.title ? document.title.split('|')[0].trim() : 'Roma Agencia';" +
+                "var favEl = document.querySelector('link[rel*=\"icon\"]');" +
+                "var favHref = favEl ? favEl.href : '';" +
+                "if(window.RomaNativeApp && window.RomaNativeApp.syncBranding){" +
+                "  window.RomaNativeApp.syncBranding(window.SYSTEM_SITE_NAME || sysTitle, window.SYSTEM_FAVICON || favHref);" +
+                "}" +
+                "var origFetch = window.fetch;" +
+                "if(origFetch){" +
+                "  window.fetch = function(u, c){" +
+                "    var p = origFetch.apply(this, arguments);" +
+                "    try {" +
+                "      var uStr = typeof u === 'string' ? u : (u && u.url ? u.url : '');" +
+                "      if(uStr.indexOf('action=send_test') !== -1){" +
+                "        p.then(function(r){ return r.clone().json(); }).then(function(d){" +
+                "          if(d && d.success && window.RomaNativeApp){" +
+                "            var n = d.notification || {};" +
+                "            window.RomaNativeApp.showNotification(" +
+                "              n.title || 'Notificación de Prueba 🔔'," +
+                "              n.message || '¡Excelente! Las notificaciones en tiempo real están activas.'," +
+                "              n.link || 'index.php'," +
+                "              window.SYSTEM_FAVICON || favHref," +
+                "              window.SYSTEM_SITE_NAME || sysTitle" +
+                "            );" +
+                "          }" +
+                "        }).catch(function(){});" +
+                "      }" +
+                "    } catch(e){}" +
+                "    return p;" +
+                "  };" +
+                "}" +
+                "})();";
+        view.evaluateJavascript(js, null);
     }
 
     private void updateCurrentUrlDisplay() {
@@ -493,6 +690,7 @@ public class MainActivity extends AppCompatActivity {
                 swipeRefreshLayout.setRefreshing(false);
                 hideOfflineScreen();
                 CookieManager.getInstance().flush();
+                injectRealtimeNotificationBridge(view);
             }
 
             @Override
@@ -546,7 +744,7 @@ public class MainActivity extends AppCompatActivity {
             public void onReceivedIcon(WebView view, Bitmap icon) {
                 super.onReceivedIcon(view, icon);
                 if (icon != null && icon.getWidth() >= 32) {
-                    cachedFaviconBitmap = icon;
+                    cachedFaviconBitmap = scaleBitmapSafe(icon, 192);
                     applyBrandingToUi();
                 }
             }
@@ -683,6 +881,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (pendingNotification != null) {
+                    PendingNotifData p = pendingNotification;
+                    pendingNotification = null;
+                    bgExecutor.execute(() -> postNativeNotification(p.id, p.title, p.body, p.targetUrl, p.appName));
+                }
+            }
+        }
+    }
+
     private void showOfflineScreen() {
         layoutOffline.setVisibility(View.VISIBLE);
         webView.setVisibility(View.GONE);
@@ -698,5 +910,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         CookieManager.getInstance().flush();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        pollerScheduler.shutdownNow();
     }
 }
