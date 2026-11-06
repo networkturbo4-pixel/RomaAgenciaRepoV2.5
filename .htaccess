@@ -65,6 +65,7 @@ AddType text/javascript .js
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteBase /
 
     # Bloquear acceso a carpetas de control de versiones y tokens
     RewriteRule ^\.git - [F,L]
@@ -73,8 +74,9 @@ AddType text/javascript .js
     RewriteRule ^database - [F,L]
 
     # Ignorar archivos o carpetas reales
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
 
     # Sitemap
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
@@ -82,6 +84,10 @@ AddType text/javascript .js
     # Ruta amigable corta para cotizaciones: /c/TOKEN o /cotizacion/TOKEN
     RewriteRule ^c/([^/]+)/?$ index.php?module=quotes&action=public&token=$1 [QSA,L]
     RewriteRule ^cotizacion/([^/]+)/?$ index.php?module=quotes&action=public&token=$1 [QSA,L]
+
+    # Ruta amigable corta para ordenes de trabajo: /ot/TOKEN o /orden/TOKEN
+    RewriteRule ^ot/([^/]+)/?$ index.php?module=work_orders&action=public&token=$1 [QSA,L]
+    RewriteRule ^orden/([^/]+)/?$ index.php?module=work_orders&action=public&token=$1 [QSA,L]
 
     # Ruta amigable corta para formularios: /f/TOKEN o /form/TOKEN
     RewriteRule ^f/([^/]+)/?$ index.php?module=forms&action=fill&token=$1 [QSA,L]

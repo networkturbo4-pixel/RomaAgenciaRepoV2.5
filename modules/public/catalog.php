@@ -394,9 +394,9 @@ $base_url = $protocol . '://' . $host . dirname($_SERVER['PHP_SELF']);
                 <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 1rem; padding: 0 0.25rem;"><?php echo htmlspecialchars($group['name']); ?></h2>
                 <div class="grid">
                     <?php foreach ($group['services'] as $srv): 
-                        $link = "servicio/" . $srv['id'];
+                        $link = "index.php?module=public&action=service&id=" . $srv['id'];
                         if (!empty($srv['slug'])) {
-                            $link .= "/" . urlencode($srv['slug']);
+                            $link .= "&slug=" . urlencode($srv['slug']);
                         }
                         
                         $catColor = !empty($srv['category_color']) ? $srv['category_color'] : '#6b7280';

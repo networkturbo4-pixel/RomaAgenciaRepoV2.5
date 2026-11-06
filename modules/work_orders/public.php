@@ -1,6 +1,29 @@
 <?php
 // modules/work_orders/public.php
-$token = $_GET['token'] ?? '';
+if (!isset($db) || !$db) {
+    require_once __DIR__ . '/../../config/database.php';
+    $database = new Database();
+    $db = $database->getConnection();
+}
+
+if (!$db) {
+    http_response_code(500);
+    die("<div style='font-family:sans-serif;padding:30px;background:#fef2f2;border:1px solid #f87171;color:#991b1b;border-radius:8px;max-width:600px;margin:50px auto;line-height:1.6;'>
+        <h3 style='margin-top:0;'>⚠️ Error de Conexión</h3>
+        <p>No se pudo conectar a la base de datos del sistema.</p>
+    </div>");
+}
+
+$token = $_GET['token'] ?? $_GET['t'] ?? '';
+if (empty($token) && !empty($_SERVER['PATH_INFO'])) {
+    $token = trim($_SERVER['PATH_INFO'], '/');
+}
+if (empty($token)) {
+    $uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    if (preg_match('#/(?:ot|orden)/([^/]+)#', $uri, $m)) {
+        $token = $m[1];
+    }
+}
 
 if (empty($token)) {
     die("Token inválido.");
@@ -16,18 +39,28 @@ if (!$order) {
 
 $order_data = $order['data'];
 $correlativo = $order['correlativo'];
+
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$script_name = $_SERVER['SCRIPT_NAME'] ?? '';
+$base_dir = rtrim(str_replace('\\', '/', dirname($script_name)), '/');
+if (substr($base_dir, -20) === '/modules/work_orders') {
+    $base_dir = substr($base_dir, 0, -20);
+}
+$base_url = $protocol . '://' . $host . ($base_dir ? $base_dir : '') . '/';
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <base href="<?php echo htmlspecialchars($base_url); ?>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Orden de Servicio <?php echo htmlspecialchars($correlativo); ?></title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <?php
   $stmtFav = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'favicon'");
-  $faviconRow = $stmtFav->fetch(PDO::FETCH_ASSOC);
+  $faviconRow = $stmtFav ? $stmtFav->fetch(PDO::FETCH_ASSOC) : null;
   if ($faviconRow && !empty($faviconRow['setting_value'])): ?>
   <link rel="icon" href="<?php echo htmlspecialchars($faviconRow['setting_value']); ?>">
   <?php endif; ?>

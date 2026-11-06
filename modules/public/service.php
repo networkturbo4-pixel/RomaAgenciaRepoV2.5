@@ -655,8 +655,8 @@ $current_url = $protocol . '://' . $host . $_SERVER['REQUEST_URI'];
             <h3 class="section-title"><i class="ph ph-link"></i> También podría interesarte</h3>
             <div class="related-grid">
                 <?php foreach($related as $rel): 
-                    $rel_link = "servicio/" . $rel['id'];
-                    if (!empty($rel['slug'])) $rel_link .= "/" . urlencode($rel['slug']);
+                    $rel_link = "index.php?module=public&action=service&id=" . $rel['id'];
+                    if (!empty($rel['slug'])) $rel_link .= "&slug=" . urlencode($rel['slug']);
                     
                     $rel_curr_code = !empty($rel['currency']) ? trim($rel['currency']) : trim(htmlspecialchars($global_settings['currency'] ?? 'USD'));
                     $rel_curr = $currency_symbols[$rel_curr_code] ?? $rel_curr_code;

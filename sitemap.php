@@ -44,9 +44,9 @@ echo "  </url>\n";
 // Fetch all public services
 $stmt_serv = $db->query("SELECT id, slug, updated_at, created_at FROM services WHERE deleted_at IS NULL AND visibility = 'public' AND status != 'paused'");
 while ($srv = $stmt_serv->fetch(PDO::FETCH_ASSOC)) {
-    $link = $site_url . "/servicio/" . $srv['id'];
+    $link = $site_url . "/index.php?module=public&action=service&id=" . $srv['id'];
     if (!empty($srv['slug'])) {
-        $link .= "/" . urlencode($srv['slug']);
+        $link .= "&amp;slug=" . urlencode($srv['slug']);
     }
     
     // Determine last mod

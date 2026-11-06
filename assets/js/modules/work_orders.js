@@ -130,7 +130,7 @@ const WorkOrderModule = {
 
     shareOrder: function(token) {
         const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.php.*$/, '').replace(/\/$/, '');
-        const url = baseUrl + '/modules/work_orders/public.php?token=' + token;
+        const url = baseUrl + '/index.php?module=work_orders&action=public&token=' + token;
         document.getElementById('shareLinkInput').value = url;
         document.getElementById('shareModal').classList.add('active');
     },

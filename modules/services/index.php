@@ -395,9 +395,9 @@ require_once 'includes/header.php';
                 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
                 $host = $_SERVER['HTTP_HOST'];
                 $base_dir = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-                $public_link = $protocol . '://' . $host . $base_dir . "/servicio/" . $service['id'];
+                $public_link = $protocol . '://' . $host . $base_dir . "/index.php?module=public&action=service&id=" . $service['id'];
                 if (!empty($service['slug'])) {
-                    $public_link .= "/" . urlencode($service['slug']);
+                    $public_link .= "&slug=" . urlencode($service['slug']);
                 }
             ?>
             <div class="service-cover">
